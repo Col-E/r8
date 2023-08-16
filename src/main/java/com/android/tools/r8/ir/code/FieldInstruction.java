@@ -23,7 +23,6 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
-import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collections;
 import java.util.List;
@@ -218,9 +217,14 @@ public abstract class FieldInstruction extends Instruction {
         appView.withClassHierarchy();
     DexEncodedField field =
         appViewWithClassHierarchy.appInfo().resolveField(getField()).getResolvedField();
-    if (field != null) {
-      return field.getOptimizationInfo().getAbstractValue();
+    if (field == null) {
+      return AbstractValue.unknown();
     }
-    return UnknownValue.getInstance();
+    AbstractValue assumeValue =
+        appView.getAssumeInfoCollection().get(field.getReference()).getAssumeValue();
+    if (!assumeValue.isUnknown()) {
+      return assumeValue;
+    }
+    return field.getOptimizationInfo().getAbstractValue();
   }
 }

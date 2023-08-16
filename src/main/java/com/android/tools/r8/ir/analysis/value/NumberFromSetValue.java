@@ -19,9 +19,16 @@ public class NumberFromSetValue extends NonConstantNumberValue {
   private static final int MAX_SIZE = 30;
 
   private final IntSet numbers;
+  private final int min;
 
   private NumberFromSetValue(IntSet numbers) {
+    assert !numbers.isEmpty();
     this.numbers = numbers;
+    int min = Integer.MAX_VALUE;
+    for (int number : numbers) {
+      min = Math.min(min, number);
+    }
+    this.min = min;
   }
 
   static Builder builder() {
@@ -37,13 +44,18 @@ public class NumberFromSetValue extends NonConstantNumberValue {
   }
 
   @Override
-  public boolean containsInt(int value) {
+  public boolean maybeContainsInt(int value) {
     return numbers.contains(value);
   }
 
   @Override
   public long getAbstractionSize() {
     return numbers.size();
+  }
+
+  @Override
+  public long getMinInclusive() {
+    return min;
   }
 
   @Override
@@ -74,12 +86,15 @@ public class NumberFromSetValue extends NonConstantNumberValue {
 
   @Override
   public boolean mayOverlapWith(ConstantOrNonConstantNumberValue other) {
-    if (other.isSingleNumberValue()) {
-      return containsInt(other.asSingleNumberValue().getIntValue());
+    if (other.isDefiniteBitsNumberValue()) {
+      return true;
     }
-    assert other.isNonConstantNumberValue();
+    if (other.isSingleNumberValue()) {
+      return maybeContainsInt(other.asSingleNumberValue().getIntValue());
+    }
+    assert other.isNumberFromIntervalValue() || other.isNumberFromSetValue();
     for (int number : numbers) {
-      if (other.containsInt(number)) {
+      if (other.maybeContainsInt(number)) {
         return true;
       }
     }

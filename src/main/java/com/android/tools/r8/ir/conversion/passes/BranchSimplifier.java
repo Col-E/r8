@@ -228,7 +228,7 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
     if (theIf.getType() == IfType.EQ || theIf.getType() == IfType.NE) {
       AbstractValue lhsAbstractValue = lhs.getAbstractValue(appView, code.context());
       if (lhsAbstractValue.isConstantOrNonConstantNumberValue()
-          && !lhsAbstractValue.asConstantOrNonConstantNumberValue().containsInt(0)) {
+          && !lhsAbstractValue.asConstantOrNonConstantNumberValue().maybeContainsInt(0)) {
         // Value doesn't contain zero at all.
         simplifyIfWithKnownCondition(code, block, theIf, theIf.targetFromCondition(1));
         return true;

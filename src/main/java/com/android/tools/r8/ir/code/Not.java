@@ -8,15 +8,13 @@ import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.dex.code.DexNotInt;
 import com.android.tools.r8.dex.code.DexNotLong;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.analysis.constant.Bottom;
-import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
-import com.android.tools.r8.ir.analysis.constant.LatticeElement;
-import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.lightir.LirBuilder;
-import java.util.function.Function;
 
 public class Not extends Unop {
 
@@ -43,22 +41,24 @@ public class Not extends Unop {
   }
 
   @Override
-  public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
-    LatticeElement sourceLattice = getLatticeElement.apply(source());
-    if (sourceLattice.isConst()) {
-      ConstNumber sourceConst = sourceLattice.asConst().getConstNumber();
-      TypeElement type = PrimitiveTypeElement.fromNumericType(this.type);
-      Value value = code.createValue(type, getLocalInfo());
-      ConstNumber newConst;
+  public AbstractValue getAbstractValue(
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
+    if (outValue.hasLocalInfo()) {
+      return AbstractValue.unknown();
+    }
+    AbstractValue sourceLattice = abstractValueSupplier.getAbstractValue(source());
+    if (sourceLattice.isSingleNumberValue()) {
+      SingleNumberValue sourceConst = sourceLattice.asSingleNumberValue();
+      long newConst;
       if (this.type == NumericType.INT) {
-        newConst = new ConstNumber(value, ~sourceConst.getIntValue());
+        newConst = ~sourceConst.getIntValue();
       } else {
         assert this.type == NumericType.LONG;
-        newConst = new ConstNumber(value, ~sourceConst.getLongValue());
+        newConst = ~sourceConst.getLongValue();
       }
-      return new ConstLatticeElement(newConst);
+      return appView.abstractValueFactory().createSingleNumberValue(newConst);
     }
-    return Bottom.getInstance();
+    return AbstractValue.unknown();
   }
 
   @Override

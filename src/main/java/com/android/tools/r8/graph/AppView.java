@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinke
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
+import com.android.tools.r8.ir.analysis.value.AbstractValueJoiner.AbstractValueConstantPropagationJoiner;
 import com.android.tools.r8.ir.analysis.value.AbstractValueJoiner.AbstractValueFieldJoiner;
 import com.android.tools.r8.ir.analysis.value.AbstractValueJoiner.AbstractValueParameterJoiner;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
@@ -102,6 +103,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private KeepInfoCollection keepInfo = null;
 
   private final AbstractValueFactory abstractValueFactory = new AbstractValueFactory();
+  private final AbstractValueConstantPropagationJoiner abstractValueConstantPropagationJoiner;
   private final AbstractValueFieldJoiner abstractValueFieldJoiner;
   private final AbstractValueParameterJoiner abstractValueParameterJoiner;
   private final InstanceFieldInitializationInfoFactory instanceFieldInitializationInfoFactory =
@@ -175,6 +177,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
         timing.time(
             "Compilation context", () -> CompilationContext.createInitialContext(options()));
     this.wholeProgramOptimizations = wholeProgramOptimizations;
+    abstractValueConstantPropagationJoiner = new AbstractValueConstantPropagationJoiner(this);
     if (enableWholeProgramOptimizations()) {
       abstractValueFieldJoiner = new AbstractValueFieldJoiner(withClassHierarchy());
       abstractValueParameterJoiner = new AbstractValueParameterJoiner(withClassHierarchy());
@@ -323,6 +326,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public AbstractValueFactory abstractValueFactory() {
     return abstractValueFactory;
+  }
+
+  public AbstractValueConstantPropagationJoiner getAbstractValueConstantPropagationJoiner() {
+    return abstractValueConstantPropagationJoiner;
   }
 
   public AbstractValueFieldJoiner getAbstractValueFieldJoiner() {

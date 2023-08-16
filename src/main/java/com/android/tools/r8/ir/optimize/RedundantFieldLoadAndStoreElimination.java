@@ -793,8 +793,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
 
     private void clearMostRecentStaticFieldWrite(StaticGet staticGet, DexClassAndField field) {
       // If the instruction can throw, we need to clear all most-recent-writes, since subsequent
-      // field
-      // writes (if any) are not guaranteed to be executed.
+      // field writes (if any) are not guaranteed to be executed.
       if (staticGet.instructionInstanceCanThrow(appView, method)) {
         activeState.clearMostRecentFieldWrites();
       } else {

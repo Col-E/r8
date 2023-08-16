@@ -22,7 +22,7 @@ public class NumberFromIntervalValue extends NonConstantNumberValue {
   }
 
   @Override
-  public boolean containsInt(int value) {
+  public boolean maybeContainsInt(int value) {
     return minInclusive <= value && value <= maxInclusive;
   }
 
@@ -31,6 +31,7 @@ public class NumberFromIntervalValue extends NonConstantNumberValue {
     return maxInclusive - minInclusive + 1;
   }
 
+  @Override
   public long getMinInclusive() {
     return minInclusive;
   }
@@ -62,8 +63,12 @@ public class NumberFromIntervalValue extends NonConstantNumberValue {
 
   @Override
   public boolean mayOverlapWith(ConstantOrNonConstantNumberValue other) {
+    if (other.isDefiniteBitsNumberValue()) {
+      // Conservatively return true.
+      return true;
+    }
     if (other.isSingleNumberValue()) {
-      return containsInt(other.asSingleNumberValue().getIntValue());
+      return maybeContainsInt(other.asSingleNumberValue().getIntValue());
     }
     if (other.isNumberFromIntervalValue()) {
       return mayOverlapWith(other.asNumberFromIntervalValue());

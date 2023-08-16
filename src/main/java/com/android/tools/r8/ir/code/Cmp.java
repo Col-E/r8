@@ -13,17 +13,16 @@ import com.android.tools.r8.dex.code.DexCmplFloat;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.ir.analysis.constant.Bottom;
-import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
-import com.android.tools.r8.ir.analysis.constant.LatticeElement;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.ConstantOrNonConstantNumberValue;
+import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.lightir.LirBuilder;
-import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
-import java.util.function.Function;
 
 public class Cmp extends Binop {
 
@@ -161,12 +160,16 @@ public class Cmp extends Binop {
   }
 
   @Override
-  public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
-    LatticeElement leftLattice = getLatticeElement.apply(leftValue());
-    LatticeElement rightLattice = getLatticeElement.apply(rightValue());
-    if (leftLattice.isConst() && rightLattice.isConst()) {
-      ConstNumber leftConst = leftLattice.asConst().getConstNumber();
-      ConstNumber rightConst = rightLattice.asConst().getConstNumber();
+  public AbstractValue getAbstractValue(
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
+    if (outValue.hasLocalInfo()) {
+      return AbstractValue.unknown();
+    }
+    AbstractValue leftAbstractValue = abstractValueSupplier.getAbstractValue(leftValue());
+    AbstractValue rightAbstractValue = abstractValueSupplier.getAbstractValue(rightValue());
+    if (leftAbstractValue.isSingleNumberValue() && rightAbstractValue.isSingleNumberValue()) {
+      SingleNumberValue leftConst = leftAbstractValue.asSingleNumberValue();
+      SingleNumberValue rightConst = rightAbstractValue.asSingleNumberValue();
       int result;
       if (type == NumericType.LONG) {
         result = Integer.signum(Long.compare(leftConst.getLongValue(), rightConst.getLongValue()));
@@ -188,37 +191,28 @@ public class Cmp extends Binop {
           result = (int) Math.signum(left - right);
         }
       }
-      Value value = code.createValue(TypeElement.getInt(), getLocalInfo());
-      ConstNumber newConst = new ConstNumber(value, result);
-      return new ConstLatticeElement(newConst);
-    } else if (leftLattice.isValueRange() && rightLattice.isConst()) {
-      Value leftValueRange = leftLattice.asConstRange().getConstRange();
-      ConstNumber rightConst = rightLattice.asConst().getConstNumber();
-      return buildLatticeResult(code, leftValueRange.getValueRange(),
-          rightConst.outValue().getValueRange());
-    } else if (leftLattice.isConst() && rightLattice.isValueRange()) {
-      Value rigthValueRange = rightLattice.asConstRange().getConstRange();
-      ConstNumber leftConst = leftLattice.asConst().getConstNumber();
-      return buildLatticeResult(code, leftConst.outValue().getValueRange(),
-          rigthValueRange.getValueRange());
-    } else if (leftLattice.isValueRange() && rightLattice.isValueRange()) {
-      Value rigthValueRange = rightLattice.asConstRange().getConstRange();
-      Value leftValueRange = leftLattice.asConstRange().getConstRange();
-      return buildLatticeResult(code, leftValueRange.getValueRange(),
-          rigthValueRange.getValueRange());
+      return appView.abstractValueFactory().createSingleNumberValue(result);
+    } else if (leftAbstractValue.isConstantOrNonConstantNumberValue()
+        && rightAbstractValue.isConstantOrNonConstantNumberValue()) {
+      return buildLatticeResult(
+          appView,
+          leftAbstractValue.asConstantOrNonConstantNumberValue(),
+          rightAbstractValue.asConstantOrNonConstantNumberValue());
     }
-    return Bottom.getInstance();
+    return AbstractValue.unknown();
   }
 
-  private LatticeElement buildLatticeResult(IRCode code, LongInterval leftRange,
-      LongInterval rightRange) {
-    if (leftRange.overlapsWith(rightRange)) {
-      return Bottom.getInstance();
+  private AbstractValue buildLatticeResult(
+      AppView<?> appView,
+      ConstantOrNonConstantNumberValue leftRange,
+      ConstantOrNonConstantNumberValue rightRange) {
+    if (leftRange.mayOverlapWith(rightRange)) {
+      return AbstractValue.unknown();
     }
-    int result = Integer.signum(Long.compare(leftRange.getMin(), rightRange.getMin()));
-    Value value = code.createValue(TypeElement.getInt(), getLocalInfo());
-    ConstNumber newConst = new ConstNumber(value, result);
-    return new ConstLatticeElement(newConst);
+    // Use min value as representative when values cannot overlap.
+    int result =
+        Integer.signum(Long.compare(leftRange.getMinInclusive(), rightRange.getMinInclusive()));
+    return appView.abstractValueFactory().createSingleNumberValue(result);
   }
 
   @Override

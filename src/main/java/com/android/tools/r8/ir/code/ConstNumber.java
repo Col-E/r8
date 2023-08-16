@@ -20,9 +20,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
-import com.android.tools.r8.ir.analysis.constant.Bottom;
-import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
-import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -31,7 +28,6 @@ import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.NumberUtils;
 import java.util.Set;
-import java.util.function.Function;
 
 public class ConstNumber extends ConstInstruction {
 
@@ -318,14 +314,6 @@ public class ConstNumber extends ConstInstruction {
   }
 
   @Override
-  public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
-    if (outValue.hasLocalInfo()) {
-      return Bottom.getInstance();
-    }
-    return new ConstLatticeElement(this);
-  }
-
-  @Override
   public TypeElement evaluate(AppView<?> appView) {
     return getOutType();
   }
@@ -346,6 +334,9 @@ public class ConstNumber extends ConstInstruction {
   @Override
   public AbstractValue getAbstractValue(
       AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
+    if (outValue.hasLocalInfo()) {
+      return AbstractValue.unknown();
+    }
     return appView.abstractValueFactory().createSingleNumberValue(value);
   }
 

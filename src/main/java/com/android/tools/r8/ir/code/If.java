@@ -188,7 +188,12 @@ public class If extends JumpInstruction {
     assert !isZeroTest();
     assert left.outType() == right.outType();
     assert verifyTypeCompatible(left.getOutType(), type);
-    return targetFromCondition(Long.signum(left.getRawValue() - right.getRawValue()));
+    return targetFromCondition(left.getRawValue(), right.getRawValue());
+  }
+
+  public BasicBlock targetFromCondition(long left, long right) {
+    assert !isZeroTest();
+    return targetFromCondition(Long.signum(left - right));
   }
 
   public BasicBlock targetFromNonNullObject() {
