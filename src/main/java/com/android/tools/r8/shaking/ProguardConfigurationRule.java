@@ -15,13 +15,13 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.StreamSupport;
 
 public abstract class ProguardConfigurationRule extends ProguardClassSpecification {
 
@@ -195,12 +195,9 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
         ProguardClassNameList.getWildcardsOrEmpty(getClassNames()),
         ProguardTypeMatcher.getWildcardsOrEmpty(getInheritanceAnnotations()),
         ProguardTypeMatcher.getWildcardsOrEmpty(getInheritanceClassName()),
-        memberRules != null
-            ? memberRules.stream()
-                    .map(ProguardMemberRule::getWildcards)
-                    .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
-                ::iterator
-            : Collections::emptyIterator);
+        memberRules == null
+            ? Collections::emptyIterator
+            : IterableUtils.flatMap(memberRules, ProguardMemberRule::getWildcards));
   }
 
   @Override

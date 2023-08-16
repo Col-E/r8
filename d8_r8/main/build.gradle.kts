@@ -164,7 +164,6 @@ tasks.withType<JavaCompile> {
   options.errorprone.disable("ImmutableEnumChecker")
   options.errorprone.disable("BadImport")
   options.errorprone.disable("ComplexBooleanConstant")
-  options.errorprone.disable("StreamToIterable")
   options.errorprone.disable("HidingField")
   options.errorprone.disable("StreamResourceLeak")
   options.errorprone.disable("CatchAndPrintStackTrace")

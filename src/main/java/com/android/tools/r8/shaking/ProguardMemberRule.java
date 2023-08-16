@@ -13,13 +13,13 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
 import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 public class ProguardMemberRule {
 
@@ -327,12 +327,9 @@ public class ProguardMemberRule {
         ProguardTypeMatcher.getWildcardsOrEmpty(annotations),
         ProguardTypeMatcher.getWildcardsOrEmpty(type),
         ProguardNameMatcher.getWildcardsOrEmpty(name),
-        arguments != null
-            ? arguments.stream()
-                    .map(ProguardTypeMatcher::getWildcards)
-                    .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
-                ::iterator
-            : Collections::emptyIterator);
+        arguments == null
+            ? Collections::emptyIterator
+            : IterableUtils.flatMap(arguments, ProguardTypeMatcher::getWildcards));
   }
 
   ProguardMemberRule materialize(DexItemFactory dexItemFactory) {
