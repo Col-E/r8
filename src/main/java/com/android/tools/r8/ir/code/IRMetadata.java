@@ -4,10 +4,18 @@
 
 package com.android.tools.r8.ir.code;
 
-public class IRMetadata {
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
+
+public class IRMetadata implements StructuralItem<IRMetadata> {
 
   private long first;
   private long second;
+
+  private static void specify(StructuralSpecification<IRMetadata, ?> spec) {
+    spec.withLong(s -> s.first).withLong(s -> s.second);
+  }
 
   public IRMetadata() {}
 
@@ -18,6 +26,16 @@ public class IRMetadata {
 
   public static IRMetadata unknown() {
     return new IRMetadata(0xFFFFFFFFFFFFFFFFL, 0xFFFFFFFFFFFFFFFFL);
+  }
+
+  @Override
+  public IRMetadata self() {
+    return this;
+  }
+
+  @Override
+  public StructuralMapping<IRMetadata> getStructuralMapping() {
+    return IRMetadata::specify;
   }
 
   private boolean get(int bit) {

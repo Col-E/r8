@@ -4,8 +4,11 @@
 package com.android.tools.r8.utils.structural;
 
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.utils.ComparatorUtils;
 import com.android.tools.r8.utils.structural.StructuralItem.CompareToAccept;
 import com.android.tools.r8.utils.structural.StructuralItem.HashingAccept;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -57,6 +60,11 @@ public abstract class StructuralSpecification<T, V extends StructuralSpecificati
   public final <S> V withCustomItemCollection(
       Function<T, Collection<S>> getter, StructuralAcceptor<S> acceptor) {
     return withCustomItemIterator(getter.andThen(Collection::iterator), acceptor, acceptor);
+  }
+
+  public final <S> V withCustomItemArray(Function<T, S[]> getter, StructuralAcceptor<S> acceptor) {
+    return withCustomItemIterator(
+        getter.andThen(a -> Arrays.asList(a).iterator()), acceptor, acceptor);
   }
 
   /**
@@ -112,6 +120,45 @@ public abstract class StructuralSpecification<T, V extends StructuralSpecificati
         });
   }
 
+  private <S> V withInt2CustomItemMap(
+      Function<T, Int2ReferenceMap<S>> getter,
+      CompareToAccept<S> compare,
+      HashingAccept<S> hasher) {
+    return withCustomItem(
+        getter,
+        new StructuralAcceptor<>() {
+          @Override
+          public int acceptCompareTo(
+              Int2ReferenceMap<S> map1, Int2ReferenceMap<S> map2, CompareToVisitor visitor) {
+            return ComparatorUtils.compareInt2ReferenceMap(
+                map1, map2, (s1, s2) -> compare.acceptCompareTo(s1, s2, visitor));
+          }
+
+          @Override
+          public void acceptHashing(Int2ReferenceMap<S> map, HashingVisitor visitor) {
+            // We might want to optimize this to avoid sorting. Potentiality compute the min-max
+            // range and use a fori, or collect some number of the smallest keys and hash just
+            // those.
+            ArrayList<Integer> keys = new ArrayList<>(map.keySet());
+            keys.sort(Integer::compareTo);
+            for (int key : keys) {
+              visitor.visitInt(key);
+              hasher.acceptHashing(map.get(key), visitor);
+            }
+          }
+        });
+  }
+
+  public final <S> V withInt2CustomItemMap(
+      Function<T, Int2ReferenceMap<S>> getter, StructuralAcceptor<S> acceptor) {
+    return withInt2CustomItemMap(getter, acceptor, acceptor);
+  }
+
+  public final <S extends StructuralItem<S>> V withInt2ItemMap(
+      Function<T, Int2ReferenceMap<S>> getter) {
+    return withInt2CustomItemMap(getter, S::acceptCompareTo, S::acceptHashing);
+  }
+
   /**
    * Helper to declare an assert on the item.
    *
@@ -130,6 +177,8 @@ public abstract class StructuralSpecification<T, V extends StructuralSpecificati
   public abstract V withDouble(ToDoubleFunction<T> getter);
 
   public abstract V withIntArray(Function<T, int[]> getter);
+
+  public abstract V withByteArray(Function<T, byte[]> getter);
 
   public abstract V withShortArray(Function<T, short[]> getter);
 

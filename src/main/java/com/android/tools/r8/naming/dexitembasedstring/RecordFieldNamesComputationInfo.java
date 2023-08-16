@@ -14,7 +14,14 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.ComparatorUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
+import com.android.tools.r8.utils.structural.StructuralAcceptor;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntFunction;
@@ -43,13 +50,35 @@ public abstract class RecordFieldNamesComputationInfo extends NameComputationInf
   }
 
   private static class MissMatchingRecordFieldNamesComputationInfo
-      extends RecordFieldNamesComputationInfo {
+      extends RecordFieldNamesComputationInfo
+      implements StructuralItem<MissMatchingRecordFieldNamesComputationInfo> {
 
     private final String[] fieldNames;
 
     private MissMatchingRecordFieldNamesComputationInfo(String[] fieldNames, DexField[] fields) {
       super(fields);
       this.fieldNames = fieldNames;
+    }
+
+    private static void specify(
+        StructuralSpecification<MissMatchingRecordFieldNamesComputationInfo, ?> spec) {
+      spec.withItemArray(s -> s.fields)
+          .withCustomItem(
+              s -> s.fieldNames,
+              new StructuralAcceptor<>() {
+                @Override
+                public int acceptCompareTo(
+                    String[] item1, String[] item2, CompareToVisitor visitor) {
+                  return ComparatorUtils.arrayComparator(String::compareTo).compare(item1, item2);
+                }
+
+                @Override
+                public void acceptHashing(String[] item, HashingVisitor visitor) {
+                  for (String s : item) {
+                    visitor.visitJavaString(s);
+                  }
+                }
+              });
     }
 
     @Override
@@ -60,13 +89,45 @@ public abstract class RecordFieldNamesComputationInfo extends NameComputationInf
         NamingLens namingLens) {
       return internalComputeNameFor(type, definitions, graphLens, i -> fieldNames[i]);
     }
+
+    @Override
+    Order getOrder() {
+      return Order.RECORD_MISMATCH;
+    }
+
+    @Override
+    public MissMatchingRecordFieldNamesComputationInfo self() {
+      return this;
+    }
+
+    @Override
+    public StructuralMapping<MissMatchingRecordFieldNamesComputationInfo> getStructuralMapping() {
+      return MissMatchingRecordFieldNamesComputationInfo::specify;
+    }
+
+    @Override
+    int internalAcceptCompareTo(NameComputationInfo<?> other, CompareToVisitor visitor) {
+      return StructuralItem.super.acceptCompareTo(
+          (MissMatchingRecordFieldNamesComputationInfo) other, visitor);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      StructuralItem.super.acceptHashing(visitor);
+    }
   }
 
   private static class MatchingRecordFieldNamesComputationInfo
-      extends RecordFieldNamesComputationInfo {
+      extends RecordFieldNamesComputationInfo
+      implements StructuralItem<MatchingRecordFieldNamesComputationInfo> {
 
     public MatchingRecordFieldNamesComputationInfo(DexField[] fields) {
       super(fields);
+    }
+
+    private static void specify(
+        StructuralSpecification<MatchingRecordFieldNamesComputationInfo, ?> spec) {
+      spec.withItemArray(s -> s.fields);
     }
 
     @Override
@@ -85,6 +146,32 @@ public abstract class RecordFieldNamesComputationInfo extends NameComputationInf
                       graphLens.getRenamedFieldSignature(fields[i]), definitions.dexItemFactory())
                   .name
                   .toString());
+    }
+
+    @Override
+    Order getOrder() {
+      return Order.RECORD_MATCH;
+    }
+
+    @Override
+    public MatchingRecordFieldNamesComputationInfo self() {
+      return this;
+    }
+
+    @Override
+    public StructuralMapping<MatchingRecordFieldNamesComputationInfo> getStructuralMapping() {
+      return MatchingRecordFieldNamesComputationInfo::specify;
+    }
+
+    @Override
+    int internalAcceptCompareTo(NameComputationInfo<?> other, CompareToVisitor visitor) {
+      return StructuralItem.super.acceptCompareTo(
+          (MatchingRecordFieldNamesComputationInfo) other, visitor);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      StructuralItem.super.acceptHashing(visitor);
     }
   }
 

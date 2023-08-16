@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.lightir.LirConstant;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
@@ -108,6 +109,21 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   @Override
   public void acceptHashing(HashingVisitor visitor) {
     visitor.visitDexType(this);
+  }
+
+  @Override
+  public LirConstantOrder getLirConstantOrder() {
+    return LirConstantOrder.TYPE;
+  }
+
+  @Override
+  public int internalLirConstantAcceptCompareTo(LirConstant other, CompareToVisitor visitor) {
+    return acceptCompareTo((DexType) other, visitor);
+  }
+
+  @Override
+  public void internalLirConstantAcceptHashing(HashingVisitor visitor) {
+    acceptHashing(visitor);
   }
 
   @Override

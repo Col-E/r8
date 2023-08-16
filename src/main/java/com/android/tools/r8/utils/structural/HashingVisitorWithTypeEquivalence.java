@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.structural.StructuralItem.CompareToAccept;
 import com.android.tools.r8.utils.structural.StructuralItem.HashingAccept;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -59,6 +60,11 @@ public class HashingVisitorWithTypeEquivalence extends HashingVisitor {
   @Override
   public void visitDouble(double value) {
     hash.putDouble(value);
+  }
+
+  @Override
+  public void visitJavaString(String string) {
+    hash.putBytes(string.getBytes(StandardCharsets.UTF_8));
   }
 
   @Override
@@ -132,6 +138,15 @@ public class HashingVisitorWithTypeEquivalence extends HashingVisitor {
     @Override
     public ItemSpecification<T> withIntArray(Function<T, int[]> getter) {
       int[] ints = getter.apply(item);
+      for (int i = 0; i < ints.length; i++) {
+        parent.visitInt(ints[i]);
+      }
+      return this;
+    }
+
+    @Override
+    public ItemSpecification<T> withByteArray(Function<T, byte[]> getter) {
+      byte[] ints = getter.apply(item);
       for (int i = 0; i < ints.length; i++) {
         parent.visitInt(ints[i]);
       }

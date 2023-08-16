@@ -295,6 +295,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       // This call is to remain order consistent with the 'withNullableItem' code.
       return visitor.visitBool(code1 != null, code2 != null);
     }
+    if (code1.isLirCode() && code2.isLirCode()) {
+      return code1.asLirCode().acceptCompareTo(code2.asLirCode(), visitor);
+    }
     if (code1.isCfWritableCode() && code2.isCfWritableCode()) {
       return code1.asCfWritableCode().acceptCompareTo(code2.asCfWritableCode(), visitor);
     }
@@ -309,6 +312,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     if (code == null) {
       // The null code does not contribute to the hash. This should be distinct from non-null as
       // code otherwise has a non-empty instruction payload.
+    } else if (code.isLirCode()) {
+      code.asLirCode().acceptHashing(visitor);
     } else if (code.isCfWritableCode()) {
       code.asCfWritableCode().acceptHashing(visitor);
     } else {

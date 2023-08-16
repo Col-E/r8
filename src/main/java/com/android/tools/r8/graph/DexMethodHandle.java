@@ -9,6 +9,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.lightir.LirConstant;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Objects;
@@ -17,6 +19,21 @@ import org.objectweb.asm.Opcodes;
 
 public class DexMethodHandle extends IndexedDexItem
     implements NamingLensComparable<DexMethodHandle>, LirConstant {
+
+  @Override
+  public LirConstantOrder getLirConstantOrder() {
+    return LirConstantOrder.METHOD_HANDLE;
+  }
+
+  @Override
+  public int internalLirConstantAcceptCompareTo(LirConstant other, CompareToVisitor visitor) {
+    return acceptCompareTo((DexMethodHandle) other, visitor);
+  }
+
+  @Override
+  public void internalLirConstantAcceptHashing(HashingVisitor visitor) {
+    acceptHashing(visitor);
+  }
 
   public enum MethodHandleType {
     STATIC_PUT((short) 0x00),

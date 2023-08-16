@@ -15,8 +15,14 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 
-public class ClassNameComputationInfo extends NameComputationInfo<DexType> {
+public class ClassNameComputationInfo extends NameComputationInfo<DexType>
+    implements StructuralItem<ClassNameComputationInfo> {
 
   public enum ClassNameMapping {
     NONE,
@@ -102,6 +108,10 @@ public class ClassNameComputationInfo extends NameComputationInfo<DexType> {
   private final int arrayDepth;
   private final ClassNameMapping mapping;
 
+  public static void specify(StructuralSpecification<ClassNameComputationInfo, ?> spec) {
+    spec.withInt(s -> s.arrayDepth).withInt(s -> s.mapping.ordinal());
+  }
+
   private ClassNameComputationInfo(ClassNameMapping mapping) {
     this(mapping, 0);
   }
@@ -136,6 +146,31 @@ public class ClassNameComputationInfo extends NameComputationInfo<DexType> {
 
   public static ClassNameComputationInfo none() {
     return NONE_INSTANCE;
+  }
+
+  @Override
+  public ClassNameComputationInfo self() {
+    return this;
+  }
+
+  @Override
+  public StructuralMapping<ClassNameComputationInfo> getStructuralMapping() {
+    return ClassNameComputationInfo::specify;
+  }
+
+  @Override
+  Order getOrder() {
+    return Order.CLASSNAME;
+  }
+
+  @Override
+  int internalAcceptCompareTo(NameComputationInfo<?> other, CompareToVisitor visitor) {
+    return StructuralItem.super.acceptCompareTo((ClassNameComputationInfo) other, visitor);
+  }
+
+  @Override
+  void internalAcceptHashing(HashingVisitor visitor) {
+    StructuralItem.super.acceptHashing(visitor);
   }
 
   @Override

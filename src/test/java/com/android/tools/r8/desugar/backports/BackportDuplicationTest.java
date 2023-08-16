@@ -334,9 +334,9 @@ public class BackportDuplicationTest extends TestBase {
     Set<MethodReference> expectedSynthetics =
         ImmutableSet.of(
             SyntheticItemsTestUtils.syntheticBackportMethod(
-                User1.class, 0, Boolean.class.getMethod("compare", boolean.class, boolean.class)),
+                User1.class, 1, Boolean.class.getMethod("compare", boolean.class, boolean.class)),
             SyntheticItemsTestUtils.syntheticBackportMethod(
-                User1.class, 1, Character.class.getMethod("compare", char.class, char.class)),
+                User1.class, 0, Character.class.getMethod("compare", char.class, char.class)),
             SyntheticItemsTestUtils.syntheticBackportMethod(
                 User2.class, 0, Integer.class.getMethod("compare", int.class, int.class)));
     assertEquals(expectedSynthetics, getSyntheticMethods(inspector));

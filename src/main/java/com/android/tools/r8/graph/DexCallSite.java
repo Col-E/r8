@@ -11,6 +11,8 @@ import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.lightir.LirConstant;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -191,6 +193,21 @@ public final class DexCallSite extends IndexedDexItem
 
   public String getHash() {
     return new HashBuilder().build();
+  }
+
+  @Override
+  public LirConstantOrder getLirConstantOrder() {
+    return LirConstantOrder.CALL_SITE;
+  }
+
+  @Override
+  public int internalLirConstantAcceptCompareTo(LirConstant other, CompareToVisitor visitor) {
+    return acceptCompareTo((DexCallSite) other, visitor);
+  }
+
+  @Override
+  public void internalLirConstantAcceptHashing(HashingVisitor visitor) {
+    acceptHashing(visitor);
   }
 
   private final class HashBuilder {

@@ -98,6 +98,21 @@ public class DexString extends IndexedDexItem
     visitor.visitDexString(this);
   }
 
+  @Override
+  public LirConstantOrder getLirConstantOrder() {
+    return LirConstantOrder.STRING;
+  }
+
+  @Override
+  public int internalLirConstantAcceptCompareTo(LirConstant other, CompareToVisitor visitor) {
+    return acceptCompareTo((DexString) other, visitor);
+  }
+
+  @Override
+  public void internalLirConstantAcceptHashing(HashingVisitor visitor) {
+    visitor.visitDexString(this);
+  }
+
   public ThrowingCharIterator<UTFDataFormatException> iterator() {
     return new ThrowingCharIterator<UTFDataFormatException>() {
 

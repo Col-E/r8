@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.lightir.LirConstant;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
@@ -50,10 +51,18 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
   }
 
   @Override
-  public void acceptHashing(HashingVisitor visitor) {
-    visitor.visitDexType(holder);
-    visitor.visitDexString(name);
-    getReferencedTypes().forEach(visitor::visitDexType);
+  public LirConstantOrder getLirConstantOrder() {
+    return LirConstantOrder.FIELD;
+  }
+
+  @Override
+  public int internalLirConstantAcceptCompareTo(LirConstant other, CompareToVisitor visitor) {
+    return acceptCompareTo((DexField) other, visitor);
+  }
+
+  @Override
+  public void internalLirConstantAcceptHashing(HashingVisitor visitor) {
+    acceptHashing(visitor);
   }
 
   @Override
@@ -174,6 +183,11 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
   @Override
   public int acceptCompareTo(DexField other, CompareToVisitor visitor) {
     return visitor.visitDexField(this, other);
+  }
+
+  @Override
+  public void acceptHashing(HashingVisitor visitor) {
+    visitor.visitDexField(this);
   }
 
   @Override

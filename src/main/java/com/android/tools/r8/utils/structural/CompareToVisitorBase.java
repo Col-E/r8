@@ -174,6 +174,22 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
     }
 
     @Override
+    public ItemSpecification<T> withByteArray(Function<T, byte[]> getter) {
+      if (order == 0) {
+        byte[] is1 = getter.apply(item1);
+        byte[] is2 = getter.apply(item2);
+        int minLength = Math.min(is1.length, is2.length);
+        for (int i = 0; i < minLength && order == 0; i++) {
+          order = parent.visitInt(is1[i], is2[i]);
+        }
+        if (order == 0) {
+          order = parent.visitInt(is1.length, is2.length);
+        }
+      }
+      return this;
+    }
+
+    @Override
     public ItemSpecification<T> withShortArray(Function<T, short[]> getter) {
       if (order == 0) {
         short[] is1 = getter.apply(item1);

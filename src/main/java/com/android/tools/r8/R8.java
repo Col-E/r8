@@ -710,14 +710,14 @@ public class R8 {
           appView.getArtProfileCollection().withoutMissingItems(appView));
       appView.setStartupProfile(appView.getStartupProfile().withoutMissingItems(appView));
 
-      // TODO(b/225838009): Support LIR in synthetic finalization (needs hashing and compareTo).
-      PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
-
       if (appView.appInfo().hasLiveness()) {
         SyntheticFinalization.finalizeWithLiveness(appView.withLiveness(), executorService, timing);
       } else {
         SyntheticFinalization.finalizeWithClassHierarchy(appView, executorService, timing);
       }
+
+      // TODO(b/225838009): Move further down.
+      PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
 
       // Read any -applymapping input to allow for repackaging to not relocate the classes.
       timing.begin("read -applymapping file");

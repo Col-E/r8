@@ -6,6 +6,8 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.lightir.LirConstant;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.Iterables;
@@ -17,6 +19,7 @@ public class DexProto extends IndexedDexItem
 
   public static final DexProto SENTINEL = new DexProto(null, null, null);
 
+  // TODO(b/172206529): Consider removing shorty.
   public final DexString shorty;
   public final DexType returnType;
   public final DexTypeList parameters;
@@ -28,10 +31,7 @@ public class DexProto extends IndexedDexItem
   }
 
   private static void specify(StructuralSpecification<DexProto, ?> spec) {
-    spec.withItem(DexProto::getReturnType)
-        .withItem(p -> p.parameters)
-        // TODO(b/172206529): Consider removing shorty.
-        .withItem(p1 -> p1.shorty);
+    spec.withItem(DexProto::getReturnType).withItem(p -> p.parameters);
   }
 
   @Override
@@ -136,5 +136,20 @@ public class DexProto extends IndexedDexItem
     builder.append(")");
     builder.append(lens.lookupDescriptor(returnType));
     return builder.toString();
+  }
+
+  @Override
+  public LirConstantOrder getLirConstantOrder() {
+    return LirConstantOrder.PROTO;
+  }
+
+  @Override
+  public int internalLirConstantAcceptCompareTo(LirConstant other, CompareToVisitor visitor) {
+    return acceptCompareTo((DexProto) other, visitor);
+  }
+
+  @Override
+  public void internalLirConstantAcceptHashing(HashingVisitor visitor) {
+    acceptHashing(visitor);
   }
 }
