@@ -64,15 +64,28 @@ dependencies {
     implementation group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
+
+    // Dependencies from google's maven
+    //  implementation 'com.android.tools.build:aapt2-proto:8.2.0-alpha16-10154469'
+    //  implementation 'com.android.tools:sdk-common:31.2.0-alpha16'
+    //  implementation 'androidx.multidex:multidex:2.0.1'
 }
 
 sourceSets {
     main {
         java {
-            srcDirs = ['src/main/java', 'src/keepanno/java']
+            srcDirs = [
+                    'src/main/java',
+                    // 'src/cf_segments/java',
+                    // 'src/resourceshrinker/java',
+                    'src/keepanno/java'
+            ]
         }
         resources {
-            srcDirs "third_party/api_database/api_database"
+            srcDirs = [
+                    'third_party/api_database/api_database',
+                    // 'src/library_desugar/resources'
+            ]
         }
     }
 }
