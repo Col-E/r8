@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.ToIntFunction;
 
 public class SimpleLensLirRewriter<EV> extends LirParsedInstructionCallback<EV> {
 
@@ -241,7 +242,7 @@ public class SimpleLensLirRewriter<EV> extends LirParsedInstructionCallback<EV> 
         constantIndex =
             methodIndices.computeIfAbsent(
                 result.getReference(),
-                ref -> {
+                (ToIntFunction<DexMethod>) ref -> {
                   methodsToAppend.add(ref);
                   return rewrittenConstants.length + methodsToAppend.size() - 1;
                 });
