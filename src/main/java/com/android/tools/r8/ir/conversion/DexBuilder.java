@@ -247,7 +247,7 @@ public class DexBuilder {
     } while (!ifsNeedingRewrite.isEmpty());
 
     // Build instructions.
-    DexDebugEventBuilder debugEventBuilder = new DexDebugEventBuilder(ir, options);
+    DexDebugEventBuilder debugEventBuilder = new DexDebugEventBuilder(appView, ir);
     List<DexInstruction> dexInstructions = new ArrayList<>(numberOfInstructions);
     int instructionOffset = 0;
     for (com.android.tools.r8.ir.code.Instruction irInstruction : ir.instructions()) {
@@ -260,7 +260,8 @@ public class DexBuilder {
         dexInstruction.setOffset(instructionOffset);
         instructionOffset += dexInstruction.getSize();
       }
-      debugEventBuilder.add(instructionStartOffset, instructionOffset, irInstruction);
+      debugEventBuilder.add(
+          instructionStartOffset, instructionOffset, irInstruction, getProgramMethod());
     }
 
     // Workaround dalvik tracing bug, where the dalvik tracing JIT can end up tracing

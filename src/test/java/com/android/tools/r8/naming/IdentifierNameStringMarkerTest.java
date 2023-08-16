@@ -11,6 +11,8 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.dex.code.DexAputObject;
 import com.android.tools.r8.dex.code.DexConst4;
@@ -37,11 +39,24 @@ import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
   private final String CLASS_NAME = "Example";
   private final static String BOO = "Boo";
+
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDefaultDexRuntime().withMaximumApiLevel().build();
+  }
 
   @Test
   public void instancePut_singleUseOperand() throws Exception {
@@ -641,8 +656,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
             + "}",
         "-keep class " + CLASS_NAME,
         "-keep class R { *; }");
-    CodeInspector inspector =
-        compileWithR8(builder, testBuilder -> testBuilder.addKeepRules(pgConfigs)).inspector();
+    CodeInspector inspector = compileWithR8(builder, pgConfigs).inspector();
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
@@ -667,10 +681,10 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
           code,
           ImmutableList.of(
               DexInvokeDirect.class,
+              DexConstClass.class,
               DexConst4.class,
               DexNewArray.class,
               DexConst4.class,
-              DexConstClass.class,
               DexAputObject.class,
               DexConstString.class,
               DexInvokeStatic.class,
@@ -717,8 +731,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
             + "}",
         "-keep class " + CLASS_NAME,
         "-keep,allowobfuscation class R { *; }");
-    CodeInspector inspector =
-        compileWithR8(builder, testBuilder -> testBuilder.addKeepRules(pgConfigs)).inspector();
+    CodeInspector inspector = compileWithR8(builder, pgConfigs).inspector();
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
@@ -743,10 +756,10 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
           code,
           ImmutableList.of(
               DexInvokeDirect.class,
+              DexConstClass.class,
               DexConst4.class,
               DexNewArray.class,
               DexConst4.class,
-              DexConstClass.class,
               DexAputObject.class,
               DexConstString.class,
               DexInvokeStatic.class,
@@ -763,9 +776,10 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
 
   private R8TestCompileResult compileWithR8(
       SmaliBuilder builder, ThrowableConsumer<R8FullTestBuilder> configuration) throws Exception {
-    return testForR8(Backend.DEX)
+    return testForR8(parameters.getBackend())
         .addProgramDexFileData(builder.compile())
         .apply(configuration)
+        .setMinApi(parameters)
         .compile();
   }
 }

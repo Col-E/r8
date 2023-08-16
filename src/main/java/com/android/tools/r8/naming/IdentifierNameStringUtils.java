@@ -27,10 +27,10 @@ import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -505,7 +505,7 @@ public final class IdentifierNameStringUtils {
   }
 
   private static DexTypeList evaluateTypeArrayContent(
-      InvokeNewArray newArray, DexItemFactory factory) {
+      NewArrayFilled newArray, DexItemFactory factory) {
     List<Value> arrayValues = newArray.inValues();
     int size = arrayValues.size();
     DexType[] values = new DexType[size];
@@ -575,8 +575,8 @@ public final class IdentifierNameStringUtils {
     if (classListValue.definition.isNewArrayEmpty()) {
       return evaluateTypeArrayContentFromConstructionToUse(
           classListValue.definition.asNewArrayEmpty(), aliases, invoke, factory);
-    } else if (classListValue.definition.isInvokeNewArray()) {
-      return evaluateTypeArrayContent(classListValue.definition.asInvokeNewArray(), factory);
+    } else if (classListValue.definition.isNewArrayFilled()) {
+      return evaluateTypeArrayContent(classListValue.definition.asNewArrayFilled(), factory);
     } else {
       return null;
     }

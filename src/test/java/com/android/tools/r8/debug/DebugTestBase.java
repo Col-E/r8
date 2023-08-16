@@ -28,7 +28,6 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -87,14 +86,6 @@ public abstract class DebugTestBase extends TestBase {
 
   // Set to true to enable verbose logs
   private static final boolean DEBUG_TESTS = false;
-
-  // Build-time compiled debug-test resources for Java SDK < 8. See build.gradle
-  public static final Path DEBUGGEE_JAR =
-      Paths.get(ToolHelper.BUILD_DIR, "test", "debug_test_resources.jar");
-
-  // Build-time compiled debug-test resources for Java SDK 8. See build.gradle
-  public static final Path DEBUGGEE_JAVA8_JAR =
-      Paths.get(ToolHelper.BUILD_DIR, "test", "debug_test_resources_java8.jar");
 
   public static final StepFilter NO_FILTER = new StepFilter.NoStepFilter();
   public static final StepFilter INTELLIJ_FILTER = new StepFilter.IntelliJStepFilter();

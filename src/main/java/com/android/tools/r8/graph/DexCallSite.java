@@ -10,6 +10,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.lightir.LirConstant;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -25,7 +26,8 @@ import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 
-public final class DexCallSite extends IndexedDexItem implements StructuralItem<DexCallSite> {
+public final class DexCallSite extends IndexedDexItem
+    implements StructuralItem<DexCallSite>, LirConstant {
 
   public final DexString methodName;
   public final DexProto methodProto;

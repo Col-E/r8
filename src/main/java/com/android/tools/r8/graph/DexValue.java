@@ -1253,7 +1253,7 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
       TypeElement type = TypeElement.stringClassType(appView, definitelyNotNull());
       Value outValue = code.createValue(type, local);
       ConstString instruction = new ConstString(outValue, value);
-      if (!instruction.instructionInstanceCanThrow()) {
+      if (!instruction.instructionInstanceCanThrow(appView, code.context())) {
         return instruction;
       }
       return null;
@@ -1346,7 +1346,7 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
       DexItemBasedConstString instruction =
           new DexItemBasedConstString(outValue, value, nameComputationInfo);
       // DexItemBasedConstString cannot throw.
-      assert !instruction.instructionInstanceCanThrow();
+      assert !instruction.instructionInstanceCanThrow(appView, code.context());
       return instruction;
     }
 

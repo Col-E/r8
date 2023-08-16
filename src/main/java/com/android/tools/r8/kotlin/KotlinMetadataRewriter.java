@@ -89,17 +89,21 @@ public class KotlinMetadataRewriter {
     GraphLens kotlinMetadataLens = appView.getKotlinMetadataLens();
     DexType rewrittenMetadataType =
         graphLens.lookupClassType(factory.kotlinMetadataType, kotlinMetadataLens);
-    DexClass kotlinMetadata = appView.definitionFor(rewrittenMetadataType);
+    // The Kotlin metadata may be present in the input but pruned away in the final tree shaking.
+    DexClass kotlinMetadata =
+        appView.appInfo().definitionForWithoutExistenceAssert(rewrittenMetadataType);
     WriteMetadataFieldInfo writeMetadataFieldInfo =
-        new WriteMetadataFieldInfo(
-            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.kind),
-            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.metadataVersion),
-            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.bytecodeVersion),
-            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.data1),
-            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.data2),
-            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.extraString),
-            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.packageName),
-            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.extraInt));
+        kotlinMetadata == null
+            ? WriteMetadataFieldInfo.rewriteAll()
+            : new WriteMetadataFieldInfo(
+                kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.kind),
+                kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.metadataVersion),
+                kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.bytecodeVersion),
+                kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.data1),
+                kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.data2),
+                kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.extraString),
+                kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.packageName),
+                kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.extraInt));
     ThreadUtils.processItems(
         appView.appInfo().classes(),
         clazz -> {

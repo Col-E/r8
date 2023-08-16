@@ -12,11 +12,12 @@ import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.analysis.constant.LatticeElement;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.lightir.LirBuilder;
-import java.util.function.Function;
 
 public class Inc extends Unop {
 
@@ -81,7 +82,8 @@ public class Inc extends Unop {
   }
 
   @Override
-  public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
+  public AbstractValue getAbstractValue(
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
     // Inc is inserted after register allocation so this is not used.
     throw new Unreachable();
   }

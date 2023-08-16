@@ -6,14 +6,13 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.analysis.constant.Bottom;
-import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
-import com.android.tools.r8.ir.analysis.constant.LatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.lightir.LirBuilder;
-import java.util.function.Function;
 
 public abstract class ArithmeticBinop extends Binop {
 
@@ -132,34 +131,32 @@ public abstract class ArithmeticBinop extends Binop {
   }
 
   @Override
-  public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
-    LatticeElement leftLattice = getLatticeElement.apply(leftValue());
-    LatticeElement rightLattice = getLatticeElement.apply(rightValue());
-    if (leftLattice.isConst() && rightLattice.isConst()) {
-      ConstNumber leftConst = leftLattice.asConst().getConstNumber();
-      ConstNumber rightConst = rightLattice.asConst().getConstNumber();
-      ConstNumber newConst;
+  public AbstractValue getAbstractValue(
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
+    if (outValue.hasLocalInfo()) {
+      return AbstractValue.unknown();
+    }
+    AbstractValue leftAbstractValue = abstractValueSupplier.getAbstractValue(leftValue());
+    AbstractValue rightAbstractValue = abstractValueSupplier.getAbstractValue(rightValue());
+    if (leftAbstractValue.isSingleNumberValue() && rightAbstractValue.isSingleNumberValue()) {
+      SingleNumberValue leftConst = leftAbstractValue.asSingleNumberValue();
+      SingleNumberValue rightConst = rightAbstractValue.asSingleNumberValue();
+      long newConst;
       if (type == NumericType.INT) {
-        int result = foldIntegers(leftConst.getIntValue(), rightConst.getIntValue());
-        Value value = code.createValue(TypeElement.getInt(), getLocalInfo());
-        newConst = new ConstNumber(value, result);
+        newConst = foldIntegers(leftConst.getIntValue(), rightConst.getIntValue());
       } else if (type == NumericType.LONG) {
-        long result = foldLongs(leftConst.getLongValue(), rightConst.getLongValue());
-        Value value = code.createValue(TypeElement.getLong(), getLocalInfo());
-        newConst = new ConstNumber(value, result);
+        newConst = foldLongs(leftConst.getLongValue(), rightConst.getLongValue());
       } else if (type == NumericType.FLOAT) {
         float result = foldFloat(leftConst.getFloatValue(), rightConst.getFloatValue());
-        Value value = code.createValue(TypeElement.getFloat(), getLocalInfo());
-        newConst = new ConstNumber(value, Float.floatToIntBits(result));
+        newConst = Float.floatToIntBits(result);
       } else {
         assert type == NumericType.DOUBLE;
         double result = foldDouble(leftConst.getDoubleValue(), rightConst.getDoubleValue());
-        Value value = code.createValue(TypeElement.getDouble(), getLocalInfo());
-        newConst = new ConstNumber(value, Double.doubleToLongBits(result));
+        newConst = Double.doubleToLongBits(result);
       }
-      return new ConstLatticeElement(newConst);
+      return appView.abstractValueFactory().createSingleNumberValue(newConst);
     }
-    return Bottom.getInstance();
+    return AbstractValue.unknown();
   }
 
   abstract CfArithmeticBinop.Opcode getCfOpcode();

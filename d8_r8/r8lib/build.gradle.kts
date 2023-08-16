@@ -66,14 +66,17 @@ tasks {
     dependsOn(r8WithRelocatedDepsTask)
     val r8 = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
     val generatedKeepRules = generateKeepRules.get().outputs.files.getSingleFile()
-    inputs.files(listOf(r8, generatedKeepRules))
+    val keepTxt = getRoot().resolveAll("src", "main", "keep.txt")
+    // TODO(b/294351878): Remove once enum issue is fixed
+    val keepResourceShrinkerTxt = getRoot().resolveAll("src", "main", "keep_r8resourceshrinker.txt")
+    inputs.files(listOf(r8, generatedKeepRules, keepTxt, keepResourceShrinkerTxt))
     val output = file(Paths.get("build", "libs", "r8lib-deps-relocated.jar"))
     outputs.file(output)
     commandLine = createR8LibCommandLine(
       r8,
       r8,
       output,
-      listOf(getRoot().resolveAll("src", "main", "keep.txt"), generatedKeepRules),
+      listOf(keepTxt, generatedKeepRules, keepResourceShrinkerTxt),
       false)
   }
 
@@ -93,5 +96,21 @@ tasks {
       listOf(getRoot().resolveAll("src", "main", "keep.txt")),
       true,
       listOf(deps))
+  }
+
+  val resourceshrinkercli by registering(Exec::class) {
+    dependsOn(r8WithRelocatedDepsTask)
+    val r8 = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
+    val keepTxt = getRoot().resolveAll("src", "main", "resourceshrinker_cli.txt")
+    val cliKeep = getRoot().resolveAll("src", "main", "keep_r8resourceshrinker.txt")
+    inputs.files(listOf(keepTxt, cliKeep))
+    val output = file(Paths.get("build", "libs", "resourceshrinkercli.jar"))
+    outputs.file(output)
+    commandLine = createR8LibCommandLine(
+      r8,
+      r8,
+      output,
+      listOf(keepTxt, cliKeep),
+      false)
   }
 }

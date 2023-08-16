@@ -82,8 +82,12 @@ public abstract class CompilerApiTest {
 
   public static Path getProjectRoot() {
     String userDirProperty = System.getProperty("user.dir");
-    if (userDirProperty.endsWith("d8_r8/test")) {
-      return Paths.get(userDirProperty).getParent().getParent();
+    if (userDirProperty.contains("d8_r8")) {
+      Path userDirPath = Paths.get(userDirProperty);
+      while (userDirPath.toString().contains("d8_r8")) {
+        userDirPath = userDirPath.getParent();
+      }
+      return userDirPath;
     }
     return Paths.get("");
   }

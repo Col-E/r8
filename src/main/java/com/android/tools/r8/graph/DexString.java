@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.lightir.LirConstant;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.IdentifierUtils;
@@ -17,7 +18,8 @@ import java.io.UTFDataFormatException;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 
-public class DexString extends IndexedDexItem implements NamingLensComparable<DexString> {
+public class DexString extends IndexedDexItem
+    implements NamingLensComparable<DexString>, LirConstant {
 
   public static final DexString[] EMPTY_ARRAY = {};
   private static final int ARRAY_CHARACTER = '[';

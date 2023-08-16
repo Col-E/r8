@@ -60,7 +60,7 @@ public class ClassInitializerSideEffectAnalysis {
       }
 
       // Array creations are observable if they may throw.
-      if (instruction.isInvokeNewArray()
+      if (instruction.isNewArrayFilled()
           || instruction.isNewArrayEmpty()
           || instruction.isNewArrayFilledData()) {
         if (instruction.instructionInstanceCanThrow(appView, context)) {

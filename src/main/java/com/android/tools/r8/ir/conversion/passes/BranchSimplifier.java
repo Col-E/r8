@@ -45,6 +45,8 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
+import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
@@ -75,7 +77,7 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected boolean shouldRewriteCode(IRCode code) {
-    return true;
+    return code.metadata().mayHaveIf() || code.metadata().mayHaveSwitch();
   }
 
   @Override
@@ -87,7 +89,11 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
   protected CodeRewriterResult rewriteCode(IRCode code) {
     ControlFlowSimplificationResult switchResult = rewriteSwitch(code);
     ControlFlowSimplificationResult ifResult = simplifyIf(code);
-    return switchResult.combine(ifResult);
+    ControlFlowSimplificationResult result = switchResult.combine(ifResult);
+    if (result.anyAffectedValues) {
+      new TrivialCheckCastAndInstanceOfRemover(appView).run(code, Timing.empty());
+    }
+    return result;
   }
 
   public ControlFlowSimplificationResult simplifyIf(IRCode code) {
@@ -183,9 +189,9 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
     }
 
     @Override
-    public boolean hasChanged() {
+    public OptionalBool hasChanged() {
       assert !anyAffectedValues || anySimplifications;
-      return anySimplifications();
+      return OptionalBool.of(anySimplifications());
     }
 
     public ControlFlowSimplificationResult combine(ControlFlowSimplificationResult ifResult) {
@@ -222,7 +228,7 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
     if (theIf.getType() == IfType.EQ || theIf.getType() == IfType.NE) {
       AbstractValue lhsAbstractValue = lhs.getAbstractValue(appView, code.context());
       if (lhsAbstractValue.isConstantOrNonConstantNumberValue()
-          && !lhsAbstractValue.asConstantOrNonConstantNumberValue().containsInt(0)) {
+          && !lhsAbstractValue.asConstantOrNonConstantNumberValue().maybeContainsInt(0)) {
         // Value doesn't contain zero at all.
         simplifyIfWithKnownCondition(code, block, theIf, theIf.targetFromCondition(1));
         return true;

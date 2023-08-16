@@ -153,12 +153,16 @@ public class DeterminismChecker {
     public boolean onLine(String unescapedLine) throws IOException {
       String line = escape(unescapedLine);
       String dumpLine = reader.readLine();
-      boolean equals = dumpLine.equals(line);
-      if (!equals) {
-        throw new AssertionError(
-            "\nMismatch for line: " + line + "\n" + "    and dump-line: " + dumpLine);
+      if (!dumpLine.equals(line)) {
+        // The line might contain a non unicode points. If so, the dump line will have mapped those
+        // to ? when writing. Decode the string and retry equals.
+        String decoded = new String(line.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
+        if (!decoded.equals(dumpLine)) {
+          throw new AssertionError(
+              "\nMismatch for line: " + decoded + "\n" + "    and dump-line: " + dumpLine);
+        }
       }
-      return equals;
+      return true;
     }
 
     @Override

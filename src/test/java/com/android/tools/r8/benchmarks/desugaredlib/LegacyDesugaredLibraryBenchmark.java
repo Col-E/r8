@@ -24,12 +24,12 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class LegacyDesugaredLibraryBenchmark extends BenchmarkBase {
 
-  private static final BenchmarkDependency androidJar = BenchmarkDependency.getAndroidJar30();
-  private static final BenchmarkDependency legacyConf =
+  private static final BenchmarkDependency ANDROID_JAR = BenchmarkDependency.getAndroidJar30();
+  private static final BenchmarkDependency LEGACY_CONF =
       new BenchmarkDependency(
           "legacyConf",
-          "desugar_jdk_libs_legacy",
-          Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk"));
+          "1.1.5",
+          Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "desugar_jdk_libs_releases"));
 
   public LegacyDesugaredLibraryBenchmark(BenchmarkConfig config, TestParameters parameters) {
     super(config, parameters);
@@ -47,8 +47,8 @@ public class LegacyDesugaredLibraryBenchmark extends BenchmarkBase {
             .setTarget(BenchmarkTarget.D8)
             .setFromRevision(12150)
             .setMethod(LegacyDesugaredLibraryBenchmark::run)
-            .addDependency(androidJar)
-            .addDependency(legacyConf)
+            .addDependency(ANDROID_JAR)
+            .addDependency(LEGACY_CONF)
             .measureRunTime()
             .build());
   }
@@ -62,15 +62,13 @@ public class LegacyDesugaredLibraryBenchmark extends BenchmarkBase {
             results ->
                 testForD8(environment.getTemp(), Backend.DEX)
                     .setMinApi(AndroidApiLevel.B)
-                    .addLibraryFiles(androidJar.getRoot(environment).resolve("android.jar"))
+                    .addLibraryFiles(ANDROID_JAR.getRoot(environment).resolve("android.jar"))
                     .apply(
                         b ->
                             b.getBuilder()
                                 .addDesugaredLibraryConfiguration(
                                     StringResource.fromFile(
-                                        legacyConf
-                                            .getRoot(environment)
-                                            .resolve("desugar_jdk_libs.json"))))
+                                        LEGACY_CONF.getRoot(environment).resolve("desugar.json"))))
                     .benchmarkCompile(results));
   }
 

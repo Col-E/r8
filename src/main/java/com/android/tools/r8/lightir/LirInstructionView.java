@@ -24,6 +24,9 @@ public interface LirInstructionView {
   /** The remaining size of the instruction's payload. */
   int getRemainingOperandSizeInBytes();
 
+  /** Get the next unsigned byte (from the instruction's payload). */
+  int getNextU1();
+
   /** True if the instruction has any operands that have not yet been parsed. */
   boolean hasMoreOperands();
 

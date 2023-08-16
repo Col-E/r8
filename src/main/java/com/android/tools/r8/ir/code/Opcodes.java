@@ -42,7 +42,7 @@ public interface Opcodes {
   int INVOKE_DIRECT = 33;
   int INVOKE_INTERFACE = 34;
   int INVOKE_MULTI_NEW_ARRAY = 35;
-  int INVOKE_NEW_ARRAY = 36;
+  int NEW_ARRAY_FILLED = 36;
   int INVOKE_POLYMORPHIC = 37;
   int INVOKE_STATIC = 38;
   int INVOKE_SUPER = 39;

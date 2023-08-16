@@ -4,6 +4,7 @@
 package com.android.tools.r8.benchmarks.retrace;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.benchmarks.BenchmarkBase;
 import com.android.tools.r8.benchmarks.BenchmarkConfig;
 import com.android.tools.r8.benchmarks.BenchmarkDependency;
@@ -28,7 +29,8 @@ import org.junit.runners.Parameterized.Parameters;
 public class RetraceStackTraceBenchmark extends BenchmarkBase {
 
   private static final BenchmarkDependency benchmarkDependency =
-      new BenchmarkDependency("retraceBenchmark", "retrace_benchmark", Paths.get("third_party"));
+      new BenchmarkDependency(
+          "retraceBenchmark", "retrace_benchmark", Paths.get(ToolHelper.THIRD_PARTY_DIR));
 
   @Parameters(name = "{0}")
   public static List<Object[]> data() {

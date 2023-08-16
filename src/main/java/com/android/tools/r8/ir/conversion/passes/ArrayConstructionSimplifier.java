@@ -6,19 +6,15 @@ package com.android.tools.r8.ir.conversion.passes;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.LinearFlowInstructionListIterator;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
-import com.android.tools.r8.ir.code.NewArrayFilledData;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.utils.InternalOptions;
@@ -108,7 +104,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected boolean shouldRewriteCode(IRCode code) {
-    return appView.options().isGeneratingDex();
+    return true;
   }
 
   private boolean simplifyArrayConstructionBlock(
@@ -123,7 +119,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
       }
       FilledArrayConversionInfo info =
           computeConversionInfo(
-              candidate, new LinearFlowInstructionListIterator(code, block, it.nextIndex()));
+              code, candidate, new LinearFlowInstructionListIterator(code, block, it.nextIndex()));
       if (info == null) {
         continue;
       }
@@ -133,55 +129,36 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
       DexType arrayType = newArrayEmpty.type;
       int size = candidate.size;
       Set<Instruction> instructionsToRemove = SetUtils.newIdentityHashSet(size + 1);
-      if (candidate.useFilledNewArray()) {
-        assert newArrayEmpty.getLocalInfo() == null;
-        Instruction lastArrayPut = info.lastArrayPutIterator.peekPrevious();
-        Value invokeValue = code.createValue(newArrayEmpty.getOutType(), null);
-        InvokeNewArray invoke =
-            new InvokeNewArray(arrayType, invokeValue, Arrays.asList(info.values));
-        invoke.setPosition(lastArrayPut.getPosition());
-        for (Value value : newArrayEmpty.inValues()) {
-          value.removeUser(newArrayEmpty);
-        }
-        newArrayEmpty.outValue().replaceUsers(invokeValue);
-        instructionsToRemove.add(newArrayEmpty);
+      assert newArrayEmpty.getLocalInfo() == null;
+      Instruction lastArrayPut = info.lastArrayPutIterator.peekPrevious();
+      Value invokeValue = code.createValue(newArrayEmpty.getOutType(), null);
+      NewArrayFilled invoke =
+          new NewArrayFilled(arrayType, invokeValue, Arrays.asList(info.values));
+      invoke.setPosition(lastArrayPut.getPosition());
+      for (Value value : newArrayEmpty.inValues()) {
+        value.removeUser(newArrayEmpty);
+      }
+      newArrayEmpty.outValue().replaceUsers(invokeValue);
+      instructionsToRemove.add(newArrayEmpty);
 
-        boolean originalAllocationPointHasHandlers = block.hasCatchHandlers();
-        boolean insertionPointHasHandlers = lastArrayPut.getBlock().hasCatchHandlers();
+      boolean originalAllocationPointHasHandlers = block.hasCatchHandlers();
+      boolean insertionPointHasHandlers = lastArrayPut.getBlock().hasCatchHandlers();
 
-        if (!insertionPointHasHandlers && !originalAllocationPointHasHandlers) {
-          info.lastArrayPutIterator.add(invoke);
-        } else {
-          BasicBlock insertionBlock = info.lastArrayPutIterator.split(code);
-          if (originalAllocationPointHasHandlers) {
-            if (!insertionBlock.isTrivialGoto()) {
-              BasicBlock blockAfterInsertion = insertionBlock.listIterator(code).split(code);
-              assert insertionBlock.isTrivialGoto();
-              worklist.addIfNotSeen(blockAfterInsertion);
-            }
-            insertionBlock.moveCatchHandlers(block);
-          } else {
-            worklist.addIfNotSeen(insertionBlock);
-          }
-          insertionBlock.listIterator(code).add(invoke);
-        }
+      if (!insertionPointHasHandlers && !originalAllocationPointHasHandlers) {
+        info.lastArrayPutIterator.add(invoke);
       } else {
-        assert candidate.useFilledArrayData();
-        int elementSize = arrayType.elementSizeForPrimitiveArrayType();
-        short[] contents = computeArrayFilledData(info.values, size, elementSize);
-        if (contents == null) {
-          continue;
+        BasicBlock insertionBlock = info.lastArrayPutIterator.split(code);
+        if (originalAllocationPointHasHandlers) {
+          if (!insertionBlock.isTrivialGoto()) {
+            BasicBlock blockAfterInsertion = insertionBlock.listIterator(code).split(code);
+            assert insertionBlock.isTrivialGoto();
+            worklist.addIfNotSeen(blockAfterInsertion);
+          }
+          insertionBlock.moveCatchHandlers(block);
+        } else {
+          worklist.addIfNotSeen(insertionBlock);
         }
-        // fill-array-data requires the new-array-empty instruction to remain, as it does not
-        // itself create an array.
-        NewArrayFilledData fillArray =
-            new NewArrayFilledData(newArrayEmpty.outValue(), elementSize, size, contents);
-        fillArray.setPosition(newArrayEmpty.getPosition());
-        BasicBlock newBlock =
-            it.addThrowingInstructionToPossiblyThrowingBlock(code, null, fillArray, options);
-        if (newBlock != null) {
-          worklist.addIfNotSeen(newBlock);
-        }
+        insertionBlock.listIterator(code).add(invoke);
       }
 
       instructionsToRemove.addAll(info.arrayPutsToRemove);
@@ -204,39 +181,12 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
       it = block.listIterator(code, instructionAfterCandidate);
       hasChanged = true;
     }
-    return hasChanged;
-  }
+    if (hasChanged) {
+      code.removeRedundantBlocks();
+    }
 
-  private short[] computeArrayFilledData(Value[] values, int size, int elementSize) {
-    for (Value v : values) {
-      if (!v.isConstant()) {
-        return null;
-      }
-    }
-    if (elementSize == 1) {
-      short[] result = new short[(size + 1) / 2];
-      for (int i = 0; i < size; i += 2) {
-        short value =
-            (short) (values[i].getConstInstruction().asConstNumber().getIntValue() & 0xFF);
-        if (i + 1 < size) {
-          value |=
-              (short)
-                  ((values[i + 1].getConstInstruction().asConstNumber().getIntValue() & 0xFF) << 8);
-        }
-        result[i / 2] = value;
-      }
-      return result;
-    }
-    assert elementSize == 2 || elementSize == 4 || elementSize == 8;
-    int shortsPerConstant = elementSize / 2;
-    short[] result = new short[size * shortsPerConstant];
-    for (int i = 0; i < size; i++) {
-      long value = values[i].getConstInstruction().asConstNumber().getRawValue();
-      for (int part = 0; part < shortsPerConstant; part++) {
-        result[i * shortsPerConstant + part] = (short) ((value >> (16 * part)) & 0xFFFFL);
-      }
-    }
-    return result;
+    assert code.isConsistentSSA(appView);
+    return hasChanged;
   }
 
   private static class FilledArrayConversionInfo {
@@ -252,7 +202,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
   }
 
   private FilledArrayConversionInfo computeConversionInfo(
-      FilledArrayCandidate candidate, LinearFlowInstructionListIterator it) {
+      IRCode code, FilledArrayCandidate candidate, LinearFlowInstructionListIterator it) {
     NewArrayEmpty newArrayEmpty = candidate.newArrayEmpty;
     assert it.peekPrevious() == newArrayEmpty;
     Value arrayValue = newArrayEmpty.outValue();
@@ -264,7 +214,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
     //   if aput-object throws a ClassCastException if given an object that does not implement the
     //   desired interface, then we could add check-cast instructions for arguments we're not sure
     //   about.
-    DexType elementType = newArrayEmpty.type.toDimensionMinusOneType(dexItemFactory);
+    DexType elementType = newArrayEmpty.type.toArrayElementType(dexItemFactory);
     boolean needsTypeCheck =
         !elementType.isPrimitiveType() && elementType != dexItemFactory.objectType;
 
@@ -279,7 +229,8 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
       // optimization so that we do not transform half-initialized arrays into fully initialized
       // arrays on exceptional edges. If the block has no handlers it is not observable so
       // we perform the rewriting.
-      if (block.hasCatchHandlers() && instruction.instructionInstanceCanThrow()) {
+      if (block.hasCatchHandlers()
+          && instruction.instructionInstanceCanThrow(appView, code.context())) {
         return null;
       }
       if (!users.contains(instruction)) {
@@ -299,8 +250,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
       if (!arrayPut.index().isConstNumber()) {
         return null;
       }
-      if (arrayPut.instructionInstanceCanThrow()) {
-        assert false;
+      if (arrayPut.instructionInstanceCanThrow(appView, code.context())) {
         return null;
       }
       int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
@@ -347,22 +297,11 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
 
     final NewArrayEmpty newArrayEmpty;
     final int size;
-    final boolean encodeAsFilledNewArray;
 
-    public FilledArrayCandidate(
-        NewArrayEmpty newArrayEmpty, int size, boolean encodeAsFilledNewArray) {
+    public FilledArrayCandidate(NewArrayEmpty newArrayEmpty, int size) {
       assert size > 0;
       this.newArrayEmpty = newArrayEmpty;
       this.size = size;
-      this.encodeAsFilledNewArray = encodeAsFilledNewArray;
-    }
-
-    public boolean useFilledNewArray() {
-      return encodeAsFilledNewArray;
-    }
-
-    public boolean useFilledArrayData() {
-      return !useFilledNewArray();
     }
   }
 
@@ -382,97 +321,6 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
     if (!options.isPotentialSize(size)) {
       return null;
     }
-    DexType arrayType = newArrayEmpty.type;
-    boolean encodeAsFilledNewArray = canUseFilledNewArray(arrayType, size, options);
-    if (!encodeAsFilledNewArray && !canUseFilledArrayData(arrayType, size, options)) {
-      return null;
-    }
-    // Check that all arguments to the array is the array type or that the array is type Object[].
-    if (!options.canUseSubTypesInFilledNewArray()
-        && arrayType != dexItemFactory.objectArrayType
-        && !arrayType.isPrimitiveArrayType()) {
-      DexType elementType = arrayType.toArrayElementType(dexItemFactory);
-      for (Instruction uniqueUser : newArrayEmpty.outValue().uniqueUsers()) {
-        if (uniqueUser.isArrayPut()
-            && uniqueUser.asArrayPut().array() == newArrayEmpty.outValue()
-            && !checkTypeOfArrayPut(uniqueUser.asArrayPut(), elementType)) {
-          return null;
-        }
-      }
-    }
-    return new FilledArrayCandidate(newArrayEmpty, size, encodeAsFilledNewArray);
-  }
-
-  private boolean checkTypeOfArrayPut(ArrayPut arrayPut, DexType elementType) {
-    TypeElement valueType = arrayPut.value().getType();
-    if (!valueType.isPrimitiveType() && elementType == dexItemFactory.objectType) {
-      return true;
-    }
-    if (valueType.isNullType() && !elementType.isPrimitiveType()) {
-      return true;
-    }
-    if (elementType.isArrayType()) {
-      if (valueType.isNullType()) {
-        return true;
-      }
-      ArrayTypeElement arrayTypeElement = valueType.asArrayType();
-      if (arrayTypeElement == null
-          || arrayTypeElement.getNesting() != elementType.getNumberOfLeadingSquareBrackets()) {
-        return false;
-      }
-      valueType = arrayTypeElement.getBaseType();
-      elementType = elementType.toBaseType(dexItemFactory);
-    }
-    assert !valueType.isArrayType();
-    assert !elementType.isArrayType();
-    if (valueType.isPrimitiveType() && !elementType.isPrimitiveType()) {
-      return false;
-    }
-    if (valueType.isPrimitiveType()) {
-      return true;
-    }
-    DexClass clazz = appView.definitionFor(elementType);
-    if (clazz == null) {
-      return false;
-    }
-    return valueType.isClassType(elementType);
-  }
-
-  private boolean canUseFilledNewArray(DexType arrayType, int size, RewriteArrayOptions options) {
-    if (size < options.minSizeForFilledNewArray) {
-      return false;
-    }
-    // filled-new-array is implemented only for int[] and Object[].
-    // For int[], using filled-new-array is usually smaller than filled-array-data.
-    // filled-new-array supports up to 5 registers before it's filled-new-array/range.
-    if (!arrayType.isPrimitiveArrayType()) {
-      if (size > options.maxSizeForFilledNewArrayOfReferences) {
-        return false;
-      }
-      if (arrayType == dexItemFactory.stringArrayType) {
-        return options.canUseFilledNewArrayOfStrings();
-      }
-      if (!options.canUseFilledNewArrayOfNonStringObjects()) {
-        return false;
-      }
-      if (!options.canUseFilledNewArrayOfArrays()
-          && arrayType.getNumberOfLeadingSquareBrackets() > 1) {
-        return false;
-      }
-      return true;
-    }
-    if (arrayType == dexItemFactory.intArrayType) {
-      return size <= options.maxSizeForFilledNewArrayOfInts;
-    }
-    return false;
-  }
-
-  private boolean canUseFilledArrayData(DexType arrayType, int size, RewriteArrayOptions options) {
-    // If there is only one element it is typically smaller to generate the array put
-    // instruction instead of fill array data.
-    if (size < options.minSizeForFilledArrayData || size > options.maxSizeForFilledArrayData) {
-      return false;
-    }
-    return arrayType.isPrimitiveArrayType();
+    return new FilledArrayCandidate(newArrayEmpty, size);
   }
 }

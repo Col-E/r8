@@ -100,6 +100,11 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
     return false;
   }
 
+  @Override
+  public boolean isFailedTransferResult() {
+    return isError();
+  }
+
   public ErroneousCfFrameState asError() {
     return null;
   }

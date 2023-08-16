@@ -15,9 +15,9 @@ import com.android.tools.r8.dex.code.DexRemIntLit16;
 import com.android.tools.r8.dex.code.DexRemIntLit8;
 import com.android.tools.r8.dex.code.DexRemLong;
 import com.android.tools.r8.dex.code.DexRemLong2Addr;
-import com.android.tools.r8.ir.analysis.constant.Bottom;
-import com.android.tools.r8.ir.analysis.constant.LatticeElement;
-import java.util.function.Function;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 
 public class Rem extends ArithmeticBinop {
 
@@ -131,17 +131,41 @@ public class Rem extends ArithmeticBinop {
   }
 
   @Override
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
+    if (!instructionTypeCanThrow()) {
+      return false;
+    }
+    AbstractValue rightAbstractValue = abstractValueSupplier.getAbstractValue(rightValue());
+    if (rightAbstractValue.isSingleNumberValue() && !rightAbstractValue.isZero()) {
+      return false;
+    }
+    if (rightAbstractValue.isDefiniteBitsNumberValue()
+        && rightAbstractValue.asDefiniteBitsNumberValue().getDefinitelySetIntBits() != 0) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
   public boolean instructionTypeCanThrow() {
     return type != NumericType.DOUBLE && type != NumericType.FLOAT;
   }
 
   @Override
-  public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
-    LatticeElement rightLattice = getLatticeElement.apply(rightValue());
-    if (rightLattice.isConst() && !rightLattice.asConst().getConstNumber().isZero()) {
-      return super.evaluate(code, getLatticeElement);
+  public AbstractValue getAbstractValue(
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
+    if (outValue.hasLocalInfo()) {
+      return AbstractValue.unknown();
     }
-    return Bottom.getInstance();
+    AbstractValue rightLattice = abstractValueSupplier.getAbstractValue(rightValue());
+    if (!rightLattice.isZero()) {
+      return super.getAbstractValue(appView, context, abstractValueSupplier);
+    }
+    return AbstractValue.unknown();
   }
 
   @Override

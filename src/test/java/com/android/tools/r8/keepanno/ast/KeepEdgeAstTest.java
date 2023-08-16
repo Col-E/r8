@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.keepanno.ast.KeepBindings.BindingSymbol;
 import com.android.tools.r8.keepanno.ast.KeepOptions.KeepOption;
 import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
 import com.android.tools.r8.utils.StringUtils;
@@ -159,12 +160,58 @@ public class KeepEdgeAstTest extends TestBase {
             .build();
     assertEquals(
         StringUtils.unixLines(
-            "-if class " + CLASS + " -keep class " + CLASS + " { void <init>(); }"),
+            "-keepclassmembers class " + CLASS + " { void <init>(); }",
+            "-if class " + CLASS + " -keep class " + CLASS + " { void finalize(); }"),
         extract(edge));
+  }
+
+  @Test
+  public void testKeepInstanceAndInitIfReferencedWithBinding() {
+    KeepBindings.Builder bindings = KeepBindings.builder();
+    BindingSymbol classSymbol = bindings.create("CLASS");
+    KeepEdge edge =
+        KeepEdge.builder()
+            .setBindings(bindings.addBinding(classSymbol, classItem(CLASS)).build())
+            .setPreconditions(
+                KeepPreconditions.builder()
+                    .addCondition(
+                        KeepCondition.builder().setItemReference(itemBinding(classSymbol)).build())
+                    .build())
+            .setConsequences(
+                KeepConsequences.builder()
+                    .addTarget(target(itemBinding(classSymbol)))
+                    .addTarget(
+                        target(
+                            KeepItemPattern.builder()
+                                .setClassReference(classBinding(classSymbol))
+                                .setMemberPattern(defaultInitializerPattern())
+                                .build()))
+                    .build())
+            .build();
+    assertEquals(
+        StringUtils.unixLines(
+            "-if class "
+                + CLASS
+                + " -keepclasseswithmembers class "
+                + CLASS
+                + " { void <init>(); }"),
+        extract(edge));
+  }
+
+  private KeepItemReference itemBinding(BindingSymbol bindingName) {
+    return KeepItemReference.fromBindingReference(bindingName);
+  }
+
+  private KeepClassReference classBinding(BindingSymbol bindingName) {
+    return KeepClassReference.fromBindingReference(bindingName);
   }
 
   private KeepTarget target(KeepItemPattern item) {
     return KeepTarget.builder().setItemPattern(item).build();
+  }
+
+  private KeepTarget target(KeepItemReference item) {
+    return KeepTarget.builder().setItemReference(item).build();
   }
 
   private KeepItemPattern classItem(String typeName) {
@@ -174,6 +221,7 @@ public class KeepEdgeAstTest extends TestBase {
   private KeepItemPattern.Builder buildClassItem(String typeName) {
     return KeepItemPattern.builder().setClassPattern(KeepQualifiedClassNamePattern.exact(typeName));
   }
+
 
   private KeepMemberPattern defaultInitializerPattern() {
     return KeepMethodPattern.builder()

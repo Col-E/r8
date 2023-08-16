@@ -198,7 +198,7 @@ public interface LirOpcodes {
   int FALLTHROUGH = 211;
   int MOVEEXCEPTION = 212;
   int DEBUGLOCALWRITE = 213;
-  int INVOKENEWARRAY = 214;
+  int NEWARRAYFILLED = 214;
   int NEWARRAYFILLEDDATA = 215;
   int ITEMBASEDCONSTSTRING = 216;
   int NEWUNBOXEDENUMINSTANCE = 217;
@@ -523,8 +523,8 @@ public interface LirOpcodes {
         return "MOVEEXCEPTION";
       case DEBUGLOCALWRITE:
         return "DEBUGLOCALWRITE";
-      case INVOKENEWARRAY:
-        return "INVOKENEWARRAY";
+      case NEWARRAYFILLED:
+        return "NEWARRAYFILLED";
       case NEWARRAYFILLEDDATA:
         return "NEWARRAYFILLEDDATA";
       case ITEMBASEDCONSTSTRING:

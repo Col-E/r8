@@ -5,6 +5,9 @@ package com.android.tools.r8.ir.analysis.constant;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.AbstractValueJoiner.AbstractValueConstantPropagationJoiner;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
@@ -20,11 +23,12 @@ import com.android.tools.r8.ir.conversion.passes.CodeRewriterPass;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.utils.BooleanBox;
+import com.android.tools.r8.utils.WorkList;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,8 +39,11 @@ import java.util.Map;
  */
 public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppInfo> {
 
+  private final AbstractValueConstantPropagationJoiner joiner;
+
   public SparseConditionalConstantPropagation(AppView<?> appView) {
     super(appView);
+    joiner = appView.getAbstractValueConstantPropagationJoiner();
   }
 
   @Override
@@ -57,18 +64,19 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
   private class SparseConditionalConstantPropagationOnCode {
 
     private final IRCode code;
-    private final Map<Value, LatticeElement> mapping = new HashMap<>();
+    private final Map<Value, AbstractValue> mapping = new IdentityHashMap<>();
 
-    // TODO(b/270398965): Replace LinkedList.
-    @SuppressWarnings("JdkObsolete")
-    private final Deque<Value> ssaEdges = new LinkedList<>();
+    private final WorkList<Value> ssaEdges = WorkList.newIdentityWorkList();
 
-    // TODO(b/270398965): Replace LinkedList.
-    @SuppressWarnings("JdkObsolete")
-    private final Deque<BasicBlock> flowEdges = new LinkedList<>();
+    private final WorkList<BasicBlock> flowEdges = WorkList.newIdentityWorkList();
 
     private final BitSet[] executableFlowEdges;
     private final BitSet visitedBlocks;
+
+    private final Map<IntSwitch, Int2ReferenceSortedMap<BasicBlock>> intSwitchKeyToTargetMapCache =
+        new IdentityHashMap<>();
+    private final Map<StringSwitch, Map<DexString, BasicBlock>> stringSwitchKeyToTargetMapCache =
+        new IdentityHashMap<>();
 
     private SparseConditionalConstantPropagationOnCode(IRCode code) {
       this.code = code;
@@ -81,9 +89,9 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
       BasicBlock firstBlock = code.entryBlock();
       visitInstructions(firstBlock);
 
-      while (!flowEdges.isEmpty() || !ssaEdges.isEmpty()) {
-        while (!flowEdges.isEmpty()) {
-          BasicBlock block = flowEdges.poll();
+      while (flowEdges.hasNext() || ssaEdges.hasNext()) {
+        while (flowEdges.hasNext()) {
+          BasicBlock block = flowEdges.removeSeen();
           for (Phi phi : block.getPhis()) {
             visitPhi(phi);
           }
@@ -91,8 +99,8 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
             visitInstructions(block);
           }
         }
-        while (!ssaEdges.isEmpty()) {
-          Value value = ssaEdges.poll();
+        while (ssaEdges.hasNext()) {
+          Value value = ssaEdges.removeSeen();
           for (Phi phi : value.uniquePhiUsers()) {
             visitPhi(phi);
           }
@@ -113,36 +121,50 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
       List<BasicBlock> blockToAnalyze = new ArrayList<>();
       BooleanBox hasChanged = new BooleanBox(false);
       mapping.entrySet().stream()
-          .filter(entry -> entry.getValue().isConst())
+          .filter(entry -> isConstNumber(entry.getKey(), entry.getValue()))
+          .sorted(Comparator.comparingInt(entry -> entry.getKey().getNumber()))
           .forEach(
               entry -> {
                 Value value = entry.getKey();
-                ConstNumber evaluatedConst = entry.getValue().asConst().getConstNumber();
-                if (value.definition != evaluatedConst) {
-                  if (value.isPhi()) {
-                    // D8 relies on dead code removal to get rid of the dead phi itself.
-                    if (value.hasAnyUsers()) {
-                      BasicBlock block = value.asPhi().getBlock();
-                      blockToAnalyze.add(block);
-                      // Create a new constant, because it can be an existing constant that flow
-                      // directly
-                      // into the phi.
-                      ConstNumber newConst = ConstNumber.copyOf(code, evaluatedConst);
-                      InstructionListIterator iterator = block.listIterator(code);
-                      Instruction inst = iterator.nextUntil(i -> !i.isMoveException());
-                      newConst.setPosition(inst.getPosition());
-                      if (!inst.isDebugPosition()) {
-                        iterator.previous();
-                      }
-                      iterator.add(newConst);
-                      value.replaceUsers(newConst.outValue(), affectedValues);
-                      hasChanged.set();
-                    }
-                  } else {
-                    BasicBlock block = value.definition.getBlock();
-                    InstructionListIterator iterator = block.listIterator(code);
-                    iterator.nextUntil(i -> i == value.definition);
-                    iterator.replaceCurrentInstruction(evaluatedConst, affectedValues);
+                if (!value.hasAnyUsers()) {
+                  return;
+                }
+                long constValue = entry.getValue().asSingleNumberValue().getValue();
+                if (value.isDefinedByInstructionSatisfying(Instruction::isConstNumber)) {
+                  assert value.getDefinition().asConstNumber().getRawValue() == constValue;
+                  return;
+                }
+                if (value.isPhi()) {
+                  // D8 relies on dead code removal to get rid of the dead phi itself.
+                  BasicBlock block = value.asPhi().getBlock();
+                  blockToAnalyze.add(block);
+                  InstructionListIterator iterator = block.listIterator(code);
+                  Instruction inst = iterator.nextUntil(i -> !i.isMoveException());
+                  if (!inst.isDebugPosition()) {
+                    iterator.previous();
+                  }
+                  // Create a new constant, because it can be an existing constant that flow
+                  // directly into the phi.
+                  ConstNumber newConst =
+                      ConstNumber.builder()
+                          .setFreshOutValue(code, value.getType(), value.getLocalInfo())
+                          .setPosition(inst.getPosition())
+                          .setValue(constValue)
+                          .build();
+                  iterator.add(newConst);
+                  value.replaceUsers(newConst.outValue(), affectedValues);
+                  hasChanged.set();
+                } else {
+                  Instruction definition = value.getDefinition();
+                  BasicBlock block = definition.getBlock();
+                  InstructionListIterator iterator = block.listIterator(code);
+                  iterator.nextUntil(i -> i == definition);
+                  if (!definition.isArgument()
+                      && !definition.instructionMayHaveSideEffects(
+                          appView, code.context(), this::getCachedAbstractValue)) {
+                    ConstNumber replacement =
+                        ConstNumber.builder().setOutValue(value).setValue(constValue).build();
+                    iterator.replaceCurrentInstruction(replacement, affectedValues);
                     hasChanged.set();
                   }
                 }
@@ -159,36 +181,40 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
       return changed;
     }
 
-    private LatticeElement getLatticeElement(Value value) {
-      return mapping.getOrDefault(value, Top.getInstance());
+    private AbstractValue getCachedAbstractValue(Value value) {
+      return mapping.getOrDefault(value, AbstractValue.bottom());
     }
 
-    private void setLatticeElement(Value value, LatticeElement element) {
-      mapping.put(value, element);
+    private void setAbstractValue(Value value, AbstractValue abstractValue) {
+      mapping.put(value, abstractValue);
+    }
+
+    private boolean isConstNumber(Value value, AbstractValue abstractValue) {
+      return value.getType().isPrimitiveType() && abstractValue.isSingleNumberValue();
     }
 
     private void visitPhi(Phi phi) {
       BasicBlock phiBlock = phi.getBlock();
       int phiBlockNumber = phiBlock.getNumber();
-      LatticeElement element = Top.getInstance();
+      AbstractValue phiValue = AbstractValue.bottom();
       List<BasicBlock> predecessors = phiBlock.getPredecessors();
       int size = predecessors.size();
       for (int i = 0; i < size; i++) {
         BasicBlock predecessor = predecessors.get(i);
         if (isExecutableEdge(predecessor.getNumber(), phiBlockNumber)) {
-          element = element.meet(getLatticeElement(phi.getOperand(i)));
-          // bottom lattice can no longer be changed, thus no need to continue
-          if (element.isBottom()) {
+          phiValue =
+              joiner.join(phiValue, getCachedAbstractValue(phi.getOperand(i)), phi.getType());
+          // Top lattice element can no longer be changed, thus no need to continue.
+          if (phiValue.isUnknown()) {
             break;
           }
         }
       }
-      if (!element.isTop()) {
-        LatticeElement currentPhiElement = getLatticeElement(phi);
-        if (currentPhiElement.meet(element) != currentPhiElement) {
-          ssaEdges.add(phi);
-          setLatticeElement(phi, element);
-        }
+      AbstractValue previousPhiValue = getCachedAbstractValue(phi);
+      assert joiner.lessThanOrEqualTo(previousPhiValue, phiValue, phi.getType());
+      if (!phiValue.equals(previousPhiValue)) {
+        ssaEdges.addIfNotSeen(phi);
+        setAbstractValue(phi, phiValue);
       }
     }
 
@@ -200,12 +226,14 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
     }
 
     private void visitInstruction(Instruction instruction) {
-      if (instruction.outValue() != null && !instruction.isDebugLocalUninitialized()) {
-        LatticeElement element = instruction.evaluate(code, this::getLatticeElement);
-        LatticeElement currentLattice = getLatticeElement(instruction.outValue());
-        if (currentLattice.meet(element) != currentLattice) {
-          setLatticeElement(instruction.outValue(), element);
-          ssaEdges.add(instruction.outValue());
+      if (instruction.hasOutValue() && !instruction.isDebugLocalUninitialized()) {
+        AbstractValue value =
+            instruction.getAbstractValue(appView, code.context(), this::getCachedAbstractValue);
+        AbstractValue previousValue = getCachedAbstractValue(instruction.outValue());
+        assert joiner.lessThanOrEqualTo(previousValue, value, instruction.getOutType());
+        if (!value.equals(previousValue)) {
+          setAbstractValue(instruction.outValue(), value);
+          ssaEdges.addIfNotSeen(instruction.outValue());
         }
       }
       if (instruction.isJumpInstruction()) {
@@ -218,55 +246,60 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
       int jumpInstBlockNumber = jumpInstBlock.getNumber();
       if (jumpInstruction.isIf()) {
         If theIf = jumpInstruction.asIf();
+        AbstractValue lhsValue = getCachedAbstractValue(theIf.lhs());
         if (theIf.isZeroTest()) {
-          LatticeElement element = getLatticeElement(theIf.inValues().get(0));
-          if (element.isConst()) {
-            BasicBlock target = theIf.targetFromCondition(element.asConst().getConstNumber());
+          if (isConstNumber(theIf.lhs(), lhsValue)) {
+            int intValue = lhsValue.asSingleNumberValue().getIntValue();
+            BasicBlock target = theIf.targetFromCondition(Integer.signum(intValue));
             if (!isExecutableEdge(jumpInstBlockNumber, target.getNumber())) {
               setExecutableEdge(jumpInstBlockNumber, target.getNumber());
-              flowEdges.add(target);
+              flowEdges.addIfNotSeen(target);
             }
             return;
           }
         } else {
-          LatticeElement leftElement = getLatticeElement(theIf.inValues().get(0));
-          LatticeElement rightElement = getLatticeElement(theIf.inValues().get(1));
-          if (leftElement.isConst() && rightElement.isConst()) {
-            ConstNumber leftNumber = leftElement.asConst().getConstNumber();
-            ConstNumber rightNumber = rightElement.asConst().getConstNumber();
-            BasicBlock target = theIf.targetFromCondition(leftNumber, rightNumber);
+          AbstractValue rhsValue = getCachedAbstractValue(theIf.rhs());
+          if (isConstNumber(theIf.lhs(), lhsValue) && isConstNumber(theIf.rhs(), rhsValue)) {
+            long leftValue = lhsValue.asSingleNumberValue().getValue();
+            long rightValue = rhsValue.asSingleNumberValue().getValue();
+            BasicBlock target = theIf.targetFromCondition(leftValue, rightValue);
             if (!isExecutableEdge(jumpInstBlockNumber, target.getNumber())) {
               setExecutableEdge(jumpInstBlockNumber, target.getNumber());
-              flowEdges.add(target);
+              flowEdges.addIfNotSeen(target);
             }
             return;
           }
-          assert !leftElement.isTop();
-          assert !rightElement.isTop();
         }
       } else if (jumpInstruction.isIntSwitch()) {
         IntSwitch switchInst = jumpInstruction.asIntSwitch();
-        LatticeElement switchElement = getLatticeElement(switchInst.value());
-        if (switchElement.isConst()) {
+        AbstractValue value = getCachedAbstractValue(switchInst.value());
+        if (isConstNumber(switchInst.value(), value)) {
+          int intValue = value.asSingleNumberValue().getIntValue();
           BasicBlock target =
-              switchInst.getKeyToTargetMap().get(switchElement.asConst().getIntValue());
-          if (target == null) {
-            target = switchInst.fallthroughBlock();
-          }
+              intSwitchKeyToTargetMapCache
+                  .computeIfAbsent(switchInst, IntSwitch::getKeyToTargetMap)
+                  .getOrDefault(intValue, switchInst.fallthroughBlock());
           assert target != null;
           setExecutableEdge(jumpInstBlockNumber, target.getNumber());
-          flowEdges.add(target);
+          flowEdges.addIfNotSeen(target);
           return;
         }
       } else if (jumpInstruction.isStringSwitch()) {
         StringSwitch switchInst = jumpInstruction.asStringSwitch();
-        LatticeElement switchElement = getLatticeElement(switchInst.value());
-        if (switchElement.isConst()) {
-          // There is currently no constant propagation for strings, so it must be null.
-          assert switchElement.asConst().getConstNumber().isZero();
-          BasicBlock target = switchInst.fallthroughBlock();
+        AbstractValue value = getCachedAbstractValue(switchInst.value());
+        BasicBlock target = null;
+        if (value.isSingleStringValue()) {
+          DexString stringValue = value.asSingleStringValue().getDexString();
+          target =
+              stringSwitchKeyToTargetMapCache
+                  .computeIfAbsent(switchInst, StringSwitch::getKeyToTargetMap)
+                  .getOrDefault(stringValue, switchInst.fallthroughBlock());
+        } else if (value.isNull()) {
+          target = switchInst.fallthroughBlock();
+        }
+        if (target != null) {
           setExecutableEdge(jumpInstBlockNumber, target.getNumber());
-          flowEdges.add(target);
+          flowEdges.addIfNotSeen(target);
           return;
         }
       } else {
@@ -276,7 +309,7 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
       for (BasicBlock dst : jumpInstBlock.getSuccessors()) {
         if (!isExecutableEdge(jumpInstBlockNumber, dst.getNumber())) {
           setExecutableEdge(jumpInstBlockNumber, dst.getNumber());
-          flowEdges.add(dst);
+          flowEdges.addIfNotSeen(dst);
         }
       }
     }

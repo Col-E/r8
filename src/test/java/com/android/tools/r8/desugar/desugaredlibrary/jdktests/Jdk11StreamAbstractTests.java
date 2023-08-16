@@ -86,7 +86,7 @@ public abstract class Jdk11StreamAbstractTests extends DesugaredLibraryTestBase 
 
   private static Path JDK_11_STREAM_TEST_CLASSES_DIR;
   private static final Path JDK_11_STREAM_TEST_FILES_DIR =
-      Paths.get("third_party/openjdk/jdk-11-test/java/util/stream/test");
+      Paths.get(ToolHelper.THIRD_PARTY_DIR + "openjdk/jdk-11-test/java/util/stream/test");
   private static Path[] JDK_11_STREAM_TEST_COMPILED_FILES;
 
   private static Path[] getJdk11StreamTestFiles() throws Exception {

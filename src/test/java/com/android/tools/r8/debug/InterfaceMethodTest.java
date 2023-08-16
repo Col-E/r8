@@ -13,8 +13,9 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
+import com.android.tools.r8.debug.classes.DebugInterfaceMethod;
+import com.android.tools.r8.debug.classes.InterfaceWithDefaultAndStaticMethods;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
@@ -26,7 +27,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class InterfaceMethodTest extends DebugTestBase {
 
-  private static final Path JAR = DebugTestBase.DEBUGGEE_JAVA8_JAR;
   private static final String TEST_SOURCE_FILE = "DebugInterfaceMethod.java";
   private static final String INTERFACE_SOURCE_FILE = "InterfaceWithDefaultAndStaticMethods.java";
 
@@ -36,7 +36,8 @@ public class InterfaceMethodTest extends DebugTestBase {
   }
 
   @Parameter public TestParameters parameters;
-  String debuggeeClass = "DebugInterfaceMethod";
+
+  String debuggeeClass = typeName(DebugInterfaceMethod.class);
 
   private boolean supportsDefaultMethods() {
     return parameters.isCfRuntime()
@@ -52,7 +53,8 @@ public class InterfaceMethodTest extends DebugTestBase {
         parameters.isDexRuntimeVersion(Version.V13_0_0)
             || parameters.isDexRuntimeVersion(Version.V14_0_0));
     testForRuntime(parameters)
-        .addProgramFiles(JAR)
+        .addProgramClassesAndInnerClasses(DebugInterfaceMethod.class)
+        .addProgramClasses(InterfaceWithDefaultAndStaticMethods.class)
         .run(parameters.getRuntime(), debuggeeClass)
         .debugger(this::runDefaultMethod);
   }
@@ -66,12 +68,12 @@ public class InterfaceMethodTest extends DebugTestBase {
     final String defaultMethodThisName;
 
     if (supportsDefaultMethods()) {
-      defaultMethodContainerClass = "InterfaceWithDefaultAndStaticMethods";
+      defaultMethodContainerClass = typeName(InterfaceWithDefaultAndStaticMethods.class);
       defaultMethodName = "doSomething";
       defaultMethodThisName = "this";
     } else {
       defaultMethodContainerClass =
-          "InterfaceWithDefaultAndStaticMethods" + getCompanionClassNameSuffix();
+          typeName(InterfaceWithDefaultAndStaticMethods.class) + getCompanionClassNameSuffix();
       // IntelliJ's debugger does not know about the companion class. The only way to match it with
       // the source file or the desguared interface is to make it an inner class.
       assertEquals('$', getCompanionClassNameSuffix().charAt(0));
@@ -83,16 +85,16 @@ public class InterfaceMethodTest extends DebugTestBase {
     commands.add(breakpoint(debuggeeClass, "testDefaultMethod"));
     commands.add(run());
     commands.add(checkMethod(debuggeeClass, "testDefaultMethod"));
-    commands.add(checkLine(TEST_SOURCE_FILE, 20));
+    commands.add(checkLine(TEST_SOURCE_FILE, 22));
 
     // Step into the default method.
     commands.add(stepInto(INTELLIJ_FILTER));
-    commands.add(checkLine(INTERFACE_SOURCE_FILE, 7));
+    commands.add(checkLine(INTERFACE_SOURCE_FILE, 9));
     commands.add(checkMethod(defaultMethodContainerClass, defaultMethodName));
     commands.add(checkLocal(defaultMethodThisName));
     commands.add(checkLocal(parameterName));
     commands.add(stepOver(INTELLIJ_FILTER));
-    commands.add(checkLine(INTERFACE_SOURCE_FILE, 8));
+    commands.add(checkLine(INTERFACE_SOURCE_FILE, 10));
     commands.add(checkMethod(defaultMethodContainerClass, defaultMethodName));
     commands.add(checkLocal(defaultMethodThisName));
     commands.add(checkLocal(parameterName));
@@ -106,7 +108,8 @@ public class InterfaceMethodTest extends DebugTestBase {
   @Test
   public void testOverrideDefaultMethod() throws Throwable {
     testForRuntime(parameters)
-        .addProgramFiles(JAR)
+        .addProgramClassesAndInnerClasses(DebugInterfaceMethod.class)
+        .addProgramClasses(InterfaceWithDefaultAndStaticMethods.class)
         .run(parameters.getRuntime(), debuggeeClass)
         .debugger(this::runOverrideDefaultMethod);
   }
@@ -120,9 +123,10 @@ public class InterfaceMethodTest extends DebugTestBase {
     commands.add(run());
     commands.add(run() /* resume after 1st breakpoint */);
     commands.add(checkMethod(debuggeeClass, "testDefaultMethod"));
-    commands.add(checkLine(TEST_SOURCE_FILE, 20));
+    commands.add(checkLine(TEST_SOURCE_FILE, 22));
     commands.add(stepInto());
-    commands.add(checkMethod("DebugInterfaceMethod$OverrideImpl", "doSomething"));
+    commands.add(
+        checkMethod(typeName(DebugInterfaceMethod.class) + "$OverrideImpl", "doSomething"));
     commands.add(checkLocal("this"));
     commands.add(checkLocal(parameterName));
     commands.add(stepOver());
@@ -137,7 +141,8 @@ public class InterfaceMethodTest extends DebugTestBase {
   @Test
   public void testStaticMethod() throws Throwable {
     testForRuntime(parameters)
-        .addProgramFiles(JAR)
+        .addProgramClassesAndInnerClasses(DebugInterfaceMethod.class)
+        .addProgramClasses(InterfaceWithDefaultAndStaticMethods.class)
         .run(parameters.getRuntime(), debuggeeClass)
         .debugger(this::runStaticMethod);
   }
@@ -148,10 +153,10 @@ public class InterfaceMethodTest extends DebugTestBase {
     final String staticMethodContainerClass;
     final String staticMethodName = "printString";
     if (supportsDefaultMethods()) {
-      staticMethodContainerClass = "InterfaceWithDefaultAndStaticMethods";
+      staticMethodContainerClass = typeName(InterfaceWithDefaultAndStaticMethods.class);
     } else {
       staticMethodContainerClass =
-          "InterfaceWithDefaultAndStaticMethods"
+          typeName(InterfaceWithDefaultAndStaticMethods.class)
               + InterfaceDesugaringForTesting.getCompanionClassNameSuffix();
     }
 
@@ -159,17 +164,17 @@ public class InterfaceMethodTest extends DebugTestBase {
     commands.add(breakpoint(debuggeeClass, "testStaticMethod"));
     commands.add(run());
     commands.add(checkMethod(debuggeeClass, "testStaticMethod"));
-    commands.add(checkLine(TEST_SOURCE_FILE, 24));
+    commands.add(checkLine(TEST_SOURCE_FILE, 26));
 
     // Step into static method.
     commands.add(stepInto());
-    commands.add(checkLine(INTERFACE_SOURCE_FILE, 12));
+    commands.add(checkLine(INTERFACE_SOURCE_FILE, 14));
     commands.add(checkMethod(staticMethodContainerClass, staticMethodName));
     commands.add(checkNoLocal("this"));
     commands.add(checkNoLocal("-this"));
     commands.add(checkLocal(parameterName));
     commands.add(stepOver());
-    commands.add(checkLine(INTERFACE_SOURCE_FILE, 13));
+    commands.add(checkLine(INTERFACE_SOURCE_FILE, 15));
     commands.add(checkLocal(parameterName));
     commands.add(run());
 

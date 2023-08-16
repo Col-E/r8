@@ -19,13 +19,13 @@ import static com.android.tools.r8.ir.code.Opcodes.INVOKE_CUSTOM;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_INTERFACE;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_MULTI_NEW_ARRAY;
-import static com.android.tools.r8.ir.code.Opcodes.INVOKE_NEW_ARRAY;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_POLYMORPHIC;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_STATIC;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_SUPER;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
 import static com.android.tools.r8.ir.code.Opcodes.MOVE_EXCEPTION;
 import static com.android.tools.r8.ir.code.Opcodes.NEW_ARRAY_EMPTY;
+import static com.android.tools.r8.ir.code.Opcodes.NEW_ARRAY_FILLED;
 import static com.android.tools.r8.ir.code.Opcodes.NEW_INSTANCE;
 import static com.android.tools.r8.ir.code.Opcodes.NEW_UNBOXED_ENUM_INSTANCE;
 import static com.android.tools.r8.ir.code.Opcodes.RETURN;
@@ -89,11 +89,11 @@ import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMultiNewArray;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokePolymorphic;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
@@ -781,13 +781,13 @@ public class LensCodeRewriter {
             }
             break;
 
-          case INVOKE_NEW_ARRAY:
+          case NEW_ARRAY_FILLED:
             {
-              InvokeNewArray newArray = current.asInvokeNewArray();
+              NewArrayFilled newArray = current.asNewArrayFilled();
               new InstructionReplacer(code, current, iterator, affectedPhis)
                   .replaceInstructionIfTypeChanged(
                       newArray.getArrayType(),
-                      (t, v) -> new InvokeNewArray(t, v, newArray.inValues()),
+                      (t, v) -> new NewArrayFilled(t, v, newArray.inValues()),
                       graphLens,
                       codeLens);
             }

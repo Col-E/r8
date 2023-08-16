@@ -5,8 +5,11 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -170,6 +173,17 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
     return self();
   }
 
+  public T addDefaultRuntimeLibraryWithReflectiveOperationException(TestParameters parameters) {
+    if (parameters.getBackend() == Backend.DEX) {
+      addLibraryFiles(
+          ToolHelper.getFirstSupportedAndroidJar(
+              Ordered.max(parameters.getApiLevel(), AndroidApiLevel.K)));
+    } else {
+      addDefaultRuntimeLibrary(parameters);
+    }
+    return self();
+  }
+
   public T addClasspathClasses(Class<?>... classes) {
     return addClasspathClasses(Arrays.asList(classes));
   }
@@ -250,5 +264,9 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
   public T allowStdoutMessages() {
     // Default ignored.
     return self();
+  }
+
+  public DebugTestConfig debugConfig(TestRuntime runtime) throws Exception {
+    throw new Unimplemented("Not implemented for this test builder");
   }
 }

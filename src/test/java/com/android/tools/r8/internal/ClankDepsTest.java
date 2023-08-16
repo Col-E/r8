@@ -14,6 +14,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import java.nio.file.Path;
@@ -35,7 +36,8 @@ public class ClankDepsTest extends TestBase {
     parameters.assertNoneRuntime();
   }
 
-  private static final Path DIR = Paths.get("third_party", "chrome", "clank_google3_prebuilt");
+  private static final Path DIR =
+      Paths.get(ToolHelper.THIRD_PARTY_DIR, "chrome", "clank_google3_prebuilt");
   private static final Path CLASSES = DIR.resolve("classes.jar");
   private static final Path CONFIG = DIR.resolve("proguard.txt");
 

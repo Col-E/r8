@@ -1084,6 +1084,7 @@ public class OutlinerImpl extends Outliner {
             }
           } else {
             arguments.add(value);
+            argumentRegisters += value.requiredRegisters();
             if (instruction.isInvokeMethod()) {
               argumentTypes.add(argumentTypeFromValue(value, instruction.asInvokeMethod(), i));
             } else {
@@ -1260,7 +1261,8 @@ public class OutlinerImpl extends Outliner {
               continue;
             }
             int currentPositionIndex = outlinePositionIndex++;
-            if (current.getPosition() != null && current.instructionInstanceCanThrow()) {
+            if (current.getPosition() != null
+                && current.instructionInstanceCanThrow(appView, method)) {
               positionBuilder.addOutlinePosition(currentPositionIndex, current.getPosition());
             }
 
@@ -1573,6 +1575,7 @@ public class OutlinerImpl extends Outliner {
                           representative.getDefinition().getClassFileVersion());
                     }
                   });
+      assert outlineMethod.getReference().getArity() <= Constants.U8BIT_MAX;
       eventConsumer.acceptOutlineMethod(outlineMethod, sites);
       generatedOutlines.put(outline, outlineMethod.getReference());
       outlineMethods.add(outlineMethod);

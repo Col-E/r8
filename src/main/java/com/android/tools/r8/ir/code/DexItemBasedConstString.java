@@ -7,7 +7,6 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfDexItemBasedConstString;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexReference;
@@ -128,7 +127,11 @@ public class DexItemBasedConstString extends ConstInstruction {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow() {
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     // A const-string instruction can usually throw an exception if the decoding of the string
     // fails. Since this string corresponds to a type or member name, though, decoding cannot fail.
     return false;
@@ -173,7 +176,7 @@ public class DexItemBasedConstString extends ConstInstruction {
 
   @Override
   public AbstractValue getAbstractValue(
-      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
     return appView
         .abstractValueFactory()
         .createSingleDexItemBasedStringValue(item, nameComputationInfo);

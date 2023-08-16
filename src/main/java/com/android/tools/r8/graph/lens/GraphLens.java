@@ -220,26 +220,6 @@ public abstract class GraphLens {
     return false;
   }
 
-  // Predicate to see if a method definition is only changed by repackaging or synthetic
-  // finalization indicating that it is a simple renaming.
-  public final boolean isSimpleRenaming(DexMethod method) {
-    DexMethod methodToCompareAgainst = method;
-    DexMethod original = method;
-    GraphLens current = this;
-    while (current.isNonIdentityLens()) {
-      NonIdentityGraphLens nonIdentityLens = current.asNonIdentityLens();
-      original = nonIdentityLens.getPreviousMethodSignature(original);
-      if (current.isSimpleRenamingLens()) {
-        methodToCompareAgainst = original;
-      } else if (methodToCompareAgainst != original) {
-        return false;
-      }
-      assert nonIdentityLens.getPrevious() != null;
-      current = nonIdentityLens.getPrevious();
-    }
-    return true;
-  }
-
   public abstract String lookupPackageName(String pkg);
 
   @Deprecated
@@ -426,10 +406,6 @@ public abstract class GraphLens {
   }
 
   public boolean isHorizontalClassMergerGraphLens() {
-    return false;
-  }
-
-  public boolean isSimpleRenamingLens() {
     return false;
   }
 

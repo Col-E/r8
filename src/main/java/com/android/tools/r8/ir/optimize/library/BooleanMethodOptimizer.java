@@ -79,7 +79,7 @@ public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollectio
       Instruction definition = argument.definition;
       if (definition.isConstString()) {
         ConstString constString = definition.asConstString();
-        if (!constString.instructionInstanceCanThrow()) {
+        if (!constString.instructionInstanceCanThrow(appView, code.context())) {
           String value = StringUtils.toLowerCase(constString.getValue().toString());
           if (value.equals("true")) {
             instructionIterator.replaceCurrentInstructionWithConstInt(code, 1);

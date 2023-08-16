@@ -8,7 +8,6 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
@@ -44,6 +43,10 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
 
   public LirParsedInstructionCallback(LirCode<EV> code) {
     this.code = code;
+  }
+
+  public LirCode<EV> getCode() {
+    return code;
   }
 
   /** Returns the index for the value associated with the current argument/instruction. */
@@ -113,23 +116,12 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
   }
 
   private void onArrayGetInternal(MemberType type, LirInstructionView view) {
-    if (type.isObject()) {
-      DexType destType = (DexType) getConstantItem(view.getNextConstantOperand());
-      EV array = getNextValueOperand(view);
-      EV index = getNextValueOperand(view);
-      onArrayGetObject(destType, array, index);
-    } else {
-      EV array = getNextValueOperand(view);
-      EV index = getNextValueOperand(view);
-      onArrayGetPrimitive(type, array, index);
-    }
+    EV array = getNextValueOperand(view);
+    EV index = getNextValueOperand(view);
+    onArrayGet(type, array, index);
   }
 
-  public void onArrayGetPrimitive(MemberType type, EV array, EV index) {
-    onInstruction();
-  }
-
-  public void onArrayGetObject(DexType type, EV array, EV index) {
+  public void onArrayGet(MemberType type, EV array, EV index) {
     onInstruction();
   }
 
@@ -397,7 +389,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
-  public void onInvokeNewArray(DexType type, List<EV> arguments) {
+  public void onNewArrayFilled(DexType type, List<EV> arguments) {
     onInstruction();
   }
 
@@ -497,7 +489,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
-  public void onPhi(DexType type, List<EV> operands) {
+  public void onPhi(List<EV> operands) {
     onInstruction();
   }
 
@@ -530,7 +522,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
     onInstruction();
   }
 
-  private DexItem getConstantItem(int index) {
+  private LirConstant getConstantItem(int index) {
     return code.getConstantItem(index);
   }
 
@@ -545,7 +537,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         }
       case LirOpcodes.LDC:
         {
-          DexItem item = getConstantItem(view.getNextConstantOperand());
+          LirConstant item = getConstantItem(view.getNextConstantOperand());
           if (item instanceof DexString) {
             onConstString((DexString) item);
             return;
@@ -566,7 +558,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         }
       case LirOpcodes.CONSTCLASS_IGNORE_COMPAT:
         {
-          DexItem item = getConstantItem(view.getNextConstantOperand());
+          LirConstant item = getConstantItem(view.getNextConstantOperand());
           onConstClass((DexType) item, true);
           return;
         }
@@ -1077,7 +1069,7 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         }
       case LirOpcodes.NEW:
         {
-          DexItem item = getConstantItem(view.getNextConstantOperand());
+          LirConstant item = getConstantItem(view.getNextConstantOperand());
           if (item instanceof DexType) {
             onNewInstance((DexType) item);
             return;
@@ -1176,12 +1168,11 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
         }
       case LirOpcodes.PHI:
         {
-          DexType type = getNextDexTypeOperand(view);
           List<EV> operands = new ArrayList<>();
           while (view.hasMoreOperands()) {
             operands.add(getNextValueOperand(view));
           }
-          onPhi(type, operands);
+          onPhi(operands);
           return;
         }
       case LirOpcodes.FALLTHROUGH:
@@ -1225,11 +1216,11 @@ public abstract class LirParsedInstructionCallback<EV> implements LirInstruction
           onInvokeMultiNewArray(type, arguments);
           return;
         }
-      case LirOpcodes.INVOKENEWARRAY:
+      case LirOpcodes.NEWARRAYFILLED:
         {
           DexType type = getNextDexTypeOperand(view);
           List<EV> arguments = getInvokeInstructionArguments(view);
-          onInvokeNewArray(type, arguments);
+          onNewArrayFilled(type, arguments);
           return;
         }
       case LirOpcodes.NEWARRAYFILLEDDATA:

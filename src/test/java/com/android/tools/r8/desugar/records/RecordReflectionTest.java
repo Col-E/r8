@@ -8,6 +8,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.desugar.LibraryFilesHelper;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,9 +58,9 @@ public class RecordReflectionTest extends TestBase {
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters)
         .addKeepMainRule(MAIN_TYPE)
-        .addKeepRules("-keepattributes *")
+        .addKeepAllAttributes()
         .addKeepRules("-keep class * extends java.lang.Record { private final <fields>; }")
-        .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
+        .addLibraryFiles(LibraryFilesHelper.getJdk15LibraryFiles(temp))
         .compile()
         .inspect(RecordTestUtils::assertRecordsAreRecords)
         .enableJVMPreview()

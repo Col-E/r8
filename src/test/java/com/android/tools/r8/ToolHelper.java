@@ -94,8 +94,6 @@ import org.junit.rules.TemporaryFolder;
 
 public class ToolHelper {
 
-  static final Path[] EMPTY_PATH = {};
-
   public static boolean isNewGradleSetup() {
     return "true".equals(System.getenv("USE_NEW_GRADLE_SETUP"));
   }
@@ -111,7 +109,8 @@ public class ToolHelper {
     return Paths.get(current).getParent().toString() + "/";
   }
 
-  public static final String SOURCE_DIR = getProjectRoot() + "src/main/java/";
+  public static final String SOURCE_DIR = getProjectRoot() + "src/";
+  public static final String MAIN_SOURCE_DIR = getProjectRoot() + "src/main/java/";
   public static final String LIBRARY_DESUGAR_SOURCE_DIR = getProjectRoot() + "src/library_desugar/";
   public static final String BUILD_DIR = getProjectRoot() + "build/";
   public static final String TEST_MODULE_DIR = getProjectRoot() + "d8_r8/test_modules/";
@@ -121,13 +120,12 @@ public class ToolHelper {
   public static final String DEPENDENCIES = THIRD_PARTY_DIR + "dependencies/";
   public static final String TOOLS_DIR = getProjectRoot() + "tools/";
   public static final String TESTS_DIR = getProjectRoot() + "src/test/";
+  public static final String ART_TESTS_ROOT = getProjectRoot() + "tests/";
   public static final String TESTS_SOURCE_DIR = TESTS_DIR + "java/";
   public static final String EXAMPLES_DIR = TESTS_DIR + "examples/";
-  public static final String EXAMPLES_ANDROID_N_DIR = TESTS_DIR + "examplesAndroidN/";
   public static final String EXAMPLES_ANDROID_O_DIR = TESTS_DIR + "examplesAndroidO/";
   public static final String EXAMPLES_ANDROID_P_DIR = TESTS_DIR + "examplesAndroidP/";
   public static final String TESTS_BUILD_DIR = BUILD_DIR + "test/";
-  public static final String JDK_TESTS_BUILD_DIR = TESTS_BUILD_DIR + "jdk11Tests/";
   public static final String EXAMPLES_BUILD_DIR = TESTS_BUILD_DIR + "examples/";
   public static final String EXAMPLES_CF_DIR = EXAMPLES_BUILD_DIR + "classes/";
   public static final String EXAMPLES_ANDROID_N_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidN/";
@@ -136,11 +134,21 @@ public class ToolHelper {
   public static final String EXAMPLES_JAVA9_BUILD_DIR = TESTS_BUILD_DIR + "examplesJava9/";
   public static final String EXAMPLES_JAVA10_BUILD_DIR = TESTS_BUILD_DIR + "examplesJava10/";
   public static final String EXAMPLES_JAVA11_JAR_DIR = TESTS_BUILD_DIR + "examplesJava11/";
-  public static final String EXAMPLES_JAVA11_BUILD_DIR = BUILD_DIR + "classes/java/examplesJava11/";
   public static final String EXAMPLES_PROTO_BUILD_DIR = TESTS_BUILD_DIR + "examplesProto/";
   public static final String GENERATED_PROTO_BUILD_DIR = GENERATED_TEST_BUILD_DIR + "proto/";
   public static final String SMALI_BUILD_DIR = THIRD_PARTY_DIR + "smali/";
-  public static final String JAVA_CLASSES_DIR = BUILD_DIR + "classes/java/";
+
+  public static String getExamplesJava11BuildDir() {
+    // TODO(b/270105162): This changes when new gradle setup is default.
+    if (ToolHelper.isNewGradleSetup()) {
+      return System.getenv("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR");
+    } else {
+      return BUILD_DIR + "classes/java/examplesJava11/";
+    }
+  }
+
+  public static final Path CHECKED_IN_R8_17_WITH_DEPS =
+      Paths.get(THIRD_PARTY_DIR).resolve("r8").resolve("r8_with_deps_17.jar");
 
   public static final String R8_TEST_BUCKET = "r8-test-results";
 
@@ -181,17 +189,22 @@ public class ToolHelper {
   public static final Path JACOCO_ROOT = Paths.get(THIRD_PARTY_DIR, "jacoco", "0.8.6");
   public static final Path JACOCO_AGENT = JACOCO_ROOT.resolve(Paths.get("lib", "jacocoagent.jar"));
   public static final Path JACOCO_CLI = JACOCO_ROOT.resolve(Paths.get("lib", "jacococli.jar"));
+  public static final Path GSON =
+      Paths.get(THIRD_PARTY_DIR, "gson", "gson-2.10.1", "gson-2.10.1.jar");
+  // Currently Gson is still shipping without consumer keep rules.
+  public static final Path GSON_KEEP_RULES =
+      Paths.get(ToolHelper.THIRD_PARTY_DIR, "gson", "gson-2.10.1", "gson.pro");
+  public static final Path GUAVA_JRE =
+      Paths.get(THIRD_PARTY_DIR, "guava", "guava-32.1.2-jre", "guava-32.1.2-jre.jar");
+  public static final Path GUAVA_ANDROID =
+      Paths.get(THIRD_PARTY_DIR, "guava", "guava-32.1.2-android", "guava-32.1.2-android.jar");
   public static final String PROGUARD_SETTINGS_FOR_INTERNAL_APPS =
       THIRD_PARTY_DIR + "proguardsettings/";
 
   public static final Path RETRACE_MAPS_DIR = Paths.get(THIRD_PARTY_DIR, "r8mappings");
 
-  public static final long BOT_MAX_HEAP_SIZE = 7908360192L;
-
   public static final Path R8_JAR = Paths.get(LIBS_DIR, "r8.jar");
   public static final Path R8_WITH_DEPS_JAR = Paths.get(LIBS_DIR, "r8_with_deps.jar");
-  public static final Path R8_WITHOUT_DEPS_JAR =
-      Paths.get(LIBS_DIR, "r8_no_manifest_without_deps.jar");
   public static final Path R8_WITH_RELOCATED_DEPS_JAR =
       Paths.get(LIBS_DIR, "r8_with_relocated_deps.jar");
   public static final Path R8_WITH_DEPS_17_JAR = Paths.get(LIBS_DIR, "r8_with_deps_17.jar");
@@ -211,6 +224,8 @@ public class ToolHelper {
       Paths.get(OPEN_JDK_DIR + "desugar_jdk_libs/desugar_jdk_libs.jar");
   public static final Path DESUGARED_JDK_11_LIB_JAR =
       Paths.get(OPEN_JDK_DIR + "desugar_jdk_libs_11/desugar_jdk_libs.jar");
+
+  public static final Path AAPT2 = Paths.get(THIRD_PARTY_DIR, "aapt2", "aapt2");
 
   public static Path getDesugarLibConversions(CustomConversionVersion legacy) {
     return legacy == CustomConversionVersion.LEGACY
@@ -542,6 +557,7 @@ public class ToolHelper {
     private DexVm version;
     private boolean withArtFrameworks;
     private ArtResultCacheLookupKey artResultCacheLookupKey;
+    private boolean noCaching = false;
 
     public ArtCommandBuilder() {
       this.version = getDexVm();
@@ -557,6 +573,10 @@ public class ToolHelper {
     @Override
     protected boolean shouldUseDocker() {
       return isMac();
+    }
+
+    public void setNoCaching(boolean noCaching) {
+      this.noCaching = noCaching;
     }
 
     @Override
@@ -591,7 +611,7 @@ public class ToolHelper {
     }
 
     private boolean useCache() {
-      return CommandResultCache.getInstance() != null;
+      return !noCaching && CommandResultCache.getInstance() != null;
     }
 
     public void cacheResult(ProcessResult result) {
@@ -692,7 +712,7 @@ public class ToolHelper {
     }
 
     private String getStringContent(Path path) {
-      assert path.toFile().exists();
+      assert path.toFile().exists() : path + " does not exist";
       if (path.toFile().length() > 0) {
         try {
           return FileUtils.readTextFile(path, Charsets.UTF_8);
@@ -789,7 +809,7 @@ public class ToolHelper {
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "art")
           .put(DexVm.ART_MASTER_HOST, "host/art-master")
-          .put(DexVm.ART_14_0_0_HOST, "host/art-14.0.0-dp1")
+          .put(DexVm.ART_14_0_0_HOST, "host/art-14.0.0-beta3")
           .put(DexVm.ART_13_0_0_HOST, "host/art-13.0.0")
           .put(DexVm.ART_12_0_0_HOST, "host/art-12.0.0-beta4")
           .put(DexVm.ART_10_0_0_HOST, "art-10.0.0")
@@ -1123,7 +1143,8 @@ public class ToolHelper {
 
   public static Path getJdwpTestsCfJarPath(AndroidApiLevel minSdk) {
     if (minSdk.getLevel() >= AndroidApiLevel.N.getLevel()) {
-      return Paths.get("third_party", "jdwp-tests", "apache-harmony-jdwp-tests-host.jar");
+      return Paths.get(
+          ToolHelper.THIRD_PARTY_DIR, "jdwp-tests", "apache-harmony-jdwp-tests-host.jar");
     } else {
       return Paths.get(ToolHelper.BUILD_DIR, "libs", "jdwp-tests-preN.jar");
     }
@@ -1677,6 +1698,13 @@ public class ToolHelper {
         getJavaExecutable(), "-cp", cp, "-noverify", mainClass);
     cmdline.addAll(args);
     ProcessBuilder builder = new ProcessBuilder(cmdline);
+    return runProcess(builder);
+  }
+
+  public static ProcessResult runAapt2(String... args) throws IOException {
+    ArrayList<String> cmd = Lists.newArrayList(AAPT2.toString());
+    cmd.addAll(Lists.newArrayList(args));
+    ProcessBuilder builder = new ProcessBuilder(cmd);
     return runProcess(builder);
   }
 

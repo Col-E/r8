@@ -32,6 +32,7 @@ tests/2016-12-19/art
 tests/2016-12-19/art.tar.gz
 tests/2017-10-04/art
 tests/2017-10-04/art.tar.gz
+*.download_deps_lock
 third_party/aapt2/
 third_party/aapt2.tar.gz
 third_party/api_database/api_database
@@ -108,6 +109,12 @@ third_party/gradle/gradle
 third_party/gradle/gradle.tar.gz
 third_party/gradle/gradle-8.0
 third_party/gradle/gradle-8.0.tar.gz
+third_party/gson/gson-2.10.1
+third_party/gson/gson-2.10.1.tar.gz
+third_party/guava/guava-32.1.2-android
+third_party/guava/guava-32.1.2-android.tar.gz
+third_party/guava/guava-32.1.2-jre
+third_party/guava/guava-32.1.2-jre.tar.gz
 third_party/internal/*
 third_party/iosched_2019
 third_party/iosched_2019.tar.gz
@@ -162,6 +169,8 @@ third_party/openjdk/desugar_jdk_libs_releases/1.1.1
 third_party/openjdk/desugar_jdk_libs_releases/1.1.1.tar.gz
 third_party/openjdk/desugar_jdk_libs_releases/1.1.5
 third_party/openjdk/desugar_jdk_libs_releases/1.1.5.tar.gz
+third_party/openjdk/desugar_jdk_libs_releases/2.0.3
+third_party/openjdk/desugar_jdk_libs_releases/2.0.3.tar.gz
 third_party/openjdk/jdk-[0-9][0-9]/linux
 third_party/openjdk/jdk-[0-9][0-9]/linux.tar.gz
 third_party/openjdk/jdk-[0-9][0-9]/osx
@@ -293,8 +302,8 @@ tools/*/host/art-12.0.0-beta4
 tools/*/host/art-12.0.0-beta4.tar.gz
 tools/*/host/art-13.0.0
 tools/*/host/art-13.0.0.tar.gz
-tools/*/host/art-14.0.0-dp1
-tools/*/host/art-14.0.0-dp1.tar.gz
+tools/*/host/art-14.0.0-beta3
+tools/*/host/art-14.0.0-beta3.tar.gz
 tools/*/host/art-master
 tools/*/host/art-master.tar.gz
 tools/*/art.tar.gz

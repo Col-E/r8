@@ -6,18 +6,13 @@ package com.android.tools.r8.ir.conversion.passes.result;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.conversion.passes.BranchSimplifier.ControlFlowSimplificationResult;
+import com.android.tools.r8.utils.OptionalBool;
 
 public interface CodeRewriterResult {
 
   CodeRewriterResult NO_CHANGE = new DefaultCodeRewriterResult(false);
   CodeRewriterResult HAS_CHANGED = new DefaultCodeRewriterResult(true);
-  CodeRewriterResult NONE =
-      new CodeRewriterResult() {
-        @Override
-        public boolean hasChanged() {
-          throw new Unreachable();
-        }
-      };
+  CodeRewriterResult NONE = OptionalBool::unknown;
 
   static CodeRewriterResult hasChanged(boolean hasChanged) {
     return hasChanged ? HAS_CHANGED : NO_CHANGE;
@@ -32,12 +27,12 @@ public interface CodeRewriterResult {
     }
 
     @Override
-    public boolean hasChanged() {
-      return hasChanged;
+    public OptionalBool hasChanged() {
+      return OptionalBool.of(hasChanged);
     }
   }
 
-  boolean hasChanged();
+  OptionalBool hasChanged();
 
   default ControlFlowSimplificationResult asControlFlowSimplificationResult() {
     throw new Unreachable("Not a control flow simplification result.");

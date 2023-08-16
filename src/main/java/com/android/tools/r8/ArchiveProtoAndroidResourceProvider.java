@@ -4,7 +4,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.AndroidResourceInput.Kind;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.FileUtils;
@@ -78,7 +77,7 @@ public class ArchiveProtoAndroidResourceProvider implements AndroidResourceProvi
       return Kind.RESOURCE_TABLE;
     }
     if (!name.startsWith(RES_FOLDER)) {
-      throw new CompilationError("Unexpected non resource entry " + name, origin);
+      return Kind.UNKNOWN;
     }
     if (name.endsWith(XML_SUFFIX)) {
       return Kind.XML_FILE;

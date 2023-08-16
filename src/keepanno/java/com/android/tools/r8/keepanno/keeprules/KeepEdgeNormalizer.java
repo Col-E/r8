@@ -4,6 +4,7 @@
 package com.android.tools.r8.keepanno.keeprules;
 
 import com.android.tools.r8.keepanno.ast.KeepBindings;
+import com.android.tools.r8.keepanno.ast.KeepBindings.BindingSymbol;
 import com.android.tools.r8.keepanno.ast.KeepClassReference;
 import com.android.tools.r8.keepanno.ast.KeepCondition;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
@@ -13,8 +14,6 @@ import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemReference;
 import com.android.tools.r8.keepanno.ast.KeepPreconditions;
 import com.android.tools.r8.keepanno.ast.KeepTarget;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Normalize a keep edge with respect to its bindings. This will systematically introduce a binding
@@ -24,20 +23,14 @@ import java.util.List;
 public class KeepEdgeNormalizer {
 
   private static final String syntheticBindingPrefix = "SyntheticBinding";
-  private static final char syntheticBindingSuffix = 'X';
 
   public static KeepEdge normalize(KeepEdge edge) {
     // Check that all referenced bindings are defined.
     KeepEdgeNormalizer normalizer = new KeepEdgeNormalizer(edge);
-    KeepEdge normalized = normalizer.run();
-    KeepEdge minimized = KeepEdgeBindingMinimizer.run(normalized);
-    return minimized;
+    return normalizer.run();
   }
 
   private final KeepEdge edge;
-
-  private String freshBindingNamePrefix;
-  private int nextFreshBindingNameIndex = 1;
 
   private final KeepBindings.Builder bindingsBuilder = KeepBindings.builder();
   private final KeepPreconditions.Builder preconditionsBuilder = KeepPreconditions.builder();
@@ -45,43 +38,6 @@ public class KeepEdgeNormalizer {
 
   private KeepEdgeNormalizer(KeepEdge edge) {
     this.edge = edge;
-    findValidFreshBindingPrefix();
-  }
-
-  private void findValidFreshBindingPrefix() {
-    List<String> existingSuffixes = new ArrayList<>();
-    edge.getBindings()
-        .forEach(
-            (name, ignore) -> {
-              if (name.startsWith(syntheticBindingPrefix)) {
-                existingSuffixes.add(name.substring(syntheticBindingPrefix.length()));
-              }
-            });
-    if (!existingSuffixes.isEmpty()) {
-      int suffixLength = 0;
-      for (String existingSuffix : existingSuffixes) {
-        suffixLength = Math.max(suffixLength, getRepeatedSuffixLength(existingSuffix));
-      }
-      StringBuilder suffix = new StringBuilder();
-      for (int i = 0; i <= suffixLength; i++) {
-        suffix.append(syntheticBindingSuffix);
-      }
-      freshBindingNamePrefix = syntheticBindingPrefix + suffix;
-    } else {
-      freshBindingNamePrefix = syntheticBindingPrefix;
-    }
-  }
-
-  private int getRepeatedSuffixLength(String string) {
-    int i = 0;
-    while (i < string.length() && string.charAt(i) == syntheticBindingSuffix) {
-      i++;
-    }
-    return i;
-  }
-
-  private String nextFreshBindingName() {
-    return freshBindingNamePrefix + (nextFreshBindingNameIndex++);
   }
 
   private KeepEdge run() {
@@ -119,8 +75,14 @@ public class KeepEdgeNormalizer {
     if (item.isBindingReference()) {
       return item;
     }
-    KeepItemPattern newItemPattern = normalizeItemPattern(item.asItemPattern());
-    String bindingName = nextFreshBindingName();
+    KeepItemPattern itemPattern = item.asItemPattern();
+    if (itemPattern.isClassItemPattern() && itemPattern.getClassReference().isBindingReference()) {
+      BindingSymbol classBinding =
+          bindingsBuilder.getClassBinding(itemPattern.getClassReference().asBindingReference());
+      return KeepItemReference.fromBindingReference(classBinding);
+    }
+    KeepItemPattern newItemPattern = normalizeItemPattern(itemPattern);
+    BindingSymbol bindingName = bindingsBuilder.generateFreshSymbol(syntheticBindingPrefix);
     bindingsBuilder.addBinding(bindingName, newItemPattern);
     return KeepItemReference.fromBindingReference(bindingName);
   }
@@ -141,7 +103,7 @@ public class KeepEdgeNormalizer {
       // change the item.
       return classReference;
     }
-    String bindingName = nextFreshBindingName();
+    BindingSymbol bindingName = bindingsBuilder.generateFreshSymbol(syntheticBindingPrefix);
     KeepClassReference bindingReference = KeepClassReference.fromBindingReference(bindingName);
     KeepItemPattern newClassPattern = getClassItemPattern(pattern);
     bindingsBuilder.addBinding(bindingName, newClassPattern);

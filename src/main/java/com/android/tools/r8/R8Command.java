@@ -765,7 +765,8 @@ public final class R8Command extends BaseCompilerCommand {
         for (ProgramResourceProvider provider : getAppBuilder().getProgramResourceProviders()) {
           for (ProgramResource resource : provider.getProgramResources()) {
             if (resource.getKind() == Kind.CF) {
-              Set<KeepDeclaration> declarations = KeepEdgeReader.readKeepEdges(resource.getBytes());
+              List<KeepDeclaration> declarations =
+                  KeepEdgeReader.readKeepEdges(resource.getBytes());
               KeepRuleExtractor extractor =
                   new KeepRuleExtractor(
                       rule -> {

@@ -22,7 +22,7 @@ public class NestAccessControlTestUtils {
   public static final Path JAR =
       Paths.get(ToolHelper.EXAMPLES_JAVA11_JAR_DIR).resolve("nesthostexample" + JAR_EXTENSION);
   public static final Path CLASSES_PATH =
-      Paths.get(ToolHelper.EXAMPLES_JAVA11_BUILD_DIR).resolve("nesthostexample/");
+      Paths.get(ToolHelper.getExamplesJava11BuildDir()).resolve("nesthostexample/");
   public static final String PACKAGE_NAME = "nesthostexample.";
 
   public static final List<String> CLASS_NAMES =

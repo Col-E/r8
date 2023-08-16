@@ -7,6 +7,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.InvokeType;
+import com.android.tools.r8.lightir.LirConstant;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -15,7 +16,7 @@ import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 
 public class DexMethodHandle extends IndexedDexItem
-    implements NamingLensComparable<DexMethodHandle> {
+    implements NamingLensComparable<DexMethodHandle>, LirConstant {
 
   public enum MethodHandleType {
     STATIC_PUT((short) 0x00),

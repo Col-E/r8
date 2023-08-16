@@ -3,47 +3,158 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.androidresources;
 
-import java.nio.charset.StandardCharsets;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.FileUtils;
+import com.google.common.collect.MoreCollectors;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
+import org.junit.rules.TemporaryFolder;
 
 public class AndroidResourceTestingUtils {
 
-  // Taken from default empty android studio activity template
-  public static String TEST_MANIFEST =
+  public static String SIMPLE_MANIFEST_WITH_STRING =
       "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
           + "<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"\n"
-          + "    xmlns:tools=\"http://schemas.android.com/tools\">\n"
-          + "\n"
-          + "    <application\n"
-          + "        android:allowBackup=\"true\"\n"
-          + "        android:dataExtractionRules=\"@xml/data_extraction_rules\"\n"
-          + "        android:fullBackupContent=\"@xml/backup_rules\"\n"
-          + "        android:icon=\"@mipmap/ic_launcher\"\n"
-          + "        android:label=\"@string/app_name\"\n"
-          + "        android:roundIcon=\"@mipmap/ic_launcher_round\"\n"
-          + "        android:supportsRtl=\"true\"\n"
-          + "        android:theme=\"@style/Theme.MyApplication\"\n"
-          + "        tools:targetApi=\"31\">\n"
-          + "        <activity\n"
-          + "            android:name=\".MainActivity\"\n"
-          + "            android:exported=\"true\"\n"
-          + "            android:label=\"@string/app_name\"\n"
-          + "            android:theme=\"@style/Theme.MyApplication.NoActionBar\">\n"
-          + "            <intent-filter>\n"
-          + "                <action android:name=\"android.intent.action.MAIN\" />\n"
-          + "\n"
-          + "                <category android:name=\"android.intent.category.LAUNCHER\" />\n"
-          + "            </intent-filter>\n"
-          + "\n"
-          + "            <meta-data\n"
-          + "                android:name=\"android.app.lib_name\"\n"
-          + "                android:value=\"\" />\n"
-          + "        </activity>\n"
+          + "          package=\"com.android.tools.r8\">\n"
+          + "    <application android:label=\"@string/app_name\">\n"
           + "    </application>\n"
-          + "\n"
-          + "</manifest>";
+          + "</manifest>\n"
+          + "\n";
 
-  // TODO(287399385): Add testing utils for generating/consuming resource tables.
-  public static byte[] TEST_RESOURCE_TABLE = "RESOURCE_TABLE".getBytes(StandardCharsets.UTF_8);
+  public static class AndroidTestRClass {
+    private final Path javaFilePath;
+    private final Path rootDirectory;
+
+    AndroidTestRClass(Path rootDirectory) throws IOException {
+      this.rootDirectory = rootDirectory;
+      this.javaFilePath =
+          Files.walk(rootDirectory)
+              .filter(path -> path.endsWith("R.java"))
+              .collect(MoreCollectors.onlyElement());
+    }
+
+    public Path getJavaFilePath() {
+      return javaFilePath;
+    }
+
+    public Path getRootDirectory() {
+      return rootDirectory;
+    }
+  }
+
+  public static class AndroidTestResource {
+    private final AndroidTestRClass rClass;
+    private final Path resourceZip;
+
+    AndroidTestResource(AndroidTestRClass rClass, Path resourceZip) {
+      this.rClass = rClass;
+      this.resourceZip = resourceZip;
+    }
+
+    public AndroidTestRClass getRClass() {
+      return rClass;
+    }
+
+    public Path getResourceZip() {
+      return resourceZip;
+    }
+  }
+
+  public static class AndroidTestResourceBuilder {
+    private String manifest;
+    private Map<String, String> stringValues = new TreeMap<>();
+    private Map<String, byte[]> drawables = new TreeMap<>();
+
+    AndroidTestResourceBuilder withManifest(String manifest) {
+      this.manifest = manifest;
+      return this;
+    }
+
+    AndroidTestResourceBuilder withSimpleManifest() {
+      this.manifest = SIMPLE_MANIFEST_WITH_STRING;
+      return this;
+    }
+
+    AndroidTestResourceBuilder addStringValue(String name, String value) {
+      stringValues.put(name, value);
+      return this;
+    }
+
+    AndroidTestResourceBuilder addDrawable(String name, byte[] value) {
+      drawables.put(name, value);
+      return this;
+    }
+
+    AndroidTestResource build(TemporaryFolder temp) throws IOException {
+      Path manifestPath =
+          FileUtils.writeTextFile(temp.newFile("AndroidManifest.xml").toPath(), this.manifest);
+      Path resFolder = temp.newFolder("res").toPath();
+      if (stringValues.size() > 0) {
+        FileUtils.writeTextFile(
+            temp.newFolder("res", "values").toPath().resolve("strings.xml"),
+            createStringResourceXml());
+      }
+      if (drawables.size() > 0) {
+        for (Entry<String, byte[]> entry : drawables.entrySet()) {
+          FileUtils.writeToFile(
+              temp.newFolder("res", "drawable").toPath().resolve(entry.getKey()),
+              null,
+              entry.getValue());
+        }
+      }
+
+      Path output = temp.newFile("resources.zip").toPath();
+      Path rClassOutput = temp.newFolder("aapt_R_class").toPath();
+      compileWithAapt2(resFolder, manifestPath, rClassOutput, output, temp);
+      return new AndroidTestResource(new AndroidTestRClass(rClassOutput), output);
+    }
+
+    private String createStringResourceXml() {
+      StringBuilder stringBuilder = new StringBuilder("<resources>\n");
+      stringValues.forEach(
+          (name, value) ->
+              stringBuilder.append("<string name=\"" + name + "\">" + value + "</string>\n"));
+      stringBuilder.append("</resources>");
+      return stringBuilder.toString();
+    }
+  }
+
+  public static void compileWithAapt2(
+      Path resFolder, Path manifest, Path rClassFolder, Path resourceZip, TemporaryFolder temp)
+      throws IOException {
+    Path compileOutput = temp.newFile("compiled.zip").toPath();
+    ProcessResult compileProcessResult =
+        ToolHelper.runAapt2(
+            "compile", "-o", compileOutput.toString(), "--dir", resFolder.toString());
+    failOnError(compileProcessResult);
+
+    ProcessResult linkProcesResult =
+        ToolHelper.runAapt2(
+            "link",
+            "-I",
+            ToolHelper.getAndroidJar(AndroidApiLevel.S).toString(),
+            "-o",
+            resourceZip.toString(),
+            "--java",
+            rClassFolder.toString(),
+            "--manifest",
+            manifest.toString(),
+            "--proto-format",
+            compileOutput.toString());
+    failOnError(linkProcesResult);
+  }
+
+  private static void failOnError(ProcessResult processResult) {
+    if (processResult.exitCode != 0) {
+      throw new RuntimeException("Failed aapt2: \n" + processResult);
+    }
+  }
 
   // The below byte arrays are lifted from the resource shrinkers DummyContent
 

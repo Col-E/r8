@@ -16,6 +16,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.TestShrinkerBuilder;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Pair;
@@ -35,7 +36,7 @@ public class RecordComponentAnnotationsTest extends TestBase {
   private static final String RECORD_NAME = "RecordWithAnnotations";
   private static final byte[][] PROGRAM_DATA = RecordTestUtils.getProgramData(RECORD_NAME);
   private static final String MAIN_TYPE = RecordTestUtils.getMainType(RECORD_NAME);
-  private static final String EXPECTED_RESULT =
+  private static final String JVM_EXPECTED_RESULT =
       StringUtils.lines(
           "Jane Doe",
           "42",
@@ -57,12 +58,39 @@ public class RecordComponentAnnotationsTest extends TestBase {
           "@records.RecordWithAnnotations$AnnotationRecordComponentOnly(\"z\")",
           "2",
           "2",
-          "@records.RecordWithAnnotations$Annotation(\"a\")",
-          "@records.RecordWithAnnotations$AnnotationFieldOnly(\"b\")",
-          "2",
           "@records.RecordWithAnnotations$Annotation(\"x\")",
-          "@records.RecordWithAnnotations$AnnotationFieldOnly(\"y\")");
-  private static final String EXPECTED_RESULT_R8 =
+          "@records.RecordWithAnnotations$AnnotationFieldOnly(\"y\")",
+          "2",
+          "@records.RecordWithAnnotations$Annotation(\"a\")",
+          "@records.RecordWithAnnotations$AnnotationFieldOnly(\"b\")");
+  private static final String ART_EXPECTED_RESULT =
+      StringUtils.lines(
+          "Jane Doe",
+          "42",
+          "Jane Doe",
+          "42",
+          "true",
+          "2",
+          "name",
+          "java.lang.String",
+          "true",
+          "2",
+          "@records.RecordWithAnnotations$Annotation(value=a)",
+          "@records.RecordWithAnnotations$AnnotationRecordComponentOnly(value=c)",
+          "age",
+          "int",
+          "true",
+          "2",
+          "@records.RecordWithAnnotations$Annotation(value=x)",
+          "@records.RecordWithAnnotations$AnnotationRecordComponentOnly(value=z)",
+          "2",
+          "2",
+          "@records.RecordWithAnnotations$Annotation(value=x)",
+          "@records.RecordWithAnnotations$AnnotationFieldOnly(value=y)",
+          "2",
+          "@records.RecordWithAnnotations$Annotation(value=a)",
+          "@records.RecordWithAnnotations$AnnotationFieldOnly(value=b)");
+  private static final String JVM_EXPECTED_RESULT_R8 =
       StringUtils.lines(
           "Jane Doe",
           "42",
@@ -89,7 +117,34 @@ public class RecordComponentAnnotationsTest extends TestBase {
           "2",
           "@records.RecordWithAnnotations$Annotation(\"x\")",
           "@records.RecordWithAnnotations$AnnotationFieldOnly(\"y\")");
-  private static final String EXPECTED_RESULT_R8_NO_KEEP_ANNOTATIONS =
+  private static final String ART_EXPECTED_RESULT_R8 =
+      StringUtils.lines(
+          "Jane Doe",
+          "42",
+          "Jane Doe",
+          "42",
+          "true",
+          "2",
+          "a",
+          "java.lang.String",
+          "true",
+          "2",
+          "@records.RecordWithAnnotations$Annotation(value=a)",
+          "@records.RecordWithAnnotations$AnnotationRecordComponentOnly(value=c)",
+          "b",
+          "int",
+          "true",
+          "2",
+          "@records.RecordWithAnnotations$Annotation(value=x)",
+          "@records.RecordWithAnnotations$AnnotationRecordComponentOnly(value=z)",
+          "2",
+          "2",
+          "@records.RecordWithAnnotations$Annotation(value=a)",
+          "@records.RecordWithAnnotations$AnnotationFieldOnly(value=b)",
+          "2",
+          "@records.RecordWithAnnotations$Annotation(value=x)",
+          "@records.RecordWithAnnotations$AnnotationFieldOnly(value=y)");
+  private static final String JVM_EXPECTED_RESULT_R8_NO_KEEP_ANNOTATIONS =
       StringUtils.lines(
           "Jane Doe",
           "42",
@@ -112,10 +167,33 @@ public class RecordComponentAnnotationsTest extends TestBase {
           "2",
           "0",
           "0");
-  private static final String EXPECTED_RESULT_DESUGARED =
-      StringUtils.lines("Jane Doe", "42", "Jane Doe", "42", "Class.isRecord not present");
-  private static final String EXPECTED_RESULT_DESUGARED_JVM17 =
+  private static final String ART_EXPECTED_RESULT_R8_NO_KEEP_ANNOTATIONS =
+      StringUtils.lines(
+          "Jane Doe",
+          "42",
+          "Jane Doe",
+          "42",
+          "true",
+          "2",
+          "a",
+          "java.lang.String",
+          "true",
+          "2",
+          "@records.RecordWithAnnotations$Annotation(value=a)",
+          "@records.RecordWithAnnotations$AnnotationRecordComponentOnly(value=c)",
+          "b",
+          "int",
+          "true",
+          "2",
+          "@records.RecordWithAnnotations$Annotation(value=x)",
+          "@records.RecordWithAnnotations$AnnotationRecordComponentOnly(value=z)",
+          "2",
+          "0",
+          "0");
+  private static final String EXPECTED_RESULT_DESUGARED_RECORD_SUPPORT =
       StringUtils.lines("Jane Doe", "42", "Jane Doe", "42", "false");
+  private static final String EXPECTED_RESULT_DESUGARED_NO_RECORD_SUPPORT =
+      StringUtils.lines("Jane Doe", "42", "Jane Doe", "42", "Class.isRecord not present");
 
   @Parameter(0)
   public TestParameters parameters;
@@ -141,7 +219,7 @@ public class RecordComponentAnnotationsTest extends TestBase {
     testForJvm(parameters)
         .addProgramClassFileData(PROGRAM_DATA)
         .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .assertSuccessWithOutput(JVM_EXPECTED_RESULT);
   }
 
   @Test
@@ -151,6 +229,8 @@ public class RecordComponentAnnotationsTest extends TestBase {
     // Android U will support records.
     boolean compilingForNativeRecordSupport =
         parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U);
+    boolean runtimeWithNativeRecordSupport =
+        parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V14_0_0);
     testForDesugaring(
             parameters,
             options -> {
@@ -164,16 +244,13 @@ public class RecordComponentAnnotationsTest extends TestBase {
         .addProgramClassFileData(PROGRAM_DATA)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .applyIf(
-            parameters.isDexRuntime() && compilingForNativeRecordSupport,
-            // Current Art 14 build does not support the java.lang.Record class.
-            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
             compilingForNativeRecordSupport,
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT),
+            r -> r.assertSuccessWithOutput(ART_EXPECTED_RESULT),
             r ->
                 r.assertSuccessWithOutput(
-                        !parameters.isCfRuntime()
-                            ? EXPECTED_RESULT_DESUGARED
-                            : EXPECTED_RESULT_DESUGARED_JVM17)
+                        !runtimeWithNativeRecordSupport
+                            ? EXPECTED_RESULT_DESUGARED_NO_RECORD_SUPPORT
+                            : EXPECTED_RESULT_DESUGARED_RECORD_SUPPORT)
                     .inspect(
                         inspector -> {
                           ClassSubject person =
@@ -247,6 +324,9 @@ public class RecordComponentAnnotationsTest extends TestBase {
     boolean compilingForNativeRecordSupport =
         parameters.isCfRuntime()
             || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U);
+    boolean runtimeWithNativeRecordSupport =
+        parameters.isCfRuntime()
+            || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V14_0_0);
     testForR8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         // TODO(b/231930852): Change to android.jar for Androud U when that contains
@@ -317,16 +397,24 @@ public class RecordComponentAnnotationsTest extends TestBase {
             })
         .run(parameters.getRuntime(), MAIN_TYPE)
         .applyIf(
-            parameters.isCfRuntime(),
             // TODO(b/274888318): EXPECTED_RESULT_R8_NO_KEEP_ANNOTATIONS still has component
             //  annotations.
+            parameters.isCfRuntime(),
             r ->
                 r.assertSuccessWithOutput(
-                    keepAnnotations ? EXPECTED_RESULT_R8 : EXPECTED_RESULT_R8_NO_KEEP_ANNOTATIONS),
-            // r -> r.assertSuccessWithOutput(EXPECTED_RESULT_R8),
+                    keepAnnotations
+                        ? JVM_EXPECTED_RESULT_R8
+                        : JVM_EXPECTED_RESULT_R8_NO_KEEP_ANNOTATIONS),
             compilingForNativeRecordSupport,
-            // Current Art 14 build does not support the java.lang.Record class.
-            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_DESUGARED));
+            r ->
+                r.assertSuccessWithOutput(
+                    keepAnnotations
+                        ? ART_EXPECTED_RESULT_R8
+                        : ART_EXPECTED_RESULT_R8_NO_KEEP_ANNOTATIONS),
+            r ->
+                r.assertSuccessWithOutput(
+                    runtimeWithNativeRecordSupport
+                        ? EXPECTED_RESULT_DESUGARED_RECORD_SUPPORT
+                        : EXPECTED_RESULT_DESUGARED_NO_RECORD_SUPPORT));
   }
 }

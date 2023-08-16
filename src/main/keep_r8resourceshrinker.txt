@@ -1,0 +1,15 @@
+# Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
+# for details. All rights reserved. Use of this source code is governed by a
+# BSD-style license that can be found in the LICENSE file.
+
+-keepclassmembers enum com.android.tools.r8.com.android.resources.ResourceType {
+  public static **[] values();
+}
+-keepclassmembers enum com.android.tools.r8.com.android.resources.ResourceFolderType {
+  public static **[] values();
+}
+
+# TODO(b/294924503): Used reflectively until the move to gradle 8 is done (b/270105162)
+-keep class com.android.tools.r8.utils.resourceshrinker.ResourceTracingImpl {
+  <init>();
+}

@@ -214,7 +214,10 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     if (appView.options().debug) {
       return true;
     }

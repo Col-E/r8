@@ -15,6 +15,7 @@ import static org.junit.Assert.assertThrows;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexClass;
@@ -39,7 +40,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -61,11 +61,10 @@ public class RelocatorTest extends TestBase {
   }
 
   @Test
-  public void testRelocatorIdentity()
-      throws IOException, CompilationFailedException, ExecutionException {
+  public void testRelocatorIdentity() throws Exception {
     Path output = temp.newFile("output.jar").toPath();
-    runRelocator(ToolHelper.R8_WITH_DEPS_JAR, new HashMap<>(), output);
-    inspectAllClassesRelocated(ToolHelper.R8_WITH_DEPS_JAR, output, "", "");
+    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, new HashMap<>(), output);
+    inspectAllClassesRelocated(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, output, "", "");
   }
 
   @Test
@@ -75,7 +74,7 @@ public class RelocatorTest extends TestBase {
     Path output = temp.newFile("output.jar").toPath();
     Map<String, String> mapping = new HashMap<>();
     mapping.put(originalPrefix, newPrefix);
-    runRelocator(ToolHelper.R8_WITH_DEPS_JAR, mapping, output);
+    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output);
     // TODO(b/155618698): Extend relocator with a richer language such that java.lang.Object is not
     //   relocated.
     RuntimeException compilationError =
@@ -83,7 +82,10 @@ public class RelocatorTest extends TestBase {
             RuntimeException.class,
             () ->
                 inspectAllClassesRelocated(
-                    ToolHelper.R8_WITH_DEPS_JAR, output, originalPrefix, newPrefix + "."));
+                    ToolHelper.CHECKED_IN_R8_17_WITH_DEPS,
+                    output,
+                    originalPrefix,
+                    newPrefix + "."));
     assertThat(compilationError.getMessage(), containsString("must extend class java.lang.Object"));
   }
 
@@ -99,20 +101,20 @@ public class RelocatorTest extends TestBase {
         assertThrows(
             CompilationFailedException.class,
             () -> {
-              runRelocator(ToolHelper.R8_WITH_DEPS_JAR, mapping, output);
+              runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output);
             });
   }
 
   @Test
-  public void testRelocateKeepsDebugInfo() throws IOException, CompilationFailedException {
+  public void testRelocateKeepsDebugInfo() throws Exception {
     String originalPrefix = "com.android.tools.r8";
     String newPrefix = "com.android.tools.r8";
     Path output = temp.newFile("output.jar").toPath();
     Map<String, String> mapping = new HashMap<>();
     mapping.put(originalPrefix, newPrefix);
-    runRelocator(ToolHelper.R8_WITH_DEPS_JAR, mapping, output);
+    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output);
     // Assert that all classes are the same, have the same methods and debug info:
-    CodeInspector originalInspector = new CodeInspector(ToolHelper.R8_WITH_DEPS_JAR);
+    CodeInspector originalInspector = new CodeInspector(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS);
     CodeInspector relocatedInspector = new CodeInspector(output);
     for (FoundClassSubject clazz : originalInspector.allClasses()) {
       ClassSubject relocatedClass = relocatedInspector.clazz(clazz.getFinalName());
@@ -148,15 +150,16 @@ public class RelocatorTest extends TestBase {
   }
 
   @Test
-  public void testRelocateAll() throws IOException, CompilationFailedException, ExecutionException {
+  public void testRelocateAll() throws Exception {
     String originalPrefix = "com.android.tools.r8";
     String newPrefix = "foo.bar.baz";
     Map<String, String> mapping = new HashMap<>();
     mapping.put("some.package.that.does.not.exist", "foo");
     mapping.put(originalPrefix, newPrefix);
     Path output = temp.newFile("output.jar").toPath();
-    runRelocator(ToolHelper.R8_WITH_DEPS_JAR, mapping, output);
-    inspectAllClassesRelocated(ToolHelper.R8_WITH_DEPS_JAR, output, originalPrefix, newPrefix);
+    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output);
+    inspectAllClassesRelocated(
+        ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, output, originalPrefix, newPrefix);
   }
 
   @Test
@@ -170,14 +173,14 @@ public class RelocatorTest extends TestBase {
     CompilationFailedException exception =
         assertThrows(
             CompilationFailedException.class,
-            () -> runRelocator(ToolHelper.R8_WITH_DEPS_JAR, mapping, output));
+            () -> runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output));
     assertThat(
         exception.getCause().getMessage(),
         containsString("can be relocated by multiple mappings."));
   }
 
   @Test
-  public void testNoReEntry() throws IOException, CompilationFailedException, ExecutionException {
+  public void testNoReEntry() throws Exception {
     // TODO(b/154909222): Check if this is the behavior we would like.
     String originalPrefix = "com.android";
     String newPrefix = "foo.bar.baz";
@@ -185,8 +188,9 @@ public class RelocatorTest extends TestBase {
     mapping.put(originalPrefix, newPrefix);
     mapping.put(newPrefix, "qux");
     Path output = temp.newFile("output.jar").toPath();
-    runRelocator(ToolHelper.R8_WITH_DEPS_JAR, mapping, output);
-    inspectAllClassesRelocated(ToolHelper.R8_WITH_DEPS_JAR, output, originalPrefix, newPrefix);
+    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output);
+    inspectAllClassesRelocated(
+        ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, output, originalPrefix, newPrefix);
     // Assert that no mappings of com.android.tools.r8 -> qux exists.
     CodeInspector inspector = new CodeInspector(output);
     assertFalse(
@@ -194,12 +198,11 @@ public class RelocatorTest extends TestBase {
   }
 
   @Test
-  public void testMultiplePackages()
-      throws IOException, ExecutionException, CompilationFailedException {
+  public void testMultiplePackages() throws Exception {
     Set<String> seenPackages = new HashSet<>();
     List<Pair<String, String>> packageMappings = new ArrayList<>();
     Map<String, String> mapping = new LinkedHashMap<>();
-    CodeInspector inspector = new CodeInspector(ToolHelper.R8_WITH_DEPS_JAR);
+    CodeInspector inspector = new CodeInspector(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS);
     int packageNameCounter = 0;
     // Generate a mapping for each package name directly below com.android.tools.r8.
     for (FoundClassSubject clazz : inspector.allClasses()) {
@@ -220,10 +223,10 @@ public class RelocatorTest extends TestBase {
       }
     }
     Path output = temp.newFile("output.jar").toPath();
-    runRelocator(ToolHelper.R8_WITH_DEPS_JAR, mapping, output);
+    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output);
     for (Pair<String, String> packageMapping : packageMappings) {
       inspectAllClassesRelocated(
-          ToolHelper.R8_WITH_DEPS_JAR,
+          ToolHelper.CHECKED_IN_R8_17_WITH_DEPS,
           output,
           packageMapping.getFirst(),
           packageMapping.getSecond());
@@ -231,33 +234,37 @@ public class RelocatorTest extends TestBase {
   }
 
   @Test
-  public void testPartialPrefix()
-      throws CompilationFailedException, IOException, ExecutionException {
+  public void testPartialPrefix() throws Exception {
     String originalPrefix = "com.android.tools.r";
     String newPrefix = "i_cannot_w";
     Map<String, String> mapping = new LinkedHashMap<>();
     mapping.put(originalPrefix, newPrefix);
     Path output = temp.newFile("output.jar").toPath();
-    runRelocator(ToolHelper.R8_WITH_DEPS_JAR, mapping, output);
-    inspectAllClassesRelocated(ToolHelper.R8_WITH_DEPS_JAR, output, originalPrefix, originalPrefix);
+    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output);
+    inspectAllClassesRelocated(
+        ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, output, originalPrefix, originalPrefix);
   }
 
   @Test
-  public void testBootstrap() throws IOException, CompilationFailedException, ExecutionException {
+  public void testBootstrap() throws Exception {
     String originalPrefix = "com.android.tools.r8";
     String newPrefix = "relocated_r8";
     Map<String, String> mapping = new LinkedHashMap<>();
     mapping.put(originalPrefix, newPrefix);
     Path output = temp.newFile("output.jar").toPath();
-    runRelocator(ToolHelper.R8_WITH_DEPS_JAR, mapping, output);
+    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output);
     // Check that all classes has been remapped.
-    inspectAllClassesRelocated(ToolHelper.R8_WITH_DEPS_JAR, output, originalPrefix, newPrefix);
+    inspectAllClassesRelocated(
+        ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, output, originalPrefix, newPrefix);
     inspectAllSignaturesNotContainingString(output, originalPrefix);
     // We should be able to call the relocated relocator.
     Path bootstrapOutput = temp.newFile("bootstrap.jar").toPath();
+    List<Path> classPath = new ArrayList<>();
+    classPath.add(output);
     ProcessResult processResult =
         ToolHelper.runJava(
-            output,
+            CfRuntime.getCheckedInJdk17(),
+            classPath,
             newPrefix + ".SwissArmyKnife",
             "relocator",
             "--input",
@@ -270,20 +277,20 @@ public class RelocatorTest extends TestBase {
     assertEquals(0, processResult.exitCode);
     inspectAllClassesRelocated(output, bootstrapOutput, newPrefix, originalPrefix);
     inspectAllSignaturesNotContainingString(bootstrapOutput, newPrefix);
-    // Assert that this is infact an identity transformation.
-    inspectAllClassesRelocated(ToolHelper.R8_WITH_DEPS_JAR, bootstrapOutput, "", "");
+    // Assert that this is in fact an identity transformation.
+    inspectAllClassesRelocated(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, bootstrapOutput, "", "");
   }
 
   @Test
-  public void testNest() throws IOException, CompilationFailedException {
+  public void testNest() throws Exception {
     String originalPrefix = "com.android.tools.r8";
     String newPrefix = "com.android.tools.r8";
     Path output = temp.newFile("output.jar").toPath();
     Map<String, String> mapping = new HashMap<>();
     mapping.put(originalPrefix, newPrefix);
-    runRelocator(ToolHelper.R8_WITH_DEPS_17_JAR, mapping, output);
+    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output);
     // Assert that all classes are the same, have the same methods and nest info.
-    CodeInspector originalInspector = new CodeInspector(ToolHelper.R8_WITH_DEPS_17_JAR);
+    CodeInspector originalInspector = new CodeInspector(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS);
     CodeInspector relocatedInspector = new CodeInspector(output);
     for (FoundClassSubject originalSubject : originalInspector.allClasses()) {
       ClassSubject relocatedSubject = relocatedInspector.clazz(originalSubject.getFinalName());

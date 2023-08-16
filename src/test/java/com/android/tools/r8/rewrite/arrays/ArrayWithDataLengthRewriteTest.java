@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.conversion.passes.ArrayConstructionSimplifier;
+import com.android.tools.r8.ir.conversion.passes.FilledNewArrayRewriter;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -22,22 +23,21 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ArrayWithDataLengthRewriteTest extends TestBase {
+
+  private static final String[] expectedOutput = {"3", "2"};
+
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
-  private final TestParameters parameters;
-
-  public ArrayWithDataLengthRewriteTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
-
-  private static final String[] expectedOutput = {"3", "2"};
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void d8() throws Exception {
@@ -65,12 +65,14 @@ public class ArrayWithDataLengthRewriteTest extends TestBase {
   }
 
   private void transformArray(IRCode irCode, AppView<?> appView) {
-    new ArrayConstructionSimplifier(appView).run(irCode, Timing.empty());
+    Timing timing = Timing.empty();
+    new ArrayConstructionSimplifier(appView).run(irCode, timing);
+    new FilledNewArrayRewriter(appView).run(irCode, timing);
     String name = irCode.context().getReference().getName().toString();
     if (name.contains("filledArrayData")) {
       assertTrue(irCode.streamInstructions().anyMatch(Instruction::isNewArrayFilledData));
     } else if (name.contains("filledNewArray")) {
-      assertTrue(irCode.streamInstructions().anyMatch(Instruction::isInvokeNewArray));
+      assertTrue(irCode.streamInstructions().anyMatch(Instruction::isNewArrayFilled));
     }
   }
 

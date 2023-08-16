@@ -73,7 +73,7 @@ public class IntraProceduralDataflowAnalysisBase<
 
   private DataflowAnalysisResult run(WorkList<Block> worklist, Timing timing) {
     while (worklist.hasNext()) {
-      Block initialBlock = worklist.next();
+      Block initialBlock = worklist.removeSeen();
       Block block = initialBlock;
       Block end = null;
       // Compute the abstract state upon entry to the basic block, by joining all the predecessor
@@ -83,7 +83,7 @@ public class IntraProceduralDataflowAnalysisBase<
 
       TransferFunctionResult<StateType> blockResult = transfer.applyBlock(initialBlock, state);
       if (blockResult.isFailedTransferResult()) {
-        return new FailedDataflowAnalysisResult();
+        return transfer.createFailedAnalysisResult(null, state);
       }
       state = blockResult.asAbstractState();
 
@@ -105,14 +105,15 @@ public class IntraProceduralDataflowAnalysisBase<
                   TransferFunctionResult<StateType> transferResult =
                       transfer.apply(instruction, previousState);
                   if (transferResult.isFailedTransferResult()) {
-                    timing.end();
-                    return TraversalContinuation.doBreak(new FailedDataflowAnalysisResult());
+                    return TraversalContinuation.doBreak(
+                        transfer.createFailedAnalysisResult(instruction, transferResult));
                   }
                   assert transferResult.isAbstractState();
                   return TraversalContinuation.doContinue(transferResult.asAbstractState());
                 },
                 state);
         if (traversalContinuation.isBreak()) {
+          timing.end();
           return traversalContinuation.asBreak().getValue();
         }
         state = traversalContinuation.asContinue().getValue();
@@ -128,7 +129,7 @@ public class IntraProceduralDataflowAnalysisBase<
       // Update the block exit state, and re-enqueue all successor blocks if the abstract state
       // changed.
       if (setBlockExitState(end, state)) {
-        cfg.forEachSuccessor(end, worklist::addIgnoringSeenSet);
+        cfg.forEachSuccessor(end, worklist::addIfNotSeen);
       }
 
       // Add the computed exit state to the entry state of each normal successor that satisfies the

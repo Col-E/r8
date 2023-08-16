@@ -13,7 +13,6 @@ import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorParserException;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -22,7 +21,8 @@ import org.junit.Test;
 public class UnicodeSetRegressionTest extends TestBase {
 
   private static final String JAR_FILE =
-      "src/test/java/com/android/tools/r8/jar/UnicodeSetRegression/UnicodeSet.jar";
+      ToolHelper.SOURCE_DIR
+          + "/test/java/com/android/tools/r8/jar/UnicodeSetRegression/UnicodeSet.jar";
 
   @Test
   public void testUnicodeSetFromJar() throws Throwable {

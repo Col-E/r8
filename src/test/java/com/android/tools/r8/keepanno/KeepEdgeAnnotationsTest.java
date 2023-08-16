@@ -41,7 +41,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -68,8 +67,14 @@ public class KeepEdgeAnnotationsTest extends TestBase {
     }
   }
 
-  public static final Path KEEP_ANNO_PATH =
-      Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "keepanno");
+  public static Path getKeepAnnoPath() {
+    // TODO(b/270105162): This changes when new gradle setup is default.
+    if (ToolHelper.isNewGradleSetup()) {
+      return Paths.get(System.getenv("KEEP_ANNO_JAVAC_BUILD_DIR").split(":")[0]);
+    } else {
+      return Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "keepanno");
+    }
+  }
 
   private static List<Class<?>> getTestClasses() {
     return ImmutableList.of(
@@ -105,7 +110,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
     Path out =
         JavaCompilerTool.create(parameters.getRuntime().asCf(), temp)
             .addAnnotationProcessors(typeName(KeepEdgeProcessor.class))
-            .addClasspathFiles(KEEP_ANNO_PATH)
+            .addClasspathFiles(getKeepAnnoPath())
             .addClassNames(Collections.singletonList(typeName(source)))
             .addClasspathFiles(Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "test"))
             .addClasspathFiles(ToolHelper.DEPS)
@@ -130,7 +135,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
         JavaCompilerTool.create(parameters.getRuntime().asCf(), temp)
             .addSourceFiles(ToolHelper.getSourceFileForTestClass(source))
             .addAnnotationProcessors(typeName(KeepEdgeProcessor.class))
-            .addClasspathFiles(KEEP_ANNO_PATH)
+            .addClasspathFiles(getKeepAnnoPath())
             .addClasspathFiles(ToolHelper.DEPS)
             .compile();
     testForJvm(parameters)
@@ -197,7 +202,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
   @Test
   public void testAsmReader() throws Exception {
     assumeTrue(parameters.isCfRuntime());
-    Set<KeepEdge> expectedEdges = KeepSourceEdges.getExpectedEdges(source);
+    List<KeepEdge> expectedEdges = KeepSourceEdges.getExpectedEdges(source);
     ClassReference clazz = Reference.classFromClass(source);
     // Original bytes of the test class.
     byte[] original = ToolHelper.getClassAsBytes(source);
@@ -222,13 +227,13 @@ public class KeepEdgeAnnotationsTest extends TestBase {
             .transform();
 
     // Read the edges from each version.
-    Set<KeepDeclaration> originalEdges = KeepEdgeReader.readKeepEdges(original);
-    Set<KeepDeclaration> strippedEdges = KeepEdgeReader.readKeepEdges(stripped);
-    Set<KeepDeclaration> readdedEdges = KeepEdgeReader.readKeepEdges(readded);
+    List<KeepDeclaration> originalEdges = KeepEdgeReader.readKeepEdges(original);
+    List<KeepDeclaration> strippedEdges = KeepEdgeReader.readKeepEdges(stripped);
+    List<KeepDeclaration> readdedEdges = KeepEdgeReader.readKeepEdges(readded);
 
     // The edges are compared to the "expected" ast to ensure we don't hide failures in reading or
     // writing.
-    assertEquals(Collections.emptySet(), strippedEdges);
+    assertEquals(Collections.emptyList(), strippedEdges);
     assertEquals(expectedEdges, originalEdges);
     assertEquals(expectedEdges, readdedEdges);
   }
@@ -253,7 +258,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
     assertThat(synthesizedEdgesClass.annotation(Edge.CLASS.getTypeName()), isPresent());
     String entry = ZipUtils.zipEntryNameForClass(synthesizedEdgesClass.getFinalReference());
     byte[] bytes = ZipUtils.readSingleEntry(data, entry);
-    Set<KeepDeclaration> keepEdges = KeepEdgeReader.readKeepEdges(bytes);
+    List<KeepDeclaration> keepEdges = KeepEdgeReader.readKeepEdges(bytes);
     assertEquals(KeepSourceEdges.getExpectedEdges(source), keepEdges);
   }
 }

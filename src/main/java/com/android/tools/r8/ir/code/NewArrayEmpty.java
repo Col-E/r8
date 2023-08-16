@@ -8,7 +8,6 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfNewArray;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.code.DexNewArray;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexType;
@@ -33,6 +32,10 @@ public class NewArrayEmpty extends Instruction {
   public NewArrayEmpty(Value dest, Value size, DexType type) {
     super(dest, size);
     this.type = type;
+  }
+
+  public DexType getArrayType() {
+    return type;
   }
 
   @Override
@@ -78,7 +81,11 @@ public class NewArrayEmpty extends Instruction {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow() {
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     return !(size().definition != null
         && size().definition.isConstNumber()
         && size().definition.asConstNumber().getRawValue() >= 0
@@ -87,9 +94,10 @@ public class NewArrayEmpty extends Instruction {
 
   @Override
   public AbstractValue getAbstractValue(
-      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
-    if (!instructionMayHaveSideEffects(appView, context) && size().getType().isInt()) {
-      assert !instructionInstanceCanThrow();
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
+    if (!instructionMayHaveSideEffects(appView, context, abstractValueSupplier)
+        && size().getType().isInt()) {
+      assert !instructionInstanceCanThrow(appView, context, abstractValueSupplier);
       return StatefulObjectValue.create(
           appView
               .abstractValueFactory()
@@ -100,7 +108,7 @@ public class NewArrayEmpty extends Instruction {
 
   @Override
   public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
-    if (instructionInstanceCanThrow()) {
+    if (instructionInstanceCanThrow(appView, code.context())) {
       return DeadInstructionResult.notDead();
     }
     // This would belong better in instructionInstanceCanThrow, but that is not passed an appInfo.

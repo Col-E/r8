@@ -200,7 +200,7 @@ public abstract class DefaultInstructionVisitor<T> implements InstructionVisitor
   }
 
   @Override
-  public T visit(InvokeNewArray instruction) {
+  public T visit(NewArrayFilled instruction) {
     return handleInvoke(instruction);
   }
 

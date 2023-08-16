@@ -60,7 +60,6 @@ import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeMultiNewArray;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokePolymorphic;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
@@ -72,6 +71,7 @@ import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.Mul;
 import com.android.tools.r8.ir.code.Neg;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
@@ -927,7 +927,7 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onPhi(DexType type, List<EV> operands) {
+    public void onPhi(List<EV> operands) {
       // The type of the phi is determined by its operands during type widening.
       Phi phi = getPhiForNextInstructionAndAdvanceState(TypeElement.getBottom());
       List<Value> values = new ArrayList<>(operands.size());
@@ -966,11 +966,11 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onInvokeNewArray(DexType type, List<EV> arguments) {
+    public void onNewArrayFilled(DexType type, List<EV> arguments) {
       Value dest =
           getOutValueForNextInstruction(
               type.toTypeElement(appView, Nullability.definitelyNotNull()));
-      addInstruction(new InvokeNewArray(type, dest, getValues(arguments)));
+      addInstruction(new NewArrayFilled(type, dest, getValues(arguments)));
     }
 
     @Override
@@ -1023,19 +1023,18 @@ public class Lir2IRConverter {
     }
 
     @Override
-    public void onArrayGetObject(DexType unusedType, EV array, EV index) {
-      // TODO(b/225838009): Remove type and unify object/primitive methods now that it is computed.
-      // The output type depends on its input array member type, so it is computed by widening.
-      Value dest = getOutValueForNextInstruction(TypeElement.getBottom());
-      addInstruction(new ArrayGet(MemberType.OBJECT, dest, getValue(array), getValue(index)));
-    }
-
-    @Override
-    public void onArrayGetPrimitive(MemberType type, EV array, EV index) {
-      // Convert the member type to a "stack value type", e.g., byte, char etc to int.
-      ValueType valueType = ValueType.fromMemberType(type);
-      DexType dexType = valueType.toDexType(appView.dexItemFactory());
-      Value dest = getOutValueForNextInstruction(dexType.toTypeElement(appView));
+    public void onArrayGet(MemberType type, EV array, EV index) {
+      TypeElement typeElement;
+      if (type.isObject()) {
+        // The actual object type must be computed from its array value.
+        typeElement = TypeElement.getBottom();
+      } else {
+        // Convert the member type to a "stack value type", e.g., byte, char etc to int.
+        ValueType valueType = ValueType.fromMemberType(type);
+        DexType dexType = valueType.toDexType(appView.dexItemFactory());
+        typeElement = dexType.toTypeElement(appView);
+      }
+      Value dest = getOutValueForNextInstruction(typeElement);
       addInstruction(new ArrayGet(type, dest, getValue(array), getValue(index)));
     }
 

@@ -140,12 +140,6 @@ public class InstanceGet extends FieldInstruction implements FieldGet, InstanceF
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    return instructionInstanceCanThrow(appView, context, assumption);
-  }
-
-  @Override
   public int maxInValueRegister() {
     return Constants.U4BIT_MAX;
   }

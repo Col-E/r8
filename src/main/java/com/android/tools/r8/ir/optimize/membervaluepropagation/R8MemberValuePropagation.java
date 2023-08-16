@@ -277,11 +277,18 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
       abstractValue = appView.abstractValueFactory().createSingleNumberValue(0);
     } else if (appView.appInfo().isFieldWrittenByFieldPutInstruction(target)) {
       abstractValue = definition.getOptimizationInfo().getAbstractValue();
-      if (abstractValue.isUnknown() && !definition.isStatic()) {
+      if (!definition.isStatic()) {
         AbstractValue abstractReceiverValue =
             current.asInstanceGet().object().getAbstractValue(appView, code.context());
         if (abstractReceiverValue.hasObjectState()) {
-          abstractValue = abstractReceiverValue.getObjectState().getAbstractFieldValue(definition);
+          AbstractValue abstractValueFromObjectState =
+              abstractReceiverValue.getObjectState().getAbstractFieldValue(definition);
+          if (!abstractValueFromObjectState.isUnknown()) {
+            // Prefer the abstract value from the current context, as this should be more precise
+            // than the abstract value we computed for the field. If this is not always true, the
+            // meet of the two values could be computed.
+            abstractValue = abstractValueFromObjectState;
+          }
         }
       }
     } else if (definition.isStatic()) {

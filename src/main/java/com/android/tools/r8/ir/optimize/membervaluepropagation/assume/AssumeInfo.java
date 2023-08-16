@@ -95,7 +95,7 @@ public class AssumeInfo {
     if (other.isUnknown()) {
       return value;
     }
-    return AbstractValue.unknown();
+    return AbstractValue.bottom();
   }
 
   private static boolean internalMeetIsSideEffectFree(

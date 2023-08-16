@@ -121,7 +121,11 @@ public class InvokeMultiNewArray extends Invoke {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     DexType baseType = type.isArrayType() ? type.toBaseType(appView.dexItemFactory()) : type;
     if (baseType.isPrimitiveType()) {
       // Primitives types are known to be present and accessible.
@@ -180,14 +184,17 @@ public class InvokeMultiNewArray extends Invoke {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     // Check if the instruction has a side effect on the locals environment.
     if (hasOutValue() && outValue().hasLocalInfo()) {
       assert appView.options().debug;
       return true;
     }
 
-    return instructionInstanceCanThrow(appView, context);
+    return instructionInstanceCanThrow(appView, context, abstractValueSupplier, assumption);
   }
 
   @Override

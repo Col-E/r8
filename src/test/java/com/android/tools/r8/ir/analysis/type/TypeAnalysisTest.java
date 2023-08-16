@@ -20,8 +20,8 @@ import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -178,7 +178,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
     IRCode code = test4Subject.buildIR();
     Value array = null;
     for (Instruction instruction : code.instructions()) {
-      if (instruction instanceof InvokeNewArray) {
+      if (instruction instanceof NewArrayFilled) {
         array = instruction.outValue();
         break;
       }

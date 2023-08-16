@@ -12,6 +12,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import java.nio.file.Path;
@@ -27,7 +28,7 @@ public class Regression127524985 extends TestBase {
   private static final String MAIN = "com.android.tools.r8.internal.Regression127524985$Main";
 
   private static final Path JAR =
-      Paths.get("third_party/internal/issue-127524985/issue-127524985.jar");
+      Paths.get(ToolHelper.THIRD_PARTY_DIR + "internal/issue-127524985/issue-127524985.jar");
 
   private static final String EXPECTED = StringUtils.lines("true");
 

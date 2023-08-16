@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugar.softverificationerrorremoval;
 
-import static com.android.tools.r8.TestRuntime.CfRuntime.getCheckedInJdk8;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.D8TestRunResult;
@@ -12,8 +11,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import com.android.tools.r8.desugar.LibraryFilesHelper;
 import java.util.function.Supplier;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,14 +58,10 @@ public class SoftVerificationErrorRemovalTest extends TestBase {
 
   @Test
   public void testWithJavaStub() throws Exception {
-    Path stubs =
-        javac(getCheckedInJdk8())
-            .addSourceFiles(Paths.get("src/test/javaStubs/Supplier.java"))
-            .compile();
     D8TestRunResult run =
         testForD8()
             .addInnerClasses(SoftVerificationErrorRemovalTest.class)
-            .addProgramFiles(stubs)
+            .addProgramClassFileData(LibraryFilesHelper.getSupplier())
             .setMinApi(parameters)
             .compile()
             .run(parameters.getRuntime(), TestClass.class);

@@ -139,7 +139,7 @@ public class RedundantBridgeRemover {
       pruneApp(bridgesToRemove, executorService, timing);
 
       if (!lensBuilder.isEmpty()) {
-        appView.setGraphLens(lensBuilder.build(appView));
+        appView.rewriteWithLens(lensBuilder.build(appView), executorService, timing);
       }
 
       if (memberRebindingIdentityLens != null) {

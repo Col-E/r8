@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -15,11 +16,12 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.List;
 import org.junit.Test;
@@ -52,6 +54,12 @@ public class HorizontalClassMergingAfterConstructorShrinkingWithRepackagingTest 
             .build());
   }
 
+  private static ClassReference moveToTopLevelPackage(Class<?> clazz) {
+    String name = typeName(clazz);
+    String topLevelName = name.substring(name.lastIndexOf('.') + 1);
+    return Reference.classFromTypeName(topLevelName);
+  }
+
   @Test
   public void test() throws Exception {
     assertTrue(parameters.canHaveNonReboundConstructorInvoke());
@@ -68,7 +76,15 @@ public class HorizontalClassMergingAfterConstructorShrinkingWithRepackagingTest 
         .addOptionsModification(
             options -> options.horizontalClassMergerOptions().disableInitialRoundOfClassMerging())
         .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
+            i -> {
+              if (enableRetargetingOfConstructorBridgeCalls) {
+                // Repackaging will have moved both classes to top-level package, so rename them.
+                i.assertClassReferencesMerged(
+                    moveToTopLevelPackage(A.class), moveToTopLevelPackage(B.class));
+              } else {
+                i.assertNoClassesMerged();
+              }
+            })
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
@@ -78,8 +94,7 @@ public class HorizontalClassMergingAfterConstructorShrinkingWithRepackagingTest 
         .inspect(
             inspector -> {
               // Verify Parent and Parent.<init>(Parent) are present and that Parent has been
-              // repackaged
-              // into the default package.
+              // repackaged into the default package.
               ClassSubject parentClassSubject = inspector.clazz(Parent.class);
               assertThat(parentClassSubject, isPresent());
               assertEquals("", parentClassSubject.getDexProgramClass().getType().getPackageName());
@@ -101,12 +116,16 @@ public class HorizontalClassMergingAfterConstructorShrinkingWithRepackagingTest 
               assertEquals(
                   parentClassSubject.asTypeSubject(), aInstanceInitializerSubject.getParameter(0));
 
-              // Verify that B's initializer was removed.
+              // Verify that B or B's initializer was removed.
               ClassSubject bClassSubject = inspector.clazz(B.class);
-              assertThat(bClassSubject, isPresent());
-              assertEquals("", bClassSubject.getDexProgramClass().getType().getPackageName());
-              assertEquals(
-                  0, bClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
+              if (enableRetargetingOfConstructorBridgeCalls) {
+                assertThat(bClassSubject, isAbsent());
+              } else {
+                assertThat(bClassSubject, isPresent());
+                assertEquals("", bClassSubject.getDexProgramClass().getType().getPackageName());
+                assertEquals(
+                    0, bClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
+              }
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("B");

@@ -15,7 +15,7 @@ import zipfile
 
 import utils
 
-R8_DEV_BRANCH = '8.2'
+R8_DEV_BRANCH = '8.3'
 R8_VERSION_FILE = os.path.join(
     'src', 'main', 'java', 'com', 'android', 'tools', 'r8', 'Version.java')
 THIS_FILE_RELATIVE = os.path.join('tools', 'r8_release.py')

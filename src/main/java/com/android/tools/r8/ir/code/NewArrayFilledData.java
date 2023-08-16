@@ -8,7 +8,6 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.code.DexFillArrayData;
 import com.android.tools.r8.dex.code.DexFillArrayDataPayload;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -125,15 +124,20 @@ public class NewArrayFilledData extends Instruction {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     return appView.options().debug || src().getType().isNullable();
   }
 
   @Override
   public AbstractValue getAbstractValue(
-      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
-    if (!instructionMayHaveSideEffects(appView, context) && size <= Integer.MAX_VALUE) {
-      assert !instructionInstanceCanThrow();
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
+    if (!instructionMayHaveSideEffects(appView, context, abstractValueSupplier)
+        && size <= Integer.MAX_VALUE) {
+      assert !instructionInstanceCanThrow(appView, context, abstractValueSupplier);
       return StatefulObjectValue.create(
           appView.abstractValueFactory().createKnownLengthArrayState((int) size));
     }
@@ -142,9 +146,13 @@ public class NewArrayFilledData extends Instruction {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     // Treat the instruction as possibly having side-effects if it may throw or the array is used.
-    if (instructionInstanceCanThrow(appView, context) || src().numberOfAllUsers() > 1) {
+    if (instructionInstanceCanThrow(appView, context, abstractValueSupplier, assumption)
+        || src().numberOfAllUsers() > 1) {
       return true;
     }
 

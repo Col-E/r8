@@ -76,8 +76,8 @@ class EmptyMainClassForProguardTests {
 @RunWith(Parameterized.class)
 public class ProguardConfigurationParserTest extends TestBase {
 
-  private static final String VALID_PROGUARD_DIR = "src/test/proguard/valid/";
-  private static final String INVALID_PROGUARD_DIR = "src/test/proguard/invalid/";
+  private static final String VALID_PROGUARD_DIR = ToolHelper.TESTS_DIR + "proguard/valid/";
+  private static final String INVALID_PROGUARD_DIR = ToolHelper.TESTS_DIR + "proguard/invalid/";
   private static final String PROGUARD_SPEC_FILE = VALID_PROGUARD_DIR + "proguard.flags";
   private static final String MULTIPLE_NAME_PATTERNS_FILE =
       VALID_PROGUARD_DIR + "multiple-name-patterns.flags";

@@ -3,19 +3,22 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.androidresources;
 
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.ArchiveProtoAndroidResourceConsumer;
 import com.android.tools.r8.ArchiveProtoAndroidResourceProvider;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.androidresources.AndroidResourceTestingUtils.AndroidTestResource;
+import com.android.tools.r8.androidresources.AndroidResourceTestingUtils.AndroidTestResourceBuilder;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
-import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.Arrays;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -38,14 +41,14 @@ public class AndroidResourcesPassthroughTest extends TestBase {
     String manifestPath = "AndroidManifest.xml";
     String resourcePath = "resources.pb";
     String pngPath = "res/drawable/foo.png";
-    String xmlPath = "res/xml/bar.xml";
-    Path resources =
-        ZipBuilder.builder(temp.newFile("resources.zip").toPath())
-            .addText(manifestPath, AndroidResourceTestingUtils.TEST_MANIFEST)
-            .addBytes(resourcePath, AndroidResourceTestingUtils.TEST_RESOURCE_TABLE)
-            .addBytes(pngPath, AndroidResourceTestingUtils.TINY_PNG)
-            .addBytes(xmlPath, AndroidResourceTestingUtils.TINY_PROTO_XML)
-            .build();
+
+    AndroidTestResource testResource =
+        new AndroidTestResourceBuilder()
+            .withSimpleManifest()
+            .addStringValue("app_name", "The App")
+            .addDrawable("foo.png", AndroidResourceTestingUtils.TINY_PNG)
+            .build(temp);
+    Path resources = testResource.getResourceZip();
     Path output = temp.newFile("resources_out.zip").toPath();
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
@@ -59,20 +62,19 @@ public class AndroidResourcesPassthroughTest extends TestBase {
         .addKeepMainRule(FooBar.class)
         .run(parameters.getRuntime(), FooBar.class)
         .assertSuccessWithOutputLines("Hello World");
-    assertTrue(
-        Arrays.equals(
-            ZipUtils.readSingleEntry(output, manifestPath),
-            AndroidResourceTestingUtils.TEST_MANIFEST.getBytes(StandardCharsets.UTF_8)));
-    assertTrue(
-        Arrays.equals(
-            ZipUtils.readSingleEntry(output, resourcePath),
-            AndroidResourceTestingUtils.TEST_RESOURCE_TABLE));
-    assertTrue(
-        Arrays.equals(
-            ZipUtils.readSingleEntry(output, pngPath), AndroidResourceTestingUtils.TINY_PNG));
-    assertTrue(
-        Arrays.equals(
-            ZipUtils.readSingleEntry(output, xmlPath), AndroidResourceTestingUtils.TINY_PROTO_XML));
+    assertArrayEquals(
+        ZipUtils.readSingleEntry(output, manifestPath),
+        ZipUtils.readSingleEntry(resources, manifestPath));
+    assertArrayEquals(
+        ZipUtils.readSingleEntry(output, resourcePath),
+        ZipUtils.readSingleEntry(resources, resourcePath));
+    assertArrayEquals(
+        ZipUtils.readSingleEntry(output, pngPath), ZipUtils.readSingleEntry(resources, pngPath));
+    String rClassContent =
+        FileUtils.readTextFile(
+            testResource.getRClass().getJavaFilePath(), Charset.defaultCharset());
+    assertThat(rClassContent, containsString("app_name"));
+    assertThat(rClassContent, containsString("foo"));
   }
 
   public static class FooBar {

@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -28,6 +27,7 @@ import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SourcePosition;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
@@ -146,7 +146,7 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
   private final IRMetadata irMetadata;
 
   /** Constant pool of items. */
-  private final DexItem[] constants;
+  private final LirConstant[] constants;
 
   private final PositionEntry[] positionTable;
 
@@ -176,7 +176,7 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
   /** Should be constructed using {@link LirBuilder}. */
   LirCode(
       IRMetadata irMetadata,
-      DexItem[] constants,
+      LirConstant[] constants,
       PositionEntry[] positions,
       int argumentCount,
       byte[] instructions,
@@ -242,8 +242,12 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
     return irMetadata;
   }
 
-  public DexItem getConstantItem(int index) {
+  public LirConstant getConstantItem(int index) {
     return constants[index];
+  }
+
+  public LirConstant[] getConstantPool() {
+    return constants;
   }
 
   public PositionEntry[] getPositionTable() {
@@ -467,14 +471,44 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
     }
   }
 
-  public LirCode<EV> newCodeWithRewrittenConstantPool(Function<DexItem, DexItem> rewriter) {
-    DexItem[] rewrittenConstants = ArrayUtils.map(constants, rewriter, new DexItem[0]);
+  public LirCode<EV> newCodeWithRewrittenConstantPool(Function<LirConstant, LirConstant> rewriter) {
+    LirConstant[] rewrittenConstants = ArrayUtils.map(constants, rewriter, new LirConstant[0]);
     if (constants == rewrittenConstants) {
       return this;
     }
     return new LirCode<>(
         irMetadata,
         rewrittenConstants,
+        positionTable,
+        argumentCount,
+        instructions,
+        instructionCount,
+        tryCatchTable,
+        debugLocalInfoTable,
+        strategyInfo,
+        useDexEstimationStrategy,
+        metadataMap);
+  }
+
+  public LirCode<EV> rewriteWithSimpleLens(
+      ProgramMethod context, AppView<?> appView, LensCodeRewriterUtils rewriterUtils) {
+    GraphLens graphLens = appView.graphLens();
+    assert graphLens.isNonIdentityLens();
+    if (graphLens.isMemberRebindingIdentityLens()) {
+      return this;
+    }
+
+    GraphLens codeLens = context.getDefinition().getCode().getCodeLens(appView);
+    SimpleLensLirRewriter<EV> rewriter =
+        new SimpleLensLirRewriter<>(this, context, graphLens, codeLens, rewriterUtils);
+    return rewriter.rewrite();
+  }
+
+  public LirCode<EV> copyWithNewConstantsAndInstructions(
+      IRMetadata irMetadata, LirConstant[] constants, byte[] instructions) {
+    return new LirCode<>(
+        irMetadata,
+        constants,
         positionTable,
         argumentCount,
         instructions,

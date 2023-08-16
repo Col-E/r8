@@ -7,14 +7,17 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Test;
 
 public class D8FrameworkDeterministicTest extends CompilationTestBase {
   private static final int MIN_SDK = 24;
-  private static final String JAR = "third_party/framework/framework_160115954.jar";
+  private static final Path JAR =
+      Paths.get(ToolHelper.THIRD_PARTY_DIR).resolve("framework").resolve("framework_160115954.jar");
 
   private AndroidApp doRun(D8Command.Builder builder) throws CompilationFailedException {
     builder.setProgramConsumer(null);
@@ -27,7 +30,7 @@ public class D8FrameworkDeterministicTest extends CompilationTestBase {
   public void verifyDebugBuild() throws Exception {
     D8Command.Builder command =
         D8Command.builder()
-            .addProgramFiles(Paths.get(JAR))
+            .addProgramFiles(JAR)
             .setMode(CompilationMode.DEBUG)
             .setMinApiLevel(MIN_SDK);
     AndroidApp app1 = doRun(command);
@@ -39,7 +42,7 @@ public class D8FrameworkDeterministicTest extends CompilationTestBase {
   public void verifyReleaseBuild() throws Exception {
     D8Command.Builder command =
         D8Command.builder()
-            .addProgramFiles(Paths.get(JAR))
+            .addProgramFiles(JAR)
             .setMode(CompilationMode.RELEASE)
             .setMinApiLevel(MIN_SDK);
     AndroidApp app1 = doRun(command);

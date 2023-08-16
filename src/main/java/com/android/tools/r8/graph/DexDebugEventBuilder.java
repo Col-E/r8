@@ -35,6 +35,7 @@ public class DexDebugEventBuilder {
   public static final int NO_PC_INFO = -1;
   private static final int NO_LINE_INFO = -1;
 
+  private final AppView<?> appView;
   private final DexEncodedMethod method;
   private final DexItemFactory factory;
   private final InternalOptions options;
@@ -63,14 +64,15 @@ public class DexDebugEventBuilder {
   // Initial known line for the method.
   private int startLine = NO_LINE_INFO;
 
-  public DexDebugEventBuilder(IRCode code, InternalOptions options) {
+  public DexDebugEventBuilder(AppView<?> appView, IRCode code) {
+    this.appView = appView;
     this.method = code.method();
-    this.factory = options.itemFactory;
-    this.options = options;
+    this.factory = appView.dexItemFactory();
+    this.options = appView.options();
   }
 
   /** Add events at pc for instruction. */
-  public void add(int pc, int postPc, Instruction instruction) {
+  public void add(int pc, int postPc, Instruction instruction, ProgramMethod context) {
     boolean isBlockEntry = instruction.getBlock().entry() == instruction;
     boolean isBlockExit = instruction.getBlock().exit() == instruction;
 
@@ -92,7 +94,7 @@ public class DexDebugEventBuilder {
       updateLocals(instruction.asDebugLocalsChange());
     } else if (pcAdvancing) {
       if (!position.isNone() && !position.equals(emittedPosition)) {
-        if (options.debug || instruction.instructionInstanceCanThrow()) {
+        if (options.debug || instruction.instructionInstanceCanThrow(appView, context)) {
           emitDebugPosition(pc, position);
         }
       }

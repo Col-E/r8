@@ -119,8 +119,10 @@ public class CatchAllRangeWithNoLineNumberTest extends TestBase {
         return retraced5_2_1;
       case V6_0_1:
         return retraced6_0_1;
+      case V7_0_0:
+        return retraced7_0_0;
       default:
-        assertEquals(ProguardVersion.V7_0_0, proguardVersion);
+        assertEquals(ProguardVersion.V7_3_2, proguardVersion);
         return retraced7_0_0;
     }
   }

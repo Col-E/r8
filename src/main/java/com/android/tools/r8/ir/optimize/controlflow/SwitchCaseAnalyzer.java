@@ -45,7 +45,7 @@ public class SwitchCaseAnalyzer {
     if (theSwitch.isIntSwitch()) {
       int key = theSwitch.asIntSwitch().getKey(index);
       if (switchAbstractValue.isConstantOrNonConstantNumberValue()
-          && !switchAbstractValue.asConstantOrNonConstantNumberValue().containsInt(key)) {
+          && !switchAbstractValue.asConstantOrNonConstantNumberValue().maybeContainsInt(key)) {
         return true;
       }
       // TODO(b/150836439): Reimplement using AbstractValue.

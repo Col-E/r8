@@ -22,13 +22,30 @@ public class DefiniteBitsNumberValue extends NonConstantNumberValue {
   }
 
   @Override
-  public boolean containsInt(int value) {
-    return false;
+  public boolean maybeContainsInt(int value) {
+    // If a definitely set bit is unset in value, then no.
+    if ((definitelySetBits & ~value) != 0) {
+      return false;
+    }
+    // If a definitely unset bit is set in value, then no.
+    if ((definitelyUnsetBits & value) != 0) {
+      return false;
+    }
+    return true;
   }
 
   @Override
   public long getAbstractionSize() {
     return Long.MAX_VALUE;
+  }
+
+  public int getDefinitelySetIntBits() {
+    return definitelySetBits;
+  }
+
+  @Override
+  public long getMinInclusive() {
+    return Integer.MIN_VALUE;
   }
 
   @Override

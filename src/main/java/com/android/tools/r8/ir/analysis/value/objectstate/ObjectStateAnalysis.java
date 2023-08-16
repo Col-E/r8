@@ -22,7 +22,7 @@ public class ObjectStateAnalysis {
       Value value, AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     assert !value.hasAliasedValue();
     if (value.isDefinedByInstructionSatisfying(
-        i -> i.isNewArrayEmpty() || i.isNewArrayFilledData() || i.isInvokeNewArray())) {
+        i -> i.isNewArrayEmpty() || i.isNewArrayFilledData() || i.isNewArrayFilled())) {
       return computeNewArrayObjectState(value, appView, context);
     }
     if (value.isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {

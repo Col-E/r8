@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.desugar.LibraryFilesHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -50,7 +51,7 @@ public class R8CFRunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Bui
       for (UnaryOperator<R8Command.Builder> transformation : builderTransformations) {
         builder = transformation.apply(builder);
       }
-      builder.addLibraryFiles(Jdk9TestUtils.getJdk9LibraryFiles(temp));
+      builder.addLibraryFiles(LibraryFilesHelper.getJdk9LibraryFiles(temp));
       R8Command command =
           builder.addProgramFiles(inputFile).setOutput(out, OutputMode.ClassFile).build();
       ToolHelper.runR8(command, this::combinedOptionConsumer);

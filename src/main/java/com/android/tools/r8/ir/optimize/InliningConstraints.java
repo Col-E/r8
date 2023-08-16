@@ -193,7 +193,7 @@ public class InliningConstraints {
     return ConstraintWithTarget.classIsVisible(context, type, appView);
   }
 
-  public ConstraintWithTarget forInvokeNewArray(DexType type, ProgramMethod context) {
+  public ConstraintWithTarget forNewArrayFilled(DexType type, ProgramMethod context) {
     return ConstraintWithTarget.classIsVisible(context, type, appView);
   }
 

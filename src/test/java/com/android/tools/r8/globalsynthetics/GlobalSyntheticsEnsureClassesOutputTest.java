@@ -50,7 +50,7 @@ public class GlobalSyntheticsEnsureClassesOutputTest extends TestBase {
             .setProgramConsumer(new DexIndexedConsumer.ArchiveConsumer(output))
             .build());
     CodeInspector inspector = new CodeInspector(output);
-    assertEquals(1026, inspector.allClasses().size());
+    assertEquals(1044, inspector.allClasses().size());
   }
 
   @Test

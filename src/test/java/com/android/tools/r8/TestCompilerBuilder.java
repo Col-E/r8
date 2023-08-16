@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.benchmarks.BenchmarkResults;
+import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorEventConsumer;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.testing.AndroidBuildVersion;
@@ -564,6 +565,11 @@ public abstract class TestCompilerBuilder<
           assertionsConfigurationGenerator) {
     builder.addAssertionsConfiguration(assertionsConfigurationGenerator);
     return self();
+  }
+
+  @Override
+  public DebugTestConfig debugConfig(TestRuntime runtime) throws Exception {
+    return compile().debugConfig(runtime);
   }
 
   private static Set<String> computeAllGlobalSynthetics(int minApiLevel) {

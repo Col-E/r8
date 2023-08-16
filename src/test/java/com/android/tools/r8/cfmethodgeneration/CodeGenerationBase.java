@@ -71,7 +71,7 @@ public abstract class CodeGenerationBase extends TestBase {
   }
 
   public Path getGeneratedFile() {
-    return Paths.get(ToolHelper.SOURCE_DIR, getGeneratedType().getInternalName() + ".java");
+    return Paths.get(ToolHelper.MAIN_SOURCE_DIR, getGeneratedType().getInternalName() + ".java");
   }
 
   protected abstract DexType getGeneratedType();

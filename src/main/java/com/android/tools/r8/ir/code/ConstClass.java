@@ -118,12 +118,11 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow() {
-    return true;
-  }
-
-  @Override
-  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     DexType baseType = getValue().toBaseType(appView.dexItemFactory());
     if (baseType.isPrimitiveType()) {
       return false;
@@ -153,12 +152,6 @@ public class ConstClass extends ConstInstruction {
       return true;
     }
     return false;
-  }
-
-  @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    return instructionInstanceCanThrow(appView, context);
   }
 
   @Override
@@ -209,8 +202,8 @@ public class ConstClass extends ConstInstruction {
 
   @Override
   public AbstractValue getAbstractValue(
-      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
-    if (!instructionMayHaveSideEffects(appView, context)) {
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
+    if (!instructionMayHaveSideEffects(appView, context, abstractValueSupplier)) {
       return appView.abstractValueFactory().createSingleConstClassValue(clazz);
     }
     return UnknownValue.getInstance();

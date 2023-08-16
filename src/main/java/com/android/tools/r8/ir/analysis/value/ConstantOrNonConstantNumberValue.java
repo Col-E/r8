@@ -8,11 +8,17 @@ import com.android.tools.r8.utils.OptionalBool;
 
 public interface ConstantOrNonConstantNumberValue {
 
-  boolean containsInt(int value);
+  boolean maybeContainsInt(int value);
+
+  long getMinInclusive();
 
   OptionalBool isSubsetOf(int[] values);
 
   ConstantOrNonConstantNumberValue asConstantOrNonConstantNumberValue();
+
+  boolean isDefiniteBitsNumberValue();
+
+  DefiniteBitsNumberValue asDefiniteBitsNumberValue();
 
   boolean isSingleNumberValue();
 

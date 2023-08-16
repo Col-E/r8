@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.profile.art.completeness;
 
-import static com.android.tools.r8.Jdk11TestUtils.getJdk11LibraryFiles;
+import static com.android.tools.r8.desugar.LibraryFilesHelper.getJdk11LibraryFiles;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;

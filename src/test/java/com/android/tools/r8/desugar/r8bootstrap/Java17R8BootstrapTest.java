@@ -7,13 +7,13 @@ package com.android.tools.r8.desugar.r8bootstrap;
 import static com.android.tools.r8.desugar.r8bootstrap.JavaBootstrapUtils.MAIN_KEEP;
 import static junit.framework.TestCase.assertEquals;
 
-import com.android.tools.r8.Jdk11TestUtils;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.cf.bootstrap.BootstrapCurrentEqualityTest;
+import com.android.tools.r8.desugar.LibraryFilesHelper;
 import com.android.tools.r8.examples.hello.HelloTestRunner;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -70,7 +70,7 @@ public class Java17R8BootstrapTest extends TestBase {
   private static Path compileR8(boolean desugar) throws Exception {
     return JavaBootstrapUtils.compileR8(
         ToolHelper.R8_WITH_RELOCATED_DEPS_17_JAR,
-        Jdk11TestUtils.getJdk11LibraryFiles(getStaticTemp()),
+        LibraryFilesHelper.getJdk11LibraryFiles(getStaticTemp()),
         desugar);
   }
 

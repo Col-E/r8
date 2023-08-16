@@ -304,10 +304,9 @@ public class FieldAssignmentTracker {
             assert !abstractValue.isBottom();
 
             // When approximating the possible values for the $r8$classId fields from horizontal
-            // class
-            // merging, give up if the set of possible values equals the size of the merge group. In
-            // this case, the information is useless.
-            if (abstractValue.isNonConstantNumberValue()) {
+            // class merging, give up if the set of possible values equals the size of the merge
+            // group. In this case, the information is useless.
+            if (abstractValue.isNumberFromSetValue()) {
               assert HorizontalClassMergerUtils.isClassIdField(appView, field);
               NonConstantNumberValue initialAbstractValue =
                   field.getOptimizationInfo().getAbstractValue().asNonConstantNumberValue();

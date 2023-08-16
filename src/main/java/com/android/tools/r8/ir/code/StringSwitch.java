@@ -14,6 +14,8 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.utils.ThrowingBiConsumer;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 public class StringSwitch extends Switch {
 
@@ -28,6 +30,14 @@ public class StringSwitch extends Switch {
 
   public DexString getFirstKey() {
     return keys[0];
+  }
+
+  public Map<DexString, BasicBlock> getKeyToTargetMap() {
+    Map<DexString, BasicBlock> result = new IdentityHashMap<>();
+    for (int i = 0; i < keys.length; i++) {
+      result.put(getKey(i), targetBlock(i));
+    }
+    return result;
   }
 
   @Override

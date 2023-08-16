@@ -35,7 +35,8 @@ import org.junit.runners.Parameterized.Parameters;
 public class D8FrameworkDexPassthroughMarkerTest {
 
   private static final Path FRAMEWORK_JAR =
-      Paths.get("tools/linux/art-5.1.1/product/mako/system/framework/framework.jar");
+      Paths.get(
+          ToolHelper.TOOLS_DIR + "linux/art-5.1.1/product/mako/system/framework/framework.jar");
 
   @Rule
   public TemporaryFolder output = ToolHelper.getTemporaryFolderForTest();

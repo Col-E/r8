@@ -168,6 +168,11 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
     return assertFailure();
   }
 
+  public RR assertFailureWithOutputThatMatches(Matcher<String> matcher) {
+    assertStdoutMatches(matcher);
+    return assertFailure();
+  }
+
   public RR assertFailureWithErrorThatThrows(Class<? extends Throwable> expectedError) {
     return assertFailureWithErrorThatMatches(containsString(expectedError.getName()));
   }

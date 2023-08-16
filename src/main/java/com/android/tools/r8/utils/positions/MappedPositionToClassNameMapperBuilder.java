@@ -592,7 +592,8 @@ public class MappedPositionToClassNameMapperBuilder {
     public void fixup() {
       if (mappedOutlinePositions == null || mappedOutlineCalleePositions.isEmpty()) {
         assert mappedOutlinePositions != null : "Mapped outline positions is null";
-        assert false : "Mapped outline positions is empty";
+        // TODO(b/296195931): Reenable assert.
+        // assert false : "Mapped outline positions is empty";
         return;
       }
       for (Pair<MappedRange, Int2IntMap> mappingInfo : mappedOutlineCalleePositions) {

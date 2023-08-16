@@ -15,10 +15,10 @@ import com.android.tools.r8.dex.code.DexDivIntLit8;
 import com.android.tools.r8.dex.code.DexDivLong;
 import com.android.tools.r8.dex.code.DexDivLong2Addr;
 import com.android.tools.r8.dex.code.DexInstruction;
-import com.android.tools.r8.ir.analysis.constant.Bottom;
-import com.android.tools.r8.ir.analysis.constant.LatticeElement;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.lightir.LirBuilder;
-import java.util.function.Function;
 
 public class Div extends ArithmeticBinop {
 
@@ -132,17 +132,38 @@ public class Div extends ArithmeticBinop {
   }
 
   @Override
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
+    if (!instructionTypeCanThrow()) {
+      return false;
+    }
+    AbstractValue rightAbstractValue = abstractValueSupplier.getAbstractValue(rightValue());
+    if (rightAbstractValue.isSingleNumberValue() && !rightAbstractValue.isZero()) {
+      return false;
+    }
+    if (rightAbstractValue.isDefiniteBitsNumberValue()
+        && rightAbstractValue.asDefiniteBitsNumberValue().getDefinitelySetIntBits() != 0) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
   public boolean instructionTypeCanThrow() {
     return type != NumericType.DOUBLE && type != NumericType.FLOAT;
   }
 
   @Override
-  public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
-    LatticeElement rightLattice = getLatticeElement.apply(rightValue());
-    if (rightLattice.isConst() && !rightLattice.asConst().getConstNumber().isZero()) {
-      return super.evaluate(code, getLatticeElement);
+  public AbstractValue getAbstractValue(
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
+    AbstractValue rightAbstractValue = abstractValueSupplier.getAbstractValue(rightValue());
+    if (!rightAbstractValue.isZero()) {
+      return super.getAbstractValue(appView, context, abstractValueSupplier);
     }
-    return Bottom.getInstance();
+    return AbstractValue.unknown();
   }
 
   @Override

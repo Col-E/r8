@@ -83,13 +83,13 @@ public class IRCodeUtils {
     if (arrayValue.hasPhiUsers() || arrayValue.hasDebugUsers()) {
       return;
     }
-    if (!definition.isNewArrayEmptyOrInvokeNewArray()) {
+    if (!definition.isNewArrayEmptyOrNewArrayFilled()) {
       assert false;
       return;
     }
     Deque<InstructionOrPhi> worklist = new ArrayDeque<>();
-    InvokeNewArray invokeNewArray = definition.asInvokeNewArray();
-    if (invokeNewArray != null) {
+    NewArrayFilled newArrayFilled = definition.asNewArrayFilled();
+    if (newArrayFilled != null) {
       worklist.add(definition);
     } else if (definition.isNewArrayEmpty()) {
       for (Instruction user : arrayValue.uniqueUsers()) {

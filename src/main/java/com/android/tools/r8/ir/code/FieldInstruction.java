@@ -23,7 +23,6 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
-import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collections;
 import java.util.List;
@@ -63,12 +62,11 @@ public abstract class FieldInstruction extends Instruction {
   }
 
   @Override
-  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
-    return instructionInstanceCanThrow(appView, context, SideEffectAssumption.NONE);
-  }
-
   public boolean instructionInstanceCanThrow(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     return internalInstructionInstanceCanThrow(
         appView, context, assumption, appView.appInfo().resolveField(field, context));
   }
@@ -210,12 +208,23 @@ public abstract class FieldInstruction extends Instruction {
 
   @Override
   public AbstractValue getAbstractValue(
-      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
     assert isFieldGet();
-    DexEncodedField field = appView.appInfo().resolveField(getField()).getResolvedField();
-    if (field != null) {
-      return field.getOptimizationInfo().getAbstractValue();
+    if (outValue.hasLocalInfo() || !appView.hasClassHierarchy()) {
+      return AbstractValue.unknown();
     }
-    return UnknownValue.getInstance();
+    AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+        appView.withClassHierarchy();
+    DexEncodedField field =
+        appViewWithClassHierarchy.appInfo().resolveField(getField()).getResolvedField();
+    if (field == null) {
+      return AbstractValue.unknown();
+    }
+    AbstractValue assumeValue =
+        appView.getAssumeInfoCollection().get(field.getReference()).getAssumeValue();
+    if (!assumeValue.isUnknown()) {
+      return assumeValue;
+    }
+    return field.getOptimizationInfo().getAbstractValue();
   }
 }

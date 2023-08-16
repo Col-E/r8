@@ -23,11 +23,15 @@ java {
   targetCompatibility = JavaVersion.VERSION_1_8
 }
 
+// If we depend on keepanno by referencing the project source outputs we get an error regarding
+// incompatible java class file version. By depending on the jar we circumvent that.
+val keepAnnoJarTask = projectTask("keepanno", "jar")
+val keepAnnoCompileTask = projectTask("keepanno", "compileJava")
+
 dependencies {
-  // If we depend on keepanno by referencing the project source outputs we get an error regarding
-  // incompatible java class file version. By depending on the jar we circumvent that.
-  implementation(projectTask("keepanno", "jar").outputs.files)
+  implementation(keepAnnoJarTask.outputs.files)
   implementation(projectTask("main", "jar").outputs.files)
+  implementation(projectTask("resourceshrinker", "jar").outputs.files)
   implementation(Deps.asm)
   implementation(Deps.asmCommons)
   implementation(Deps.asmUtil)
@@ -38,9 +42,9 @@ dependencies {
   implementation(Deps.kotlinStdLib)
   implementation(Deps.kotlinReflect)
   implementation(Deps.kotlinMetadata)
-  implementation(resolve(ThirdPartyDeps.ddmLib))
-  implementation(resolve(ThirdPartyDeps.jasmin))
-  implementation(resolve(ThirdPartyDeps.jdwpTests))
+  implementation(resolve(ThirdPartyDeps.ddmLib,"ddmlib.jar"))
+  implementation(resolve(ThirdPartyDeps.jasmin,"jasmin-2.4.jar"))
+  implementation(resolve(ThirdPartyDeps.jdwpTests,"apache-harmony-jdwp-tests-host.jar"))
   implementation(Deps.fastUtil)
   implementation(Deps.smali)
 }
@@ -56,16 +60,50 @@ val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
 val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
   "runtimeDeps",
   listOf(
+    ThirdPartyDeps.aapt2,
+    ThirdPartyDeps.artTests,
+    ThirdPartyDeps.artTestsLegacy,
     ThirdPartyDeps.compilerApi,
+    ThirdPartyDeps.coreLambdaStubs,
     ThirdPartyDeps.dagger,
+    ThirdPartyDeps.desugarJdkLibs,
+    ThirdPartyDeps.desugarJdkLibsLegacy,
+    ThirdPartyDeps.desugarJdkLibs11,
+    ThirdPartyDeps.iosched2019,
     ThirdPartyDeps.jacoco,
     ThirdPartyDeps.java8Runtime,
-    ThirdPartyDeps.jdk11Test)
+    ThirdPartyDeps.jdk11Test,
+    ThirdPartyDeps.jsr223,
+    ThirdPartyDeps.multidex,
+    ThirdPartyDeps.r8,
+    ThirdPartyDeps.r8Mappings,
+    ThirdPartyDeps.r8v2_0_74,
+    ThirdPartyDeps.r8v3_2_54,
+    ThirdPartyDeps.retraceBenchmark,
+    ThirdPartyDeps.retraceBinaryCompatibility,
+    ThirdPartyDeps.rhino,
+    ThirdPartyDeps.rhinoAndroid,
+    ThirdPartyDeps.smali,
+    ThirdPartyDeps.tivi)
     + ThirdPartyDeps.androidJars
     + ThirdPartyDeps.androidVMs
+    + ThirdPartyDeps.desugarLibraryReleases
     + ThirdPartyDeps.jdks
     + ThirdPartyDeps.kotlinCompilers
     + ThirdPartyDeps.proguards)
+
+val thirdPartyRuntimeInternalDependenciesTask = ensureThirdPartyDependencies(
+  "runtimeInternalDeps",
+  listOf(
+    ThirdPartyDeps.clank,
+    ThirdPartyDeps.framework,
+    ThirdPartyDeps.nest,
+    ThirdPartyDeps.proto,
+    ThirdPartyDeps.protobufLite,
+    ThirdPartyDeps.retraceInternal)
+    + ThirdPartyDeps.internalIssues
+    + ThirdPartyDeps.gmscoreVersions
+)
 
 val sourceSetDependenciesTasks = arrayOf(
   projectTask("tests_java_examples", getExampleJarsTaskName("examples")),
@@ -85,16 +123,20 @@ fun testDependencies() : FileCollection {
     .test
     .get()
     .compileClasspath
-    .filter({ "$it".contains("keepanno") ||
-      ("$it".contains("third_party")
-      && !"$it".contains("errorprone")
-      && !"$it".contains("gradle"))
-            })
+    .filter({"$it".contains("keepanno") ||
+             "$it".contains("resoourceshrinker") ||
+            ("$it".contains("third_party")
+              && !"$it".contains("errorprone")
+              && !"$it".contains("gradle"))})
 }
 
 tasks {
+  "compileTestJava" {
+    dependsOn(thirdPartyCompileDependenciesTask)
+  }
   withType<JavaCompile> {
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
+    dependsOn(gradle.includedBuild("resourceshrinker").task(":jar"))
     dependsOn(gradle.includedBuild("main").task(":jar"))
     dependsOn(thirdPartyCompileDependenciesTask)
     options.setFork(true)
@@ -119,22 +161,14 @@ tasks {
   withType<Test> {
     environment.put("USE_NEW_GRADLE_SETUP", "true")
     dependsOn(thirdPartyRuntimeDependenciesTask)
-    dependsOn(*sourceSetDependenciesTasks)
-    println("NOTE: Number of processors " + Runtime.getRuntime().availableProcessors())
-    val userDefinedCoresPerFork = System.getenv("R8_GRADLE_CORES_PER_FORK")
-    val processors = Runtime.getRuntime().availableProcessors()
-    // See https://docs.gradle.org/current/dsl/org.gradle.api.tasks.testing.Test.html.
-    if (!userDefinedCoresPerFork.isNullOrEmpty()) {
-      maxParallelForks = processors / userDefinedCoresPerFork.toInt()
-    } else {
-      // On normal work machines this seems to give the best test execution time (without freezing)
-      maxParallelForks = processors / 3
-      // On low cpu count machines (bots) we under subscribe, so increase the count.
-      if (processors == 8) {
-        maxParallelForks = 3
-      }
+    if (!project.hasProperty("no_internal")) {
+      dependsOn(thirdPartyRuntimeInternalDependenciesTask)
     }
-    println("NOTE: Max parallel forks " + maxParallelForks)
+    dependsOn(*sourceSetDependenciesTasks)
+    environment.put("KEEP_ANNO_JAVAC_BUILD_DIR", keepAnnoCompileTask.outputs.files.getAsPath())
+    // This path is set when compiling examples jar task in DependenciesPlugin.
+    environment.put("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR",
+                    getRoot().resolveAll("build", "test", "examplesJava11", "classes"))
   }
 
   val testJar by registering(Jar::class) {

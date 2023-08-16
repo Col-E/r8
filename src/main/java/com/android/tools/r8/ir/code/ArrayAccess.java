@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ProgramMethod;
 import java.util.List;
 
 public abstract class ArrayAccess extends Instruction implements ImpreciseMemberTypeInstruction {
@@ -48,16 +50,37 @@ public abstract class ArrayAccess extends Instruction implements ImpreciseMember
   }
 
   @Override
-  public boolean instructionInstanceCanThrow() {
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     // TODO(b/203731608): Add parameters to the method and use abstract value in R8.
-    if (index().isConstant() && !array().isPhi() && array().definition.isNewArrayEmpty()) {
-      Value newArraySizeValue = array().definition.asNewArrayEmpty().size();
-      if (newArraySizeValue.isConstant()) {
-        int newArraySize = newArraySizeValue.getConstInstruction().asConstNumber().getIntValue();
-        int index = index().getConstInstruction().asConstNumber().getIntValue();
-        return newArraySize <= 0 || index < 0 || newArraySize <= index;
+    int arraySize;
+    Value arrayRoot = array().getAliasedValue();
+    if (arrayRoot.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmptyOrNewArrayFilled)) {
+      Instruction definition = arrayRoot.getDefinition();
+      if (definition.isNewArrayEmpty()) {
+        Value newArraySizeValue = definition.asNewArrayEmpty().size();
+        if (newArraySizeValue.isConstant()) {
+          arraySize = newArraySizeValue.getConstInstruction().asConstNumber().getIntValue();
+        } else {
+          return true;
+        }
+      } else {
+        arraySize = definition.asNewArrayFilled().size();
       }
+    } else {
+      return true;
     }
-    return true;
+
+    int index;
+    if (index().isConstant()) {
+      index = index().getConstInstruction().asConstNumber().getIntValue();
+    } else {
+      return true;
+    }
+
+    return arraySize <= 0 || index < 0 || arraySize <= index;
   }
 }

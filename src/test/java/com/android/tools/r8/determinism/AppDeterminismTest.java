@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dump.CompilerDump;
 import com.android.tools.r8.dump.ProguardConfigSanitizer;
 import com.android.tools.r8.utils.DeterminismChecker;
@@ -39,7 +40,7 @@ public class AppDeterminismTest extends TestBase {
   public void test() throws Exception {
     CompilerDump dump =
         CompilerDump.fromArchive(
-            Paths.get("third_party", "opensource-apps", app, "dump_app.zip"),
+            Paths.get(ToolHelper.THIRD_PARTY_DIR, "opensource-apps", app, "dump_app.zip"),
             temp.newFolder().toPath());
     Path logDirectory = temp.newFolder().toPath();
     Path ref = compile(1, dump, logDirectory);

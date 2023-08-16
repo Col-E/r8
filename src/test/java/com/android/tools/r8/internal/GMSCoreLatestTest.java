@@ -15,6 +15,7 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AssertionUtils;
 import com.google.common.collect.Sets;
@@ -31,7 +32,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class GMSCoreLatestTest extends GMSCoreCompilationTestBase {
 
-  private static final Path base = Paths.get("third_party/gmscore/latest/");
+  private static final Path base = Paths.get(ToolHelper.THIRD_PARTY_DIR + "gmscore/latest/");
 
   private static Path sanitizedLibrary;
   private static Path sanitizedProguardConfiguration;

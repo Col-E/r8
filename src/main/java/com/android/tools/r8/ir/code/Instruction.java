@@ -7,7 +7,6 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -18,9 +17,6 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
-import com.android.tools.r8.ir.analysis.constant.Bottom;
-import com.android.tools.r8.ir.analysis.constant.ConstRangeLatticeElement;
-import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
@@ -38,6 +34,7 @@ import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.lightir.LirBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.collect.ImmutableSet;
@@ -46,7 +43,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 public abstract class Instruction
@@ -192,9 +188,19 @@ public abstract class Instruction
     return oldOutValue;
   }
 
+  public final AbstractValue getAbstractValue(AppView<?> appView, ProgramMethod context) {
+    return getAbstractValue(appView, context, AbstractValueSupplier.unknown());
+  }
+
   public AbstractValue getAbstractValue(
-      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
     assert hasOutValue();
+    if (outValue.hasValueRange()) {
+      LongInterval longInterval = outValue.getValueRange();
+      return appView
+          .abstractValueFactory()
+          .createNumberFromIntervalValue(longInterval.getMin(), longInterval.getMax());
+    }
     return UnknownValue.getInstance();
   }
 
@@ -604,17 +610,29 @@ public abstract class Instruction
     return false;
   }
 
-  public boolean instructionInstanceCanThrow() {
-    return instructionTypeCanThrow();
+  public final boolean instructionMayHaveSideEffects(AppView<?> appView, ProgramMethod context) {
+    return instructionMayHaveSideEffects(
+        appView, context, AbstractValueSupplier.getShallow(appView, context));
   }
 
-  public boolean instructionMayHaveSideEffects(AppView<?> appView, ProgramMethod context) {
-    return instructionMayHaveSideEffects(appView, context, SideEffectAssumption.NONE);
+  public final boolean instructionMayHaveSideEffects(
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
+    return instructionMayHaveSideEffects(
+        appView, context, abstractValueSupplier, SideEffectAssumption.NONE);
+  }
+
+  public final boolean instructionMayHaveSideEffects(
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+    return instructionMayHaveSideEffects(
+        appView, context, AbstractValueSupplier.getShallow(appView, context), assumption);
   }
 
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    return instructionInstanceCanThrow();
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
+    return instructionInstanceCanThrow(appView, context, abstractValueSupplier, assumption);
   }
 
   /**
@@ -624,8 +642,29 @@ public abstract class Instruction
   public abstract boolean instructionMayTriggerMethodInvocation(
       AppView<?> appView, ProgramMethod context);
 
-  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
-    return instructionInstanceCanThrow();
+  public final boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+    return instructionInstanceCanThrow(
+        appView, context, AbstractValueSupplier.getShallow(appView, context));
+  }
+
+  public final boolean instructionInstanceCanThrow(
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
+    return instructionInstanceCanThrow(
+        appView, context, abstractValueSupplier, SideEffectAssumption.NONE);
+  }
+
+  public final boolean instructionInstanceCanThrow(
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+    return instructionInstanceCanThrow(
+        appView, context, AbstractValueSupplier.getShallow(appView, context), assumption);
+  }
+
+  public boolean instructionInstanceCanThrow(
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
+    return instructionTypeCanThrow();
   }
 
   /** Returns true is this instruction can be treated as dead code if its outputs are not used. */
@@ -1027,8 +1066,8 @@ public abstract class Instruction
     return false;
   }
 
-  public boolean isNewArrayEmptyOrInvokeNewArray() {
-    return isNewArrayEmpty() || isInvokeNewArray();
+  public boolean isNewArrayEmptyOrNewArrayFilled() {
+    return isNewArrayEmpty() || isNewArrayFilled();
   }
 
   public NewArrayEmpty asNewArrayEmpty() {
@@ -1291,11 +1330,11 @@ public abstract class Instruction
     return null;
   }
 
-  public boolean isInvokeNewArray() {
+  public boolean isNewArrayFilled() {
     return false;
   }
 
-  public InvokeNewArray asInvokeNewArray() {
+  public NewArrayFilled asNewArrayFilled() {
     return null;
   }
 
@@ -1434,7 +1473,7 @@ public abstract class Instruction
   public boolean isCreatingArray() {
     return isNewArrayEmpty()
         || isNewArrayFilledData()
-        || isInvokeNewArray()
+        || isNewArrayFilled()
         || isInvokeMultiNewArray()
         || isRecordFieldValues();
   }
@@ -1459,13 +1498,6 @@ public abstract class Instruction
   }
 
   public abstract boolean hasInvariantOutType();
-
-  public LatticeElement evaluate(IRCode code, Function<Value, LatticeElement> getLatticeElement) {
-    if (outValue.hasValueRange()) {
-      return new ConstRangeLatticeElement(outValue);
-    }
-    return Bottom.getInstance();
-  }
 
   // TODO(b/72693244): maybe rename to computeOutType once TypeVerificationHelper is gone?
   public TypeElement evaluate(AppView<?> appView) {

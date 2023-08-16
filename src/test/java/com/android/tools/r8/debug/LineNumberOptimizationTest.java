@@ -4,12 +4,13 @@
 package com.android.tools.r8.debug;
 
 import static com.android.tools.r8.naming.ClassNameMapper.MissingFileAction.MISSING_FILE_IS_EMPTY_MAP;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.debug.classes.LineNumberOptimization1;
+import com.android.tools.r8.debug.classes.LineNumberOptimization2;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,13 +21,13 @@ import org.junit.runners.Parameterized;
 public class LineNumberOptimizationTest extends DebugTestBase {
 
   private static final int[] ORIGINAL_LINE_NUMBERS_DEBUG = {
-    20, 7, 8, 28, 29, 9, 21, 12, 13, 22, 16, 17
+    22, 9, 10, 30, 31, 11, 23, 14, 15, 24, 18, 19
   };
 
-  private static final String CLASS1 = "LineNumberOptimization1";
-  private static final String CLASS2 = "LineNumberOptimization2";
-  private static final String FILE1 = CLASS1 + ".java";
-  private static final String FILE2 = CLASS2 + ".java";
+  private static final String CLASS1 = typeName(LineNumberOptimization1.class);
+  private static final String CLASS2 = typeName(LineNumberOptimization2.class);
+  private static final String FILE1 = "LineNumberOptimization1.java";
+  private static final String FILE2 = "LineNumberOptimization2.java";
   private static final String MAIN_SIGNATURE = "([Ljava/lang/String;)V";
 
   private final TestParameters parameters;
@@ -48,7 +49,7 @@ public class LineNumberOptimizationTest extends DebugTestBase {
 
     R8TestCompileResult result =
         testForR8(parameters.getBackend())
-            .addProgramFiles(DEBUGGEE_JAR)
+            .addProgramClasses(LineNumberOptimization1.class, LineNumberOptimization2.class)
             .setMinApi(parameters)
             .setMode(dontOptimizeByEnablingDebug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
             .noTreeShaking()
@@ -69,13 +70,6 @@ public class LineNumberOptimizationTest extends DebugTestBase {
       config.setProguardMap(result.writeProguardMap(), MISSING_FILE_IS_EMPTY_MAP);
     }
     return config;
-  }
-
-  private void assumeMappingIsNotToPCs() {
-    assumeTrue(
-        "Ignoring test when the line number table is removed.",
-        parameters.isCfRuntime()
-            || parameters.getApiLevel().isLessThan(apiLevelWithPcAsLineNumberSupport()));
   }
 
   @Test

@@ -9,7 +9,6 @@ import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecificati
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.junit.rules.TemporaryFolder;
 
 public abstract class GsonDesugaredLibraryTestUtils {
@@ -18,9 +17,6 @@ public abstract class GsonDesugaredLibraryTestUtils {
       ToolHelper.getSourceFileForTestClass(GsonDesugaredLibraryTestUtils.class)
           .getParent()
           .resolve("gson.cfg");
-  // TODO(b/289363570): GSON should not rely on Iosched.
-  static final Path GSON_2_8_1_JAR =
-      Paths.get(ToolHelper.THIRD_PARTY_DIR, "iosched_2019/gson-2.8.1.jar");
 
   static String uniqueName(
       TemporaryFolder temp,

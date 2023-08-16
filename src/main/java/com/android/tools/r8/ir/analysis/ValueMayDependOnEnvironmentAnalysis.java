@@ -24,10 +24,10 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.LogicalBinop;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticPut;
@@ -200,9 +200,9 @@ public class ValueMayDependOnEnvironmentAnalysis {
     Instruction definition = value.definition;
 
     // Check that it is a constant array with a known size at this point in the IR.
-    if (definition.isInvokeNewArray()) {
-      InvokeNewArray invokeNewArray = definition.asInvokeNewArray();
-      for (Value argument : invokeNewArray.arguments()) {
+    if (definition.isNewArrayFilled()) {
+      NewArrayFilled newArrayFilled = definition.asNewArrayFilled();
+      for (Value argument : newArrayFilled.arguments()) {
         graph.addDirectedEdge(node, graph.createNodeIfAbsent(argument));
         worklist.addIfNotSeen(argument);
       }

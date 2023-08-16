@@ -26,8 +26,13 @@ dependencies { }
 // We just need to register the examples jars for it to be referenced by other modules.
 val buildExampleJars = buildExampleJars("examplesJava9")
 
+val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
+  "compileDeps",
+  listOf(Jdk.JDK_9.getThirdPartyDependency()))
+
 tasks {
   withType<JavaCompile> {
+    dependsOn(thirdPartyCompileDependenciesTask)
     options.setFork(true)
     options.forkOptions.memoryMaximumSize = "3g"
     options.forkOptions.executable = getCompilerPath(Jdk.JDK_9)

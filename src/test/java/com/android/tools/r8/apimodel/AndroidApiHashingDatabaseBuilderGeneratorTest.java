@@ -110,9 +110,9 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
                   methodReferences.forEach(field -> numberOfMethods.increment())));
         });
     // These numbers will change when updating api-versions.xml
-    assertEquals(5635, parsedApiClasses.size());
-    assertEquals(29017, numberOfFields.get());
-    assertEquals(44107, numberOfMethods.get());
+    assertEquals(5716, parsedApiClasses.size());
+    assertEquals(29609, numberOfFields.get());
+    assertEquals(44827, numberOfMethods.get());
   }
 
   @Test

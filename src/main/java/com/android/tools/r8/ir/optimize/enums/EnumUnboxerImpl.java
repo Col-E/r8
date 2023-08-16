@@ -18,10 +18,10 @@ import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_PUT;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_CUSTOM;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_INTERFACE;
-import static com.android.tools.r8.ir.code.Opcodes.INVOKE_NEW_ARRAY;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_STATIC;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_SUPER;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
+import static com.android.tools.r8.ir.code.Opcodes.NEW_ARRAY_FILLED;
 import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
@@ -71,10 +71,10 @@ import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.MemberType;
+import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
@@ -594,6 +594,13 @@ public class EnumUnboxerImpl extends EnumUnboxer {
           if (enumClass != null) {
             markEnumAsUnboxable(Reason.ENUM_METHOD_CALLED_WITH_NULL_RECEIVER, enumClass);
           }
+        }
+      } else if (use.isNewArrayFilled()) {
+        DexProgramClass enumClass =
+            getEnumUnboxingCandidateOrNull(
+                use.asNewArrayFilled().getArrayType().toBaseType(factory));
+        if (enumClass != null) {
+          eligibleEnums.add(enumClass.getType());
         }
       } else if (use.isFieldPut()) {
         DexProgramClass enumClass =
@@ -1163,13 +1170,13 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       case INVOKE_DIRECT:
       case INVOKE_INTERFACE:
         return analyzeInvokeUser(instruction.asInvokeMethod(), code, context, enumClass, enumValue);
-      case INVOKE_NEW_ARRAY:
-        return analyzeInvokeNewArrayUser(
-            instruction.asInvokeNewArray(), code, context, enumClass, enumValue);
       case INVOKE_STATIC:
       case INVOKE_SUPER:
       case INVOKE_VIRTUAL:
         return analyzeInvokeUser(instruction.asInvokeMethod(), code, context, enumClass, enumValue);
+      case NEW_ARRAY_FILLED:
+        return analyzeNewArrayFilledUser(
+            instruction.asNewArrayFilled(), code, context, enumClass, enumValue);
       case RETURN:
         return analyzeReturnUser(instruction.asReturn(), code, context, enumClass, enumValue);
       case STATIC_PUT:
@@ -1241,15 +1248,15 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.INVALID_ARRAY_PUT;
   }
 
-  private Reason analyzeInvokeNewArrayUser(
-      InvokeNewArray invokeNewArray,
+  private Reason analyzeNewArrayFilledUser(
+      NewArrayFilled newArrayFilled,
       IRCode code,
       ProgramMethod context,
       DexProgramClass enumClass,
       Value enumValue) {
     // MyEnum[] array = new MyEnum[] { MyEnum.A }; is valid.
     // We need to prove that the value to put in and the array have correct types.
-    TypeElement arrayType = invokeNewArray.getOutType();
+    TypeElement arrayType = newArrayFilled.getOutType();
     assert arrayType.isArrayType();
 
     ClassTypeElement arrayBaseType = arrayType.asArrayType().getBaseType().asClassType();
@@ -1261,7 +1268,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       return Reason.INVALID_INVOKE_NEW_ARRAY;
     }
 
-    for (Value value : invokeNewArray.inValues()) {
+    for (Value value : newArrayFilled.inValues()) {
       if (!isAssignableToArray(value, arrayBaseType)) {
         return Reason.INVALID_INVOKE_NEW_ARRAY;
       }

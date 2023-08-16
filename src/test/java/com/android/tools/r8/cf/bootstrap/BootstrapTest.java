@@ -28,7 +28,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class BootstrapTest extends TestBase {
 
   private static final Path R8_STABLE_JAR =
-      Paths.get("third_party", "r8-releases", "3.2.54", "r8.jar");
+      Paths.get(ToolHelper.THIRD_PARTY_DIR, "r8-releases", "3.2.54", "r8.jar");
 
   private static final Class<?> HELLO_CLASS = HelloTestRunner.getHelloClass();
   private static final String HELLO_EXPECTED = HelloTestRunner.getExpectedOutput();

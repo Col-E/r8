@@ -274,7 +274,10 @@ public class ArrayGet extends ArrayAccess {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+      AppView<?> appView,
+      ProgramMethod context,
+      AbstractValueSupplier abstractValueSupplier,
+      SideEffectAssumption assumption) {
     // TODO(b/203731608): Move to instructionInstanceCanThrow and remove the method.
     if (array().isPhi() || !index().isConstant()) {
       return true;
@@ -290,11 +293,6 @@ public class ArrayGet extends ArrayAccess {
 
   @Override
   public void buildLir(LirBuilder<Value, ?> builder) {
-    if (getMemberType().isObject()) {
-      DexType destType = dest().getType().asReferenceType().toDexType(builder.factory());
-      builder.addArrayGetObject(destType, array(), index());
-    } else {
-      builder.addArrayGetPrimitive(getMemberType(), array(), index());
-    }
+    builder.addArrayGet(getMemberType(), array(), index());
   }
 }

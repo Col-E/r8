@@ -4,6 +4,7 @@
 package com.android.tools.r8.internal;
 
 import com.android.tools.r8.Disassemble;
+import com.android.tools.r8.ToolHelper;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Paths;
@@ -18,7 +19,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class GMSCoreV10DisassemblerTest extends GMSCoreCompilationTestBase {
 
-  private static final String APP_DIR = "third_party/gmscore/gmscore_v10/";
+  private static final String APP_DIR = ToolHelper.THIRD_PARTY_DIR + "gmscore/gmscore_v10/";
 
   @Parameters(name = "deobfuscate: {0} smali: {1}")
   public static Iterable<Object[]> data() {

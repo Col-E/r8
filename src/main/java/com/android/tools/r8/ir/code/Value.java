@@ -857,7 +857,12 @@ public class Value implements Comparable<Value> {
     return definition.isOutConstant() && !hasLocalInfo();
   }
 
-  public AbstractValue getAbstractValue(AppView<?> appView, ProgramMethod context) {
+  public final AbstractValue getAbstractValue(AppView<?> appView, ProgramMethod context) {
+    return getAbstractValue(appView, context, AbstractValueSupplier.unknown());
+  }
+
+  public final AbstractValue getAbstractValue(
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
     if (!appView.enableWholeProgramOptimizations()) {
       return UnknownValue.getInstance();
     }
@@ -871,7 +876,7 @@ public class Value implements Comparable<Value> {
       return UnknownValue.getInstance();
     }
 
-    return root.definition.getAbstractValue(appView.withClassHierarchy(), context);
+    return root.definition.getAbstractValue(appView, context, abstractValueSupplier);
   }
 
   public boolean isDefinedByInstructionSatisfying(Predicate<Instruction> predicate) {
@@ -971,14 +976,6 @@ public class Value implements Comparable<Value> {
 
   public boolean hasValueRange() {
     return valueRange != null || isConstNumber();
-  }
-
-  public boolean isValueInRange(int value) {
-    if (isConstNumber()) {
-      return value == getConstInstruction().asConstNumber().getIntValue();
-    } else {
-      return valueRange != null && valueRange.containsValue(value);
-    }
   }
 
   public LongInterval getValueRange() {

@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import java.nio.file.Paths
+import org.gradle.api.logging.LogLevel.ERROR
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
 
 plugins {
@@ -68,5 +70,28 @@ tasks {
              "$output",
              "--map",
              "kotlinx.metadata->com.android.tools.r8.jetbrains.kotlinx.metadata"))
+  }
+
+  withType<Test> {
+    println("NOTE: Number of processors " + Runtime.getRuntime().availableProcessors())
+    println("NOTE: Max parallel forks " + maxParallelForks)
+    val os = DefaultNativePlatform.getCurrentOperatingSystem()
+    if (os.isMacOsX) {
+      logger.lifecycle(
+        "WARNING: Testing in only partially supported on Mac OS. \n" +
+          "Art only runs on Linux and tests requiring Art runs in a Docker container, which must " +
+          "be present. See tools/docker/README.md for details.")
+    } else if (os.isWindows) {
+      logger.lifecycle(
+        "WARNING: Testing in only partially supported on Windows. Art only runs on Linux and " +
+          "tests requiring Art will be skipped")
+    } else if (!os.isLinux) {
+      logger.log(
+        LogLevel.ERROR,
+        "Testing in not supported on your platform. Testing is only fully supported on " +
+          "Linux and partially supported on Mac OS and Windows. Art does not run on other " +
+          "platforms.")
+    }
+    dependsOn(gradle.includedBuild("tests_java_8").task(":test"))
   }
 }

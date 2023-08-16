@@ -21,4 +21,14 @@ public abstract class KeepDeclaration {
   public KeepCheck asKeepCheck() {
     return null;
   }
+
+  @Override
+  public final boolean equals(Object obj) {
+    throw new RuntimeException();
+  }
+
+  @Override
+  public final int hashCode() {
+    throw new RuntimeException();
+  }
 }

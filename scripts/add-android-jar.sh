@@ -16,8 +16,8 @@ exit -1
 SDK_HOME=$HOME/Android/Sdk
 
 # Modify these to match the SDK android.jar to add.
-SDK_DIR_NAME=android-33
-SDK_VERSION=33
+SDK_DIR_NAME=android-UpsideDownCake
+SDK_VERSION=34
 
 SDK_DIR=$SDK_HOME/platforms/$SDK_DIR_NAME
 THIRD_PARTY_ANDROID_JAR=third_party/android_jar

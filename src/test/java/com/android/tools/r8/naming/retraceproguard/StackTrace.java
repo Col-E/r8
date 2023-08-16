@@ -192,6 +192,20 @@ class StackTrace {
   private static List<StackTraceLine> internalExtractFromJvm(String stderr) {
     return StringUtils.splitLines(stderr).stream()
         .filter(s -> s.startsWith(TAB_AT_PREFIX))
+        .flatMap(
+            s -> {
+              // Proguard Retrace can emit lines with multiple retraced inline frames. See
+              // b/295305981.
+              List<String> resultMap = new ArrayList<>();
+              String current = s;
+              int nextIndex;
+              while ((nextIndex = current.indexOf(TAB_AT_PREFIX, 2)) > 2) {
+                resultMap.add(current.substring(0, nextIndex));
+                current = current.substring(nextIndex);
+              }
+              resultMap.add(current);
+              return resultMap.stream();
+            })
         .map(StackTraceLine::parse)
         .collect(Collectors.toList());
   }

@@ -204,6 +204,9 @@ def ParseOptions():
   result.add_option('--kotlin-compiler-old',
                     help='Specify to run tests on older kotlin compilers',
                     default=False, action='store_true')
+  result.add_option('--new-gradle',
+                    help='Specify to run in the new gradle setup',
+                    default=False, action='store_true')
   return result.parse_args()
 
 def has_failures(classes_file):
@@ -240,7 +243,7 @@ def archive_failures(options):
 def Main():
   (options, args) = ParseOptions()
   if utils.is_bot():
-    gradle.RunGradle(['--no-daemon', 'clean'])
+    gradle.RunGradle(['--no-daemon', 'clean'], new_gradle=options.new_gradle)
     print('Running with python ' + str(sys.version_info))
 
   desugar_jdk_json_dir = None
@@ -371,12 +374,17 @@ def Main():
   gradle_args.append('-Part_profile_rewriting_completeness_check=true')
 
   # Build an R8 with dependencies for bootstrapping tests before adding test sources.
-  gradle_args.append('r8WithRelocatedDeps')
-  gradle_args.append('r8WithRelocatedDeps17')
+  if options.new_gradle:
+    gradle_args.append(':main:r8WithRelocatedDeps')
+    gradle_args.append(':test:cleanTest')
+    gradle_args.append('test:test')
+  else:
+    gradle_args.append('r8WithRelocatedDeps')
+    gradle_args.append('r8WithRelocatedDeps17')
+    # Add Gradle tasks
+    gradle_args.append('cleanTest')
+    gradle_args.append('test')
 
-  # Add Gradle tasks
-  gradle_args.append('cleanTest')
-  gradle_args.append('test')
   if options.debug_agent:
     gradle_args.append('--debug-jvm')
   if options.fail_fast:
@@ -447,7 +455,8 @@ def Main():
         runtimes.extend(matches)
       gradle_args.append('-Pruntimes=%s' % ':'.join(runtimes))
 
-    return_code = gradle.RunGradle(gradle_args, throw_on_failure=False)
+    return_code = gradle.RunGradle(
+        gradle_args, throw_on_failure=False, new_gradle=options.new_gradle)
     return archive_and_return(return_code, options)
 
   # Legacy testing populates the runtimes based on dex_vm.
@@ -466,7 +475,8 @@ def Main():
           '-Pdex_vm=%s' % art_vm + vm_suffix,
           '-Pruntimes=%s' % ':'.join(runtimes),
         ],
-        throw_on_failure=False)
+        throw_on_failure=False,
+        new_gradle=options.new_gradle)
     if options.generate_golden_files_to:
       sha1 = '%s' % utils.get_HEAD_sha1()
       with utils.ChangedWorkingDirectory(options.generate_golden_files_to):

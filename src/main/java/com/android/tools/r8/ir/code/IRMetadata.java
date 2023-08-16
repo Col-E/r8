@@ -49,7 +49,11 @@ public class IRMetadata {
   }
 
   public void record(Instruction instruction) {
-    set(instruction.opcode());
+    record(instruction.opcode());
+  }
+
+  public void record(int instructionOpcode) {
+    set(instructionOpcode);
   }
 
   public void merge(IRMetadata metadata) {
@@ -118,6 +122,10 @@ public class IRMetadata {
             || mayHaveStaticGet()
             || mayHaveStaticPut());
     return result;
+  }
+
+  public boolean mayHaveIf() {
+    return get(Opcodes.IF);
   }
 
   public boolean mayHaveInitClass() {
@@ -216,6 +224,10 @@ public class IRMetadata {
 
   public boolean mayHaveMul() {
     return get(Opcodes.MUL);
+  }
+
+  public boolean mayHaveNewArrayFilled() {
+    return get(Opcodes.NEW_ARRAY_FILLED);
   }
 
   public boolean mayHaveNewInstance() {

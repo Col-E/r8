@@ -24,7 +24,8 @@ FASTUTIL_VERSION = '7.2.1'
 KOTLIN_METADATA_VERSION = '0.6.2'
 KOTLIN_VERSION = '1.8.0'
 GUAVA_VERSION = '31.1-jre'
-GSON_VERSION = '2.7'
+GUAVA_VERSION_NEW = '32.1.2-jre'
+GSON_VERSION = '2.10.1'
 JAVASSIST_VERSION = '3.29.2-GA'
 JUNIT_VERSION = '4.13-beta-2'
 MOCKITO_VERSION = '2.10.0'
@@ -32,7 +33,10 @@ SMALI_VERSION = '3.0.3'
 ERROR_PRONE_VERSION = '2.18.0'
 TESTNG_VERSION = '6.10'
 
-
+# Resource shrinker dependency versions
+AAPT2_PROTO_VERSION = '8.2.0-alpha10-10154469'
+PROTOBUF_VERSION = '3.19.3'
+STUDIO_SDK_VERSION = '31.2.0-alpha10'
 
 BUILD_DEPENDENCIES = [
   'com.google.code.gson:gson:{version}'.format(version = GSON_VERSION),
@@ -58,6 +62,7 @@ TEST_DEPENDENCIES = [
 ]
 
 NEW_DEPENDENCIES = [
+  'com.google.guava:guava:{version}'.format(version = GUAVA_VERSION_NEW),
   'org.gradle.kotlin.kotlin-dsl:org.gradle.kotlin.kotlin-dsl.gradle.plugin:4.0.6',
   'org.jetbrains.kotlin:kotlin-gradle-plugin-api:1.8.10',
   'org.jetbrains.kotlin:kotlin-gradle-plugin-idea:1.8.10',
@@ -65,7 +70,14 @@ NEW_DEPENDENCIES = [
   'org.jetbrains.kotlin:kotlin-reflect:1.8.10',
   'org.jetbrains.kotlin:kotlin-script-runtime:1.8.10',
   'org.jetbrains.kotlin:kotlin-tooling-core:1.8.10',
-  'net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:3.0.1'
+  'net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:3.0.1',
+
+  # Resource shrinker
+  'com.android.tools.build:aapt2-proto:{version}'.format(version = AAPT2_PROTO_VERSION),
+  'com.android.tools.layoutlib:layoutlib-api:{version}'.format(version = STUDIO_SDK_VERSION),
+  'com.android.tools:common:{version}'.format(version = STUDIO_SDK_VERSION),
+  'com.android.tools:sdk-common:{version}'.format(version = STUDIO_SDK_VERSION),
+  'com.google.protobuf:protobuf-java:{version}'.format(version = PROTOBUF_VERSION),
 ]
 
 def dependencies_tar(dependencies_path):
@@ -130,14 +142,16 @@ def main():
   create_local_maven_repository(
       args, dependencies_new_path, REPOSITORIES, NEW_DEPENDENCIES)
 
-  print('Now run')
-  print('  (cd {third_party};'
-        ' upload_to_google_storage.py -a --bucket r8-deps {dependencies};'
-        ' upload_to_google_storage.py -a --bucket r8-deps {dependencies_new})'
-      .format(
-          third_party = utils.THIRD_PARTY,
-          dependencies = 'dependencies',
-          dependencies_new = 'dependencies_new'))
+  print("Uploading to Google Cloud Storage:")
+  with utils.ChangedWorkingDirectory(utils.THIRD_PARTY):
+    for dependency in ['dependencies', 'dependencies_new']:
+      cmd = [
+          'upload_to_google_storage.py',
+          '-a',
+          '--bucket',
+          'r8-deps',
+          dependency]
+      subprocess.check_call(cmd)
 
 if __name__ == '__main__':
   sys.exit(main())

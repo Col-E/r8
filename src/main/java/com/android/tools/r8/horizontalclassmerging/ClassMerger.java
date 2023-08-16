@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
@@ -52,7 +53,7 @@ import java.util.function.Consumer;
  */
 public class ClassMerger {
 
-  public static final String CLASS_ID_FIELD_NAME = "$r8$classId";
+  public static final String CLASS_ID_FIELD_PREFIX = "$r8$classId";
 
   private static final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
@@ -390,10 +391,37 @@ public class ClassMerger {
       }
       List<VirtualMethodMerger> virtualMethodMergers =
           new ArrayList<>(virtualMethodMergerBuilders.size());
+      List<VirtualMethodMerger> nonNopOrTrivialVirtualMethodMergers =
+          new ArrayList<>(virtualMethodMergerBuilders.size());
       for (VirtualMethodMerger.Builder builder : virtualMethodMergerBuilders.values()) {
-        virtualMethodMergers.add(builder.build(appView.withClassHierarchy(), group));
+        VirtualMethodMerger virtualMethodMerger =
+            builder.build(appView.withClassHierarchy(), group);
+        if (virtualMethodMerger.isNopOrTrivial()) {
+          virtualMethodMergers.add(virtualMethodMerger);
+        } else {
+          nonNopOrTrivialVirtualMethodMergers.add(virtualMethodMerger);
+        }
       }
+      virtualMethodMergers.addAll(nonNopOrTrivialVirtualMethodMergers);
+      // The nopOrTrivial mergers do not deal with signature conflict resolution, we process them
+      // first, then the non trivial mergers are processed and correctly deal with conflicting
+      // signatures.
+      assert verifyNopOrTrivialAreFirst(virtualMethodMergers);
       return virtualMethodMergers;
+    }
+
+    private boolean verifyNopOrTrivialAreFirst(List<VirtualMethodMerger> virtualMethodMergers) {
+      boolean metNonNopOrTrivial = false;
+      for (VirtualMethodMerger virtualMethodMerger : virtualMethodMergers) {
+        if (metNonNopOrTrivial) {
+          assert !virtualMethodMerger.isNopOrTrivial();
+        } else {
+          if (!virtualMethodMerger.isNopOrTrivial()) {
+            metNonNopOrTrivial = true;
+          }
+        }
+      }
+      return true;
     }
 
     private Map<DexMethodSignature, VirtualMethodMerger.Builder> getVirtualMethodMergerBuilders() {
@@ -412,11 +440,18 @@ public class ClassMerger {
     }
 
     private void createClassIdField() {
-      // TODO(b/165498187): ensure the name for the field is fresh
-      DexItemFactory dexItemFactory = appView.dexItemFactory();
-      group.setClassIdField(
-          dexItemFactory.createField(
-              group.getTarget().getType(), dexItemFactory.intType, CLASS_ID_FIELD_NAME));
+      DexField field =
+          appView
+              .dexItemFactory()
+              .createFreshFieldNameWithoutHolder(
+                  group.getTarget().getType(),
+                  appView.dexItemFactory().intType,
+                  CLASS_ID_FIELD_PREFIX,
+                  f ->
+                      Iterables.all(
+                          group.getClasses(),
+                          clazz -> clazz.getFieldCollection().lookupField(f) == null));
+      group.setClassIdField(field);
     }
 
     public ClassMerger build(

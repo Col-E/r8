@@ -4,6 +4,7 @@
 package com.android.tools.r8.benchmarks.appdumps;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.benchmarks.BenchmarkBase;
 import com.android.tools.r8.benchmarks.BenchmarkConfig;
 import com.google.common.collect.ImmutableList;
@@ -17,7 +18,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TiviBenchmarks extends BenchmarkBase {
 
-  private static final Path dump = Paths.get("third_party", "opensource-apps", "tivi");
+  private static final Path dump = Paths.get(ToolHelper.THIRD_PARTY_DIR, "opensource-apps", "tivi");
 
   public TiviBenchmarks(BenchmarkConfig config, TestParameters parameters) {
     super(config, parameters);

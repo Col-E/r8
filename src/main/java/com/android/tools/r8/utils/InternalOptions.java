@@ -1521,8 +1521,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // Arbitrary limit of number of inputs to new-filled-array/range.
     // The technical limit is 255 (Constants.U8BIT_MAX).
     public int minSizeForFilledNewArray = 1;
+    public int maxSizeForFilledNewArrayOfInts = 200;
+    public int maxSizeForFilledNewArrayOfIntsWhenNewArrayFilledDataApplicable = 5;
     public int maxSizeForFilledNewArrayOfReferences = 200;
-    public int maxSizeForFilledNewArrayOfInts = 5;
 
     // Arbitrary limits of number of inputs to fill-array-data.
     public int minSizeForFilledArrayData = 2;
@@ -1556,9 +1557,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     // When adding support for emitting filled-new-array for sub-types, ART 13 (Api-level 33) had
     // issues. See b/283715197.
-    public boolean canUseSubTypesInFilledNewArray() {
+    public boolean canHaveSubTypesInFilledNewArrayBug() {
       assert isGeneratingDex();
-      return !canHaveBugPresentUntil(AndroidApiLevel.U);
+      return canHaveBugPresentUntilInclusive(AndroidApiLevel.U);
     }
 
     // Dalvik doesn't handle new-filled-array with arrays as values. It fails with:
@@ -2484,6 +2485,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   private boolean canHaveBugPresentUntil(AndroidApiLevel level) {
     if (desugarState.isOn() || isGeneratingDex()) {
       return level == null || !hasMinApi(level);
+    }
+    assert minApiLevel.equals(B);
+    return true;
+  }
+
+  private boolean canHaveBugPresentUntilInclusive(AndroidApiLevel level) {
+    if (desugarState.isOn() || isGeneratingDex()) {
+      return level == null || !getMinApiLevel().isGreaterThan(level);
     }
     assert minApiLevel.equals(B);
     return true;

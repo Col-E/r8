@@ -9,16 +9,11 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.cf.code.CfFieldInstruction;
-import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.cf.code.CfTypeInstruction;
+import com.android.tools.r8.cfmethodgeneration.InstructionTypeMapper;
 import com.android.tools.r8.cfmethodgeneration.MethodGenerationBase;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -30,9 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -95,74 +88,6 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
     return field;
   }
 
-  // TODO(b/261024278): Share this code.
-  private class InstructionTypeMapper {
-    private final Map<DexType, DexType> typeMap;
-    private final Function<String, String> methodNameMap;
-
-    InstructionTypeMapper(Map<DexType, DexType> typeMap, Function<String, String> methodNameMap) {
-      this.typeMap = typeMap;
-      this.methodNameMap = methodNameMap;
-    }
-
-    private CfInstruction rewriteInstruction(CfInstruction instruction) {
-      if (instruction.isTypeInstruction()) {
-        CfInstruction rewritten = rewriteTypeInstruction(instruction.asTypeInstruction());
-        return rewritten == null ? instruction : rewritten;
-      }
-      if (instruction.isFieldInstruction()) {
-        return rewriteFieldInstruction(instruction.asFieldInstruction());
-      }
-      if (instruction.isInvoke()) {
-        return rewriteInvokeInstruction(instruction.asInvoke());
-      }
-      if (instruction.isFrame()) {
-        return rewriteFrameInstruction(instruction.asFrame());
-      }
-      return instruction;
-    }
-
-    private CfInstruction rewriteInvokeInstruction(CfInvoke instruction) {
-      CfInvoke invoke = instruction.asInvoke();
-      DexMethod method = invoke.getMethod();
-      String name = method.getName().toString();
-      DexType holderType = invoke.getMethod().getHolderType();
-      DexType rewrittenType = typeMap.getOrDefault(holderType, holderType);
-      String rewrittenName =
-          rewrittenType == factory.varHandleType ? methodNameMap.apply(name) : name;
-      if (rewrittenType != holderType) {
-        // TODO(b/261024278): If sharing this code also rewrite signature.
-        return new CfInvoke(
-            invoke.getOpcode(),
-            factory.createMethod(
-                rewrittenType, invoke.getMethod().getProto(), factory.createString(rewrittenName)),
-            invoke.isInterface());
-      }
-      return instruction;
-    }
-
-    private CfFieldInstruction rewriteFieldInstruction(CfFieldInstruction instruction) {
-      DexType holderType = instruction.getField().getHolderType();
-      DexType rewrittenHolderType = typeMap.getOrDefault(holderType, holderType);
-      DexType fieldType = instruction.getField().getType();
-      DexType rewrittenType = typeMap.getOrDefault(fieldType, fieldType);
-      if (rewrittenHolderType != holderType || rewrittenType != fieldType) {
-        return instruction.createWithField(
-            factory.createField(rewrittenHolderType, rewrittenType, instruction.getField().name));
-      }
-      return instruction;
-    }
-
-    private CfInstruction rewriteTypeInstruction(CfTypeInstruction instruction) {
-      DexType rewrittenType = typeMap.getOrDefault(instruction.getType(), instruction.getType());
-      return rewrittenType != instruction.getType() ? instruction.withType(rewrittenType) : null;
-    }
-
-    private CfInstruction rewriteFrameInstruction(CfFrame instruction) {
-      return instruction.asFrame().mapReferenceTypes(type -> typeMap.getOrDefault(type, type));
-    }
-  }
-
   @Override
   protected CfCode getCode(String holderName, String methodName, CfCode code) {
     if (methodName.endsWith("Stub")) {
@@ -178,6 +103,7 @@ public class GenerateVarHandleMethods extends MethodGenerationBase {
     // sun.misc.Unsafe.
     InstructionTypeMapper instructionTypeMapper =
         new InstructionTypeMapper(
+            factory,
             ImmutableMap.of(
                 factory.createType(
                     DescriptorUtils.javaClassToDescriptor(DesugarMethodHandlesLookup.class)),

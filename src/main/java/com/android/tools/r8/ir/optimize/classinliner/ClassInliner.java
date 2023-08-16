@@ -124,7 +124,6 @@ public final class ClassInliner {
   //
   public final void processMethodCode(
       AppView<AppInfoWithLiveness> appView,
-      StringOptimizer stringOptimizer,
       ProgramMethod method,
       IRCode code,
       OptimizationFeedback feedback,
@@ -246,13 +245,7 @@ public final class ClassInliner {
       // If a method was inlined we may be able to prune additional branches.
       new BranchSimplifier(appView).run(code, Timing.empty());
       // If a method was inlined we may see more trivial computation/conversion of String.
-      boolean isDebugMode =
-          appView.options().debug || method.getOrComputeReachabilitySensitive(appView);
-      if (!isDebugMode) {
-        // Reflection/string optimization 3. trivial conversion/computation on const-string
-        stringOptimizer.computeTrivialOperationsOnConstString(code);
-        stringOptimizer.removeTrivialConversions(code);
-      }
+      new StringOptimizer(appView).run(code, Timing.empty());
     }
   }
 
