@@ -1174,6 +1174,11 @@ public abstract class R8RunArtTestsTest extends TestBase {
           "958-methodhandle-stackframe",
           "1338-gc-no-los");
 
+  // These tests match on paths relative to the execution directory (normally the repo root).
+  // Cached stdout might be from a different directory.
+  private static List<String> noArtCommandCaching =
+      ImmutableList.of("068-classloader", "086-null-superTest", "087-gc-after-linkTest");
+
   private static final String NO_CLASS_ACCESS_MODIFICATION_RULE =
       "-keep,allowobfuscation,allowoptimization,allowshrinking class *";
   private static final String NO_MEMBER_ACCESS_MODIFICATION_RULE =
@@ -1299,6 +1304,8 @@ public abstract class R8RunArtTestsTest extends TestBase {
     private final boolean hasMissingClasses;
     // Explicitly disable desugaring.
     private final boolean disableDesugaring;
+    // Don't cache art invocations, used for tests that match on path outputs.
+    private final boolean noCaching;
     // Extra keep rules to use when running with R8.
     private final List<String> keepRules;
     private final Consumer<InternalOptions> configuration;
@@ -1320,6 +1327,7 @@ public abstract class R8RunArtTestsTest extends TestBase {
         boolean disableClassInlining,
         boolean hasMissingClasses,
         boolean disableDesugaring,
+        boolean noCaching,
         List<String> keepRules,
         Consumer<InternalOptions> configuration) {
       this.name = name;
@@ -1338,6 +1346,7 @@ public abstract class R8RunArtTestsTest extends TestBase {
       this.disableClassInlining = disableClassInlining;
       this.hasMissingClasses = hasMissingClasses;
       this.disableDesugaring = disableDesugaring;
+      this.noCaching = noCaching;
       this.keepRules = keepRules;
       this.configuration = configuration;
     }
@@ -1507,6 +1516,7 @@ public abstract class R8RunArtTestsTest extends TestBase {
                 requireClassInliningToBeDisabled.contains(name),
                 hasMissingClasses.contains(name),
                 false,
+                noArtCommandCaching.contains(name),
                 keepRules.getOrDefault(name, ImmutableList.of()),
                 configurations.get(name)));
       }
@@ -1549,6 +1559,9 @@ public abstract class R8RunArtTestsTest extends TestBase {
       File dexFile, TestSpecification specification, DexVm artVersion) {
     ArtCommandBuilder builder = new ArtCommandBuilder(artVersion);
     builder.appendClasspath(dexFile.toString());
+    if (specification.noCaching) {
+      builder.setNoCaching(true);
+    }
     // All Art tests have the main class Main.
     builder.setMainClass("Main");
     if (specification.nativeLibrary != null) {

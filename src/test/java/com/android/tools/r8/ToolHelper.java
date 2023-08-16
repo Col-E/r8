@@ -557,6 +557,7 @@ public class ToolHelper {
     private DexVm version;
     private boolean withArtFrameworks;
     private ArtResultCacheLookupKey artResultCacheLookupKey;
+    private boolean noCaching = false;
 
     public ArtCommandBuilder() {
       this.version = getDexVm();
@@ -572,6 +573,10 @@ public class ToolHelper {
     @Override
     protected boolean shouldUseDocker() {
       return isMac();
+    }
+
+    public void setNoCaching(boolean noCaching) {
+      this.noCaching = noCaching;
     }
 
     @Override
@@ -606,7 +611,7 @@ public class ToolHelper {
     }
 
     private boolean useCache() {
-      return CommandResultCache.getInstance() != null;
+      return !noCaching && CommandResultCache.getInstance() != null;
     }
 
     public void cacheResult(ProcessResult result) {
