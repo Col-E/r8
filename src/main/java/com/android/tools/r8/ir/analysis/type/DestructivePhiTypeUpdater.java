@@ -60,7 +60,7 @@ public class DestructivePhiTypeUpdater {
     worklist.addAll(affectedPhis);
     while (!worklist.isEmpty()) {
       Phi phi = worklist.poll();
-      TypeElement newType = phi.getDynamicUpperBoundType(appView);
+      TypeElement newType = phi.computePhiType(appView);
       if (!phi.getType().equals(newType)) {
         assert !newType.isBottom();
         phi.setType(newType);

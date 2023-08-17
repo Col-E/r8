@@ -6,12 +6,10 @@ package com.android.tools.r8.ir.conversion.passes;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
@@ -219,28 +217,6 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
     ProgramMethod context = code.context();
     boolean hasUnlinkedCatchHandlers = false;
     boolean hasChanged = false;
-    // For cyclic phis we sometimes do not propagate the dynamic upper type after rewritings.
-    // The inValue.isAlwaysNull(appView) check below will not recompute the dynamic type of phi's
-    // so we recompute all phis here if they are always null.
-    AppView<AppInfoWithClassHierarchy> appViewWithClassHierarchy =
-        appView.hasClassHierarchy() ? appView.withClassHierarchy() : null;
-    if (appViewWithClassHierarchy != null) {
-      code.blocks.forEach(
-          block ->
-              block
-                  .getPhis()
-                  .forEach(
-                      phi -> {
-                        if (!phi.getType().isDefinitelyNull()) {
-                          TypeElement dynamicUpperBoundType =
-                              phi.getDynamicUpperBoundType(appViewWithClassHierarchy);
-                          if (dynamicUpperBoundType.isDefinitelyNull()) {
-                            affectedValues.add(phi);
-                            phi.setType(dynamicUpperBoundType);
-                          }
-                        }
-                      }));
-    }
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (block.getNumber() != 0 && block.getPredecessors().isEmpty()) {
