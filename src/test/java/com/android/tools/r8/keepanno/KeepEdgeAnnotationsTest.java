@@ -34,6 +34,7 @@ import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -70,7 +71,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
   public static Path getKeepAnnoPath() {
     // TODO(b/270105162): This changes when new gradle setup is default.
     if (ToolHelper.isNewGradleSetup()) {
-      return Paths.get(System.getenv("KEEP_ANNO_JAVAC_BUILD_DIR").split(":")[0]);
+      return Paths.get(System.getenv("KEEP_ANNO_JAVAC_BUILD_DIR").split(File.pathSeparator)[0]);
     } else {
       return Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "keepanno");
     }

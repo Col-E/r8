@@ -27,6 +27,8 @@ java {
 // incompatible java class file version. By depending on the jar we circumvent that.
 val keepAnnoJarTask = projectTask("keepanno", "jar")
 val keepAnnoCompileTask = projectTask("keepanno", "compileJava")
+val mainCompileTask = projectTask("main", "compileJava")
+val mainDepsJarTask = projectTask("main", "depsJar")
 
 dependencies {
   implementation(keepAnnoJarTask.outputs.files)
@@ -70,6 +72,7 @@ val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
     ThirdPartyDeps.desugarJdkLibs,
     ThirdPartyDeps.desugarJdkLibsLegacy,
     ThirdPartyDeps.desugarJdkLibs11,
+    ThirdPartyDeps.gson,
     ThirdPartyDeps.iosched2019,
     ThirdPartyDeps.jacoco,
     ThirdPartyDeps.java8Runtime,
@@ -162,6 +165,7 @@ tasks {
 
   withType<Test> {
     environment.put("USE_NEW_GRADLE_SETUP", "true")
+    dependsOn(mainDepsJarTask)
     dependsOn(thirdPartyRuntimeDependenciesTask)
     if (!project.hasProperty("no_internal")) {
       dependsOn(thirdPartyRuntimeInternalDependenciesTask)
@@ -171,6 +175,16 @@ tasks {
     // This path is set when compiling examples jar task in DependenciesPlugin.
     environment.put("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR",
                     getRoot().resolveAll("build", "test", "examplesJava11", "classes"))
+    // TODO(b/270105162): This should change if running with r8lib.
+    environment.put(
+      "R8_RUNTIME_PATH",
+      mainCompileTask.outputs.files.getAsPath().split(File.pathSeparator)[0] +
+        File.pathSeparator + mainDepsJarTask.outputs.files.singleFile)
+    // TODO(b/270105162): This should change if running with retrace lib/r8lib.
+    environment.put(
+      "RETRACE_RUNTIME_PATH",
+      mainCompileTask.outputs.files.getAsPath().split(File.pathSeparator)[0] +
+        File.pathSeparator + mainDepsJarTask.outputs.files.singleFile)
     // TODO(b/291198792): Remove this exclusion when desugared library runs correctly.
     exclude("com/android/tools/r8/desugar/desugaredlibrary/**")
     exclude("com/android/tools/r8/desugar/InvokeSuperToRewrittenDefaultMethodTest**")

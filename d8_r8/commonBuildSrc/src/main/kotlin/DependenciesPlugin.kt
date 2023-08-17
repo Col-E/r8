@@ -379,6 +379,10 @@ object ThirdPartyDeps {
     Paths.get("third_party", "framework").toFile(),
     Paths.get("third_party", "framework.tar.gz.sha1").toFile(),
     DependencyType.X20)
+  val gson = ThirdPartyDependency(
+    "gson",
+    Paths.get("third_party", "gson", "gson-2.10.1").toFile(),
+    Paths.get("third_party", "gson", "gson-2.10.1.tar.gz.sha1").toFile())
   val iosched2019 = ThirdPartyDependency(
     "iosched-2019",
     Paths.get("third_party", "iosched_2019").toFile(),

@@ -121,6 +121,7 @@ public class MainDexTracingTest extends TestBase {
                   options.inlinerOptions().enableInlining = false;
                   options.mainDexKeptGraphConsumer = graphConsumer;
                 }));
+    String root = ToolHelper.getProjectRoot();
     {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       graphConsumer.printWhyAreYouKeeping(
@@ -130,7 +131,8 @@ public class MainDexTracingTest extends TestBase {
           StringUtils.lines(
               "multidex001.MainActivity",
               "|- is referenced in keep rule:",
-              withNativeFileSeparators("|  src/test/examples/multidex/main-dex-rules.txt:14:1"));
+              withNativeFileSeparators(
+                  "|  " + root + "src/test/examples/multidex/main-dex-rules.txt:14:1"));
       assertEquals(expected, output);
     }
     {
@@ -148,7 +150,7 @@ public class MainDexTracingTest extends TestBase {
                   "|  multidex001.MainActivity",
                   "|- is referenced in keep rule:",
                   withNativeFileSeparators(
-                      "|  src/test/examples/multidex/main-dex-rules.txt:14:1"));
+                      "|  " + root + "src/test/examples/multidex/main-dex-rules.txt:14:1"));
       assertEquals(expected, output);
     }
   }

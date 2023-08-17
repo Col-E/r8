@@ -147,6 +147,24 @@ public class ToolHelper {
     }
   }
 
+  public static Path getR8MainPath() {
+    // TODO(b/270105162): This changes when new gradle setup is default.
+    if (ToolHelper.isNewGradleSetup()) {
+      return Paths.get(System.getenv("R8_RUNTIME_PATH"));
+    } else {
+      return isTestingR8Lib() ? R8LIB_JAR : R8_JAR;
+    }
+  }
+
+  public static Path getRetracePath() {
+    // TODO(b/270105162): This changes when new gradle setup is default.
+    if (ToolHelper.isNewGradleSetup()) {
+      return Paths.get(System.getenv("RETRACE_RUNTIME_PATH"));
+    } else {
+      return isTestingR8Lib() ? ToolHelper.R8_RETRACE_JAR : ToolHelper.R8_JAR;
+    }
+  }
+
   public static final Path CHECKED_IN_R8_17_WITH_DEPS =
       Paths.get(THIRD_PARTY_DIR).resolve("r8").resolve("r8_with_deps_17.jar");
 
@@ -155,7 +173,8 @@ public class ToolHelper {
   public static final String ASM_JAR = BUILD_DIR + "deps/asm-9.5.jar";
   public static final String ASM_UTIL_JAR = BUILD_DIR + "deps/asm-util-9.5.jar";
 
-  public static final Path API_SAMPLE_JAR = Paths.get("tests", "r8_api_usage_sample.jar");
+  public static final Path API_SAMPLE_JAR =
+      Paths.get(getProjectRoot(), "tests", "r8_api_usage_sample.jar");
 
   public static final String LINE_SEPARATOR = StringUtils.LINE_SEPARATOR;
   public static final String CLASSPATH_SEPARATOR = File.pathSeparator;
