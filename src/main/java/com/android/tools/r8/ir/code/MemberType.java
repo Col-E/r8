@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 
 public enum MemberType {
   OBJECT,
@@ -26,6 +27,24 @@ public enum MemberType {
 
   public boolean isPrecise() {
     return this != INT_OR_FLOAT && this != LONG_OR_DOUBLE;
+  }
+
+  public static MemberType fromElement(TypeElement element) {
+    if (element.isByte() || element.isBoolean()) return BOOLEAN_OR_BYTE;
+    if (element.isChar()) return CHAR;
+    if (element.isInt()) return INT;
+    if (element.isLong()) return LONG;
+    if (element.isFloat()) return FLOAT;
+    if (element.isDouble()) return DOUBLE;
+    if (element.isShort()) return SHORT;
+    if (element.isArrayType() || element.isClassType()) return OBJECT;
+    throw new IllegalArgumentException("Unmappable type element: " + element.getClass());
+  }
+
+  public static MemberType getArrayMemberType(String arrayDescriptor) {
+    int lastDim = arrayDescriptor.lastIndexOf('[');
+    char next = arrayDescriptor.charAt(lastDim + 1);
+    return MemberType.fromTypeDescriptorChar(next);
   }
 
   public static MemberType constrainedType(MemberType type, ValueTypeConstraint constraint) {

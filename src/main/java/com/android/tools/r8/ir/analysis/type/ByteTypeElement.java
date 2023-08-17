@@ -22,7 +22,7 @@ public class ByteTypeElement extends SinglePrimitiveTypeElement {
   }
 
   @Override
-  boolean isByte() {
+  public boolean isByte() {
     return true;
   }
 

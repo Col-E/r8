@@ -316,19 +316,19 @@ public abstract class TypeElement {
     return false;
   }
 
-  boolean isBoolean() {
+  public boolean isBoolean() {
     return false;
   }
 
-  boolean isByte() {
+  public boolean isByte() {
     return false;
   }
 
-  boolean isShort() {
+  public boolean isShort() {
     return false;
   }
 
-  boolean isChar() {
+  public  boolean isChar() {
     return false;
   }
 

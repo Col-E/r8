@@ -22,7 +22,7 @@ public class CharTypeElement extends SinglePrimitiveTypeElement {
   }
 
   @Override
-  boolean isChar() {
+  public boolean isChar() {
     return true;
   }
 

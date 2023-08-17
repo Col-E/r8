@@ -22,7 +22,7 @@ public class ShortTypeElement extends SinglePrimitiveTypeElement {
   }
 
   @Override
-  boolean isShort() {
+  public boolean isShort() {
     return true;
   }
 

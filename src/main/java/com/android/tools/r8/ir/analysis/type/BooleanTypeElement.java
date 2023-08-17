@@ -22,7 +22,7 @@ public class BooleanTypeElement extends SinglePrimitiveTypeElement {
   }
 
   @Override
-  boolean isBoolean() {
+  public boolean isBoolean() {
     return true;
   }
 
