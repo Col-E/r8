@@ -171,6 +171,20 @@ tasks {
     // This path is set when compiling examples jar task in DependenciesPlugin.
     environment.put("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR",
                     getRoot().resolveAll("build", "test", "examplesJava11", "classes"))
+    // TODO(b/291198792): Remove this exclusion when desugared library runs correctly.
+    exclude("com/android/tools/r8/desugar/desugaredlibrary/**")
+    exclude("com/android/tools/r8/desugar/InvokeSuperToRewrittenDefaultMethodTest**")
+    exclude("com/android/tools/r8/desugar/InvokeSuperToEmulatedDefaultMethodTest**")
+    exclude("com/android/tools/r8/desugar/backports/ThreadLocalBackportWithDesugaredLibraryTest**")
+    exclude("com/android/tools/r8/L8CommandTest**")
+    exclude("com/android/tools/r8/MarkersTest**")
+    exclude("com/android/tools/r8/apimodel/ApiModelDesugaredLibraryReferenceTest**")
+    exclude("com/android/tools/r8/apimodel/ApiModelNoDesugaredLibraryReferenceTest**")
+    exclude("com/android/tools/r8/benchmarks/desugaredlib/**")
+    exclude("com/android/tools/r8/classmerging/vertical/ForceInlineConstructorWithRetargetedLibMemberTest**")
+    exclude("com/android/tools/r8/classmerging/vertical/ForceInlineConstructorWithRetargetedLibMemberTest**")
+    exclude("com/android/tools/r8/ir/optimize/inliner/InlineMethodWithRetargetedLibMemberTest**")
+    exclude("com/android/tools/r8/profile/art/DesugaredLibraryArtProfileRewritingTest**")
   }
 
   val testJar by registering(Jar::class) {
