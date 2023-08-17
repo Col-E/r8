@@ -170,7 +170,6 @@ common_test_options = [
 
 def get_dimensions(windows=False, internal=False, normal=False, smali=False):
   dimensions = {
-    "cores" : "2" if internal else "8",
     "cpu" : "x86-64",
     "pool" : "luci.r8.ci"
   }
