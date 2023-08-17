@@ -369,7 +369,7 @@ public class Value implements Comparable<Value> {
   }
 
   public boolean hasSingleUniqueUser() {
-    return users().size() == 1;
+    return uniqueUsers().size() == 1;
   }
 
   public Instruction singleUniqueUser() {
@@ -505,7 +505,7 @@ public class Value implements Comparable<Value> {
   }
 
   public boolean usedInMonitorOperation() {
-    for (Instruction instruction : users()) {
+    for (Instruction instruction : uniqueUsers()) {
       if (instruction.isMonitor()) {
         return true;
       }
