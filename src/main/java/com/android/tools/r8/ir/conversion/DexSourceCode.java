@@ -45,12 +45,8 @@ import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.utils.DexDebugUtils;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 import java.util.function.BiConsumer;
 
 public class DexSourceCode implements SourceCode {
@@ -219,7 +215,7 @@ public class DexSourceCode implements SourceCode {
 
   private void updateCurrentCatchHandlers(int instructionIndex, DexItemFactory factory) {
     Try tryRange = getTryForOffset(instructionOffset(instructionIndex));
-    if (tryRange == currentTryRange) {
+    if (Objects.equals(tryRange, currentTryRange)) {
       return;
     }
     currentTryRange = tryRange;
