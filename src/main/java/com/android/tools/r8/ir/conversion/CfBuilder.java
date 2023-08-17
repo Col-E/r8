@@ -75,6 +75,8 @@ public class CfBuilder {
   private static final int SUFFIX_SHARING_OVERHEAD = 30;
   private static final int IINC_PATTERN_SIZE = 4;
 
+  public static boolean collapseCatchHandlers = true;
+
   public final AppView<?> appView;
   private final ProgramMethod method;
   private final IRCode code;
@@ -327,7 +329,7 @@ public class CfBuilder {
     int height = 0;
     for (TypeInfo type : registerAllocator.getTypesAtBlockEntry(block).stack) {
       DexType dexType = type.getDexType();
-      height += dexType.isDoubleType() || dexType.isLongType() ? 2 : 1;
+      height += dexType.isWideType() ? 2 : 1;
     }
     return height;
   }
@@ -342,33 +344,63 @@ public class CfBuilder {
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     BasicBlock block = blockIterator.next();
     CfLabel tryCatchStart = null;
-    CatchHandlers<BasicBlock> tryCatchHandlers = CatchHandlers.EMPTY_BASIC_BLOCK;
+    CatchHandlers<BasicBlock> currentCatchHandlers = CatchHandlers.EMPTY_BASIC_BLOCK;
     boolean previousFallthrough = false;
 
     boolean firstBlock = true;
     do {
-      CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
-      if (!tryCatchHandlers.equals(handlers)) {
-        if (!tryCatchHandlers.isEmpty()) {
-          // Close try-catch and save the range.
-          CfLabel tryCatchEnd = getLabel(block);
-          tryCatchRanges.add(
-              CfTryCatch.fromBuilder(tryCatchStart, tryCatchEnd, tryCatchHandlers, this));
-          emitLabel(tryCatchEnd);
+      final CatchHandlers<BasicBlock> blockHandlers = block.getCatchHandlers();
+      CfLabel blockLabel = getLabel(block);
+      if (!currentCatchHandlers.equals(blockHandlers)) {
+        if (!currentCatchHandlers.isEmpty()) {
+          // From our last block iteration, we had opened a try-catch block.
+          CfLabel tryCatchEnd = blockLabel;
+          CfTryCatch tryCatchFromCurrentHandler = CfTryCatch.fromBuilder(tryCatchStart, tryCatchEnd, currentCatchHandlers, this);
+          if (collapseCatchHandlers) {
+            // We have enabled the option to collapse adjacent try blocks into the same handler.
+            //
+            // If the catch from the current handler matches a catch from a previous handler,
+            // meaning that the guards (thrown types) and targets (labels/offsets) are the same,
+            // then we will update the try-catch block to cover the start-end range of:
+            //  - Old start
+            //  - Current end
+            boolean expandedExistingRange = false;
+            for (int i = 0; i < tryCatchRanges.size(); i++) {
+              CfTryCatch existingTryCatch = tryCatchRanges.get(i);
+              if (existingTryCatch.guards.equals(tryCatchFromCurrentHandler.guards) &&
+                      existingTryCatch.targets.equals(tryCatchFromCurrentHandler.targets)) {
+                tryCatchRanges.set(i, new CfTryCatch(existingTryCatch.start, tryCatchEnd, existingTryCatch.guards, existingTryCatch.targets));
+                expandedExistingRange = true;
+                break;
+              }
+            }
+
+            // If no existing handler matched, we need to add it.
+            if (!expandedExistingRange)
+              tryCatchRanges.add(tryCatchFromCurrentHandler);
+
+            // Add the try block end label.
+            // If it was previously added, shift it forward to the current position.
+            reemitLabel(tryCatchEnd);
+          } else {
+            // Simply close the try range.
+            tryCatchRanges.add(tryCatchFromCurrentHandler);
+            emitLabel(tryCatchEnd);
+          }
         }
-        if (!handlers.isEmpty()) {
+        if (!blockHandlers.isEmpty()) {
           // Open a try-catch.
-          tryCatchStart = getLabel(block);
+          tryCatchStart = blockLabel;
           emitLabel(tryCatchStart);
         }
-        tryCatchHandlers = handlers;
+        currentCatchHandlers = blockHandlers;
       }
       BasicBlock nextBlock = blockIterator.hasNext() ? blockIterator.next() : null;
       // If previousBlock is fallthrough, then it is counted in getPredecessors().size(), but
       // we only want to set a pendingFrame if we have a predecessor which is not previousBlock.
       if (block.getPredecessors().size() > (previousFallthrough ? 1 : 0)) {
         pendingFrame = block;
-        emitLabel(getLabel(block));
+        emitLabel(blockLabel);
       }
       JumpInstruction exit = block.exit();
       boolean fallthrough =
@@ -510,7 +542,7 @@ public class CfBuilder {
       // (or we would fall off the edge of the method).
       assert advancesPC || nextBlock != null;
       if (advancesPC) {
-        addFrame(pendingFrame);
+        CfFrame frame = addFrame(pendingFrame);
         pendingFrame = null;
       }
     }
@@ -609,7 +641,7 @@ public class CfBuilder {
     return pendingLocalChanges;
   }
 
-  private void addFrame(BasicBlock block) {
+  private CfFrame addFrame(BasicBlock block) {
     List<TypeInfo> stack = registerAllocator.getTypesAtBlockEntry(block).stack;
     CfFrame.Builder builder = CfFrame.builder();
     if (block.entry().isMoveException()) {
@@ -643,6 +675,7 @@ public class CfBuilder {
     }
 
     instructions.add(frame);
+    return frame;
   }
 
   private PreciseFrameType getFrameType(BasicBlock liveBlock, TypeInfo typeInfo) {
@@ -697,8 +730,18 @@ public class CfBuilder {
     return res;
   }
 
-  private void emitLabel(CfLabel label) {
+  public void emitLabel(CfLabel label) {
     if (!emittedLabels.contains(label)) {
+      emittedLabels.add(label);
+      instructions.add(label);
+    }
+  }
+
+  public void reemitLabel(CfLabel label) {
+    if (emittedLabels.contains(label)) {
+      instructions.remove(label);
+      instructions.add(label);
+    } else {
       emittedLabels.add(label);
       instructions.add(label);
     }
@@ -714,7 +757,7 @@ public class CfBuilder {
     return registerAllocator.getRegisterForValue(value);
   }
 
-  private void add(CfInstruction instruction) {
+  public void add(CfInstruction instruction) {
     instructions.add(instruction);
   }
 
