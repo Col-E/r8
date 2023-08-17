@@ -185,7 +185,8 @@ def get_dimensions(windows=False, internal=False, normal=False, smali=False):
   return dimensions
 
 def r8_builder(name, priority=26, trigger=True, category=None,
-               triggering_policy=None, release_trigger=None, **kwargs):
+               triggering_policy=None, release_trigger=None,
+               max_concurrent_invocations=1, **kwargs):
   release = name.endswith("release")
   triggered = None
   if trigger:
@@ -196,7 +197,7 @@ def r8_builder(name, priority=26, trigger=True, category=None,
   triggering_policy = triggering_policy or scheduler.policy(
       kind = scheduler.GREEDY_BATCHING_KIND,
       max_batch_size = 1 if release else None,
-      max_concurrent_invocations = 4)
+      max_concurrent_invocations = max_concurrent_invocations)
 
   luci.builder(
     name = name,
@@ -221,6 +222,7 @@ def r8_tester(name,
     dimensions = None,
     execution_timeout = time.hour * 6,
     expiration_timeout = time.hour * 35,
+    max_concurrent_invocations = 1,
     category=None,
     release_trigger=None):
   dimensions = dimensions if dimensions else get_dimensions(normal=True)
@@ -232,6 +234,7 @@ def r8_tester(name,
         expiration_timeout = expiration_timeout,
         dimensions = dimensions,
         release_trigger=release_trigger,
+        max_concurrent_invocations = max_concurrent_invocations,
         properties = {
             "test_options" : test_options,
             "builder_group" : "internal.client.r8"
@@ -242,9 +245,11 @@ def r8_tester_with_default(name,
     test_options,
     dimensions=None,
     category=None,
-    release_trigger=None):
+    release_trigger=None,
+    max_concurrent_invocations = 1):
   r8_tester(name, test_options + common_test_options,
-            dimensions = dimensions, category = category, release_trigger=release_trigger)
+            dimensions = dimensions, category = category, release_trigger=release_trigger,
+            max_concurrent_invocations = max_concurrent_invocations)
 
 def archivers():
   for name in [
@@ -273,7 +278,7 @@ def archivers():
         triggering_policy = scheduler.policy(
             kind = scheduler.GREEDY_BATCHING_KIND,
             max_batch_size = 1,
-            max_concurrent_invocations = 3
+            max_concurrent_invocations = 1
         ),
         priority = 25,
         trigger = not desugar,
@@ -302,9 +307,11 @@ r8_builder(
 )
 
 r8_tester_with_default("linux-dex_default",
-        ["--runtimes=dex-default", "--command_cache_dir=/tmp/ccache"])
+        ["--runtimes=dex-default", "--command_cache_dir=/tmp/ccache"],
+        max_concurrent_invocations = 2)
 r8_tester_with_default("linux-none",
-        ["--runtimes=none", "--command_cache_dir=/tmp/ccache"])
+        ["--runtimes=none", "--command_cache_dir=/tmp/ccache"],
+        max_concurrent_invocations = 2)
 r8_tester_with_default("linux-jdk8",
         ["--runtimes=jdk8", "--command_cache_dir=/tmp/ccache"])
 r8_tester_with_default("linux-jdk9",
@@ -317,7 +324,8 @@ r8_tester_with_default("linux-jdk17",
 
 
 r8_tester_with_default("linux-android-4.0.4",
-    ["--dex_vm=4.0.4", "--all_tests", "--command_cache_dir=/tmp/ccache"])
+    ["--dex_vm=4.0.4", "--all_tests", "--command_cache_dir=/tmp/ccache"],
+    max_concurrent_invocations = 2)
 r8_tester_with_default("linux-android-4.4.4",
     ["--dex_vm=4.4.4", "--all_tests", "--command_cache_dir=/tmp/ccache"])
 r8_tester_with_default("linux-android-5.1.1",
