@@ -57,7 +57,7 @@ public class DexProto extends IndexedDexItem
 
   @Override
   public int computeHashCode() {
-    return returnType.hashCode() * 7 + parameters.hashCode() * 13;
+    return shorty.hashCode() * 7 + returnType.hashCode() * 13 + parameters.hashCode() * 31;
   }
 
   public DexType getReturnType() {
