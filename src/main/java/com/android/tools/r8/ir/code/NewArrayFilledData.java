@@ -4,12 +4,16 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.code.CfArrayStore;
+import com.android.tools.r8.cf.code.CfConstNumber;
+import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.code.DexFillArrayData;
 import com.android.tools.r8.dex.code.DexFillArrayDataPayload;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.StatefulObjectValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
@@ -18,12 +22,14 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.lightir.LirBuilder;
+import static com.android.tools.r8.utils.EndianUtils.*;
+
+import com.android.tools.r8.utils.ArrayUtils;
+import sun.misc.Unsafe;
+
 import java.util.Arrays;
 
 public class NewArrayFilledData extends Instruction {
-  private static final String ERROR_MESSAGE =
-      "Conversion from DEX to classfile not supported for NewArrayFilledData";
-
   public final int element_width;
   public final long size;
   public final short[] data;
@@ -62,7 +68,52 @@ public class NewArrayFilledData extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    throw new Unreachable(ERROR_MESSAGE);
+    TypeElement arrayType = inValues().get(0).getType();
+    TypeElement arrayElementType = arrayType.asArrayType().getMemberType();
+    MemberType type = MemberType.fromElement(arrayElementType);
+
+    switch (element_width) {
+      case 1:
+        for (int i = 0; i < size; i++) {
+          builder.add(
+                  CfStackInstruction.DUP,
+                  CfConstNumber.constNumber(i, ValueType.INT),
+                  CfConstNumber.constNumber(ArrayUtils.getByte(data, i), ValueType.INT),
+                  new CfArrayStore(type)
+          );
+        }
+        break;
+      case 2:
+        for (int i = 0; i < size; i++) {
+          builder.add(
+                  CfStackInstruction.DUP,
+                  CfConstNumber.constNumber(i, ValueType.INT),
+                  CfConstNumber.constNumber(reverseShort(ArrayUtils.getShort(data, i)), ValueType.INT),
+                  new CfArrayStore(type)
+          );
+        }
+        break;
+      case 4:
+        for (int i = 0; i < size; i++) {
+          builder.add(
+                  CfStackInstruction.DUP,
+                  CfConstNumber.constNumber(i, ValueType.INT),
+                  CfConstNumber.constNumber(reverseInt(ArrayUtils.getInt(data, i)), ValueType.INT),
+                  new CfArrayStore(type)
+          );
+        }
+        break;
+      case 8:
+        for (int i = 0; i < size; i++) {
+          builder.add(
+                  CfStackInstruction.DUP,
+                  CfConstNumber.constNumber(i, ValueType.INT),
+                  CfConstNumber.constNumber(reverseLong(ArrayUtils.getLong(data, i)), ValueType.LONG),
+                  new CfArrayStore(type)
+          );
+        }
+        break;
+    }
   }
 
   @Override
@@ -115,7 +166,7 @@ public class NewArrayFilledData extends Instruction {
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
-    throw new Unreachable(ERROR_MESSAGE);
+    helper.loadInValues(this, it);
   }
 
   @Override

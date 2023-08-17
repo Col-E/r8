@@ -5,6 +5,10 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
+import com.android.tools.r8.cf.code.CfArrayStore;
+import com.android.tools.r8.cf.code.CfConstNumber;
+import com.android.tools.r8.cf.code.CfNewArray;
+import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.dex.code.DexFilledNewArray;
 import com.android.tools.r8.dex.code.DexFilledNewArrayRange;
 import com.android.tools.r8.dex.code.DexInstruction;
@@ -130,21 +134,40 @@ public class NewArrayFilled extends Invoke {
 
   @Override
   public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
-    throw cfUnsupported();
+    return type;
   }
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
-    throw cfUnsupported();
+    helper.loadInValues(this, it);
+    helper.storeOutValue(this, it);
   }
 
   @Override
   public void buildCf(CfBuilder builder) {
-    throw cfUnsupported();
-  }
+    String descriptor = type.toDescriptorString();
+    ValueTypeConstraint constraint = ValueTypeConstraint.fromTypeDescriptorChar(descriptor.charAt(1));
+    int wordSize = constraint.requiredRegisters();
+    int argumentCount = arguments().size();
+    builder.add(
+            CfConstNumber.constNumber(argumentCount, ValueType.INT),
+            new CfNewArray(type)
+    );
+    MemberType memberType = MemberType.getArrayMemberType(descriptor);
+    int index = 0;
+    for (int registerIndex = 0; registerIndex < argumentCount; ) {
+      // Re-arrange the stack from:
+      // [element, array]
+      // to [array, array, index, element]
 
-  private static Unreachable cfUnsupported() {
-    throw new Unreachable("InvokeNewArray (non-empty) not supported when compiling to classfiles.");
+      // [element, array]
+      builder.add(CfStackInstruction.DUP); // [element, array, array]
+      builder.swap(2, wordSize); // [array, array, element]
+      builder.add(CfConstNumber.constNumber(index++, ValueType.INT)); // [array, array, element, index]
+      builder.swap(1, wordSize); // [array, array, index, element]
+      builder.add(new CfArrayStore(memberType)); // [element?, array]
+      registerIndex += wordSize;
+    }
   }
 
   @Override

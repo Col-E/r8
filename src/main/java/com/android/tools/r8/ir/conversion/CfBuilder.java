@@ -12,12 +12,7 @@ import com.android.tools.r8.cf.TypeVerificationHelper.InitializedTypeInfo;
 import com.android.tools.r8.cf.TypeVerificationHelper.NewInstanceInfo;
 import com.android.tools.r8.cf.TypeVerificationHelper.ThisInstanceInfo;
 import com.android.tools.r8.cf.TypeVerificationHelper.TypeInfo;
-import com.android.tools.r8.cf.code.CfFrame;
-import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.cf.code.CfLabel;
-import com.android.tools.r8.cf.code.CfPosition;
-import com.android.tools.r8.cf.code.CfTryCatch;
+import com.android.tools.r8.cf.code.*;
 import com.android.tools.r8.cf.code.frame.FrameType;
 import com.android.tools.r8.cf.code.frame.PreciseFrameType;
 import com.android.tools.r8.cf.code.frame.UninitializedFrameType;
@@ -734,6 +729,27 @@ public class CfBuilder {
 
   public void addArgument(Argument argument) {
     // Nothing so far.
+  }
+
+  public void swap(int right, int left) {
+    if (right == 1) {
+      if (left == 1) {
+        add(CfStackInstruction.SWAP);
+        return;
+      } else if (left == 2) {
+        add(CfStackInstruction.DUP_X2, CfStackInstruction.POP);
+        return;
+      }
+    } else if (right == 2) {
+      if (left == 1) {
+        add(CfStackInstruction.DUP2_X1, CfStackInstruction.POP2);
+        return;
+      } else if (left == 2) {
+        add(CfStackInstruction.DUP2_X2, CfStackInstruction.POP2);
+        return;
+      }
+    }
+    throw new IllegalStateException("Not implemented");
   }
 
   public boolean verifyNoMetadata(Instruction instruction) {

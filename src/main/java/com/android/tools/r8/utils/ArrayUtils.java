@@ -226,4 +226,45 @@ public class ArrayUtils {
     optionals[ts.length] = Optional.empty();
     return optionals;
   }
+
+  public static byte getByte(short[] data, int byteIndex) {
+    // 2 bytes to 1 short ratio
+    //
+    // Short Value:  0x4B4F
+    // Byte Index 0: 0x4F
+    // Byte Index 1: 0x4B
+    int index = byteIndex / 2;
+    int mod = byteIndex % 2;
+    short value = data[index];
+    return (byte) (mod == 0 ? value & 0xFF : (value >> 8 & 0xFF));
+  }
+
+  public static short getShort(short[] data, int shortIndex) {
+    // 1 to 1 ratio
+    return data[shortIndex];
+  }
+
+  public static int getInt(short[] data, int intIndex) {
+    // 2 shorts to 1 int ratio
+    //
+    // Data: [ 0xAABB, 0xCCDD, 0xEEFF, 0x1122]
+    // Int Index 0: 0xCCDDAABB
+    // Int Index 1: 0x1122EEFF
+    int index = intIndex * 2;
+    short low = data[index];
+    short high = data[index + 1];
+    return low | (high << 16);
+  }
+
+  public static long getLong(short[] data, int longIndex) {
+    // 4 shorts to 1 int ratio
+    //
+    // Same as getInt, but double
+    int index = longIndex * 4;
+    short a = data[index];
+    short b = data[index+1];
+    short c = data[index+2];
+    short d = data[index+3];
+    return a | (b << 16) | ((long) c << 32) | ((long) d << 48);
+  }
 }
