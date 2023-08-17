@@ -99,6 +99,9 @@ import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingObjectSt
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnboxedValueNonComparable;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnsupportedInstanceFieldValueForEnumInstanceReason;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnsupportedLibraryInvokeReason;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
@@ -797,6 +800,18 @@ public class EnumUnboxerImpl extends EnumUnboxer {
           public void fixup(
               DexEncodedMethod method, MutableMethodOptimizationInfo optimizationInfo) {
             optimizationInfo
+                .fixupArgumentInfos(
+                    new DefaultMethodOptimizationInfoFixer() {
+                      @Override
+                      public CallSiteOptimizationInfo fixupCallSiteOptimizationInfo(
+                          ConcreteCallSiteOptimizationInfo callSiteOptimizationInfo) {
+                        RewrittenPrototypeDescription prototypeChanges =
+                            graphLens.lookupPrototypeChangesForMethodDefinition(
+                                method.getReference(), codeLens);
+                        return callSiteOptimizationInfo.fixupAfterParametersChanged(
+                            prototypeChanges);
+                      }
+                    })
                 .fixupClassTypeReferences(appView, graphLens)
                 .fixupAbstractReturnValue(appView, graphLens, codeLens)
                 .fixupInstanceInitializerInfo(

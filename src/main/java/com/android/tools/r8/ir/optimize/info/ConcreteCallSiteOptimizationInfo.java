@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -89,6 +90,14 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         parameterIndex < size;
         parameterIndex++) {
       if (!parameterChanges.isArgumentRemoved(parameterIndex)) {
+        RewrittenTypeInfo rewrittenTypeInfo =
+            parameterChanges.getArgumentInfo(parameterIndex).asRewrittenTypeInfo();
+        if (rewrittenTypeInfo != null
+            && rewrittenTypeInfo.getOldType().isReferenceType()
+            && rewrittenTypeInfo.getNewType().isIntType()) {
+          rewrittenParameterIndex++;
+          continue;
+        }
         AbstractValue abstractValue =
             constants.getOrDefault(parameterIndex, AbstractValue.unknown());
         if (!abstractValue.isUnknown()) {
