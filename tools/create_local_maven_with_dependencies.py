@@ -50,8 +50,6 @@ BUILD_DEPENDENCIES = [
 
 TEST_DEPENDENCIES = [
   'junit:junit:{version}'.format(version = JUNIT_VERSION),
-  'com.android.support:support-v4:{version}'.format(version = ANDRDID_SUPPORT_VERSION),
-  'com.android.support.test.espresso:espresso-core:{version}'.format(version = ESPRESSO_VERSION),
   'com.android.tools.smali:smali:{version}'.format(version = SMALI_VERSION),
   'com.google.errorprone:error_prone_core:{version}'.format(version = ERROR_PRONE_VERSION),
   'org.javassist:javassist:{version}'.format(version = JAVASSIST_VERSION),

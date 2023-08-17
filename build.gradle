@@ -8,7 +8,6 @@ import desugaredlibrary.CustomConversionAsmRewriterTask
 import net.ltgt.gradle.errorprone.CheckSeverity
 import org.gradle.internal.os.OperatingSystem
 import tasks.DownloadDependency
-import tasks.GetJarsFromConfiguration
 
 plugins {
   id "net.ltgt.errorprone" version "2.0.2"
@@ -194,10 +193,6 @@ idea {
     }
 }
 
-configurations {
-    supportLibs
-}
-
 dependencies {
     implementation "com.google.code.gson:gson:$gsonVersion"
     // Include all of guava when compiling the code, but exclude annotations that we don't
@@ -262,9 +257,6 @@ dependencies {
     examplesCompile "com.google.guava:guava:$guavaVersion"
     examplesCompile "junit:junit:$junitVersion"
     examplesCompile "org.mockito:mockito-core:$mockitoVersion"
-    supportLibs "com.android.support:support-v4:$androidSupportVersion"
-    supportLibs "junit:junit:$junitVersion"
-    supportLibs "com.android.support.test.espresso:espresso-core:$espressoVersion"
     apiUsageSampleCompile sourceSets.main.output
     apiUsageSampleCompile "com.google.guava:guava:$guavaVersion"
     kotlinR8TestResourcesCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
@@ -1547,10 +1539,6 @@ task buildPreNJdwpTestsJar(type: Jar) {
     includeEmptyDirs = false
 }
 
-task getJarsFromSupportLibs(type: GetJarsFromConfiguration) {
-    setConfiguration(configurations.supportLibs)
-}
-
 task generateR8TestKeepRules {
     def path = "build/generated/r8tests-keep.txt"
     outputs.file path
@@ -1940,7 +1928,6 @@ test { task ->
 
     dependsOn sourceSets.keepanno.output
     dependsOn buildLibraryDesugarConversions
-    dependsOn getJarsFromSupportLibs
     // R8.jar is required for running bootstrap tests.
     dependsOn r8
 
