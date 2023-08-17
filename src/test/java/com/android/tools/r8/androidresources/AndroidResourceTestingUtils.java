@@ -3,22 +3,60 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.androidresources;
 
+import static com.android.tools.r8.TestBase.javac;
+import static com.android.tools.r8.TestBase.transformer;
+
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.transformers.ClassTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.StreamUtils;
+import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.MoreCollectors;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import org.junit.rules.TemporaryFolder;
 
 public class AndroidResourceTestingUtils {
 
-  public static String SIMPLE_MANIFEST_WITH_STRING =
+  enum RClassType {
+    STRING,
+    DRAWABLE;
+
+    public static RClassType fromClass(Class clazz) {
+      String type = rClassWithoutNamespaceAndOuter(clazz).substring(2);
+      return RClassType.valueOf(type.toUpperCase());
+    }
+  }
+
+  private static String rClassWithoutNamespaceAndOuter(Class clazz) {
+    return rClassWithoutNamespaceAndOuter(clazz.getName());
+  }
+
+  private static String rClassWithoutNamespaceAndOuter(String name) {
+    assert isInnerRClass(name);
+    int dollarIndex = name.lastIndexOf("$");
+    String specificRClass = name.substring(dollarIndex - 1);
+    return specificRClass;
+  }
+
+  private static boolean isInnerRClass(String name) {
+    int dollarIndex = name.lastIndexOf("$");
+    return dollarIndex > 0 && name.charAt(dollarIndex - 1) == 'R';
+  }
+
+  public static String SIMPLE_MANIFEST_WITH_APP_NAME =
       "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
           + "<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"\n"
           + "          package=\"com.android.tools.r8\">\n"
@@ -28,23 +66,22 @@ public class AndroidResourceTestingUtils {
           + "\n";
 
   public static class AndroidTestRClass {
+    // The original aapt2 generated R.java class
     private final Path javaFilePath;
-    private final Path rootDirectory;
+    // The compiled class files, with the class names rewritten to the names used in passed
+    // in R class from the test.
+    private final List<byte[]> classFileData;
 
-    AndroidTestRClass(Path rootDirectory) throws IOException {
-      this.rootDirectory = rootDirectory;
-      this.javaFilePath =
-          Files.walk(rootDirectory)
-              .filter(path -> path.endsWith("R.java"))
-              .collect(MoreCollectors.onlyElement());
+    AndroidTestRClass(Path javaFilePath, List<byte[]> classFileData) throws IOException {
+      this.javaFilePath = javaFilePath;
+      this.classFileData = classFileData;
     }
-
     public Path getJavaFilePath() {
       return javaFilePath;
     }
 
-    public Path getRootDirectory() {
-      return rootDirectory;
+    public List<byte[]> getClassFileData() {
+      return classFileData;
     }
   }
 
@@ -70,14 +107,38 @@ public class AndroidResourceTestingUtils {
     private String manifest;
     private Map<String, String> stringValues = new TreeMap<>();
     private Map<String, byte[]> drawables = new TreeMap<>();
+    private List<Class> classesToRemap = new ArrayList();
+
+    // Create the android resources from the passed in R classes
+    // All values will be generated based on the fields in the class.
+    // This takes the actual inner classes (e.g., R$String)
+    // These R classes will be used to rewrite the namespace and class names on the aapt2
+    // generated names.
+    AndroidTestResourceBuilder addRClassInitializeWithDefaultValues(Class... rClasses) {
+      for (Class rClass : rClasses) {
+        classesToRemap.add(rClass);
+        RClassType rClassType = RClassType.fromClass(rClass);
+        for (Field declaredField : rClass.getDeclaredFields()) {
+          String name = declaredField.getName();
+          if (rClassType == RClassType.STRING) {
+            addStringValue(name, name);
+          }
+          if (rClassType == RClassType.DRAWABLE) {
+            addDrawable(name, TINY_PNG);
+          }
+        }
+      }
+      return this;
+    }
 
     AndroidTestResourceBuilder withManifest(String manifest) {
       this.manifest = manifest;
       return this;
     }
 
-    AndroidTestResourceBuilder withSimpleManifest() {
-      this.manifest = SIMPLE_MANIFEST_WITH_STRING;
+    AndroidTestResourceBuilder withSimpleManifestAndAppNameString() {
+      this.manifest = SIMPLE_MANIFEST_WITH_APP_NAME;
+      addStringValue("app_name", "Most important app ever.");
       return this;
     }
 
@@ -110,9 +171,56 @@ public class AndroidResourceTestingUtils {
       }
 
       Path output = temp.newFile("resources.zip").toPath();
-      Path rClassOutput = temp.newFolder("aapt_R_class").toPath();
-      compileWithAapt2(resFolder, manifestPath, rClassOutput, output, temp);
-      return new AndroidTestResource(new AndroidTestRClass(rClassOutput), output);
+      Path rClassOutputDir = temp.newFolder("aapt_R_class").toPath();
+      compileWithAapt2(resFolder, manifestPath, rClassOutputDir, output, temp);
+      Path rClassJavaFile =
+          Files.walk(rClassOutputDir)
+              .filter(path -> path.endsWith("R.java"))
+              .collect(MoreCollectors.onlyElement());
+      Path rClassClassFileOutput =
+          javac(CfRuntime.getDefaultCfRuntime(), temp).addSourceFiles(rClassJavaFile).compile();
+      Map<String, String> noNamespaceToProgramMap =
+          classesToRemap.stream()
+              .collect(
+                  Collectors.toMap(
+                      AndroidResourceTestingUtils::rClassWithoutNamespaceAndOuter,
+                      DescriptorUtils::getClassBinaryName));
+      List<byte[]> rewrittenRClassFiles = new ArrayList<>();
+      ZipUtils.iter(
+          rClassClassFileOutput,
+          (entry, input) -> {
+            if (ZipUtils.isClassFile(entry.getName())) {
+              rewrittenRClassFiles.add(
+                  transformer(StreamUtils.streamToByteArrayClose(input), null)
+                      .addClassTransformer(
+                          new ClassTransformer() {
+                            @Override
+                            public void visit(
+                                int version,
+                                int access,
+                                String name,
+                                String signature,
+                                String superName,
+                                String[] interfaces) {
+                              String maybeTransformedName =
+                                  isInnerRClass(name)
+                                      ? noNamespaceToProgramMap.getOrDefault(
+                                          rClassWithoutNamespaceAndOuter(name), name)
+                                      : name;
+                              super.visit(
+                                  version,
+                                  access,
+                                  maybeTransformedName,
+                                  signature,
+                                  superName,
+                                  interfaces);
+                            }
+                          })
+                      .transform());
+            }
+          });
+      return new AndroidTestResource(
+          new AndroidTestRClass(rClassJavaFile, rewrittenRClassFiles), output);
     }
 
     private String createStringResourceXml() {

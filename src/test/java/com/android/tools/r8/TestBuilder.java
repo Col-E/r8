@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.androidresources.AndroidResourceTestingUtils.AndroidTestResource;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -133,6 +134,10 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
 
   public T addProgramClassesAndInnerClasses(Collection<Class<?>> classes) throws IOException {
     return addProgramClasses(classes).addInnerClasses(classes);
+  }
+
+  public T addAndroidResources(AndroidTestResource testResource) throws IOException {
+    return addProgramClassFileData(testResource.getRClass().getClassFileData());
   }
 
   public T addInnerClasses(Class<?>... classes) throws IOException {
