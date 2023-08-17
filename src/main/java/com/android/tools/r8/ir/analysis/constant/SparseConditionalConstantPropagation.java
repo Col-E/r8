@@ -257,6 +257,16 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
             }
             return;
           }
+          if (theIf.getType().isEqualsOrNotEquals()
+              && lhsValue.hasDefinitelySetAndUnsetBitsInformation()
+              && lhsValue.getDefinitelySetIntBits() != 0) {
+            BasicBlock target = theIf.targetFromCondition(1);
+            if (!isExecutableEdge(jumpInstBlockNumber, target.getNumber())) {
+              setExecutableEdge(jumpInstBlockNumber, target.getNumber());
+              flowEdges.addIfNotSeen(target);
+            }
+            return;
+          }
         } else {
           AbstractValue rhsValue = getCachedAbstractValue(theIf.rhs());
           if (isConstNumber(theIf.lhs(), lhsValue) && isConstNumber(theIf.rhs(), rhsValue)) {

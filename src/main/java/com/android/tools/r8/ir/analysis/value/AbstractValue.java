@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.value;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
@@ -76,6 +77,14 @@ public abstract class AbstractValue {
 
   public boolean hasDefinitelySetAndUnsetBitsInformation() {
     return false;
+  }
+
+  public int getDefinitelySetIntBits() {
+    throw new Unreachable();
+  }
+
+  public int getDefinitelyUnsetIntBits() {
+    throw new Unreachable();
   }
 
   public boolean hasKnownArrayLength() {

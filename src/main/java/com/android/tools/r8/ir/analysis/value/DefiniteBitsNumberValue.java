@@ -39,8 +39,14 @@ public class DefiniteBitsNumberValue extends NonConstantNumberValue {
     return Long.MAX_VALUE;
   }
 
+  @Override
   public int getDefinitelySetIntBits() {
     return definitelySetBits;
+  }
+
+  @Override
+  public int getDefinitelyUnsetIntBits() {
+    return definitelyUnsetBits;
   }
 
   @Override

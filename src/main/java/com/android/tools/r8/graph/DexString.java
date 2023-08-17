@@ -41,6 +41,28 @@ public class DexString extends IndexedDexItem
     return (char) content[0];
   }
 
+  public boolean isEqualTo(String string) {
+    if (size != string.length()) {
+      return false;
+    }
+    int index = 0;
+    ThrowingCharIterator<UTFDataFormatException> iterator = iterator();
+    while (iterator.hasNext()) {
+      int c;
+      try {
+        c = iterator.nextChar();
+      } catch (UTFDataFormatException e) {
+        return false;
+      }
+      if (c != string.charAt(index)) {
+        return false;
+      }
+      index++;
+    }
+    assert index == size;
+    return true;
+  }
+
   @Override
   public DexString self() {
     return this;

@@ -11,6 +11,9 @@ import com.android.tools.r8.dex.code.DexUshrIntLit8;
 import com.android.tools.r8.dex.code.DexUshrLong;
 import com.android.tools.r8.dex.code.DexUshrLong2Addr;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.utils.BitUtils;
 
 public class Ushr extends LogicalBinop {
 
@@ -92,6 +95,32 @@ public class Ushr extends LogicalBinop {
   @Override
   long foldLongs(long left, long right) {
     return left >>> right;
+  }
+
+  @Override
+  AbstractValue foldIntegers(AbstractValue left, AbstractValue right, AppView<?> appView) {
+    if (!right.isSingleNumberValue()) {
+      return AbstractValue.unknown();
+    }
+    int rightConst = right.asSingleNumberValue().getIntValue();
+    if (rightConst == 0) {
+      return left;
+    }
+    if (left.isSingleNumberValue()) {
+      int result = foldIntegers(left.asSingleNumberValue().getIntValue(), rightConst);
+      return appView.abstractValueFactory().createSingleNumberValue(result);
+    }
+    if (left.hasDefinitelySetAndUnsetBitsInformation() && rightConst > 0) {
+      // Shift the known bits information and add that we now know that the uppermost n bits are
+      // definitely unset.
+      return appView
+          .abstractValueFactory()
+          .createDefiniteBitsNumberValue(
+              foldIntegers(left.getDefinitelySetIntBits(), rightConst),
+              foldIntegers(left.getDefinitelyUnsetIntBits(), rightConst)
+                  | (BitUtils.ONLY_SIGN_BIT_SET_MASK >> (rightConst - 1)));
+    }
+    return AbstractValue.unknown();
   }
 
   @Override

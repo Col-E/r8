@@ -11,6 +11,8 @@ import com.android.tools.r8.dex.code.DexXorIntLit16;
 import com.android.tools.r8.dex.code.DexXorIntLit8;
 import com.android.tools.r8.dex.code.DexXorLong;
 import com.android.tools.r8.dex.code.DexXorLong2Addr;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import java.util.Set;
 
 public class Xor extends LogicalBinop {
@@ -92,6 +94,27 @@ public class Xor extends LogicalBinop {
   @Override
   int foldIntegers(int left, int right) {
     return left ^ right;
+  }
+
+  @Override
+  AbstractValue foldIntegers(AbstractValue left, AbstractValue right, AppView<?> appView) {
+    if (left.isSingleNumberValue() && right.isSingleNumberValue()) {
+      int result =
+          foldIntegers(
+              left.asSingleNumberValue().getIntValue(), right.asSingleNumberValue().getIntValue());
+      return appView.abstractValueFactory().createSingleNumberValue(result);
+    }
+    if (left.hasDefinitelySetAndUnsetBitsInformation()
+        && right.hasDefinitelySetAndUnsetBitsInformation()) {
+      return appView
+          .abstractValueFactory()
+          .createDefiniteBitsNumberValue(
+              (left.getDefinitelySetIntBits() & right.getDefinitelyUnsetIntBits())
+                  | (left.getDefinitelyUnsetIntBits() & right.getDefinitelySetIntBits()),
+              (left.getDefinitelySetIntBits() & right.getDefinitelySetIntBits())
+                  | (left.getDefinitelyUnsetIntBits() & right.getDefinitelyUnsetIntBits()));
+    }
+    return AbstractValue.unknown();
   }
 
   @Override

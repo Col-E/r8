@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
@@ -35,6 +36,15 @@ public class Argument extends Instruction {
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  @Override
+  public AbstractValue getAbstractValue(
+      AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
+    if (outValue.hasLocalInfo()) {
+      return AbstractValue.unknown();
+    }
+    return context.getOptimizationInfo().getArgumentInfos().getAbstractArgumentValue(index);
   }
 
   public int getIndex() {

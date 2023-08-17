@@ -74,16 +74,15 @@ public abstract class AbstractValueJoiner {
       return numberFromSetValueBuilder.build(factory());
     }
 
-    if (config.canUseDefiniteBitsAbstraction()) {
-      return joinPrimitiveToDefiniteBitsNumberValue(abstractValue, otherAbstractValue, type);
+    if (config.canUseDefiniteBitsAbstraction() && type.isInt()) {
+      return joinPrimitiveToDefiniteBitsNumberValue(abstractValue, otherAbstractValue);
     }
 
     return unknown();
   }
 
   private AbstractValue joinPrimitiveToDefiniteBitsNumberValue(
-      AbstractValue abstractValue, AbstractValue otherAbstractValue, PrimitiveTypeElement type) {
-    assert type.isInt();
+      AbstractValue abstractValue, AbstractValue otherAbstractValue) {
     if (!abstractValue.hasDefinitelySetAndUnsetBitsInformation()
         || !otherAbstractValue.hasDefinitelySetAndUnsetBitsInformation()) {
       return unknown();
@@ -207,7 +206,8 @@ public abstract class AbstractValueJoiner {
     private static final AbstractValueJoinerConfig CLASS_ID_FIELD_CONFIG =
         new AbstractValueJoinerConfig().setCanUseNumberIntervalAndNumberSetAbstraction();
 
-    private static final AbstractValueJoinerConfig DEFAULT_CONFIG = new AbstractValueJoinerConfig();
+    private static final AbstractValueJoinerConfig DEFAULT_CONFIG =
+        new AbstractValueJoinerConfig().setCanUseDefiniteBitsAbstraction();
 
     public static AbstractValueJoinerConfig getClassIdFieldConfig() {
       return CLASS_ID_FIELD_CONFIG;

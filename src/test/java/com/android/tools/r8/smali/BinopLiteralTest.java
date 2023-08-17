@@ -70,8 +70,13 @@ public class BinopLiteralTest extends SmaliTestBase {
         );
         DexCode code = method.getCode().asDexCode();
         assertEquals(2, code.instructions.length);
-        assertTrue(code.instructions[0] instanceof DexFormat22b);
-        assertEquals(lit8Value, ((DexFormat22b) code.instructions[0]).CC);
+        if (binop.equals("and") && lit8Value == 0) {
+          assertTrue(code.instructions[0].isDexConst4());
+          assertEquals(0, code.instructions[0].asDexConst4().decodedValue());
+        } else {
+          assertTrue(code.instructions[0] instanceof DexFormat22b);
+          assertEquals(lit8Value, ((DexFormat22b) code.instructions[0]).CC);
+        }
         assertTrue(code.instructions[1] instanceof DexReturn);
       }
     }

@@ -5,18 +5,24 @@
 package com.android.tools.r8.ir;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeFalse;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class AssociativeIntTest extends TestBase {
@@ -104,11 +110,15 @@ public class AssociativeIntTest extends TestBase {
           "2",
           "7",
           "47",
+          "7",
+          "7",
           "4",
           "44",
           "Double Shift",
           "128",
           "2688",
+          "-2147483648",
+          "-2147483648",
           "0",
           "0",
           "0",
@@ -127,19 +137,22 @@ public class AssociativeIntTest extends TestBase {
           "36",
           "5",
           "45");
-  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntimes().withDexRuntimes().withAllApiLevels().build();
-  }
+  @Parameter(0)
+  public boolean enableConstantArgumentAnnotations;
 
-  public AssociativeIntTest(TestParameters parameters) {
-    this.parameters = parameters;
+  @Parameter(1)
+  public TestParameters parameters;
+
+  @Parameters(name = "{1}, @KeepConstantArguments: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   @Test
   public void testD8() throws Exception {
+    assumeFalse(enableConstantArgumentAnnotations);
     testForRuntime(parameters)
         .addProgramClasses(Main.class)
         .run(parameters.getRuntime(), Main.class)
@@ -152,6 +165,10 @@ public class AssociativeIntTest extends TestBase {
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
+        .applyIf(
+            enableConstantArgumentAnnotations,
+            R8FullTestBuilder::enableConstantArgumentAnnotations,
+            R8FullTestBuilder::addConstantArgumentAnnotations)
         .setMinApi(parameters)
         .compile()
         .inspect(this::inspect)
@@ -163,8 +180,23 @@ public class AssociativeIntTest extends TestBase {
     ClassSubject clazz = inspector.clazz(Main.class);
     for (FoundMethodSubject method :
         clazz.allMethods(m -> m.getParameters().size() > 0 && m.getParameter(0).is("int"))) {
+      int numberOfExpectedIntBinops = method.getOriginalName().contains("NotSimplified") ? 2 : 1;
+      if (!enableConstantArgumentAnnotations) {
+        switch (method.getOriginalName()) {
+          case "andDouble":
+          case "orDoubleToConst":
+          case "shlDoubleToConst":
+          case "shrDouble":
+          case "ushrDouble":
+            numberOfExpectedIntBinops = 0;
+            break;
+          default:
+            break;
+        }
+      }
       assertEquals(
-          method.getOriginalName().contains("NotSimplified") ? 2 : 1,
+          method.getOriginalName(),
+          numberOfExpectedIntBinops,
           method
               .streamInstructions()
               .filter(i -> i.isIntArithmeticBinop() || i.isIntLogicalBinop())
@@ -274,6 +306,8 @@ public class AssociativeIntTest extends TestBase {
       andDouble(42);
       orDouble(2);
       orDouble(42);
+      orDoubleToConst(0);
+      orDoubleToConst(7);
       xorDouble(2);
       xorDouble(42);
 
@@ -281,6 +315,8 @@ public class AssociativeIntTest extends TestBase {
       System.out.println("Double Shift");
       shlDouble(2);
       shlDouble(42);
+      shlDoubleToConst(1);
+      shlDoubleToConst(-1);
       shrDouble(2);
       shrDouble(42);
       ushrDouble(2);
@@ -400,6 +436,7 @@ public class AssociativeIntTest extends TestBase {
       System.out.println(3 * x * 2 * 7);
     }
 
+    @KeepConstantArguments
     @NeverInline
     public static void andDouble(int x) {
       System.out.println(3 & x & 2 & 7);
@@ -408,6 +445,12 @@ public class AssociativeIntTest extends TestBase {
     @NeverInline
     public static void orDouble(int x) {
       System.out.println(3 | x | 2 | 7);
+    }
+
+    @KeepConstantArguments
+    @NeverInline
+    public static void orDoubleToConst(int x) {
+      System.out.println(1 | x | 2 | 4);
     }
 
     @NeverInline
@@ -420,11 +463,19 @@ public class AssociativeIntTest extends TestBase {
       System.out.println(x << 2 << 3 << 1);
     }
 
+    @KeepConstantArguments
+    @NeverInline
+    public static void shlDoubleToConst(int x) {
+      System.out.println(x << 8 << 8 << 15);
+    }
+
+    @KeepConstantArguments
     @NeverInline
     public static void shrDouble(int x) {
       System.out.println(x >> 2 >> 3 >> 1);
     }
 
+    @KeepConstantArguments
     @NeverInline
     public static void ushrDouble(int x) {
       System.out.println(x >>> 2 >>> 3 >>> 1);

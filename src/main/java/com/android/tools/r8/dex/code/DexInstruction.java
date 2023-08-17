@@ -169,6 +169,14 @@ public abstract class DexInstruction implements CfOrDexInstruction, StructuralIt
     return false;
   }
 
+  public DexConst4 asDexConst4() {
+    return null;
+  }
+
+  public boolean isDexConst4() {
+    return false;
+  }
+
   public DexInstanceOf asInstanceOf() {
     return null;
   }
