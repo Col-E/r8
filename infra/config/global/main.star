@@ -351,7 +351,8 @@ r8_tester_with_default("linux-android-14.0.0",
 
 
 r8_tester_with_default("windows", ["--all_tests"],
-    dimensions=get_dimensions(windows=True))
+    dimensions=get_dimensions(windows=True),
+    max_concurrent_invocations = 2)
 
 def internal():
   for name in ["linux-internal", "linux-internal_release"]:
