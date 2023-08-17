@@ -948,16 +948,6 @@ public class DexCode extends Code
     }
 
     @Override
-    public int hashCode() {
-      return startAddress * 2 + instructionCount * 3 + handlerIndex * 5;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      return Equatable.equalsImpl(this, other);
-    }
-
-    @Override
     public String toString() {
       return "["
           + StringUtils.hexString(startAddress, 2)
@@ -973,6 +963,27 @@ public class DexCode extends Code
       assert false;
     }
 
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+
+      Try aTry = (Try) o;
+
+      if (handlerOffset != aTry.handlerOffset) return false;
+      if (startAddress != aTry.startAddress) return false;
+      if (instructionCount != aTry.instructionCount) return false;
+      return handlerIndex == aTry.handlerIndex;
+    }
+
+    @Override
+    public int hashCode() {
+      int result = handlerOffset;
+      result = 31 * result + startAddress;
+      result = 31 * result + instructionCount;
+      result = 31 * result + handlerIndex;
+      return result;
+    }
   }
 
   public static class TryHandler extends DexItem implements StructuralItem<TryHandler> {
