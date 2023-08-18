@@ -1,7 +1,7 @@
 // Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.cf.bootstrap;
+package com.android.tools.r8.bootstrap;
 
 import static com.android.tools.r8.graph.GenericSignatureIdentityTest.testParseSignaturesInJar;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -21,6 +21,7 @@ import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.dex.Marker.Backend;
 import com.android.tools.r8.examples.hello.HelloTestRunner;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.ProguardMappingSupplier;
@@ -49,7 +50,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class BootstrapCurrentEqualityTest extends TestBase {
 
-  private static final Path MAIN_KEEP = Paths.get("src/main/keep.txt");
+  private static final Path MAIN_KEEP =
+      Paths.get(ToolHelper.getProjectRoot(), "src", "main", "keep.txt");
 
   private static final String HELLO_NAME = HelloTestRunner.getHelloClass().getTypeName();
   private static final String[] KEEP_HELLO = {
@@ -93,9 +95,8 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     final Path map = testFolder.newFolder().toPath().resolve("out.map");
     if (testExternal) {
       testForExternalR8(newTempFolder(), Backend.CF)
-          .useR8WithRelocatedDeps()
           .setMode(mode)
-          .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
+          .addProgramFiles(ToolHelper.getR8WithRelocatedDeps())
           .addLibraryFiles(TestRuntime.getSystemRuntime().getJavaHome())
           .addKeepRuleFiles(MAIN_KEEP)
           .compile()
@@ -104,7 +105,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     } else {
       testForR8(newTempFolder(), Backend.CF)
           .setMode(mode)
-          .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
+          .addProgramFiles(ToolHelper.getR8WithRelocatedDeps())
           .addLibraryProvider(JdkClassFileProvider.fromSystemJdk())
           .addKeepRuleFiles(MAIN_KEEP)
           .compile()
@@ -173,7 +174,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     Path runR81 =
         testForExternalR8(parameters.getBackend(), parameters.getRuntime())
             .useProvidedR8(ToolHelper.R8LIB_JAR)
-            .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
+            .addProgramFiles(ToolHelper.getR8WithRelocatedDeps())
             .addLibraryFiles(parameters.asCfRuntime().getJavaHome())
             .addKeepRuleFiles(MAIN_KEEP)
             .setMode(CompilationMode.RELEASE)
@@ -183,7 +184,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
         testForExternalR8(parameters.getBackend(), parameters.getRuntime())
             .useProvidedR8(ToolHelper.R8LIB_EXCLUDE_DEPS_JAR)
             .addR8ExternalDepsToClasspath()
-            .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
+            .addProgramFiles(ToolHelper.getR8WithRelocatedDeps())
             .addLibraryFiles(parameters.asCfRuntime().getJavaHome())
             .addKeepRuleFiles(MAIN_KEEP)
             .setMode(CompilationMode.RELEASE)
@@ -211,7 +212,6 @@ public class BootstrapCurrentEqualityTest extends TestBase {
       throws Exception {
     ExternalR8TestCompileResult runR8Debug =
         testForExternalR8(newTempFolder(), parameters.getBackend(), parameters.getRuntime())
-            .useR8WithRelocatedDeps()
             .addProgramFiles(program)
             .addKeepRules(keep)
             .setMode(CompilationMode.DEBUG)
@@ -222,7 +222,6 @@ public class BootstrapCurrentEqualityTest extends TestBase {
         .assertSuccessWithOutput(expectedOutput);
     ExternalR8TestCompileResult runR8Release =
         testForExternalR8(newTempFolder(), parameters.getBackend(), parameters.getRuntime())
-            .useR8WithRelocatedDeps()
             .addProgramFiles(program)
             .addKeepRules(keep)
             .setMode(CompilationMode.RELEASE)

@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.desugaredlibrary.r8ondex;
+package com.android.tools.r8.bootstrap;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
@@ -114,7 +114,7 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
         || libraryDesugaringSpecification.hasNioFileDesugaring(parameters);
     return testForDesugaredLibrary(
             parameters, libraryDesugaringSpecification, compilationSpecification)
-        .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
+        .addProgramFiles(ToolHelper.getR8WithRelocatedDeps())
         .addOptionsModification(
             options -> {
               options.testing.enableD8ResourcesPassThrough = true;

@@ -114,7 +114,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
             .addClasspathFiles(getKeepAnnoPath())
             .addClassNames(Collections.singletonList(typeName(source)))
             .addClasspathFiles(Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "test"))
-            .addClasspathFiles(ToolHelper.DEPS)
+            .addClasspathFiles(ToolHelper.getR8WithRelocatedDeps())
             .compile();
 
     CodeInspector inspector = new CodeInspector(out);
@@ -137,7 +137,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
             .addSourceFiles(ToolHelper.getSourceFileForTestClass(source))
             .addAnnotationProcessors(typeName(KeepEdgeProcessor.class))
             .addClasspathFiles(getKeepAnnoPath())
-            .addClasspathFiles(ToolHelper.DEPS)
+            .addClasspathFiles(ToolHelper.getDeps())
             .compile();
     testForJvm(parameters)
         .addProgramFiles(out)

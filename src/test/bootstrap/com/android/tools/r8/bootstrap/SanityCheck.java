@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8;
+package com.android.tools.r8.bootstrap;
 
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -10,6 +10,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.Sets;
@@ -113,6 +115,6 @@ public class SanityCheck extends TestBase {
 
   @Test
   public void testJarsContent() throws Exception {
-    checkJarContent(ToolHelper.R8_JAR);
+    checkJarContent(ToolHelper.getR8WithRelocatedDeps());
   }
 }

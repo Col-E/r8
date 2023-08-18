@@ -15,7 +15,9 @@ val root = getRoot()
 
 java {
   sourceSets.test.configure {
-    java.srcDir(root.resolveAll("src", "test", "java"))
+    java {
+      srcDir(root.resolveAll("src", "test", "java"))
+    }
   }
   // We are using a new JDK to compile to an older language version, which is not directly
   // compatible with java toolchains.
@@ -185,6 +187,8 @@ tasks {
       "RETRACE_RUNTIME_PATH",
       mainCompileTask.outputs.files.getAsPath().split(File.pathSeparator)[0] +
         File.pathSeparator + mainDepsJarTask.outputs.files.singleFile)
+    environment.put("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
+
     // TODO(b/291198792): Remove this exclusion when desugared library runs correctly.
     exclude("com/android/tools/r8/desugar/desugaredlibrary/**")
     exclude("com/android/tools/r8/desugar/InvokeSuperToRewrittenDefaultMethodTest**")
@@ -203,6 +207,10 @@ tasks {
 
   val testJar by registering(Jar::class) {
     from(sourceSets.test.get().output)
+    // TODO(b/296486206): Seems like IntelliJ has a problem depending on test source sets. Renaming
+    //  this from the default name (tests_java_8.jar) will allow IntelliJ to find the resources in
+    //  the jar and not show red underlines. However, navigation to base classes will not work.
+    archiveFileName.set("not_named_tests_java_8.jar")
   }
 
   val depsJar by registering(Jar::class) {

@@ -4,15 +4,15 @@
 
 package com.android.tools.r8.code.invokedynamic;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.dex.Marker.Backend;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.UnsupportedInvokeCustomDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -35,22 +35,23 @@ public class CompileGuavaWithUnrepresentableRewritingTest extends TestBase {
 
   @Test
   public void testD8DexNoDesugaring() {
-    assumeTrue(ToolHelper.isTestingR8Lib());
     assertThrows(
         CompilationFailedException.class,
         () -> {
           testForD8(Backend.DEX)
               // DEPS contains all R8 dependencies, including guava, which extends the surface
               // of UnrepresentableRewriting.
-              .addProgramFiles(ToolHelper.DEPS)
+              .addProgramFiles(ToolHelper.getDeps())
               .setMinApi(AndroidApiLevel.B)
               .disableDesugaring()
               .compileWithExpectedDiagnostics(
                   diagnostics ->
                       diagnostics
                           .assertAllWarningsMatch(
-                              diagnosticType(UnsupportedInvokeCustomDiagnostic.class))
-                          .assertErrorThatMatches(diagnosticType(DexFileOverflowDiagnostic.class)));
+                              DiagnosticsMatcher.diagnosticType(
+                                  UnsupportedInvokeCustomDiagnostic.class))
+                          .assertErrorThatMatches(
+                              DiagnosticsMatcher.diagnosticType(DexFileOverflowDiagnostic.class)));
         });
   }
 }

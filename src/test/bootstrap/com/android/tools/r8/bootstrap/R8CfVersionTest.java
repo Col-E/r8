@@ -2,11 +2,15 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8;
+package com.android.tools.r8.bootstrap;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
@@ -31,7 +35,7 @@ public class R8CfVersionTest extends TestBase {
 
   @Test
   public void testCfVersionR8() throws IOException {
-    CodeInspector inspector = new CodeInspector(ToolHelper.R8_WITH_DEPS_JAR);
+    CodeInspector inspector = new CodeInspector(ToolHelper.getR8WithRelocatedDeps());
     inspector.forAllClasses(
         clazz -> {
           assertTrue(

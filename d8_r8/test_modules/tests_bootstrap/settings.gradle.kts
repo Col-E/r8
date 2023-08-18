@@ -2,9 +2,11 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-rootProject.name = "r8-tests"
+rootProject.name = "tests_bootstrap"
 
-val root = rootProject.projectDir.parentFile
+val root = rootProject.projectDir.parentFile.parentFile
+//
+// We need to include src/main as a composite-build otherwise our test-modules
+// will compete with the test to compile the source files.
 includeBuild(root.resolve("main"))
 includeBuild(root.resolve("test_modules").resolve("tests_java_8"))
-includeBuild(root.resolve("test_modules").resolve("tests_bootstrap"))

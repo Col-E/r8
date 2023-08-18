@@ -2,9 +2,9 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.r8bootstrap;
+package com.android.tools.r8.bootstrap;
 
-import static com.android.tools.r8.desugar.r8bootstrap.JavaBootstrapUtils.MAIN_KEEP;
+import static com.android.tools.r8.bootstrap.JavaBootstrapUtils.MAIN_KEEP;
 import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.TestBase;
@@ -12,7 +12,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.cf.bootstrap.BootstrapCurrentEqualityTest;
 import com.android.tools.r8.desugar.LibraryFilesHelper;
 import com.android.tools.r8.examples.hello.HelloTestRunner;
 import com.google.common.collect.ImmutableList;

@@ -125,7 +125,7 @@ public class ExternalR8TestBuilder
 
       String classPath =
           addR8ExternalDeps
-              ? r8jar.toAbsolutePath() + CLASSPATH_SEPARATOR + ToolHelper.DEPS
+              ? r8jar.toAbsolutePath() + CLASSPATH_SEPARATOR + ToolHelper.getDeps()
               : r8jar.toAbsolutePath().toString();
 
       List<String> command = new ArrayList<>();
@@ -281,7 +281,7 @@ public class ExternalR8TestBuilder
   }
 
   public ExternalR8TestBuilder useR8WithRelocatedDeps() {
-    return useProvidedR8(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR);
+    return useProvidedR8(ToolHelper.getR8WithRelocatedDeps());
   }
 
   public ExternalR8TestBuilder useProvidedR8(Path r8jar) {

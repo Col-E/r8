@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.retrace;
+package com.android.tools.r8.bootstrap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -16,6 +16,11 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.dex.Marker.Backend;
+import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.ProguardMappingSupplier;
+import com.android.tools.r8.retrace.Retrace;
+import com.android.tools.r8.retrace.RetraceCommand;
 import com.android.tools.r8.transformers.ClassTransformer;
 import com.android.tools.r8.transformers.MethodTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -154,7 +159,7 @@ public class RetraceStackTraceFunctionalCompositionTest extends TestBase {
       return rewrittenR8Jar;
     }
     rewrittenR8Jar = temp.newFolder().toPath().resolve("r8_with_deps_with_prints.jar");
-    insertPrintingOfStacktraces(ToolHelper.R8_WITH_DEPS_JAR, rewrittenR8Jar);
+    insertPrintingOfStacktraces(ToolHelper.getR8WithRelocatedDeps(), rewrittenR8Jar);
     return rewrittenR8Jar;
   }
 

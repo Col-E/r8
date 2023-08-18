@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.desugaredlibrary.r8ondex;
+package com.android.tools.r8.bootstrap;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification.D8_L8DEBUG;
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK11_PATH;
@@ -89,8 +89,8 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
     ImmutableList.Builder<String> arguments = ImmutableList.builder();
     List<Consumer<Builder>> buildup = new ArrayList<>();
 
-    arguments.add(commandLinePathFor(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR));
-    buildup.add(b -> b.addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR));
+    arguments.add(commandLinePathFor(ToolHelper.getR8WithRelocatedDeps()));
+    buildup.add(b -> b.addProgramFiles(ToolHelper.getR8WithRelocatedDeps()));
 
     arguments.add("--release");
     buildup.add(b -> b.setMode(CompilationMode.RELEASE));
@@ -149,7 +149,7 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
     // --pg-conf R8KeepRules r8.jar
     // The 512m memory is required to run on ART but any higher and the runtime will fail too.
 
-    Path r8jar = ToolHelper.R8_WITH_RELOCATED_DEPS_JAR;
+    Path r8jar = ToolHelper.getR8WithRelocatedDeps();
     Path outputFolder = temp.newFolder("output").toPath();
     Path outputThroughCf = outputFolder.resolve("outThroughCf.zip");
     Path outputThroughCfExternal = outputFolder.resolve("outThroughCf_external.zip");

@@ -81,14 +81,27 @@ tasks {
     dependsOn(keepAnnoJarTask)
     doFirst {
       println(header("R8 full dependencies"))
+      mainJarDependencies().forEach({ println(it) })
     }
     dependsOn(resourceShrinkerJarTask)
     dependsOn(resourceShrinkerDepsTask)
-    mainJarDependencies().forEach({ println(it) })
     from(mainJarDependencies().map(::zipTree))
     from(keepAnnoJarTask.outputs.files.map(::zipTree))
     from(resourceShrinkerJarTask.outputs.files.map(::zipTree))
     from(resourceShrinkerDepsTask.outputs.files.map(::zipTree))
+    exclude("**/module-info.class")
+    exclude("**/*.kotlin_metadata")
+    exclude("META-INF/*.kotlin_module")
+    exclude("META-INF/com.android.tools/**")
+    exclude("META-INF/LICENSE*")
+    exclude("META-INF/MANIFEST.MF")
+    exclude("META-INF/maven/**")
+    exclude("META-INF/proguard/**")
+    exclude("META-INF/services/**")
+    exclude("META-INF/versions/**")
+    exclude("NOTICE")
+    exclude("README.md")
+    manifest {}
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveFileName.set("deps.jar")
   }
@@ -99,7 +112,7 @@ tasks {
     val swissArmy = swissArmyKnife.get().outputs.getFiles().getSingleFile()
     val deps = depsJar.get().outputs.files.getSingleFile()
     inputs.files(listOf(swissArmy, deps))
-    val output = getRoot().resolveAll("build", "libs", "r8-deps-relocated.jar")
+    val output = getRoot().resolveAll("build", "libs", "r8-with-relocated-deps.jar")
     outputs.file(output)
     commandLine = baseCompilerCommandLine(
       swissArmy,
