@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import static com.android.tools.r8.errors.StartupClassesOverflowDiagnostic.Factory.createStartupClassesOverflowDiagnostic;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.FeatureSplit;
@@ -1444,6 +1445,9 @@ public class VirtualFile {
             virtualFile.commitTransaction();
           }
         }
+
+        options.reporter.warning(
+            createStartupClassesOverflowDiagnostic(cycler.filesForDistribution.size()));
       }
 
       if (options.getStartupOptions().isMinimalStartupDexEnabled()) {
