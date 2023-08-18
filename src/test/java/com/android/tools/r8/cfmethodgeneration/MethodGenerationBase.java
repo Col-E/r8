@@ -9,6 +9,7 @@ import com.android.tools.r8.cf.CfCodePrinter;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
@@ -32,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -201,13 +203,21 @@ public abstract class MethodGenerationBase extends CodeGenerationBase {
         + "\"));";
   }
 
+  private static void forMethodEachSorted(
+      Map<DexEncodedMethod, String> methods, BiConsumer<DexEncodedMethod, String> fn) {
+    ArrayList<DexEncodedMethod> sorted = new ArrayList<>(methods.keySet());
+    sorted.sort(Comparator.comparing(DexEncodedMember::getReference));
+    sorted.forEach(m -> fn.accept(m, methods.get(m)));
+  }
+
   private void generateDexMethodLocals(
       Map<DexEncodedMethod, String> generatedMethods, PrintStream printer, Class<?> clazz) {
     // Generate local variable for a DexMethod:
     //  DexMethod name = factory.createMethod(
     //      builder.getType(), factory.createProto(...), factory.createString(...));
 
-    generatedMethods.forEach(
+    forMethodEachSorted(
+        generatedMethods,
         (method, codeGenerator) -> {
           if (method.getHolderType().toSourceString().equals(clazz.getCanonicalName())) {
             String name =
@@ -227,7 +237,8 @@ public abstract class MethodGenerationBase extends CodeGenerationBase {
       Predicate<DexEncodedMethod> filter) {
     printer.println("ImmutableList.of(");
     BooleanBox first = new BooleanBox(true);
-    generatedMethods.forEach(
+    forMethodEachSorted(
+        generatedMethods,
         (method, codeGenerator) -> {
           if (method.getHolderType().toSourceString().equals(clazz.getCanonicalName())
               && filter.test(method)) {
