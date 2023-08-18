@@ -17,15 +17,12 @@ import java.util.function.Consumer;
 public class DexProto extends IndexedDexItem
     implements NamingLensComparable<DexProto>, LirConstant {
 
-  public static final DexProto SENTINEL = new DexProto(null, null, null);
+  public static final DexProto SENTINEL = new DexProto(null, null);
 
-  // TODO(b/172206529): Consider removing shorty.
-  public final DexString shorty;
   public final DexType returnType;
   public final DexTypeList parameters;
 
-  DexProto(DexString shorty, DexType returnType, DexTypeList parameters) {
-    this.shorty = shorty;
+  DexProto(DexType returnType, DexTypeList parameters) {
     this.returnType = returnType;
     this.parameters = parameters;
   }
@@ -48,9 +45,7 @@ public class DexProto extends IndexedDexItem
   public boolean computeEquals(Object other) {
     if (other instanceof DexProto) {
       DexProto o = (DexProto) other;
-      return shorty.equals(o.shorty)
-          && returnType.equals(o.returnType)
-          && parameters.equals(o.parameters);
+      return returnType.equals(o.returnType) && parameters.equals(o.parameters);
     }
     return false;
   }
@@ -102,12 +97,11 @@ public class DexProto extends IndexedDexItem
 
   @Override
   public String toString() {
-    return "Proto " + shorty + " " + returnType + " " + parameters;
+    return "Proto " + returnType + " " + parameters;
   }
 
   public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
     if (indexedItems.addProto(this)) {
-      shorty.collectIndexedItems(indexedItems);
       returnType.collectIndexedItems(appView, indexedItems);
       parameters.collectIndexedItems(appView, indexedItems);
     }
@@ -136,6 +130,15 @@ public class DexProto extends IndexedDexItem
     builder.append(")");
     builder.append(lens.lookupDescriptor(returnType));
     return builder.toString();
+  }
+
+  public String createShortyString() {
+    StringBuilder shortyBuilder = new StringBuilder();
+    shortyBuilder.append(returnType.toShorty());
+    for (DexType argumentType : parameters.values) {
+      shortyBuilder.append(argumentType.toShorty());
+    }
+    return shortyBuilder.toString();
   }
 
   @Override

@@ -233,7 +233,6 @@ public final class DexCallSite extends IndexedDexItem
     }
 
     private void write(DexProto proto) throws IOException {
-      write(proto.shorty);
       write(proto.returnType);
       DexType[] params = proto.parameters.values;
       out.writeInt(params.length);

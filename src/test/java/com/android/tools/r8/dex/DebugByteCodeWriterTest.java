@@ -54,7 +54,7 @@ public class DebugByteCodeWriterTest {
         null,
         new LensCodeRewriterUtils(appView),
         Collections.emptyList(),
-        Collections.emptyList(),
+        Collections.emptyMap(),
         Collections.emptyList(),
         Collections.emptyList(),
         Collections.emptyList(),

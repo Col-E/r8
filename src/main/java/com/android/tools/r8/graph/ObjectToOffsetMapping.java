@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public class ObjectToOffsetMapping {
@@ -48,6 +49,8 @@ public class ObjectToOffsetMapping {
   private Reference2IntLinkedOpenHashMap<DexString> strings;
   private final Reference2IntLinkedOpenHashMap<DexCallSite> callSites;
   private final Reference2IntLinkedOpenHashMap<DexMethodHandle> methodHandles;
+  // Indirection table of protos to their shorty strings.
+  private final Map<DexProto, DexString> protoToShorty;
 
   private DexString firstJumboString;
 
@@ -58,7 +61,7 @@ public class ObjectToOffsetMapping {
       ObjectToOffsetMapping sharedMapping,
       LensCodeRewriterUtils lensCodeRewriter,
       Collection<DexProgramClass> classes,
-      Collection<DexProto> protos,
+      Map<DexProto, DexString> protos,
       Collection<DexType> types,
       Collection<DexMethod> methods,
       Collection<DexField> fields,
@@ -82,6 +85,7 @@ public class ObjectToOffsetMapping {
     this.namingLens = appView.getNamingLens();
     this.initClassLens = appView.initClassLens();
     this.lensCodeRewriter = lensCodeRewriter;
+    this.protoToShorty = protos;
     timing.begin("Sort strings");
     if (sharedMapping == null) {
       this.strings =
@@ -103,7 +107,7 @@ public class ObjectToOffsetMapping {
     this.classes = sortClasses(classes, visitor);
     timing.end();
     timing.begin("Sort protos");
-    this.protos = createSortedMap(protos, compare(visitor), this::failOnOverflow);
+    this.protos = createSortedMap(protos.keySet(), compare(visitor), this::failOnOverflow);
     timing.end();
     timing.begin("Sort methods");
     this.methods = createSortedMap(methods, compare(visitor), this::failOnOverflow);
@@ -313,6 +317,10 @@ public class ObjectToOffsetMapping {
 
   public Collection<DexMethodHandle> getMethodHandles() {
     return keysOrEmpty(methodHandles);
+  }
+
+  public DexString getShorty(DexProto proto) {
+    return protoToShorty.get(proto);
   }
 
   public boolean hasJumboStrings() {

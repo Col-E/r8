@@ -2956,21 +2956,15 @@ public class DexItemFactory {
   }
 
   public DexProto createProto(DexType returnType, DexTypeList parameters) {
-    return createProto(returnType, parameters, createShorty(returnType, parameters.getBacking()));
-  }
-
-  public DexProto createProto(DexType returnType, DexTypeList parameters, DexString shorty) {
     assert !sorted;
-    DexProto proto = new DexProto(shorty, returnType, parameters);
+    DexProto proto = new DexProto(returnType, parameters);
     return canonicalize(protos, proto);
   }
 
   public DexProto createProto(DexType returnType, DexType... parameters) {
     assert !sorted;
     return createProto(
-        returnType,
-        parameters.length == 0 ? DexTypeList.empty() : new DexTypeList(parameters),
-        createShorty(returnType, parameters));
+        returnType, parameters.length == 0 ? DexTypeList.empty() : new DexTypeList(parameters));
   }
 
   public DexProto createProto(DexType returnType, List<DexType> parameters) {
@@ -3031,15 +3025,6 @@ public class DexItemFactory {
     return changed.isEmpty()
         ? types
         : ArrayUtils.copyWithSparseChanges(DexType[].class, types, changed);
-  }
-
-  private DexString createShorty(DexType returnType, DexType[] argumentTypes) {
-    StringBuilder shortyBuilder = new StringBuilder();
-    shortyBuilder.append(returnType.toShorty());
-    for (DexType argumentType : argumentTypes) {
-      shortyBuilder.append(argumentType.toShorty());
-    }
-    return createString(shortyBuilder.toString());
   }
 
   public DexMethod createMethod(DexType holder, DexProto proto, DexString name) {
