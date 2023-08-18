@@ -145,7 +145,8 @@ public class PhiOptimizations {
     if (getRelativeStackHeightForInstruction(block, phiLoad) != 0) {
       return false;
     }
-    for (Value operand : phi.getOperands()) {
+    List<Value> operands = phi.getOperands();
+    for (Value operand : operands) {
       if (operand.definition == null || !operand.definition.isStore()) {
         return false;
       }
@@ -157,8 +158,8 @@ public class PhiOptimizations {
       }
     }
     // The phi can be passed through the stack.
-    List<Store> stores = new ArrayList<>();
-    for (Value operand : phi.getOperands()) {
+    List<Store> stores = new ArrayList<>(operands.size());
+    for (Value operand : operands) {
       stores.add(operand.definition.asStore());
     }
     for (int i = 0; i < stores.size(); i++) {

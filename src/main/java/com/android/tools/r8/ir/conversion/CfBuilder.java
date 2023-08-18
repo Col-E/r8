@@ -199,6 +199,11 @@ public class CfBuilder {
     timing.time("Rewrite Iinc patterns", this::rewriteIincPatterns);
 
     trivialGotosCollapser.run(code, timing);
+
+    timing.begin("Insert catch handling");
+    for (BasicBlock block : code.blocks)
+      block.onFinishBuildingInstructions(appView);
+    timing.end();
     timing.begin("Remove redundant debug positions");
     DexBuilder.removeRedundantDebugPositions(code);
     timing.end();

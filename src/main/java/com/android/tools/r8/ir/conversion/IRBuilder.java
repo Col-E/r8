@@ -44,81 +44,12 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.code.Add;
-import com.android.tools.r8.ir.code.And;
-import com.android.tools.r8.ir.code.Argument;
-import com.android.tools.r8.ir.code.ArrayGet;
-import com.android.tools.r8.ir.code.ArrayLength;
-import com.android.tools.r8.ir.code.ArrayPut;
-import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.*;
 import com.android.tools.r8.ir.code.BasicBlock.EdgeType;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
-import com.android.tools.r8.ir.code.CatchHandlers;
-import com.android.tools.r8.ir.code.CheckCast;
-import com.android.tools.r8.ir.code.Cmp;
 import com.android.tools.r8.ir.code.Cmp.Bias;
-import com.android.tools.r8.ir.code.ConstClass;
-import com.android.tools.r8.ir.code.ConstMethodHandle;
-import com.android.tools.r8.ir.code.ConstMethodType;
-import com.android.tools.r8.ir.code.ConstNumber;
-import com.android.tools.r8.ir.code.ConstString;
-import com.android.tools.r8.ir.code.DebugLocalRead;
-import com.android.tools.r8.ir.code.DebugLocalUninitialized;
-import com.android.tools.r8.ir.code.DebugLocalWrite;
-import com.android.tools.r8.ir.code.DebugPosition;
-import com.android.tools.r8.ir.code.DexItemBasedConstString;
-import com.android.tools.r8.ir.code.Div;
-import com.android.tools.r8.ir.code.Goto;
-import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.IRMetadata;
-import com.android.tools.r8.ir.code.If;
-import com.android.tools.r8.ir.code.IfType;
-import com.android.tools.r8.ir.code.ImpreciseMemberTypeInstruction;
-import com.android.tools.r8.ir.code.InitClass;
-import com.android.tools.r8.ir.code.InstanceGet;
-import com.android.tools.r8.ir.code.InstanceOf;
-import com.android.tools.r8.ir.code.InstancePut;
-import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.IntSwitch;
-import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.InvokeCustom;
-import com.android.tools.r8.ir.code.InvokeType;
-import com.android.tools.r8.ir.code.JumpInstruction;
-import com.android.tools.r8.ir.code.MemberType;
-import com.android.tools.r8.ir.code.Monitor;
-import com.android.tools.r8.ir.code.MonitorType;
-import com.android.tools.r8.ir.code.MoveException;
-import com.android.tools.r8.ir.code.Mul;
-import com.android.tools.r8.ir.code.Neg;
-import com.android.tools.r8.ir.code.NewArrayEmpty;
-import com.android.tools.r8.ir.code.NewArrayFilledData;
-import com.android.tools.r8.ir.code.NewInstance;
-import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
-import com.android.tools.r8.ir.code.Not;
-import com.android.tools.r8.ir.code.NumberConversion;
-import com.android.tools.r8.ir.code.NumberGenerator;
-import com.android.tools.r8.ir.code.NumericType;
-import com.android.tools.r8.ir.code.Or;
-import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Phi.StackMapPhi;
-import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.RecordFieldValues;
-import com.android.tools.r8.ir.code.Rem;
-import com.android.tools.r8.ir.code.Return;
-import com.android.tools.r8.ir.code.SafeCheckCast;
-import com.android.tools.r8.ir.code.Shl;
-import com.android.tools.r8.ir.code.Shr;
-import com.android.tools.r8.ir.code.StaticGet;
-import com.android.tools.r8.ir.code.StaticPut;
-import com.android.tools.r8.ir.code.Sub;
-import com.android.tools.r8.ir.code.Throw;
-import com.android.tools.r8.ir.code.Ushr;
-import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.ir.code.ValueTypeConstraint;
-import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.origin.Origin;
@@ -2370,6 +2301,11 @@ public class IRBuilder {
     if (!source.verifyRegister(register)) {
       throw new CompilationError("Invalid use of register " + register);
     }
+  }
+
+  public void markCurrentBlockAsExceptionTransfer(int successorOffset) {
+    BasicBlock target = getTarget(successorOffset);
+    target.markCandidacyAsCatchDelegate();
   }
 
   // Private instruction helpers.

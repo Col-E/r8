@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.code;
 
 import static com.android.tools.r8.ir.code.IRCode.INSTRUCTION_NUMBER_DELTA;
 
+import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -267,6 +268,46 @@ public class BasicBlock {
       }
     }
     return traversalContinuation;
+  }
+
+  private boolean isCatchDelegateCandidate;
+
+  public void markCandidacyAsCatchDelegate() {
+    isCatchDelegateCandidate = true;
+  }
+
+  public void onFinishBuildingInstructions(AppView<?> appView) {
+    if (isCatchDelegateCandidate && !isEntry() && isTargetOfUnmovedException() && !handlesStackException()) {
+      // There is no 'MoveException' here, but for converting to CF code we need to get rid of this value on the stack.
+      DexType exceptionType = appView.dexItemFactory().throwableType;
+      Value stackExceptionValue = StackValue.create(TypeVerificationHelper.createInitializedObjectType(exceptionType), 1, appView);
+      Pop pop = new Pop(stackExceptionValue);
+      pop.setPosition(entry().getPosition());
+      stackExceptionValue.definition = null;
+      instructions.add(0, pop);
+    }
+  }
+
+  private boolean isTargetOfUnmovedException() {
+    return predecessors.stream().allMatch(block -> {
+      if (!block.hasCatchHandlers())
+        // Block has no catch handlers, so we as the target won't be a handler.
+        //
+        // If you're debugging this and see that the block is just a 'goto' then the IRCode
+        // is not inlining unnecessary blocks.
+        return false;
+
+      // Check if the predecessor block moves the exception into a variable slot.
+      // If it does not, then we are the target of an unmoved exception.
+      return !block.handlesStackException();
+    });
+  }
+
+  private boolean handlesStackException() {
+    // A block that operates on the caught exception will have a 'MoveException' as the first instruction.
+    if (instructions.isEmpty()) return false;
+    Instruction instruction = instructions.get(0);
+    return instruction instanceof MoveException;
   }
 
   public void addControlFlowEdgesMayChangeListener(BasicBlockChangeListener listener) {
@@ -1559,7 +1600,12 @@ public class BasicBlock {
   }
 
   public boolean isTrivialGoto() {
-    return instructions.size() == 1 && exit().isGoto();
+    if (instructions.size() == 1) {
+      JumpInstruction exit = exit();
+      if (exit != null)
+        return exit.isGoto();
+    }
+    return false;
   }
 
   // Go backwards in the control flow graph until a block that is not a trivial goto block is found,

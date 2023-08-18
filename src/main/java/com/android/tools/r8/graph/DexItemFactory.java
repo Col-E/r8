@@ -323,6 +323,8 @@ public class DexItemFactory {
       createString("Ljava/util/concurrent/ConcurrentHashMap$KeySetView;");
 
   public final DexString throwableDescriptor = createString(throwableDescriptorString);
+  public final DexString exceptionDescriptor =
+          createString("Ljava/lang/Exception;");
   public final DexString illegalAccessErrorDescriptor =
       createString("Ljava/lang/IllegalAccessError;");
   public final DexString illegalArgumentExceptionDescriptor =
@@ -566,6 +568,7 @@ public class DexItemFactory {
 
   public final DexType retentionType =
       createStaticallyKnownType("Ljava/lang/annotation/Retention;");
+  public final DexType exceptionType = createStaticallyKnownType(exceptionDescriptor);
   public final DexType runtimeExceptionType = createStaticallyKnownType(runtimeExceptionDescriptor);
   public final DexType assertionErrorType = createStaticallyKnownType(assertionErrorDescriptor);
   public final DexType throwableType = createStaticallyKnownType(throwableDescriptor);
@@ -3222,7 +3225,7 @@ public class DexItemFactory {
         .computeIfAbsent(
             type,
             t -> {
-              if (type.isClassType()) {
+              if (type.isClassType() && appView != null) {
                 if (!appView.enableWholeProgramOptimizations()) {
                   // Don't reason at the level of interfaces in D8.
                   return ClassTypeElement.createForD8(type, nullability);
