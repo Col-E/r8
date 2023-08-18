@@ -4,17 +4,32 @@
 
 package com.android.tools.r8.retrace.partition;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.retrace.MappingPartitionFromKeySupplier;
+import com.android.tools.r8.retrace.MappingPartitionMetadata;
+import com.android.tools.r8.retrace.PartitionMappingSupplier;
 import com.android.tools.r8.retrace.ProguardMapPartitioner;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.RetraceStackTraceContext;
+import com.android.tools.r8.retrace.RetracedMethodReference;
+import com.android.tools.r8.retrace.RetracedSingleFrame;
+import com.android.tools.r8.retrace.Retracer;
+import com.android.tools.r8.retrace.internal.MappingPartitionMetadataInternal;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.OptionalInt;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -44,14 +59,53 @@ public class RetracePartitionNoMapVersionTest extends TestBase {
 
   @Test
   public void test() throws IOException {
-    // TODO(b/296030714): Should be fixed if moving UNKNOWN below a known version in the lattice.
-    assertThrows(
-        CompilationError.class,
-        () ->
-            ProguardMapPartitioner.builder(new DiagnosticsHandler() {})
-                .setProguardMapProducer(ProguardMapProducer.fromString(MAPPING))
-                .setPartitionConsumer(partition -> {})
-                .build()
-                .run());
+    Map<String, byte[]> partitions = new HashMap<>();
+    DiagnosticsHandler diagnosticsHandler = new DiagnosticsHandler() {};
+    MappingPartitionMetadata metadata =
+        ProguardMapPartitioner.builder(diagnosticsHandler)
+            .setProguardMapProducer(ProguardMapProducer.fromString(MAPPING))
+            .setPartitionConsumer(
+                partition -> partitions.put(partition.getKey(), partition.getPayload()))
+            .build()
+            .run();
+    // Retracing with the original metadata not having a version will not make us read additional
+    // mapping information.
+    retraceWithMetadata(metadata.getBytes(), partitions::get, false);
+    // Retracing with metadata setting a version will let us read the metadata. This shows that we
+    // keep the additional information when partitioning.
+    retraceWithMetadata(
+        MappingPartitionMetadataInternal.ObfuscatedTypeNameAsKeyMetadata.create(
+                MapVersion.MAP_VERSION_2_0)
+            .getBytes(),
+        partitions::get,
+        true);
+  }
+
+  private void retraceWithMetadata(
+      byte[] metadata, MappingPartitionFromKeySupplier supplier, boolean expectSynthetic) {
+    DiagnosticsHandler diagnosticsHandler = new DiagnosticsHandler() {};
+    ClassReference k3Class = Reference.classFromTypeName("K3");
+    Retracer retracer =
+        PartitionMappingSupplier.builder()
+            .setMetadata(metadata)
+            .setMappingPartitionFromKeySupplier(supplier)
+            .build()
+            .registerClassUse(diagnosticsHandler, k3Class)
+            .createRetracer(diagnosticsHandler);
+    List<RetracedMethodReference> allRetracedFrames =
+        retracer
+            .retraceFrame(
+                RetraceStackTraceContext.empty(),
+                OptionalInt.of(1),
+                Reference.methodFromDescriptor(k3Class, "a", "()V"))
+            .stream()
+            .flatMap(
+                frameElement -> {
+                  assertEquals(expectSynthetic, frameElement.isCompilerSynthesized());
+                  return frameElement.stream().map(RetracedSingleFrame::getMethodReference);
+                })
+            .collect(Collectors.toList());
+    assertEquals(1, allRetracedFrames.size());
+    assertEquals("build", allRetracedFrames.get(0).getMethodName());
   }
 }
