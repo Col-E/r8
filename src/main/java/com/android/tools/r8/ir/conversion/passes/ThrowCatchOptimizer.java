@@ -60,9 +60,9 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
   @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
     boolean hasChanged = optimizeAlwaysThrowingInstructions(code);
-    if (!isDebugMode(code.context())) {
-      hasChanged |= rewriteThrowNullPointerException(code);
-    }
+    // if (!isDebugMode(code.context())) {
+    //   hasChanged |= rewriteThrowNullPointerException(code);
+    // }
     return CodeRewriterResult.hasChanged(hasChanged);
   }
 
