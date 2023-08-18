@@ -84,6 +84,7 @@ public abstract class TestCompilerBuilder<
   private boolean optimizeMultidexForLinearAlloc = false;
   private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
   private ByteArrayOutputStream stdout = null;
+  private boolean stdOutForwarding = true;
   private PrintStream oldStdout = null;
   private ByteArrayOutputStream stderr = null;
   private PrintStream oldStderr = null;
@@ -304,7 +305,11 @@ public abstract class TestCompilerBuilder<
     try {
       if (stdout != null) {
         assertTrue(allowStdoutMessages);
-        System.setOut(new PrintStream(new ForwardingOutputStream(stdout, System.out)));
+        if (stdOutForwarding) {
+          System.setOut(new PrintStream(new ForwardingOutputStream(stdout, System.out)));
+        } else {
+          System.setOut(new PrintStream(stdout));
+        }
       } else if (!allowStdoutMessages) {
         System.setOut(
             new PrintStream(
@@ -525,6 +530,13 @@ public abstract class TestCompilerBuilder<
   public T collectStdout() {
     assert stdout == null;
     stdout = new ByteArrayOutputStream();
+    return allowStdoutMessages();
+  }
+
+  public T collectStdoutWithoutForwarding() {
+    assert stdout == null;
+    stdout = new ByteArrayOutputStream();
+    stdOutForwarding = false;
     return allowStdoutMessages();
   }
 

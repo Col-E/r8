@@ -7,6 +7,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 
 import com.android.tools.r8.JdkClassFileProvider;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -50,7 +51,11 @@ public class WhyAreYouKeepingAllTest extends TestBase {
         .addLibraryProvider(JdkClassFileProvider.fromSystemJdk())
         .addKeepRuleFiles(MAIN_KEEP)
         .addKeepRules(WHY_ARE_YOU_KEEPING_ALL)
-        .collectStdout()
+        // Do not forward standard out since running with gradle will cause an error writing the
+        // results.
+        .collectStdoutWithoutForwarding()
+        // TODO(b/176783536, b/270105162): Get a hold of dependencies in new gradle setup.
+        .applyIf(ToolHelper.isNewGradleSetup(), R8TestBuilder::allowUnusedDontWarnPatterns)
         .compile()
         .assertStdoutThatMatches(containsString("referenced in keep rule"))
         // TODO(b/124655065): We should always know the reason for keeping.

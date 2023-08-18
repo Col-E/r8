@@ -215,8 +215,6 @@ public class ToolHelper {
       Paths.get(ToolHelper.THIRD_PARTY_DIR, "gson", "gson-2.10.1", "gson.pro");
   public static final Path GUAVA_JRE =
       Paths.get(THIRD_PARTY_DIR, "guava", "guava-32.1.2-jre", "guava-32.1.2-jre.jar");
-  public static final Path GUAVA_ANDROID =
-      Paths.get(THIRD_PARTY_DIR, "guava", "guava-32.1.2-android", "guava-32.1.2-android.jar");
   public static final String PROGUARD_SETTINGS_FOR_INTERNAL_APPS =
       THIRD_PARTY_DIR + "proguardsettings/";
 

@@ -14,6 +14,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ExternalR8TestCompileResult;
 import com.android.tools.r8.JdkClassFileProvider;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -108,6 +109,8 @@ public class BootstrapCurrentEqualityTest extends TestBase {
           .addProgramFiles(ToolHelper.getR8WithRelocatedDeps())
           .addLibraryProvider(JdkClassFileProvider.fromSystemJdk())
           .addKeepRuleFiles(MAIN_KEEP)
+          // TODO(b/176783536, b/270105162): Get a hold of dependencies in new gradle setup.
+          .applyIf(ToolHelper.isNewGradleSetup(), R8TestBuilder::allowUnusedDontWarnPatterns)
           .compile()
           .apply(c -> FileUtils.writeTextFile(map, c.getProguardMap()))
           .writeToZip(jar);

@@ -99,8 +99,12 @@ tasks {
     exclude("META-INF/proguard/**")
     exclude("META-INF/services/**")
     exclude("META-INF/versions/**")
+    exclude("**/*.xml")
+    exclude("com/android/version.properties")
     exclude("NOTICE")
     exclude("README.md")
+    exclude("javax/annotation/**")
+    exclude("wireless/**")
     manifest {}
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveFileName.set("deps.jar")
@@ -127,6 +131,8 @@ tasks {
              "--map",
              "com.android.resources->com.android.tools.r8.com.android.resources",
              "--map",
+             "com.android.support->com.android.tools.r8.com.android.support",
+             "--map",
              "com.google.common->com.android.tools.r8.com.google.common",
              "--map",
              "com.android.build.shrinker->com.android.tools.r8.resourceshrinker",
@@ -149,7 +155,11 @@ tasks {
              "--map",
              "org.checkerframework->com.android.tools.r8.org.checkerframework",
              "--map",
-             "com.google.j2objc->com.android.tools.r8.com.google.j2objc"
+             "com.google.j2objc->com.android.tools.r8.com.google.j2objc",
+             "--map",
+             "com.google.protobuf->com.android.tools.r8.com.google.protobuf",
+             "--map",
+             "android.aapt->com.android.tools.r8.android.aaapt"
       ))
   }
 }

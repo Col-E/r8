@@ -25,6 +25,7 @@ fun jarDependencies() : FileCollection {
     .compileClasspath
     .filter({ "$it".contains("third_party")
               && "$it".contains("dependencies")
+              && !"$it".contains("errorprone")
     })
 }
 
