@@ -7,14 +7,16 @@ import os
 import subprocess
 import sys
 
-try:
-  from perfetto.trace_processor import TraceProcessor
-except ImportError:
-  sys.exit(
-      'Unable to analyze perfetto trace without the perfetto library. '
-      'Install instructions:\n'
-      '    sudo apt install python3-pip\n'
-      '    pip3 install perfetto')
+def get_trace_processor():
+  try:
+    from perfetto.trace_processor import TraceProcessor
+  except ImportError:
+    sys.exit(
+        'Unable to analyze perfetto trace without the perfetto library. '
+        'Install instructions:\n'
+        '    sudo apt install python3-pip\n'
+        '    pip3 install perfetto')
+  return TraceProcessor
 
 def ensure_record_android_trace(tmp_dir):
   record_android_trace_path = os.path.join(tmp_dir, 'record_android_trace')
