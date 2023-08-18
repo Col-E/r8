@@ -24,6 +24,7 @@ java {
 
 dependencies {
   testCompileOnly(Deps.asm)
+  testCompileOnly(resolve(getThirdPartyAndroidJar("lib-v26"),"android.jar"))
 }
 
 // We just need to register the examples jars for it to be referenced by other modules.
@@ -31,7 +32,9 @@ val buildExampleJars = buildExampleJars("examplesAndroidO")
 
 val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
   "compileDeps",
-  listOf(Jdk.JDK_11.getThirdPartyDependency()))
+  listOf(
+    Jdk.JDK_11.getThirdPartyDependency(),
+    getThirdPartyAndroidJar("lib-v26")))
 
 tasks {
   withType<JavaCompile> {
