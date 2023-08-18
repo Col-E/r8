@@ -108,7 +108,7 @@ public class TypeVerificationHelper {
   private final IRCode code;
 
   private Map<Value, TypeInfo> types;
-  private Map<NewInstance, NewInstanceInfo> newInstanceInfos = new IdentityHashMap<>();
+  private final Map<NewInstance, NewInstanceInfo> newInstanceInfos = new IdentityHashMap<>();
 
   // Flag to indicate that we are computing types in the fixed point.
   private boolean computingVerificationTypes = false;

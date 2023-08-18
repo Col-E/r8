@@ -59,15 +59,8 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 
 public class CfBuilder {
 
@@ -337,9 +330,9 @@ public class CfBuilder {
   private CfCode buildCfCode() {
     StackHeightTracker stackHeightTracker = new StackHeightTracker();
     List<CfTryCatch> tryCatchRanges = new ArrayList<>();
-    labels = new HashMap<>(code.blocks.size());
-    emittedLabels = new HashSet<>(code.blocks.size());
-    newInstanceLabels = new HashMap<>(initializers.size());
+    labels = new IdentityHashMap<>(code.blocks.size());
+    emittedLabels = Sets.newIdentityHashSet();
+    newInstanceLabels = new IdentityHashMap<>(initializers.size());
     instructions = new ArrayList<>();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     BasicBlock block = blockIterator.next();

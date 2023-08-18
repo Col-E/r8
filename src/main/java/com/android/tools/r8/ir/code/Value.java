@@ -44,12 +44,8 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -171,15 +167,9 @@ public class Value implements Comparable<Value> {
   protected final int number;
   public Instruction definition = null;
 
-  // TODO(b/270398965): Replace LinkedList.
-  @SuppressWarnings("JdkObsolete")
-  private LinkedList<Instruction> users = new LinkedList<>();
-
+  private List<Instruction> users = new ArrayList<>();
   private Set<Instruction> uniqueUsers = null;
-
-  // TODO(b/270398965): Replace LinkedList.
-  @SuppressWarnings("JdkObsolete")
-  private LinkedList<Phi> phiUsers = new LinkedList<>();
+  private List<Phi> phiUsers = new ArrayList<>();
 
   private Set<Phi> uniquePhiUsers = null;
   private Value nextConsecutive = null;
@@ -374,7 +364,7 @@ public class Value implements Comparable<Value> {
 
   public Instruction singleUniqueUser() {
     assert ImmutableSet.copyOf(users).size() == 1;
-    return users.getFirst();
+    return users.get(0);
   }
 
   public Set<Instruction> aliasedUsers() {
@@ -407,7 +397,7 @@ public class Value implements Comparable<Value> {
 
   public Phi firstPhiUser() {
     assert !phiUsers.isEmpty();
-    return phiUsers.getFirst();
+    return phiUsers.get(0);
   }
 
   public Set<Phi> uniquePhiUsers() {
