@@ -124,6 +124,12 @@ public class TypeVerificationHelper {
     DOUBLE = new InitializedTypeInfo(dexItemFactory.doubleType);
   }
 
+  public static InitializedTypeInfo createInitializedObjectType(DexType type) {
+    if (type.isPrimitiveType() || type.isArrayType())
+      throw new IllegalArgumentException();
+    return new InitializedTypeInfo(type);
+  }
+
   public TypeInfo createInitializedType(DexType type) {
     if (!type.isPrimitiveType()) {
       return new InitializedTypeInfo(type);
