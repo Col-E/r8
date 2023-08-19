@@ -1273,6 +1273,8 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
   }
 
   public void removeRedundantBlocks() {
+    if (blocks.size() <= 2) return;
+
     List<BasicBlock> blocksToRemove = new ArrayList<>();
 
     for (BasicBlock block : blocks) {
