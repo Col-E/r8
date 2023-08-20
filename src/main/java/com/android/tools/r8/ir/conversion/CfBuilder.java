@@ -208,7 +208,7 @@ public class CfBuilder {
 
     timing.begin("Insert catch handling");
     for (BasicBlock block : code.blocks)
-      block.onFinishBuildingInstructions(appView);
+      block.insertPopIntoValidCatchCandidate(appView);
     timing.end();
     timing.begin("Remove redundant debug positions");
     DexBuilder.removeRedundantDebugPositions(code);

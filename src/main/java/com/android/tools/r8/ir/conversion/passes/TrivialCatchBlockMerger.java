@@ -11,6 +11,23 @@ import com.google.common.collect.Sets;
 
 import java.util.*;
 
+/**
+ * Given the following circumstances:
+ * <pre>{@code
+ * block A1: when exception --> B1
+ * block A2: when exception --> B2
+ * block B1: goto C
+ * block B2: goto C
+ * block C: ...
+ * }</pre>
+ * We want to rewrite the blocks to:
+ * <pre>{@code
+ * block A1: when exception --> B1
+ * block A2: when exception --> B1 // Now points to the identical B1
+ * block B1: goto C // B2 removed
+ * block C: ...
+ * }</pre>
+ */
 public class TrivialCatchBlockMerger extends CodeRewriterPass<AppInfo> {
 	public TrivialCatchBlockMerger(AppView<?> appView) {
 		super(appView);
