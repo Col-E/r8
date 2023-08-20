@@ -47,6 +47,7 @@ import com.android.tools.r8.ir.code.StackValues;
 import com.android.tools.r8.ir.code.UninitializedThisLocalRead;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.Xor;
+import com.android.tools.r8.ir.conversion.passes.TrivialCatchBlockMerger;
 import com.android.tools.r8.ir.conversion.passes.TrivialGotosCollapser;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
@@ -147,6 +148,11 @@ public class CfBuilder {
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(appView, code, typeVerificationHelper);
     loadStoreHelper.insertLoadsAndStores();
     timing.end();
+
+    timing.begin("Merge duplicate catch handlers");
+    new TrivialCatchBlockMerger(appView).run(code, timing);
+    timing.end();
+
     // Run optimizations on phis and basic blocks in a fixpoint.
     if (appView.options().enableLoadStoreOptimization) {
       timing.begin("Load store optimizations (BasicBlockMunching)");
@@ -349,50 +355,62 @@ public class CfBuilder {
     do {
       final CatchHandlers<BasicBlock> blockHandlers = block.getCatchHandlers();
       CfLabel blockLabel = getLabel(block);
-      if (!currentCatchHandlers.equals(blockHandlers)) {
-        if (!currentCatchHandlers.isEmpty()) {
-          // From our last block iteration, we had opened a try-catch block.
-          CfLabel tryCatchEnd = blockLabel;
-          CfTryCatch tryCatchFromCurrentHandler = CfTryCatch.fromBuilder(tryCatchStart, tryCatchEnd, currentCatchHandlers, this);
-          if (collapseCatchHandlers) {
-            // We have enabled the option to collapse adjacent try blocks into the same handler.
-            //
-            // If the catch from the current handler matches a catch from a previous handler,
-            // meaning that the guards (thrown types) and targets (labels/offsets) are the same,
-            // then we will update the try-catch block to cover the start-end range of:
-            //  - Old start
-            //  - Current end
-            boolean expandedExistingRange = false;
-            for (int i = 0; i < tryCatchRanges.size(); i++) {
-              CfTryCatch existingTryCatch = tryCatchRanges.get(i);
-              if (existingTryCatch.guards.equals(tryCatchFromCurrentHandler.guards) &&
-                      existingTryCatch.targets.equals(tryCatchFromCurrentHandler.targets)) {
-                tryCatchRanges.set(i, new CfTryCatch(existingTryCatch.start, tryCatchEnd, existingTryCatch.guards, existingTryCatch.targets));
-                expandedExistingRange = true;
-                break;
-              }
+      updateCatchBlocks:
+      {
+        if (!currentCatchHandlers.equals(blockHandlers)) {
+          if (!currentCatchHandlers.isEmpty()) {
+            // TODO: There's some weird cases where later iterations in this do-while add
+            //  try-catches with handler blocks EARLIER than the block range.
+            //  This is not valid. So for now we just break out of handling in this iteration if that is detected.
+            Set<BasicBlock> predecessors = block.getAllPredecessors();
+            if (currentCatchHandlers.getAllTargets().stream().anyMatch(predecessors::contains)) {
+              break updateCatchBlocks;
             }
 
-            // If no existing handler matched, we need to add it.
-            if (!expandedExistingRange)
-              tryCatchRanges.add(tryCatchFromCurrentHandler);
 
-            // Add the try block end label.
-            // If it was previously added, shift it forward to the current position.
-            reemitLabel(tryCatchEnd);
-          } else {
-            // Simply close the try range.
-            tryCatchRanges.add(tryCatchFromCurrentHandler);
-            emitLabel(tryCatchEnd);
+            // From our last block iteration, we had opened a try-catch block.
+            CfLabel tryCatchEnd = blockLabel;
+            CfTryCatch tryCatchFromCurrentHandler = CfTryCatch.fromBuilder(tryCatchStart, tryCatchEnd, currentCatchHandlers, this);
+            if (collapseCatchHandlers) {
+              // We have enabled the option to collapse adjacent try blocks into the same handler.
+              //
+              // If the catch from the current handler matches a catch from a previous handler,
+              // meaning that the guards (thrown types) and targets (labels/offsets) are the same,
+              // then we will update the try-catch block to cover the start-end range of:
+              //  - Old start
+              //  - Current end
+              boolean expandedExistingRange = false;
+              for (int i = 0; i < tryCatchRanges.size(); i++) {
+                CfTryCatch existingTryCatch = tryCatchRanges.get(i);
+                if (existingTryCatch.matchingGuards(tryCatchFromCurrentHandler) && existingTryCatch.matchingTargets(tryCatchFromCurrentHandler)) {
+                  tryCatchRanges.set(i, new CfTryCatch(existingTryCatch.start, tryCatchEnd, existingTryCatch.guards, existingTryCatch.targets));
+                  expandedExistingRange = true;
+                  break;
+                }
+              }
+
+              // If no existing handler matched, we need to add it.
+              if (!expandedExistingRange)
+                tryCatchRanges.add(tryCatchFromCurrentHandler);
+
+              // Add the try block end label.
+              // If it was previously added, shift it forward to the current position.
+              reemitLabel(tryCatchEnd);
+            } else {
+              // Simply close the try range.
+              tryCatchRanges.add(tryCatchFromCurrentHandler);
+              emitLabel(tryCatchEnd);
+            }
+          }
+          if (!blockHandlers.isEmpty()) {
+            // Open a try-catch.
+            tryCatchStart = blockLabel;
+            emitLabel(tryCatchStart);
           }
         }
-        if (!blockHandlers.isEmpty()) {
-          // Open a try-catch.
-          tryCatchStart = blockLabel;
-          emitLabel(tryCatchStart);
-        }
-        currentCatchHandlers = blockHandlers;
       }
+      currentCatchHandlers = blockHandlers;
+
       BasicBlock nextBlock = blockIterator.hasNext() ? blockIterator.next() : null;
       // If previousBlock is fallthrough, then it is counted in getPredecessors().size(), but
       // we only want to set a pendingFrame if we have a predecessor which is not previousBlock.

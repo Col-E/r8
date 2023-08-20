@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 public class CatchHandlers<T> implements Iterable<CatchHandler<T>> {
 
@@ -81,6 +82,13 @@ public class CatchHandlers<T> implements Iterable<CatchHandler<T>> {
       uniqueTargets = ImmutableSet.copyOf(targets);
     }
     return uniqueTargets;
+  }
+
+  public CatchHandlers<T> replaceTarget(DexType type, T old, T target) {
+    List<T> newTargets = targets.stream()
+            .map(t -> t == old ? target : t)
+            .collect(Collectors.toList());
+    return new CatchHandlers<>(guards, newTargets);
   }
 
   public boolean hasCatchAll(DexItemFactory factory) {

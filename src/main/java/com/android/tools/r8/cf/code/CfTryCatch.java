@@ -44,6 +44,22 @@ public class CfTryCatch {
     targets.forEach(consumer);
   }
 
+  public boolean matchingTargets(CfTryCatch other) {
+    return targets.equals(other.targets);
+  }
+
+  public boolean matchingGuards(CfTryCatch other) {
+    return guards.equals(other.guards);
+  }
+
+  public boolean matchingStart(CfTryCatch other) {
+    return start.equals(other.start);
+  }
+
+  public boolean matchingEnd(CfTryCatch other) {
+    return end.equals(other.end);
+  }
+
   public CfLabel getStart() {
     return start;
   }
