@@ -337,6 +337,12 @@ public class BasicBlock implements Comparable<BasicBlock> {
    * @return {@code true} when this block represents some code that originates from a {@code catch {...}} block, but the exception is never handled.
    */
   public boolean isEventuallySuccessorOfUnmovedException() {
+    Set<BasicBlock> searched = Sets.newIdentityHashSet();
+    searched.add(this);
+    return isEventuallySuccessorOfUnmovedException(searched);
+  }
+
+  private boolean isEventuallySuccessorOfUnmovedException(Set<BasicBlock> searched) {
     // Entry point is the base case.
     if (isEntry())
       return false;
@@ -346,7 +352,7 @@ public class BasicBlock implements Comparable<BasicBlock> {
       return false;
 
     // Check if predecessors do not handle their exceptions.
-    return predecessors.stream().anyMatch(predecessor -> {
+    return predecessors.stream().filter(searched::add).anyMatch(predecessor -> {
       // The predecessor is a handler for its predecessors, and doesn't already handle the exception.
       // In turn, our block also isn't handled then.
       if (predecessor.isCatchHandlerForAllPredecessors() && !predecessor.handlesStackException())
@@ -356,8 +362,7 @@ public class BasicBlock implements Comparable<BasicBlock> {
       if (predecessor.hasCatchHandlers() && predecessor.hasCatchSuccessor(this))
         return true;
 
-      // TODO: We may want to limit recursion in some form down the line.
-      return predecessor.isEventuallySuccessorOfUnmovedException();
+      return predecessor.isEventuallySuccessorOfUnmovedException(searched);
     });
   }
 
@@ -1459,29 +1464,33 @@ public class BasicBlock implements Comparable<BasicBlock> {
     StringBuilder builder = new StringBuilder();
     builder.append("block ");
     builder.append(number);
-    builder.append(", pred-counts: " + predecessors.size());
-    if (unfilledPredecessorsCount > 0) {
-      builder.append(" (" + unfilledPredecessorsCount + " unfilled)");
-    }
-    builder.append(", succ-count: " + successors.size());
-    builder.append(", filled: " + isFilled());
-    builder.append(", sealed: " + isSealed());
+    // builder.append(", pred-counts: " + predecessors.size());
+    // if (unfilledPredecessorsCount > 0) {
+    //   builder.append(" (" + unfilledPredecessorsCount + " unfilled)");
+    // }
+    // builder.append(", succ-count: " + successors.size());
+    // builder.append(", filled: " + isFilled());
+    // builder.append(", sealed: " + isSealed());
     builder.append('\n');
     builder.append("predecessors: ");
-    appendBasicBlockList(builder, predecessors, b -> "");
+    if (predecessors.size() > 0) {
+      String collect = predecessors.stream()
+              .map(b -> b.number + (b.hasCatchSuccessor(this) ? "*" : ""))
+              .collect(Collectors.joining(" "));
+      builder.append(" ").append(collect);
+    }
+    //appendBasicBlockList(builder, predecessors, b -> "");
     builder.append('\n');
     builder.append("successors: ");
-    appendBasicBlockList(builder, successors, this::predecessorPostfix);
+    //appendBasicBlockList(builder, successors, this::predecessorPostfix);
     if (successors.size() > 0) {
-      builder.append(" (");
-      if (hasCatchHandlers()) {
-        builder.append(catchHandlers.size());
-      } else {
-        builder.append("no");
-      }
-      builder.append(" try/catch successors)");
+      String collect = successors.stream()
+              .map(b -> b.number + (this.hasCatchSuccessor(b) ? "*" : ""))
+              .collect(Collectors.joining(" "));
+      builder.append(" ").append(collect);
     }
     builder.append('\n');
+    /*
     if (phis != null && phis.size() > 0) {
       for (Phi phi : phis) {
         builder.append(phi.printPhi());
@@ -1492,7 +1501,7 @@ public class BasicBlock implements Comparable<BasicBlock> {
       }
     } else {
       builder.append("no phis\n");
-    }
+    }*/
     if (localsAtEntry != null) {
       builder.append("locals: ");
       StringUtils.append(builder, localsAtEntry.int2ReferenceEntrySet(), ", ", BraceType.NONE);
