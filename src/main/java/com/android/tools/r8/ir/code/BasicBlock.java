@@ -38,6 +38,7 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -57,11 +58,12 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Basic block abstraction.
  */
-public class BasicBlock {
+public class BasicBlock implements Comparable<BasicBlock> {
 
   public interface BasicBlockChangeListener {
     void onSuccessorsMayChange(BasicBlock block);
@@ -270,40 +272,96 @@ public class BasicBlock {
     return traversalContinuation;
   }
 
+  public Set<BasicBlock> getAllPredecessors() {
+    Set<BasicBlock> set = Sets.newIdentityHashSet();
+    addPredecessors(set);
+    return set;
+  }
+
+  public Set<BasicBlock> getAllSuccessors() {
+    Set<BasicBlock> set = Sets.newIdentityHashSet();
+    addSuccessors(set);
+    return set;
+  }
+
+  private void addPredecessors(Set<BasicBlock> set) {
+    for (BasicBlock predecessor : predecessors) {
+      if (set.add(predecessor))
+        predecessor.addPredecessors(set);
+    }
+  }
+
+  private void addSuccessors(Set<BasicBlock> set) {
+    for (BasicBlock successor : successors) {
+      if (set.add(successor))
+        successor.addSuccessors(set);
+    }
+  }
+
   private boolean isCatchDelegateCandidate;
 
   public void markCandidacyAsCatchDelegate() {
     isCatchDelegateCandidate = true;
   }
 
+  public boolean isCatchDelegateCandidate() {
+    return isCatchDelegateCandidate;
+  }
+
+  public boolean isOnlySuccessorCatchDelegateCandidate() {
+    return hasUniqueSuccessor() && getUniqueSuccessor().isCatchDelegateCandidate();
+  }
+
   public void onFinishBuildingInstructions(AppView<?> appView) {
-    if (isCatchDelegateCandidate && !isEntry() && isTargetOfUnmovedException() && !handlesStackException()) {
-      // There is no 'MoveException' here, but for converting to CF code we need to get rid of this value on the stack.
-      DexType exceptionType = appView.dexItemFactory().throwableType;
-      Value stackExceptionValue = StackValue.create(TypeVerificationHelper.createInitializedObjectType(exceptionType), 1, appView);
-      Pop pop = new Pop(stackExceptionValue);
-      pop.setPosition(entry().getPosition());
-      stackExceptionValue.definition = null;
-      instructions.add(0, pop);
+    if (isCatchDelegateCandidate && isEventuallySuccessorOfUnmovedException()) {
+      if (!isCatchHandlerForAllPredecessors()) {
+        // Inconsistent paths, lets pray that the catch handler predecessor is the correct place to handle the 'MoveException'
+        BasicBlock handlerPredecessor = getUniquePredecessorWithUnmovedExceptionHandling();
+        if (handlerPredecessor != null) {
+          handlerPredecessor.isCatchDelegateCandidate = true;
+          handlerPredecessor.onFinishBuildingInstructions(appView);
+        }
+      } else {
+        // There is no 'MoveException' here, but for converting to CF code we need to get rid of this value on the stack.
+        DexType exceptionType = appView.dexItemFactory().throwableType;
+        Value stackExceptionValue = StackValue.create(TypeVerificationHelper.createInitializedObjectType(exceptionType), 1, appView);
+        Pop pop = new Pop(stackExceptionValue);
+        pop.setPosition(entry().getPosition());
+        stackExceptionValue.definition = null;
+        instructions.add(0, pop);
+      }
     }
   }
 
-  private boolean isTargetOfUnmovedException() {
-    return predecessors.stream().allMatch(block -> {
-      if (!block.hasCatchHandlers())
-        // Block has no catch handlers, so we as the target won't be a handler.
-        //
-        // If you're debugging this and see that the block is just a 'goto' then the IRCode
-        // is not inlining unnecessary blocks.
-        return false;
+  /**
+   * @return {@code true} when this block represents some code that originates from a {@code catch {...}} block, but the exception is never handled.
+   */
+  public boolean isEventuallySuccessorOfUnmovedException() {
+    // Entry point is the base case.
+    if (isEntry())
+      return false;
 
-      // Check if the predecessor block moves the exception into a variable slot.
-      // If it does not, then we are the target of an unmoved exception.
-      return !block.handlesStackException();
+    // We handle the exception, so we're not a target of an unmoved exception.
+    if (handlesStackException())
+      return false;
+
+    // Check if predecessors do not handle their exceptions.
+    return predecessors.stream().anyMatch(predecessor -> {
+      // The predecessor is a handler for its predecessors, and doesn't already handle the exception.
+      // In turn, our block also isn't handled then.
+      if (predecessor.isCatchHandlerForAllPredecessors() && !predecessor.handlesStackException())
+        return true;
+
+      // The predecessor declares catch handlers, and the target is this block.
+      if (predecessor.hasCatchHandlers() && predecessor.hasCatchSuccessor(this))
+        return true;
+
+      // TODO: We may want to limit recursion in some form down the line.
+      return predecessor.isEventuallySuccessorOfUnmovedException();
     });
   }
 
-  private boolean handlesStackException() {
+  public boolean handlesStackException() {
     // A block that operates on the caught exception will have a 'MoveException' as the first instruction.
     if (instructions.isEmpty()) return false;
     Instruction instruction = instructions.get(0);
@@ -702,6 +760,12 @@ public class BasicBlock {
     }
   }
 
+
+  @Override
+  public int compareTo(BasicBlock o) {
+    return Integer.compare(number, o.number);
+  }
+
   public boolean hasPhis() {
     return !phis.isEmpty();
   }
@@ -1017,7 +1081,7 @@ public class BasicBlock {
     }
   }
 
-  private boolean isCatchHandlerForSingleGuard() {
+  public boolean isCatchHandlerForSingleGuard() {
     assert predecessors.size() == 1;
     BasicBlock predecessor = predecessors.get(0);
     assert predecessor.getCatchHandlers().getAllTargets().contains(this);
@@ -1028,6 +1092,29 @@ public class BasicBlock {
       }
     }
     return true;
+  }
+
+  public boolean isCatchHandlerForAllPredecessors() {
+    int count = predecessors.size();
+    if (count == 0)
+      return false;
+
+    for (BasicBlock predecessor : predecessors) {
+      if (predecessor.getCatchHandlers().getAllTargets().contains(this)) {
+        count--;
+      }
+    }
+    return count==0;
+  }
+
+  public BasicBlock getUniquePredecessorWithUnmovedExceptionHandling() {
+    List<BasicBlock> block = new ArrayList<>(2);
+    for (BasicBlock predecessor : predecessors) {
+      if (predecessor.isEventuallySuccessorOfUnmovedException()) {
+        block.add(predecessor);
+      }
+    }
+    return (block.size() != 1) ? null : block.get(0);
   }
 
   public void detachAllSuccessors() {
