@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.code;
 
 import static com.android.tools.r8.ir.code.IRCode.INSTRUCTION_NUMBER_DELTA;
 
+import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -22,6 +23,8 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.passes.TrivialCatchBlockMerger;
+import com.android.tools.r8.ir.conversion.passes.TrivialGotosCollapser;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
@@ -37,6 +40,8 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+
+import javax.annotation.Nullable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,11 +61,12 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Basic block abstraction.
  */
-public class BasicBlock {
+public class BasicBlock implements Comparable<BasicBlock> {
 
   public interface BasicBlockChangeListener {
     void onSuccessorsMayChange(BasicBlock block);
@@ -267,6 +273,123 @@ public class BasicBlock {
       }
     }
     return traversalContinuation;
+  }
+
+  public Set<BasicBlock> getAllPredecessors() {
+    Set<BasicBlock> set = Sets.newIdentityHashSet();
+    addPredecessors(set);
+    return set;
+  }
+
+  public Set<BasicBlock> getAllSuccessors() {
+    Set<BasicBlock> set = Sets.newIdentityHashSet();
+    addSuccessors(set);
+    return set;
+  }
+
+  private void addPredecessors(Set<BasicBlock> set) {
+    for (BasicBlock predecessor : predecessors) {
+      if (set.add(predecessor))
+        predecessor.addPredecessors(set);
+    }
+  }
+
+  private void addSuccessors(Set<BasicBlock> set) {
+    for (BasicBlock successor : successors) {
+      if (set.add(successor))
+        successor.addSuccessors(set);
+    }
+  }
+
+  private boolean isCatchDelegateCandidate;
+
+  public void markCandidacyAsCatchDelegate() {
+    isCatchDelegateCandidate = true;
+  }
+
+  public boolean isCatchDelegateCandidate() {
+    return isCatchDelegateCandidate;
+  }
+
+  public boolean isOnlySuccessorCatchDelegateCandidate() {
+    return hasUniqueSuccessor() && getUniqueSuccessor().isCatchDelegateCandidate();
+  }
+
+  /**
+   * In Java when you have a catch block, the exception value replaces the entire stack and is stored to the first
+   * variable slot <i>(not occupied by {@code this} in virtual methods)</i>. In Dalvik bytecode exception handling
+   * is quite different, and the code is optimized to remove a lot of indicators of where a catch block used to be
+   * in the respective Java source.
+   * <p>
+   * When converting from Dalvik to Java, we need to recover these cases. If we see there is no {@link MoveException}
+   * IR instruction but this block is within the control flow of what should be a catch block, we will want to insert it.
+   * Blocks that seem likely to be the catch are {@link #markCandidacyAsCatchDelegate() marked}.
+   * Later in IR processing, after {@link TrivialCatchBlockMerger} and {@link TrivialGotosCollapser} operations complete,
+   * we see if the candidacy is still valid, and if so fill in the missing exception handling by adding a {@link Pop}.
+   *
+   * @param appView
+   * 		Application view to get a {@link DexItemFactory} reference from.
+   */
+  public void insertPopIntoValidCatchCandidate(AppView<?> appView) {
+    if (isCatchDelegateCandidate && isEventuallySuccessorOfUnmovedException()) {
+      if (!isCatchHandlerForAllPredecessors()) {
+        // Inconsistent paths, lets pray that the catch handler predecessor is the correct place to handle the 'MoveException'
+        BasicBlock handlerPredecessor = getUniquePredecessorWithUnmovedExceptionHandling();
+        if (handlerPredecessor != null) {
+          handlerPredecessor.isCatchDelegateCandidate = true;
+          handlerPredecessor.insertPopIntoValidCatchCandidate(appView);
+        }
+      } else {
+        // There is no 'MoveException' here, but for converting to CF code we need to get rid of this value on the stack.
+        DexType exceptionType = appView.dexItemFactory().throwableType;
+        Value stackExceptionValue = StackValue.create(TypeVerificationHelper.createInitializedObjectType(exceptionType), 1, appView);
+        Pop pop = new Pop(stackExceptionValue);
+        pop.setPosition(entry().getPosition());
+        stackExceptionValue.definition = null;
+        instructions.add(0, pop);
+      }
+    }
+  }
+
+  /**
+   * @return {@code true} when this block represents some code that originates from a {@code catch {...}} block,
+   * but the exception is never handled. This only happens when converting from Dalvik code.
+   */
+  public boolean isEventuallySuccessorOfUnmovedException() {
+    Set<BasicBlock> searched = Sets.newIdentityHashSet();
+    searched.add(this);
+    return isEventuallySuccessorOfUnmovedException(searched);
+  }
+
+  private boolean isEventuallySuccessorOfUnmovedException(Set<BasicBlock> searched) {
+    // Entry point is the base case.
+    if (isEntry())
+      return false;
+
+    // We handle the exception, so we're not a target of an unmoved exception.
+    if (handlesStackException())
+      return false;
+
+    // Check if predecessors do not handle their exceptions.
+    return predecessors.stream().filter(searched::add).anyMatch(predecessor -> {
+      // The predecessor is a handler for its predecessors, and doesn't already handle the exception.
+      // In turn, our block also isn't handled then.
+      if (predecessor.isCatchHandlerForAllPredecessors() && !predecessor.handlesStackException())
+        return true;
+
+      // The predecessor declares catch handlers, and the target is this block.
+      if (predecessor.hasCatchHandlers() && predecessor.hasCatchSuccessor(this))
+        return true;
+
+      return predecessor.isEventuallySuccessorOfUnmovedException(searched);
+    });
+  }
+
+  public boolean handlesStackException() {
+    // A block that operates on the caught exception will have a 'MoveException' as the first instruction.
+    if (instructions.isEmpty()) return false;
+    Instruction instruction = instructions.get(0);
+    return instruction instanceof MoveException;
   }
 
   public void addControlFlowEdgesMayChangeListener(BasicBlockChangeListener listener) {
@@ -661,6 +784,12 @@ public class BasicBlock {
     }
   }
 
+
+  @Override
+  public int compareTo(BasicBlock o) {
+    return Integer.compare(number, o.number);
+  }
+
   public boolean hasPhis() {
     return !phis.isEmpty();
   }
@@ -976,7 +1105,7 @@ public class BasicBlock {
     }
   }
 
-  private boolean isCatchHandlerForSingleGuard() {
+  public boolean isCatchHandlerForSingleGuard() {
     assert predecessors.size() == 1;
     BasicBlock predecessor = predecessors.get(0);
     assert predecessor.getCatchHandlers().getAllTargets().contains(this);
@@ -987,6 +1116,37 @@ public class BasicBlock {
       }
     }
     return true;
+  }
+
+  /**
+   * @return {@code true} when {@link #getPredecessors() direct predecessors} all mark this block as a catch handler.
+   */
+  public boolean isCatchHandlerForAllPredecessors() {
+    int count = predecessors.size();
+    if (count == 0)
+      return false;
+
+    for (BasicBlock predecessor : predecessors) {
+      if (predecessor.getCatchHandlers().getAllTargets().contains(this)) {
+        count--;
+      }
+    }
+    return count==0;
+  }
+
+  /**
+   * @return The single predecessor of this block that also satisfies {@link #isEventuallySuccessorOfUnmovedException()}.
+   * When there are multiple predecessors, this returns {@code null}.
+   */
+  @Nullable
+  public BasicBlock getUniquePredecessorWithUnmovedExceptionHandling() {
+    List<BasicBlock> block = new ArrayList<>(2);
+    for (BasicBlock predecessor : predecessors) {
+      if (predecessor.isEventuallySuccessorOfUnmovedException()) {
+        block.add(predecessor);
+      }
+    }
+    return (block.size() != 1) ? null : block.get(0);
   }
 
   public void detachAllSuccessors() {
@@ -1294,19 +1454,6 @@ public class BasicBlock {
     return incompletePhis.keySet();
   }
 
-  private static void appendBasicBlockList(
-      StringBuilder builder, List<BasicBlock> list, Function<BasicBlock, String> postfix) {
-    if (list.size() > 0) {
-      for (BasicBlock block : list) {
-        builder.append(block.getNumberAsString());
-        builder.append(postfix.apply(block));
-        builder.append(' ');
-      }
-    } else {
-      builder.append('-');
-    }
-  }
-
   @Override
   public String toString() {
     return toDetailedString();
@@ -1331,33 +1478,29 @@ public class BasicBlock {
     StringBuilder builder = new StringBuilder();
     builder.append("block ");
     builder.append(number);
-    builder.append(", pred-counts: " + predecessors.size());
-    if (unfilledPredecessorsCount > 0) {
-      builder.append(" (" + unfilledPredecessorsCount + " unfilled)");
-    }
-    builder.append(", succ-count: " + successors.size());
-    builder.append(", filled: " + isFilled());
-    builder.append(", sealed: " + isSealed());
+    builder.append(", filled: ").append(isFilled());
+    builder.append(", sealed: ").append(isSealed());
     builder.append('\n');
     builder.append("predecessors: ");
-    appendBasicBlockList(builder, predecessors, b -> "");
+    if (predecessors.size() > 0) {
+      String collect = predecessors.stream()
+              .map(b -> b.number + (b.hasCatchSuccessor(this) ? "*" : ""))
+              .collect(Collectors.joining(" "));
+      builder.append(" ").append(collect);
+    }
     builder.append('\n');
     builder.append("successors: ");
-    appendBasicBlockList(builder, successors, this::predecessorPostfix);
     if (successors.size() > 0) {
-      builder.append(" (");
-      if (hasCatchHandlers()) {
-        builder.append(catchHandlers.size());
-      } else {
-        builder.append("no");
-      }
-      builder.append(" try/catch successors)");
+      String collect = successors.stream()
+              .map(b -> b.number + (this.hasCatchSuccessor(b) ? "*" : ""))
+              .collect(Collectors.joining(" "));
+      builder.append(" ").append(collect);
     }
     builder.append('\n');
     if (phis != null && phis.size() > 0) {
       for (Phi phi : phis) {
         builder.append(phi.printPhi());
-        if (incompletePhis.values().contains(phi)) {
+        if (incompletePhis.containsValue(phi)) {
           builder.append(" (incomplete)");
         }
         builder.append('\n');
@@ -1386,9 +1529,9 @@ public class BasicBlock {
         StringUtils.appendLeftPadded(builder, line, lineColumn + 1);
         builder.append(": ");
       }
-      StringUtils.appendLeftPadded(builder, "" + instruction.getNumber(), numberColumn + 1);
+      StringUtils.appendLeftPadded(builder, String.valueOf(instruction.getNumber()), numberColumn + 1);
       builder.append(": ");
-      builder.append(instruction.toString());
+      builder.append(instruction);
       if (DebugLocalInfo.PRINT_LEVEL != PrintLevel.NONE) {
         if (!instruction.getDebugValues().isEmpty()) {
           builder.append(" [end: ");
@@ -1559,7 +1702,12 @@ public class BasicBlock {
   }
 
   public boolean isTrivialGoto() {
-    return instructions.size() == 1 && exit().isGoto();
+    if (instructions.size() == 1) {
+      JumpInstruction exit = exit();
+      if (exit != null)
+        return exit.isGoto();
+    }
+    return false;
   }
 
   // Go backwards in the control flow graph until a block that is not a trivial goto block is found,

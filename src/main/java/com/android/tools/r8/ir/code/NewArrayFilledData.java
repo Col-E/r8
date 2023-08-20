@@ -25,7 +25,6 @@ import com.android.tools.r8.lightir.LirBuilder;
 import static com.android.tools.r8.utils.EndianUtils.*;
 
 import com.android.tools.r8.utils.ArrayUtils;
-import sun.misc.Unsafe;
 
 import java.util.Arrays;
 

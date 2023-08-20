@@ -41,9 +41,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.CanonicalPositions;
-import com.android.tools.r8.ir.code.CatchHandlers;
-import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.*;
 import com.android.tools.r8.utils.DexDebugUtils;
 
 import java.util.*;
@@ -162,7 +160,8 @@ public class DexSourceCode implements SourceCode {
   @Override
   public void buildBlockTransfer(
       IRBuilder builder, int predecessorOffset, int successorOffset, boolean isExceptional) {
-    // Intentionally empty. Dex front-end does not support debug locals so no transfer info needed.
+   if (isExceptional)
+     builder.markCurrentBlockAsExceptionTransfer(successorOffset);
   }
 
   @Override

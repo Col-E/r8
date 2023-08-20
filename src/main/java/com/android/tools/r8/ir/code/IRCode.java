@@ -1273,6 +1273,8 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
   }
 
   public void removeRedundantBlocks() {
+    if (blocks.size() <= 2) return;
+
     List<BasicBlock> blocksToRemove = new ArrayList<>();
 
     for (BasicBlock block : blocks) {
@@ -1282,8 +1284,17 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
         assert block.getUniqueSuccessor().getMutablePredecessors().size() == 1;
         assert block.getUniqueSuccessor().getMutablePredecessors().get(0) == block;
         assert block.getUniqueSuccessor().getPhis().size() == 0;
-        // Let the successor consume this block.
         BasicBlock successor = block.getUniqueSuccessor();
+
+        // Catch candidates should not be inlined.
+        // These candidate flags are only set when converting from Dalvik --> Java.
+        // They exist to ensure enough intermediate blocks exist to fill in missing exception handling from
+        // the converted dalvik code. Too much aggressive inlining can lead to a block having control flow
+        // incoming as a catch handler and regular flow, which in Java is illegal.
+        if (successor.isCatchDelegateCandidate() ||successor.isOnlySuccessorCatchDelegateCandidate())
+          continue;
+
+        // Let the successor consume this block.
         successor.getMutablePredecessors().clear();
         successor.getMutablePredecessors().addAll(block.getPredecessors());
         successor.getPhis().addAll(block.getPhis());

@@ -57,11 +57,9 @@ public class TrivialGotosCollapser extends CodeRewriterPass<AppInfo> {
       nextBlock = iterator.hasNext() ? iterator.next() : null;
       if (block.isTrivialGoto()) {
         collapseTrivialGoto(code, block, nextBlock, blocksToRemove);
-      }
-      if (block.exit().isIf()) {
+      } else if (block.exit().isIf()) {
         collapseIfTrueTarget(block);
-      }
-      if (block.exit().isSwitch()) {
+      } else if (block.exit().isSwitch()) {
         collapseNonFallthroughSwitchTargets(block);
       }
       block = nextBlock;
@@ -147,14 +145,23 @@ public class TrivialGotosCollapser extends CodeRewriterPass<AppInfo> {
 
     BasicBlock target = block.endOfGotoChain();
 
-    boolean needed = false;
-
     if (target == null) {
       // This implies we are in a loop of GOTOs. In that case, we will iteratively remove each
       // trivial GOTO one-by-one until the above base case (one block targeting itself) is left.
       target = block.exit().asGoto().getTarget();
     }
 
+    // Class file target specific checks.
+    if (appView.options().isGeneratingClassFiles()) {
+      // If the block being looked at for collapsing is a trivial goto, but the successor is a candidate for
+      // catch handler recovery (from dex --> java) then we don't want to collapse it.
+      // We will want to keep this block so that we can handle popping the exception off the stack later.
+      if (block.isEventuallySuccessorOfUnmovedException() &&
+              (block.isCatchDelegateCandidate() || block.isOnlySuccessorCatchDelegateCandidate()))
+        return;
+    }
+
+    boolean needed = false;
     if (target != nextBlock) {
       // Not targeting the fallthrough block, determine if we need this goto. We need it if
       // a fallthrough can hit this block. That is the case if the block is the entry block

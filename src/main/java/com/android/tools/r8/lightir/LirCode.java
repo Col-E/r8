@@ -37,8 +37,8 @@ import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -435,7 +435,7 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
     throw new Unimplemented();
   }
 
-  @NotNull
+  @Nonnull
   @Override
   public Code copySubtype() {
     // Should not be any circumstance where this model needs to be cloned.

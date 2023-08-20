@@ -8,6 +8,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 
+import java.util.function.Predicate;
+
 public class StackValue extends Value {
 
   private final int height;
@@ -37,6 +39,14 @@ public class StackValue extends Value {
 
   public StackValue duplicate(int height) {
     return new StackValue(typeInfo, getType(), height);
+  }
+
+  @Override
+  public boolean isDefinedByInstructionSatisfying(Predicate<Instruction> predicate) {
+    // Can be null for exceptions that replace the stack in catch blocks.
+    if (definition == null)
+      return false;
+    return super.isDefinedByInstructionSatisfying(predicate);
   }
 
   @Override
