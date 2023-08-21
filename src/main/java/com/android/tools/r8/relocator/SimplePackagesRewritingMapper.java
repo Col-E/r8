@@ -33,7 +33,6 @@ class SimplePackagesRewritingMapper {
 
   public NamingLens compute(Map<PackageReference, PackageReference> mapping) {
     // Prefetch all code objects to ensure we have seen all types.
-    // TODO(b/129925954): When updated, there is no need for this prefetch.
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       for (DexEncodedMethod method : clazz.methods()) {
         if (method.getCode() != null) {
