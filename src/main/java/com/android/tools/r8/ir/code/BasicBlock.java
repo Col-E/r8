@@ -852,6 +852,11 @@ public class BasicBlock {
         : "Attempt to remove Phi " + phi + " which is present in currentDefinitions";
   }
 
+  public void removePhis(Collection<Phi> phisToRemove) {
+    assert currentDefinitions == null || currentDefinitions.isEmpty();
+    phis.removeAll(phisToRemove);
+  }
+
   public void add(Instruction next, IRCode code) {
     add(next, code.metadata());
   }

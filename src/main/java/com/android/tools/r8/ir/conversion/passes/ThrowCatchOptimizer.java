@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.phis.EffectivelyTrivialPhiOptimization;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.BitSet;
@@ -211,12 +212,13 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
   // it with a block throwing a null value (which should result in NPE). Note that this throw is not
   // expected to be ever reached, but is intended to satisfy verifier.
   private boolean optimizeAlwaysThrowingInstructions(IRCode code) {
+    boolean hasChanged =
+        new EffectivelyTrivialPhiOptimization(appView, code).removeEffectivelyTrivialPhis();
     AffectedValues affectedValues = new AffectedValues();
     Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     ProgramMethod context = code.context();
     boolean hasUnlinkedCatchHandlers = false;
-    boolean hasChanged = false;
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (block.getNumber() != 0 && block.getPredecessors().isEmpty()) {
