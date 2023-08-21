@@ -50,6 +50,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -269,7 +270,6 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
       public void eliminateRedundantRead(InstructionListIterator it, Instruction redundant) {
         redundant.outValue().replaceUsers(value, affectedValues);
         it.removeOrReplaceByDebugLocalRead();
-        value.uniquePhiUsers().forEach(Phi::removeTrivialPhi);
         hasChanged = true;
       }
 
@@ -463,6 +463,14 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
         activeStates.recordActiveStateOnBlockExit(end, activeState);
       }
       processInstructionsToRemove();
+      List<Phi> affectedPhis = new ArrayList<>(affectedValues.size());
+      affectedValues.forEach(
+          value -> {
+            if (value.isPhi()) {
+              affectedPhis.add(value.asPhi());
+            }
+          });
+      affectedPhis.forEach(phi -> phi.removeTrivialPhi(null, affectedValues));
       affectedValues.narrowingWithAssumeRemoval(appView, code);
       if (hasChanged) {
         code.removeRedundantBlocks();
