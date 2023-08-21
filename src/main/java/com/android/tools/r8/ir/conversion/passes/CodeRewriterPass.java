@@ -41,6 +41,7 @@ public abstract class CodeRewriterPass<T extends AppInfo> {
     return timing.time(getTimingId(), () -> run(code, methodProcessor, methodProcessingContext));
   }
 
+  @Deprecated
   public final CodeRewriterResult run(IRCode code, Timing timing) {
     return timing.time(getTimingId(), () -> run(code, null, null));
   }

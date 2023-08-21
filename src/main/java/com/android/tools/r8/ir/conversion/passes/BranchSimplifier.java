@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.conversion.passes;
 import static com.android.tools.r8.ir.conversion.passes.BranchSimplifier.ControlFlowSimplificationResult.NO_CHANGE;
 import static com.android.tools.r8.ir.conversion.passes.BranchSimplifier.ControlFlowSimplificationResult.create;
 
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -38,6 +39,7 @@ import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.controlflow.SwitchCaseAnalyzer;
@@ -86,12 +88,16 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected CodeRewriterResult rewriteCode(IRCode code) {
+  protected CodeRewriterResult rewriteCode(
+      IRCode code,
+      MethodProcessor methodProcessor,
+      MethodProcessingContext methodProcessingContext) {
     ControlFlowSimplificationResult switchResult = rewriteSwitch(code);
     ControlFlowSimplificationResult ifResult = simplifyIf(code);
     ControlFlowSimplificationResult result = switchResult.combine(ifResult);
     if (result.anyAffectedValues) {
-      new TrivialCheckCastAndInstanceOfRemover(appView).run(code, Timing.empty());
+      new TrivialCheckCastAndInstanceOfRemover(appView)
+          .run(code, methodProcessor, methodProcessingContext, Timing.empty());
     }
     return result;
   }
