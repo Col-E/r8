@@ -59,12 +59,7 @@ public class BridgeAfterAssumeNoSideEffectsTest extends TestBase {
         .enableNoMethodStaticizingAnnotations()
         .enableInliningAnnotations()
         .run(parameters.getRuntime(), TestClass.class)
-        .applyIf(
-            parameters.isCfRuntime(),
-            // TODO(b/295576241): R8 should not generate invalid code.
-            r -> r.assertFailureWithErrorThatThrows(VerifyError.class),
-            // TODO(b/296558387): Art should also reject this code.
-            r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   static class TestClass {
