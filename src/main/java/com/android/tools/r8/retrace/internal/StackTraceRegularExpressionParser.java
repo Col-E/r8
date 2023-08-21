@@ -158,8 +158,9 @@ public class StackTraceRegularExpressionParser
   }
 
   // TODO(b/145731185): Extend support for identifiers with strings inside back ticks.
+  //   Should we relax this to be something like: [^\\s\\[;/<]+
   private static final String javaIdentifierSegment =
-      "\\p{javaJavaIdentifierStart}[-\\p{javaJavaIdentifierPart}]*";
+      "[-\\p{javaJavaIdentifierStart}][-\\p{javaJavaIdentifierPart}]*";
 
   private static final String METHOD_NAME_REGULAR_EXPRESSION =
       "(?:(" + javaIdentifierSegment + "|\\<init\\>|\\<clinit\\>))";
