@@ -46,7 +46,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-public class TrivialFieldAccessReprocessor {
+public final class TrivialFieldAccessReprocessor {
 
   enum FieldClassification {
     CONSTANT,
@@ -193,7 +193,10 @@ public class TrivialFieldAccessReprocessor {
   private void processClass(DexProgramClass clazz) {
     clazz.forEachProgramMethodMatching(
         DexEncodedMethod::hasCode,
-        method -> method.registerCodeReferences(new TrivialFieldAccessUseRegistry(method)));
+        method -> {
+          method.registerCodeReferences(new TrivialFieldAccessUseRegistry(method));
+          method.getDefinition().getCode().clearMetadata();
+        });
   }
 
   private static FieldClassification classifyField(

@@ -59,6 +59,8 @@ public abstract class Code extends CachedHashValueDexItem {
     return null;
   }
 
+  public void clearMetadata() {}
+
   public abstract void registerCodeReferences(ProgramMethod method, UseRegistry registry);
 
   public abstract void registerCodeReferencesForDesugaring(

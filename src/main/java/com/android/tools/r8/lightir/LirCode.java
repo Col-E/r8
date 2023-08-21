@@ -341,7 +341,7 @@ public class LirCode<EV> extends Code
   private final DebugLocalInfoTable<EV> debugLocalInfoTable;
 
   /** Table of metadata for each instruction (if present). */
-  private final Int2ReferenceMap<BytecodeInstructionMetadata> metadataMap;
+  private Int2ReferenceMap<BytecodeInstructionMetadata> metadataMap;
 
   public static <V, EV> LirBuilder<V, EV> builder(
       DexMethod method, LirEncodingStrategy<V, EV> strategy, InternalOptions options) {
@@ -479,6 +479,11 @@ public class LirCode<EV> extends Code
   public BytecodeInstructionMetadata getMetadata(CfOrDexInstruction instruction) {
     // Bytecode metadata is recomputed when finalizing via IR.
     throw new Unreachable();
+  }
+
+  @Override
+  public void clearMetadata() {
+    metadataMap = null;
   }
 
   @Override
