@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.CodeRewriterPass;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.ir.optimize.AffectedValues;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.WorkList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
@@ -227,8 +228,17 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
 
     private void visitInstruction(Instruction instruction) {
       if (instruction.hasOutValue() && !instruction.isDebugLocalUninitialized()) {
-        AbstractValue value =
-            instruction.getAbstractValue(appView, code.context(), this::getCachedAbstractValue);
+        AbstractValue value;
+        if (instruction.isArgument()) {
+          // TODO(b/296996336): Should be able to use instruction.getAbstractValue().
+          int index = instruction.asArgument().getIndex();
+          CallSiteOptimizationInfo argumentInfos =
+              code.context().getOptimizationInfo().getArgumentInfos();
+          value = argumentInfos.getAbstractArgumentValue(index);
+        } else {
+          value =
+              instruction.getAbstractValue(appView, code.context(), this::getCachedAbstractValue);
+        }
         AbstractValue previousValue = getCachedAbstractValue(instruction.outValue());
         assert joiner.lessThanOrEqualTo(previousValue, value, instruction.getOutType());
         if (!value.equals(previousValue)) {

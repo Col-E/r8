@@ -801,6 +801,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
               DexEncodedMethod method, MutableMethodOptimizationInfo optimizationInfo) {
             optimizationInfo
                 .fixupArgumentInfos(
+                    method,
                     new DefaultMethodOptimizationInfoFixer() {
                       @Override
                       public CallSiteOptimizationInfo fixupCallSiteOptimizationInfo(

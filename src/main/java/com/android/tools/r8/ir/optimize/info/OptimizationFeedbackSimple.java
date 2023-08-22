@@ -146,7 +146,8 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   public void setArgumentInfos(ProgramMethod method, CallSiteOptimizationInfo argumentInfos) {
-    method.getDefinition().getMutableOptimizationInfo().setArgumentInfos(argumentInfos);
+    DexEncodedMethod definition = method.getDefinition();
+    definition.getMutableOptimizationInfo().setArgumentInfos(definition, argumentInfos);
   }
 
   @Override

@@ -1465,7 +1465,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     public Builder fixupOptimizationInfo(
         AppView<AppInfoWithLiveness> appView, MethodOptimizationInfoFixer fixer) {
       return modifyOptimizationInfo(
-          (newMethod, optimizationInfo) -> optimizationInfo.fixup(appView, fixer));
+          (newMethod, optimizationInfo) -> optimizationInfo.fixup(appView, newMethod, fixer));
     }
 
     public Builder addBuildConsumer(Consumer<DexEncodedMethod> consumer) {

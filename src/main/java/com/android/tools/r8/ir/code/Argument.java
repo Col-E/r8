@@ -44,7 +44,9 @@ public class Argument extends Instruction {
     if (outValue.hasLocalInfo()) {
       return AbstractValue.unknown();
     }
-    return context.getOptimizationInfo().getArgumentInfos().getAbstractArgumentValue(index);
+    // TODO(b/296996336): Should use argument optimization info of context, but the context may be
+    //  the caller and not the callee during inlining.
+    return AbstractValue.unknown();
   }
 
   public int getIndex() {
