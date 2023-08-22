@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -43,7 +44,12 @@ public class SealedInterfaceSubClassesHorizontalMergeTest extends KotlinTestBase
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(),
-        getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
+        getKotlinTestParameters()
+            // Sealed interfaces are supported from Kotlin 1.5.
+            .withCompilersStartingFromIncluding(KotlinCompilerVersion.KOTLINC_1_5_0)
+            .withOldCompilersStartingFrom(KotlinCompilerVersion.KOTLINC_1_5_0)
+            .withAllTargetVersions()
+            .build(),
         BooleanUtils.values());
   }
 
