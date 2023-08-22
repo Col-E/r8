@@ -330,7 +330,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // See go/r8platformflag and b/232073181.
   public void configureAndroidPlatformBuild(boolean isAndroidPlatformBuild) {
     assert !addAndroidPlatformBuildToMarker;
-    if (isAndroidPlatformBuild || minApiLevel.isPlatform()) {
+    if (isAndroidPlatformBuild) {
       apiModelingOptions().disableApiModeling();
       // TODO(b/232073181): This should also enable throwing errors on triggered backports.
       disableBackports = true;
