@@ -33,6 +33,7 @@ import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
@@ -136,6 +137,12 @@ public class CfInstructionSubject implements InstructionSubject {
   public boolean isInvokeStatic() {
     return instruction instanceof CfInvoke
         && ((CfInvoke) instruction).getOpcode() == Opcodes.INVOKESTATIC;
+  }
+
+  @Override
+  public boolean isPop() {
+    return instruction instanceof CfStackInstruction
+        && ((CfStackInstruction) instruction).getOpcode() == Opcode.Pop;
   }
 
   @Override

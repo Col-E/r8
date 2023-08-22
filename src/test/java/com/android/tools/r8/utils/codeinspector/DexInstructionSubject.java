@@ -392,6 +392,11 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isPop() {
+    return false;
+  }
+
+  @Override
   public boolean isIfNez() {
     return instruction instanceof DexIfNez;
   }

@@ -94,6 +94,8 @@ public interface InstructionSubject {
 
   boolean isGoto();
 
+  boolean isPop();
+
   boolean isIfNez();
 
   boolean isIfEq();
