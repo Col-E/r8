@@ -127,6 +127,12 @@ public class DesugaredLibraryTestCompileResult<T extends DesugaredLibraryTestBas
     return this;
   }
 
+  public DesugaredLibraryTestCompileResult<T> inspectL8DiagnosticMessages(
+      Consumer<TestDiagnosticMessages> consumer) {
+    l8Compile.inspectDiagnosticMessages(consumer);
+    return this;
+  }
+
   public SingleTestRunResult<?> run(TestRuntime runtime, Class<?> mainClass, String... args)
       throws ExecutionException, IOException {
     return run(runtime, mainClass.getTypeName(), args);

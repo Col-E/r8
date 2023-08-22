@@ -745,8 +745,12 @@ public abstract class BaseCompilerCommand extends BaseCommand {
      */
     public B addArtProfileForRewriting(
         ArtProfileProvider artProfileProvider, ArtProfileConsumer residualArtProfileProvider) {
-      artProfilesForRewriting.add(
+      return addArtProfileForRewriting(
           new ArtProfileForRewriting(artProfileProvider, residualArtProfileProvider));
+    }
+
+    B addArtProfileForRewriting(ArtProfileForRewriting artProfileForRewriting) {
+      artProfilesForRewriting.add(artProfileForRewriting);
       return self();
     }
 

@@ -10,26 +10,32 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.R8FullTestBuilder;
-import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
+import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestBuilder;
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileBuilder;
 import com.android.tools.r8.profile.art.ArtProfileProvider;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DumpInputFlags;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.UTF8TextInputStream;
 import com.android.tools.r8.utils.ZipUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Test;
@@ -40,7 +46,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class DumpArtProfileProvidersTest extends TestBase {
+public class DumpArtProfileProvidersTest extends DesugaredLibraryTestBase {
 
   private enum DumpStrategy {
     DIRECTORY,
@@ -71,40 +77,88 @@ public class DumpArtProfileProvidersTest extends TestBase {
 
   @Parameters(name = "{1}, {0}")
   public static List<Object[]> data() {
-    return buildParameters(DumpStrategy.values(), getTestParameters().withNoneRuntime().build());
+    return buildParameters(
+        DumpStrategy.values(),
+        getTestParameters().withDefaultDexRuntime().withMinimumApiLevel().build());
   }
 
   @Test
-  public void test() throws Exception {
+  public void testD8() throws Exception {
     Path dump = dumpStrategy.createDumpPath(temp);
     DumpInputFlags dumpInputFlags = dumpStrategy.createDumpInputFlags(dump);
     try {
-      testForR8(Backend.DEX)
+      testForD8(parameters.getBackend())
+          .addProgramClasses(Main.class)
+          .addOptionsModification(options -> options.setDumpInputFlags(dumpInputFlags))
+          .apply(this::addArtProfileProviders)
+          .setMinApi(parameters)
+          .compileWithExpectedDiagnostics(
+              diagnostics -> inspectDiagnosticMessages(diagnostics, dumpInputFlags));
+      assertFalse("Expected compilation to fail", dumpInputFlags.shouldFailCompilation());
+    } catch (CompilationFailedException e) {
+      assertTrue("Expected compilation to succeed", dumpInputFlags.shouldFailCompilation());
+    }
+    inspectDump(dump);
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    Path dump = dumpStrategy.createDumpPath(temp);
+    DumpInputFlags dumpInputFlags = dumpStrategy.createDumpInputFlags(dump);
+    try {
+      testForR8(parameters.getBackend())
           .addProgramClasses(Main.class)
           .addKeepMainRule(Main.class)
           .addOptionsModification(options -> options.setDumpInputFlags(dumpInputFlags))
           .allowDiagnosticInfoMessages()
           .apply(this::addArtProfileProviders)
-          .setMinApi(AndroidApiLevel.LATEST)
+          .setMinApi(parameters)
           .compileWithExpectedDiagnostics(
-              diagnostics -> {
-                if (dumpInputFlags.shouldFailCompilation()) {
-                  diagnostics.assertErrorsMatch(
-                      diagnosticMessage(containsString("Dumped compilation inputs to:")));
-                } else {
-                  diagnostics.assertInfosMatch(
-                      diagnosticMessage(containsString("Dumped compilation inputs to:")));
-                }
-              });
+              diagnostics -> inspectDiagnosticMessages(diagnostics, dumpInputFlags));
       assertFalse("Expected compilation to fail", dumpInputFlags.shouldFailCompilation());
     } catch (CompilationFailedException e) {
       assertTrue("Expected compilation to succeed", dumpInputFlags.shouldFailCompilation());
     }
-    verifyDump(dump);
+    inspectDump(dump);
+  }
+
+  @Test
+  public void testL8() throws Exception {
+    Path dump = dumpStrategy.createDumpPath(temp);
+    DumpInputFlags dumpInputFlags = dumpStrategy.createDumpInputFlags(dump);
+    CompilationSpecification compilationSpecification = CompilationSpecification.D8_L8SHRINK;
+    LibraryDesugaringSpecification libraryDesugaringSpecification =
+        LibraryDesugaringSpecification.JDK11;
+    try {
+      testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
+          .addProgramClasses(Main.class)
+          .addKeepMainRule(Main.class)
+          .addL8OptionsModification(options -> options.setDumpInputFlags(dumpInputFlags))
+          .apply(this::addArtProfileProviders)
+          .compile()
+          .inspectL8DiagnosticMessages(
+              diagnostics -> inspectDiagnosticMessages(diagnostics, dumpInputFlags));
+      assertFalse("Expected compilation to fail", dumpInputFlags.shouldFailCompilation());
+    } catch (CompilationFailedException e) {
+      assertTrue("Expected compilation to succeed", dumpInputFlags.shouldFailCompilation());
+    }
+    inspectDump(dump);
+  }
+
+  private void addArtProfileProviders(D8TestBuilder testBuilder) {
+    getArtProfileProviders().forEach(testBuilder::addArtProfileForRewriting);
   }
 
   private void addArtProfileProviders(R8FullTestBuilder testBuilder) {
-    testBuilder.addArtProfileForRewriting(
+    getArtProfileProviders().forEach(testBuilder::addArtProfileForRewriting);
+  }
+
+  private void addArtProfileProviders(DesugaredLibraryTestBuilder<?> testBuilder) {
+    getArtProfileProviders().forEach(testBuilder::addL8ArtProfileForRewriting);
+  }
+
+  private Collection<ArtProfileProvider> getArtProfileProviders() {
+    return ImmutableList.of(
         new ArtProfileProvider() {
 
           @Override
@@ -129,8 +183,7 @@ public class DumpArtProfileProvidersTest extends TestBase {
           public Origin getOrigin() {
             return Origin.unknown();
           }
-        });
-    testBuilder.addArtProfileForRewriting(
+        },
         new ArtProfileProvider() {
 
           @Override
@@ -158,7 +211,18 @@ public class DumpArtProfileProvidersTest extends TestBase {
         });
   }
 
-  private void verifyDump(Path dump) throws IOException {
+  private void inspectDiagnosticMessages(
+      TestDiagnosticMessages diagnostics, DumpInputFlags dumpInputFlags) {
+    if (dumpInputFlags.shouldFailCompilation()) {
+      diagnostics.assertErrorsMatch(
+          diagnosticMessage(containsString("Dumped compilation inputs to:")));
+    } else {
+      diagnostics.assertInfosMatch(
+          diagnosticMessage(containsString("Dumped compilation inputs to:")));
+    }
+  }
+
+  private void inspectDump(Path dump) throws IOException {
     if (dumpStrategy == DumpStrategy.DIRECTORY) {
       List<Path> dumps =
           Files.walk(dump, 1).filter(path -> path.toFile().isFile()).collect(Collectors.toList());
