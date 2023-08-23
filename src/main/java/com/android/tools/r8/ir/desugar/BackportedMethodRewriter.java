@@ -347,7 +347,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     }
 
     private boolean typeIsPresentWithoutNeverIntroducedBackports(DexType type) {
-      return typeIsPresentWithoutBackportsFrom(type, AndroidApiLevel.ANDROID_PLATFORM);
+      return typeIsPresentWithoutBackportsFrom(type, AndroidApiLevel.UNKNOWN);
     }
 
     private boolean typeIsPresentWithoutBackportsFrom(DexType type, AndroidApiLevel methodsMinAPI) {

@@ -107,7 +107,7 @@ public class BackportPlatformTest extends TestBase {
     assertEquals(AndroidApiLevel.J, parameters.getApiLevel());
     testForD8(parameters.getBackend())
         // Setting platform API will disable any error checking.
-        .setMinApi(AndroidApiLevel.ANDROID_PLATFORM)
+        .setMinApi(AndroidApiLevel.ANDROID_PLATFORM_CONSTANT)
         .apply(b -> b.getBuilder().setAndroidPlatformBuild(true))
         .addOptionsModification(o -> o.disableBackportsWithErrorDiagnostics = true)
         .addProgramClasses(CLASSES)
