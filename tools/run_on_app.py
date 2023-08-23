@@ -227,7 +227,8 @@ def get_permutations():
     for version in data.VERSIONS:
       for type in data.VERSIONS[version]:
         if (app, version, type) not in DISABLED_PERMUTATIONS:
-          for use_r8lib in [False, True]:
+          # Only run with R8 lib to reduce cycle times.
+          for use_r8lib in [True]:
             yield app, version, type, use_r8lib
 
 def run_all(options, args):
