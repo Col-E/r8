@@ -4,22 +4,24 @@
 
 package com.android.tools.r8.relocator;
 
-import static com.android.tools.r8.relocator.RelocatorUtils.inspectAllClassesRelocated;
-import static com.android.tools.r8.relocator.RelocatorUtils.inspectAllSignaturesNotContainingString;
-import static com.android.tools.r8.relocator.RelocatorUtils.runRelocator;
+import static com.android.tools.r8.ToolHelper.CHECKED_IN_R8_17_WITH_DEPS;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static junit.framework.TestCase.assertFalse;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.RelocatorTestBuilder;
+import com.android.tools.r8.RelocatorTestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.references.PackageReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -31,11 +33,8 @@ import com.android.tools.r8.utils.codeinspector.LocalVariableTable.LocalVariable
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -59,140 +58,145 @@ public class RelocatorTest extends TestBase {
 
   @Test
   public void testRelocatorIdentity() throws Exception {
-    Path output = temp.newFile("output.jar").toPath();
-    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, new HashMap<>(), output, external);
-    inspectAllClassesRelocated(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, output, "", "");
+    testForRelocator(external)
+        .addProgramFiles(CHECKED_IN_R8_17_WITH_DEPS)
+        .run()
+        .inspectAllClassesRelocated(CHECKED_IN_R8_17_WITH_DEPS, "", "");
   }
 
   @Test
   public void testRelocatorEmptyToSomething() throws Exception {
     String originalPrefix = "";
     String newPrefix = "foo.bar.baz";
-    Path output = temp.newFile("output.jar").toPath();
-    Map<String, String> mapping = new HashMap<>();
-    mapping.put(originalPrefix, newPrefix);
-    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output, external);
+    RelocatorTestCompileResult compileResult =
+        testForRelocator(external)
+            .addPackageMapping(
+                Reference.packageFromString(originalPrefix), Reference.packageFromString(newPrefix))
+            .addProgramFiles(CHECKED_IN_R8_17_WITH_DEPS)
+            .run();
     // TODO(b/155618698): Extend relocator with a richer language such that java.lang.Object is not
     //   relocated.
     RuntimeException compilationError =
         assertThrows(
             RuntimeException.class,
             () ->
-                inspectAllClassesRelocated(
-                    ToolHelper.CHECKED_IN_R8_17_WITH_DEPS,
-                    output,
-                    originalPrefix,
-                    newPrefix + "."));
+                compileResult.inspectAllClassesRelocated(
+                    CHECKED_IN_R8_17_WITH_DEPS, originalPrefix, newPrefix + "."));
     assertThat(compilationError.getMessage(), containsString("must extend class java.lang.Object"));
   }
 
   @Test
   public void testRelocatorSomethingToEmpty() throws Exception {
     String originalPrefix = "com.android.tools.r8";
-    String newPrefix = "";
-    Path output = temp.newFile("output.jar").toPath();
-    Map<String, String> mapping = new HashMap<>();
-    mapping.put(originalPrefix, newPrefix);
-    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output, external);
-    inspectAllSignaturesNotContainingString(output, originalPrefix);
+    testForRelocator(external)
+        .addProgramFiles(CHECKED_IN_R8_17_WITH_DEPS)
+        .addPackageMapping(
+            Reference.packageFromString(originalPrefix), Reference.packageFromString(""))
+        .run()
+        .inspectAllSignaturesNotContainingString(originalPrefix);
   }
 
   @Test
   public void testRelocateKeepsDebugInfo() throws Exception {
-    String originalPrefix = "com.android.tools.r8";
-    String newPrefix = "com.android.tools.r8";
-    Path output = temp.newFile("output.jar").toPath();
-    Map<String, String> mapping = new HashMap<>();
-    mapping.put(originalPrefix, newPrefix);
-    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output, external);
-    // Assert that all classes are the same, have the same methods and debug info:
-    CodeInspector originalInspector = new CodeInspector(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS);
-    CodeInspector relocatedInspector = new CodeInspector(output);
-    for (FoundClassSubject clazz : originalInspector.allClasses()) {
-      ClassSubject relocatedClass = relocatedInspector.clazz(clazz.getFinalName());
-      assertThat(relocatedClass, isPresent());
-      assertEquals(
-          clazz.getDexProgramClass().sourceFile, relocatedClass.getDexProgramClass().sourceFile);
-      for (FoundMethodSubject originalMethod : clazz.allMethods()) {
-        MethodSubject relocatedMethod = relocatedClass.method(originalMethod.asMethodReference());
-        assertThat(relocatedMethod, isPresent());
-        assertEquals(originalMethod.hasLineNumberTable(), relocatedMethod.hasLineNumberTable());
-        if (originalMethod.hasLineNumberTable()) {
-          // TODO(b/155303677): Figure out why we cannot assert the same lines.
-          // assertEquals(
-          //     originalMethod.getLineNumberTable().getLines().size(),
-          //     relocatedMethod.getLineNumberTable().getLines().size());
-        }
-        assertEquals(
-            originalMethod.hasLocalVariableTable(), relocatedMethod.hasLocalVariableTable());
-        if (originalMethod.hasLocalVariableTable()) {
-          LocalVariableTable originalVariableTable = originalMethod.getLocalVariableTable();
-          LocalVariableTable relocatedVariableTable = relocatedMethod.getLocalVariableTable();
-          assertEquals(originalVariableTable.size(), relocatedVariableTable.size());
-          for (int i = 0; i < originalVariableTable.getEntries().size(); i++) {
-            LocalVariableTableEntry originalEntry = originalVariableTable.get(i);
-            LocalVariableTableEntry relocatedEntry = relocatedVariableTable.get(i);
-            assertEquals(originalEntry.name, relocatedEntry.name);
-            assertEquals(originalEntry.signature, relocatedEntry.signature);
-            assertEquals(originalEntry.type.toString(), relocatedEntry.type.toString());
-          }
-        }
-      }
-    }
+    PackageReference pkg = Reference.packageFromString("com.android.tools.r8");
+    testForRelocator(external)
+        .addProgramFiles(CHECKED_IN_R8_17_WITH_DEPS)
+        .addPackageMapping(pkg, pkg)
+        .run()
+        .inspect(
+            inspector -> {
+              // Assert that all classes are the same, have the same methods and debug info:
+              CodeInspector originalInspector = new CodeInspector(CHECKED_IN_R8_17_WITH_DEPS);
+              for (FoundClassSubject clazz : originalInspector.allClasses()) {
+                ClassSubject relocatedClass = inspector.clazz(clazz.getFinalName());
+                assertThat(relocatedClass, isPresent());
+                assertEquals(
+                    clazz.getDexProgramClass().sourceFile,
+                    relocatedClass.getDexProgramClass().sourceFile);
+                for (FoundMethodSubject originalMethod : clazz.allMethods()) {
+                  MethodSubject relocatedMethod =
+                      relocatedClass.method(originalMethod.asMethodReference());
+                  assertThat(relocatedMethod, isPresent());
+                  assertEquals(
+                      originalMethod.hasLineNumberTable(), relocatedMethod.hasLineNumberTable());
+                  if (originalMethod.hasLineNumberTable()) {
+                    // TODO(b/155303677): Figure out why we cannot assert the same lines.
+                    // assertEquals(
+                    //     originalMethod.getLineNumberTable().getLines().size(),
+                    //     relocatedMethod.getLineNumberTable().getLines().size());
+                  }
+                  assertEquals(
+                      originalMethod.hasLocalVariableTable(),
+                      relocatedMethod.hasLocalVariableTable());
+                  if (originalMethod.hasLocalVariableTable()) {
+                    LocalVariableTable originalVariableTable =
+                        originalMethod.getLocalVariableTable();
+                    LocalVariableTable relocatedVariableTable =
+                        relocatedMethod.getLocalVariableTable();
+                    assertEquals(originalVariableTable.size(), relocatedVariableTable.size());
+                    for (int i = 0; i < originalVariableTable.getEntries().size(); i++) {
+                      LocalVariableTableEntry originalEntry = originalVariableTable.get(i);
+                      LocalVariableTableEntry relocatedEntry = relocatedVariableTable.get(i);
+                      assertEquals(originalEntry.name, relocatedEntry.name);
+                      assertEquals(originalEntry.signature, relocatedEntry.signature);
+                      assertEquals(originalEntry.type.toString(), relocatedEntry.type.toString());
+                    }
+                  }
+                }
+              }
+            });
   }
 
   @Test
   public void testRelocateAll() throws Exception {
     String originalPrefix = "com.android.tools.r8";
     String newPrefix = "foo.bar.baz";
-    Map<String, String> mapping = new HashMap<>();
-    mapping.put("some.package.that.does.not.exist", "foo");
-    mapping.put(originalPrefix, newPrefix);
-    Path output = temp.newFile("output.jar").toPath();
-    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output, external);
-    inspectAllClassesRelocated(
-        ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, output, originalPrefix, newPrefix);
+    testForRelocator(external)
+        .addProgramFiles(CHECKED_IN_R8_17_WITH_DEPS)
+        .addPackageMapping(
+            Reference.packageFromString(originalPrefix), Reference.packageFromString(newPrefix))
+        .addPackageMapping("some.package.that.does.not.exist", "foo")
+        .run()
+        .inspectAllClassesRelocated(CHECKED_IN_R8_17_WITH_DEPS, originalPrefix, newPrefix);
   }
 
   @Test
   public void testOrderingOfPrefixes() throws Exception {
-    String originalPrefix = "com.android";
-    String newPrefix = "foo.bar.baz";
-    Path output = temp.newFile("output.jar").toPath();
-    Map<String, String> mapping = new LinkedHashMap<>();
-    mapping.put(originalPrefix, newPrefix);
-    mapping.put("com.android.tools.r8", "qux");
-    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output, external);
-    // Because we see "com.android.tools.r8" before seeing "com.android" we always choose qux.
-    inspectAllClassesRelocated(
-        ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, output, "com.android.tools.r8", "qux");
-    inspectAllSignaturesNotContainingString(output, "foo.bar.baz");
+    testForRelocator(external)
+        .addProgramFiles(CHECKED_IN_R8_17_WITH_DEPS)
+        .addPackageMapping("com.android", "foo.bar.baz")
+        .addPackageMapping("com.android.tools.r8", "qux")
+        .run()
+        // Because we see "com.android.tools.r8" before seeing "com.android" we always choose qux.
+        .inspectAllClassesRelocated(
+            ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, "com.android.tools.r8", "qux")
+        .inspectAllSignaturesNotContainingString("foo.bar.baz");
   }
 
   @Test
   public void testNoReEntry() throws Exception {
     // TODO(b/154909222): Check if this is the behavior we would like.
-    String originalPrefix = "com.android";
-    String newPrefix = "foo.bar.baz";
-    Map<String, String> mapping = new LinkedHashMap<>();
-    mapping.put(originalPrefix, newPrefix);
-    mapping.put(newPrefix, "qux");
-    Path output = temp.newFile("output.jar").toPath();
-    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output, external);
-    inspectAllClassesRelocated(
-        ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, output, originalPrefix, newPrefix);
-    // Assert that no mappings of com.android.tools.r8 -> qux exists.
-    CodeInspector inspector = new CodeInspector(output);
-    assertFalse(
-        inspector.allClasses().stream().anyMatch(clazz -> clazz.getFinalName().startsWith("qux")));
+    testForRelocator(external)
+        .addProgramFiles(CHECKED_IN_R8_17_WITH_DEPS)
+        .addPackageMapping("com.android", "foo.bar.baz")
+        .addPackageMapping("foo.bar.baz", "qux")
+        .run()
+        .inspect(
+            inspector -> {
+              // Assert that no mappings of com.android.tools.r8 -> qux exists.
+              assertTrue(
+                  inspector.allClasses().stream()
+                      .noneMatch(clazz -> clazz.getFinalName().startsWith("qux")));
+            });
   }
 
   @Test
   public void testMultiplePackages() throws Exception {
+    RelocatorTestBuilder testBuilder =
+        testForRelocator(external).addProgramFiles(CHECKED_IN_R8_17_WITH_DEPS);
     Set<String> seenPackages = new HashSet<>();
     List<Pair<String, String>> packageMappings = new ArrayList<>();
-    Map<String, String> mapping = new LinkedHashMap<>();
-    CodeInspector inspector = new CodeInspector(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS);
+    CodeInspector inspector = new CodeInspector(CHECKED_IN_R8_17_WITH_DEPS);
     int packageNameCounter = 0;
     // Generate a mapping for each package name directly below com.android.tools.r8.
     for (FoundClassSubject clazz : inspector.allClasses()) {
@@ -208,49 +212,43 @@ public class RelocatorTest extends TestBase {
         if (seenPackages.add(mappedPackageName)) {
           String relocatedPackageName = "number" + packageNameCounter++;
           packageMappings.add(new Pair<>(mappedPackageName, relocatedPackageName));
-          mapping.put(mappedPackageName, relocatedPackageName);
+          testBuilder.addPackageMapping(mappedPackageName, relocatedPackageName);
         }
       }
     }
-    Path output = temp.newFile("output.jar").toPath();
-    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output, external);
+    RelocatorTestCompileResult result = testBuilder.run();
     for (Pair<String, String> packageMapping : packageMappings) {
-      inspectAllClassesRelocated(
-          ToolHelper.CHECKED_IN_R8_17_WITH_DEPS,
-          output,
-          packageMapping.getFirst(),
-          packageMapping.getSecond());
+      result.inspectAllClassesRelocated(
+          CHECKED_IN_R8_17_WITH_DEPS, packageMapping.getFirst(), packageMapping.getSecond());
     }
   }
 
   @Test
   public void testPartialPrefix() throws Exception {
     String originalPrefix = "com.android.tools.r";
-    String newPrefix = "i_cannot_w";
-    Map<String, String> mapping = new LinkedHashMap<>();
-    mapping.put(originalPrefix, newPrefix);
-    Path output = temp.newFile("output.jar").toPath();
-    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output, external);
-    inspectAllClassesRelocated(
-        ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, output, originalPrefix, originalPrefix);
+    testForRelocator(external)
+        .addProgramFiles(CHECKED_IN_R8_17_WITH_DEPS)
+        .addPackageMapping(originalPrefix, "i_cannot_w")
+        .run()
+        .inspectAllClassesRelocated(CHECKED_IN_R8_17_WITH_DEPS, originalPrefix, originalPrefix);
   }
 
   @Test
   public void testBootstrap() throws Exception {
     String originalPrefix = "com.android.tools.r8";
     String newPrefix = "relocated_r8";
-    Map<String, String> mapping = new LinkedHashMap<>();
-    mapping.put(originalPrefix, newPrefix);
-    Path output = temp.newFile("output.jar").toPath();
-    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output, external);
+    RelocatorTestCompileResult result =
+        testForRelocator(external)
+            .addProgramFiles(CHECKED_IN_R8_17_WITH_DEPS)
+            .addPackageMapping(originalPrefix, newPrefix)
+            .run();
     // Check that all classes has been remapped.
-    inspectAllClassesRelocated(
-        ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, output, originalPrefix, newPrefix);
-    inspectAllSignaturesNotContainingString(output, originalPrefix);
+    result.inspectAllClassesRelocated(CHECKED_IN_R8_17_WITH_DEPS, originalPrefix, newPrefix);
+    result.inspectAllSignaturesNotContainingString(originalPrefix);
     // We should be able to call the relocated relocator.
     Path bootstrapOutput = temp.newFile("bootstrap.jar").toPath();
     List<Path> classPath = new ArrayList<>();
-    classPath.add(output);
+    classPath.add(result.getOutput());
     ProcessResult processResult =
         ToolHelper.runJava(
             CfRuntime.getCheckedInJdk17(),
@@ -258,42 +256,46 @@ public class RelocatorTest extends TestBase {
             newPrefix + ".SwissArmyKnife",
             "relocator",
             "--input",
-            output.toString(),
+            result.getOutput().toString(),
             "--output",
             bootstrapOutput.toString(),
             "--map",
             newPrefix + "->" + originalPrefix);
     System.out.println(processResult.stderr);
     assertEquals(0, processResult.exitCode);
-    inspectAllClassesRelocated(output, bootstrapOutput, newPrefix, originalPrefix);
-    inspectAllSignaturesNotContainingString(bootstrapOutput, newPrefix);
+    RelocatorTestCompileResult bootstrapResult = new RelocatorTestCompileResult(bootstrapOutput);
+    bootstrapResult.inspectAllClassesRelocated(result.getOutput(), newPrefix, originalPrefix);
+    bootstrapResult.inspectAllSignaturesNotContainingString(newPrefix);
     // Assert that this is in fact an identity transformation.
-    inspectAllClassesRelocated(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, bootstrapOutput, "", "");
+    bootstrapResult.inspectAllClassesRelocated(CHECKED_IN_R8_17_WITH_DEPS, "", "");
   }
 
   @Test
   public void testNest() throws Exception {
     String originalPrefix = "com.android.tools.r8";
     String newPrefix = "com.android.tools.r8";
-    Path output = temp.newFile("output.jar").toPath();
-    Map<String, String> mapping = new HashMap<>();
-    mapping.put(originalPrefix, newPrefix);
-    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output, external);
+    CodeInspector originalInspector = new CodeInspector(CHECKED_IN_R8_17_WITH_DEPS);
     // Assert that all classes are the same, have the same methods and nest info.
-    CodeInspector originalInspector = new CodeInspector(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS);
-    CodeInspector relocatedInspector = new CodeInspector(output);
-    for (FoundClassSubject originalSubject : originalInspector.allClasses()) {
-      ClassSubject relocatedSubject = relocatedInspector.clazz(originalSubject.getFinalName());
-      assertThat(relocatedSubject, isPresent());
-      DexClass originalClass = originalSubject.getDexProgramClass();
-      DexClass relocatedClass = relocatedSubject.getDexProgramClass();
-      assertEquals(originalClass.isNestHost(), relocatedClass.isNestHost());
-      assertEquals(originalClass.isNestMember(), relocatedClass.isNestMember());
-      if (originalClass.isInANest()) {
-        assertEquals(
-            originalClass.getNestHost().descriptor, relocatedClass.getNestHost().descriptor);
-      }
-    }
+    testForRelocator(external)
+        .addProgramFiles(CHECKED_IN_R8_17_WITH_DEPS)
+        .addPackageMapping(originalPrefix, newPrefix)
+        .run()
+        .inspect(
+            relocatedInspector -> {
+              for (FoundClassSubject originalSubject : originalInspector.allClasses()) {
+                ClassSubject relocatedSubject =
+                    relocatedInspector.clazz(originalSubject.getFinalName());
+                assertThat(relocatedSubject, isPresent());
+                DexClass originalClass = originalSubject.getDexProgramClass();
+                DexClass relocatedClass = relocatedSubject.getDexProgramClass();
+                assertEquals(originalClass.isNestHost(), relocatedClass.isNestHost());
+                assertEquals(originalClass.isNestMember(), relocatedClass.isNestMember());
+                if (originalClass.isInANest()) {
+                  assertEquals(
+                      originalClass.getNestHost().descriptor,
+                      relocatedClass.getNestHost().descriptor);
+                }
+              }
+            });
   }
-
 }
