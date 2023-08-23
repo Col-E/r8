@@ -14,7 +14,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
@@ -30,7 +29,6 @@ import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.LocalVariableTable;
 import com.android.tools.r8.utils.codeinspector.LocalVariableTable.LocalVariableTableEntry;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -89,16 +87,14 @@ public class RelocatorTest extends TestBase {
   }
 
   @Test
-  public void testRelocatorSomethingToEmpty() throws IOException {
+  public void testRelocatorSomethingToEmpty() throws Exception {
     String originalPrefix = "com.android.tools.r8";
     String newPrefix = "";
     Path output = temp.newFile("output.jar").toPath();
     Map<String, String> mapping = new HashMap<>();
     mapping.put(originalPrefix, newPrefix);
-    // TODO(b/155047618): Fixup the type after rewriting.
-    assertThrows(
-        CompilationFailedException.class,
-        () -> runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output, external));
+    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output, external);
+    inspectAllSignaturesNotContainingString(output, originalPrefix);
   }
 
   @Test
@@ -166,13 +162,11 @@ public class RelocatorTest extends TestBase {
     Map<String, String> mapping = new LinkedHashMap<>();
     mapping.put(originalPrefix, newPrefix);
     mapping.put("com.android.tools.r8", "qux");
-    CompilationFailedException exception =
-        assertThrows(
-            CompilationFailedException.class,
-            () -> runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output, external));
-    assertThat(
-        exception.getCause().getMessage(),
-        containsString("can be relocated by multiple mappings."));
+    runRelocator(ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, mapping, output, external);
+    // Because we see "com.android.tools.r8" before seeing "com.android" we always choose qux.
+    inspectAllClassesRelocated(
+        ToolHelper.CHECKED_IN_R8_17_WITH_DEPS, output, "com.android.tools.r8", "qux");
+    inspectAllSignaturesNotContainingString(output, "foo.bar.baz");
   }
 
   @Test

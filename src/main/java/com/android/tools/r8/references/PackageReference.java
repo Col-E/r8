@@ -30,6 +30,11 @@ public class PackageReference {
     return packageName;
   }
 
+  public String getPackageBinaryName() {
+    return packageName.replace(
+        DescriptorUtils.JAVA_PACKAGE_SEPARATOR, DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {

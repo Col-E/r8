@@ -16,6 +16,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.PackageReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -23,6 +24,7 @@ import com.android.tools.r8.shaking.ProguardPathList;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FlagFile;
@@ -38,7 +40,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 
 @Keep
@@ -70,7 +71,7 @@ public class RelocatorCommand {
   private final DexItemFactory factory;
   private final ClassFileConsumer consumer;
   private final AndroidApp app;
-  private final ImmutableMap<PackageReference, PackageReference> mapping;
+  private final RelocatorMapping mapping;
   private final int threadCount;
 
   private RelocatorCommand(boolean printHelp, boolean printVersion) {
@@ -85,7 +86,7 @@ public class RelocatorCommand {
   }
 
   private RelocatorCommand(
-      ImmutableMap<PackageReference, PackageReference> mapping,
+      RelocatorMapping mapping,
       AndroidApp app,
       Reporter reporter,
       DexItemFactory factory,
@@ -163,7 +164,7 @@ public class RelocatorCommand {
     return options;
   }
 
-  public Map<PackageReference, PackageReference> getMapping() {
+  public RelocatorMapping getMapping() {
     return mapping;
   }
 
@@ -172,7 +173,9 @@ public class RelocatorCommand {
 
     private final AndroidApp.Builder app;
     private final Reporter reporter;
-    private final ImmutableMap.Builder<PackageReference, PackageReference> mapping =
+    private final ImmutableMap.Builder<PackageReference, PackageReference> packageMapping =
+        ImmutableMap.builder();
+    private final ImmutableMap.Builder<ClassReference, ClassReference> classMapping =
         ImmutableMap.builder();
     private ClassFileConsumer consumer = null;
     private int threadCount = ThreadUtils.NOT_SPECIFIED;
@@ -269,7 +272,12 @@ public class RelocatorCommand {
     }
 
     public Builder addPackageMapping(PackageReference source, PackageReference destination) {
-      mapping.put(source, destination);
+      packageMapping.put(source, destination);
+      return this;
+    }
+
+    public Builder addClassMapping(ClassReference source, ClassReference destination) {
+      classMapping.put(source, destination);
       return this;
     }
 
@@ -309,7 +317,12 @@ public class RelocatorCommand {
             DexItemFactory factory = new DexItemFactory();
             result.set(
                 new RelocatorCommand(
-                    mapping.build(), app.build(), reporter, factory, consumer, threadCount));
+                    RelocatorMapping.create(packageMapping.build(), classMapping.build()),
+                    app.build(),
+                    reporter,
+                    factory,
+                    consumer,
+                    threadCount));
           });
       return result.get();
     }
@@ -409,10 +422,16 @@ public class RelocatorCommand {
                   new StringDiagnostic("--map " + nextArg + " is not on the form from->to"));
               continue;
             }
-            // TODO(b/155047633): Handle invalid package names.
-            builder.addPackageMapping(
-                Reference.packageFromString(nextArg.substring(0, separator)),
-                Reference.packageFromString(nextArg.substring(separator + 2)));
+            String source = nextArg.substring(0, separator);
+            String destination = nextArg.substring(separator + 2);
+            if (DescriptorUtils.isClassDescriptor(source)) {
+              builder.addClassMapping(
+                  Reference.classFromDescriptor(source),
+                  Reference.classFromDescriptor(destination));
+            } else {
+              builder.addPackageMapping(
+                  Reference.packageFromString(source), Reference.packageFromString(destination));
+            }
             break;
           default:
             builder.error(new StringDiagnostic("Unknown argument: " + arg, origin));

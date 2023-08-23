@@ -5,7 +5,6 @@
 package com.android.tools.r8.relocator;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
 
@@ -13,6 +12,8 @@ import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.relocator.foo.Base;
 import com.android.tools.r8.relocator.foo.bar.Baz;
 import com.android.tools.r8.relocator.foo.bar.BazImpl;
@@ -52,17 +53,16 @@ public class RelocatorPathExpansionTest extends TestBase {
         BazImpl.dump(),
         transformer(Base.class).setClassDescriptor("Lfoo/Base;").transform());
     Path relocatedJar = temp.newFile("out.jar").toPath();
+    ClassReference destination =
+        Reference.classFromDescriptor("Lcom/android/tools/r8/foo/bar/Baz;");
     Map<String, String> mapping = new LinkedHashMap<>();
-    mapping.put("foo.*", "com.android.tools.r8.foo");
-    mapping.put("foo.bar.Baz", "com.android.tools.r8.foo.bar.Baz");
+    mapping.put("foo", "com.android.tools.r8.foo");
+    mapping.put("Lfoo/bar/Baz;", destination.getDescriptor());
     RelocatorUtils.runRelocator(testJarPath, mapping, relocatedJar, external);
     CodeInspector inspector = new CodeInspector(relocatedJar);
-    ClassSubject relocatedBase = inspector.clazz("com.android.tools.r8.foo.Base");
-    // TODO(b/155618698): We should be able to relocate.
-    assertThat(relocatedBase, not(isPresent()));
-    ClassSubject relocatedBaz = inspector.clazz("com.android.tools.r8.foo.bar.Baz");
-    // TODO(b/155618698): We should be able to relocate.
-    assertThat(relocatedBaz, not(isPresent()));
+    assertThat(inspector.clazz("com.android.tools.r8.foo.Base"), isPresent());
+    assertThat(inspector.clazz(destination), isPresent());
+    assertThat(inspector.clazz("com.android.tools.r8.foo.bar.BazImpl"), isPresent());
   }
 
   @Test
@@ -74,13 +74,13 @@ public class RelocatorPathExpansionTest extends TestBase {
         BazImpl.dump(),
         transformer(Base.class).setClassDescriptor("LBase;").transform());
     Path relocatedJar = temp.newFile("out.jar").toPath();
+    ClassReference destination = Reference.classFromDescriptor("Lcom/android/tools/r8/Base;");
     Map<String, String> mapping = new LinkedHashMap<>();
-    mapping.put("Base", "com.android.tools.r8.Base");
+    mapping.put("LBase;", destination.getDescriptor());
     RelocatorUtils.runRelocator(testJarPath, mapping, relocatedJar, external);
     CodeInspector inspector = new CodeInspector(relocatedJar);
-    ClassSubject relocatedBase = inspector.clazz("com.android.tools.r8.Base");
-    // TODO(b/155618698): We should be able to relocate.
-    assertThat(relocatedBase, not(isPresent()));
+    assertThat(inspector.clazz(destination), isPresent());
+    // Assert that we did not rename a class in a package that is under root.
     ClassSubject relocatedBaz = inspector.clazz("foo.bar.Baz");
     assertThat(relocatedBaz, isPresent());
   }
@@ -90,18 +90,16 @@ public class RelocatorPathExpansionTest extends TestBase {
     Path testJarPath = temp.newFile("test.jar").toPath();
     writeClassesToPath(testJarPath, Baz.dump(), BazImpl.dump());
     Path relocatedJar = temp.newFile("out.jar").toPath();
+    ClassReference destination =
+        Reference.classFromDescriptor("Lcom/android/tools/r8/foo1/bar/Baz;");
     Map<String, String> mapping = new LinkedHashMap<>();
-    mapping.put("foo.bar.*", "com.android.tools.r8.foo2.bar");
+    mapping.put("foo.bar", "com.android.tools.r8.foo2.bar");
     // Relocation of specific classes should take precedence over relocation of packages.
-    mapping.put("foo.bar.Baz", "com.android.tools.r8.foo1.bar.Baz");
+    mapping.put("Lfoo/bar/Baz;", destination.getDescriptor());
     RelocatorUtils.runRelocator(testJarPath, mapping, relocatedJar, external);
     CodeInspector inspector = new CodeInspector(relocatedJar);
-    ClassSubject relocatedBase = inspector.clazz("com.android.tools.r8.foo1.bar.Baz");
-    // TODO(b/155618698): We should be able to relocate.
-    assertThat(relocatedBase, not(isPresent()));
-    // TODO(b/155618698): We should be able to relocate.
-    ClassSubject relocatedBaz = inspector.clazz("com.android.tools.r8.foo2.bar.BazImpl");
-    assertThat(relocatedBaz, not(isPresent()));
+    assertThat(inspector.clazz(destination), isPresent());
+    assertThat(inspector.clazz("com.android.tools.r8.foo2.bar.BazImpl"), isPresent());
   }
 
   @Test

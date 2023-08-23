@@ -59,7 +59,7 @@ public class RelocatorCommandTest extends TestBase {
             .build();
     assertEquals(42, command.getThreadCount());
     assertNotNull(command.getMapping());
-    assertEquals(DESTINATION, command.getMapping().get(SOURCE));
+    assertEquals(DESTINATION, command.getMapping().getPackageMappings().get(SOURCE));
     List<ProgramResourceProvider> programResources = command.getApp().getProgramResourceProviders();
     assertEquals(2, programResources.size());
     for (ProgramResourceProvider programResourceProvider : programResources) {

@@ -485,6 +485,7 @@ public class DexString extends IndexedDexItem
     // Copy bytes over to avoid decoding/encoding cost.
     // Each string ends with a 0 terminating byte, hence the +/- 1.
     // Maintain the [[ at the beginning for array dimensions.
+    assert prefix.startsWith("L") && rewrittenPrefix.startsWith("L");
     int arrayDim = getArrayDim();
     int newSize = rewrittenPrefix.size + this.size - prefix.size;
     byte[] newContent =
@@ -496,13 +497,18 @@ public class DexString extends IndexedDexItem
     // Write new prefix.
     System.arraycopy(
         rewrittenPrefix.content, 0, newContent, arrayDim, rewrittenPrefix.content.length - 1);
+    // Account for target being an empty string as to not start the descriptor with '/'.
+    int prefixIndex = prefix.content.length - 1;
+    if (rewrittenPrefix.content.length == 2 && !prefix.endsWith(factory.descriptorSeparator)) {
+      prefixIndex += 1;
+    }
     // Write existing name - old prefix.
     System.arraycopy(
         this.content,
-        prefix.content.length - 1,
+        prefixIndex,
         newContent,
         rewrittenPrefix.content.length - 1,
-        this.content.length - prefix.content.length + 1);
+        this.content.length - prefixIndex);
     return factory.createString(newSize, newContent);
   }
 

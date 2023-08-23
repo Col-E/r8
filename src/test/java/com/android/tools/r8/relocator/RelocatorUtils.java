@@ -44,9 +44,15 @@ public class RelocatorUtils {
       RelocatorCommand.Builder builder =
           RelocatorCommand.builder().addProgramFiles(input).setOutputPath(output);
       mapping.forEach(
-          (key, value) ->
+          (key, value) -> {
+            if (DescriptorUtils.isClassDescriptor(key)) {
+              builder.addClassMapping(
+                  Reference.classFromDescriptor(key), Reference.classFromDescriptor(value));
+            } else {
               builder.addPackageMapping(
-                  Reference.packageFromString(key), Reference.packageFromString(value)));
+                  Reference.packageFromString(key), Reference.packageFromString(value));
+            }
+          });
       Relocator.run(builder.build());
     }
   }
