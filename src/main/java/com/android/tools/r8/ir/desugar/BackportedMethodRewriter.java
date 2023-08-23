@@ -18,7 +18,7 @@ import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.errors.BackportDiagnostic;
+import com.android.tools.r8.errors.IgnoredBackportMethodDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
@@ -180,21 +180,22 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
           appView.dexItemFactory().createMethod(newHolder, method.proto, method.name);
       provider = rewritableMethods.getProvider(backportedMethod);
     }
-    if (provider != null && appView.options().disableBackports) {
-      if (appView.options().disableBackportsWithErrorDiagnostics) {
-        // If the provided backport is defined on a holder that is part of the program compilation
-        // unit, assume that the compilation is the defining instance and no backport is needed.
-        DexClass clazz =
-            appView
-                .contextIndependentDefinitionForWithResolutionResult(provider.method.holder)
-                .toSingleClassWithProgramOverLibrary();
-        if (!clazz.isProgramDefinition()) {
+    if (provider != null && appView.options().disableBackportsAndReportIfTriggered) {
+      // If the provided backport is defined on a holder that is part of the program compilation
+      // unit, assume that the compilation is the defining instance and no backport is needed.
+      DexClass clazz =
           appView
-              .reporter()
-              .error(
-                  new BackportDiagnostic(
-                      provider.method, context.getOrigin(), MethodPosition.create(context)));
-        }
+              .contextIndependentDefinitionForWithResolutionResult(provider.method.holder)
+              .toSingleClassWithProgramOverLibrary();
+      if (!clazz.isProgramDefinition()) {
+        appView
+            .reporter()
+            .warning(
+                new IgnoredBackportMethodDiagnostic(
+                    provider.method,
+                    context.getOrigin(),
+                    MethodPosition.create(context),
+                    appView.options().getMinApiLevel().getLevel()));
       }
       return null;
     }

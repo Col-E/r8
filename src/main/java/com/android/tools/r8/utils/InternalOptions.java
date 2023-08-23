@@ -332,8 +332,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     assert !addAndroidPlatformBuildToMarker;
     if (isAndroidPlatformBuild) {
       apiModelingOptions().disableApiModeling();
-      // TODO(b/232073181): This should also enable throwing errors on triggered backports.
-      disableBackports = true;
+      disableBackportsAndReportIfTriggered = true;
       addAndroidPlatformBuildToMarker = isAndroidPlatformBuild;
     }
   }
@@ -694,9 +693,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Flag to turn on/off partial VarHandle desugaring.
   public boolean enableVarHandleDesugaring = false;
   // Flag to turn off backport methods (and report errors if triggered).
-  public boolean disableBackports = false;
-  public boolean disableBackportsWithErrorDiagnostics =
-      System.getProperty("com.android.tools.r8.throwErrorOnBackport") != null;
+  public boolean disableBackportsAndReportIfTriggered = false;
   // Flag to turn on/off reduction of nest to improve class merging optimizations.
   public boolean enableNestReduction = true;
   // Defines interface method rewriter behavior.
