@@ -319,7 +319,6 @@ def cloudDependencies = [
                 "gson/gson-2.10.1",
                 "guava/guava-32.1.2-android",
                 "guava/guava-32.1.2-jre",
-                "iosched_2019",
                 "jacoco/0.8.2",
                 "jacoco/0.8.6",
                 "jasmin",
@@ -357,8 +356,7 @@ def cloudDependencies = [
                 "r8-releases/2.0.74",
                 "r8-releases/3.2.54",
                 "r8mappings",
-                "smali",
-                "tachiyomi"
+                "smali"
         ],
         // All dex-vms have a fixed OS of Linux, as they are only supported on Linux, and will be run in a Docker
         // container on other platforms where supported.
@@ -434,7 +432,6 @@ cloudDependencies.each { entry ->
 def x20Dependencies = [
     "third_party": [
         "benchmarks/kotlin-benches",
-        "chrome/chrome_180917_ffbaa8",
         "chrome/chrome_200430",
         "chrome/monochrome_public_minimal_apks/chrome_200520",
         "chrome/clank_google3_prebuilt",
@@ -443,7 +440,6 @@ def x20Dependencies = [
         "desugar/desugar_20180308",
         "internal/issue-127524985",
         "framework",
-        "gmail/gmail_android_170604.16",
         "gmail/gmail_android_180826.15",
         "gmscore/gmscore_v10",
         "gmscore/latest",
@@ -453,7 +449,6 @@ def x20Dependencies = [
         "proto",
         "protobuf-lite",
         "retrace_internal",
-        "youtube/youtube.android_16.20",
         "youtube/youtube.android_17.19"
     ],
 ]

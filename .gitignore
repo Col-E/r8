@@ -119,8 +119,6 @@ third_party/guava/guava-32.1.2-android.tar.gz
 third_party/guava/guava-32.1.2-jre
 third_party/guava/guava-32.1.2-jre.tar.gz
 third_party/internal/*
-third_party/iosched_2019
-third_party/iosched_2019.tar.gz
 third_party/jacoco/0.8.2/*
 third_party/jacoco/0.8.2.tar.gz
 third_party/jacoco/0.8.6/*
@@ -282,8 +280,6 @@ third_party/sample_libraries
 third_party/sample_libraries.tar.gz
 third_party/smali
 third_party/smali.tar.gz
-third_party/tachiyomi
-third_party/tachiyomi.tar.gz
 third_party/youtube/*
 tmp/
 tools/*.pyc

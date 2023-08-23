@@ -75,7 +75,6 @@ val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
     ThirdPartyDeps.desugarJdkLibsLegacy,
     ThirdPartyDeps.desugarJdkLibs11,
     ThirdPartyDeps.gson,
-    ThirdPartyDeps.iosched2019,
     ThirdPartyDeps.jacoco,
     ThirdPartyDeps.java8Runtime,
     ThirdPartyDeps.jdk11Test,

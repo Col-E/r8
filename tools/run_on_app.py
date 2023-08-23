@@ -23,12 +23,9 @@ import update_prebuilds_in_android
 import utils
 import youtube_data
 import chrome_data
-import r8_data
-import iosched_data
 
 TYPES = ['dex', 'deploy', 'proguarded']
-APPS = [
-  'gmscore', 'nest', 'youtube', 'gmail', 'chrome', 'r8', 'iosched']
+APPS = ['gmscore', 'nest', 'youtube', 'gmail', 'chrome']
 COMPILERS = ['d8', 'r8']
 COMPILER_BUILDS = ['full', 'lib']
 
@@ -218,8 +215,6 @@ def get_permutations():
       'youtube': youtube_data,
       'chrome': chrome_data,
       'gmail': gmail_data,
-      'r8': r8_data,
-      'iosched': iosched_data,
   }
   # Check to ensure that we add all variants here.
   assert len(APPS) == len(data_providers)
@@ -396,12 +391,6 @@ def get_version_and_data(options):
   elif options.app == 'gmail':
     version = options.version or '170604.16'
     data = gmail_data
-  elif options.app == 'r8':
-    version = options.version or 'cf'
-    data = r8_data
-  elif options.app == 'iosched':
-    version = options.version or '2019'
-    data = iosched_data
   else:
     raise Exception("You need to specify '--app={}'".format('|'.join(APPS)))
   return version, data

@@ -39,8 +39,6 @@ import utils
 import run_on_app
 
 import chrome_data
-import iosched_data
-import r8_data
 import youtube_data
 
 # How often the bot/tester should check state
@@ -60,7 +58,7 @@ STDOUT = 'stdout'
 EXITCODE = 'exitcode'
 TIMED_OUT = 'timed_out'
 
-BENCHMARK_APPS = [chrome_data, iosched_data, r8_data, youtube_data]
+BENCHMARK_APPS = [chrome_data, youtube_data]
 
 DEPENDENT_PYTHON_FILES = [gradle, utils, run_on_app]
 
