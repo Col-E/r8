@@ -120,8 +120,6 @@ TEST_COMMANDS = [
      '--java_max_memory_size=8G'],
     # Ensure that all internal apps compile.
     ['tools/run_on_app.py', '--run-all', '--out=out'],
-    # Find min xmx for selected benchmark apps
-    ['tools/gradle.py', 'r8lib'],
 ]
 
 # Command timeout, in seconds.
