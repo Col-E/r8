@@ -384,7 +384,7 @@ def run_once(archive):
   log('Running once with hash %s' % git_hash)
   env = os.environ.copy()
   # Bot does not have a lot of memory.
-  env['R8_GRADLE_CORES_PER_FORK'] = '8'
+  env['R8_GRADLE_CORES_PER_FORK'] = '5'
   failed = any([execute(cmd, archive, env) for cmd in TEST_COMMANDS])
   # Gradle daemon occasionally leaks memory, stop it.
   gradle.RunGradle(['--stop'])
