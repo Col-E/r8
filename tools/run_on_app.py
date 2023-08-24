@@ -18,6 +18,8 @@ import gmail_data
 import gmscore_data
 import nest_data
 from sanitize_libraries import SanitizeLibraries, SanitizeLibrariesInPgconf
+import thread_utils
+from thread_utils import print_thread
 import toolhelper
 import update_prebuilds_in_android
 import utils
@@ -48,6 +50,11 @@ def ParseOptions(argv):
                     help='Compiler build to use',
                     choices=COMPILER_BUILDS,
                     default='lib')
+  result.add_option('--no-fail-fast',
+                    help='Whether run_on_app.py should report all failures '
+                         'and not just the first one',
+                    default=False,
+                    action='store_true')
   result.add_option('--hash',
                     help='The version of D8/R8 to use')
   result.add_option('--app',
@@ -181,6 +188,10 @@ def ParseOptions(argv):
                     help='Disable compiler logging',
                     default=False,
                     action='store_true')
+  result.add_option('--workers',
+                    help='Number of workers to use',
+                    default=1,
+                    type=int)
   (options, args) = result.parse_args(argv)
   assert not options.hash or options.no_build, (
       'Argument --no-build is required when using --hash')
@@ -227,25 +238,53 @@ def get_permutations():
             yield app, version, type, use_r8lib
 
 def run_all(options, args):
+  # Build first so that each job won't.
+  if should_build(options):
+    gradle.RunGradle(['r8lib'])
+    options.no_build = True
+  assert not should_build(options)
+
   # Args will be destroyed
   assert len(args) == 0
+  jobs = []
   for name, version, type, use_r8lib in get_permutations():
     compiler = 'r8' if type == 'deploy' else 'd8'
     compiler_build = 'lib' if use_r8lib else 'full'
-    print('Executing %s/%s with %s %s %s' % (compiler, compiler_build, name,
-      version, type))
-
     fixed_options = copy.copy(options)
     fixed_options.app = name
     fixed_options.version = version
     fixed_options.compiler = compiler
     fixed_options.compiler_build = compiler_build
     fixed_options.type = type
-    exit_code = run_with_options(fixed_options, [])
-    if exit_code != 0:
-      print('Failed %s %s %s with %s/%s' % (name, version, type, compiler,
-        compiler_build))
-      exit(exit_code)
+    jobs.append(
+        create_job(
+            compiler, compiler_build, name, fixed_options, type, version))
+  exit_code = thread_utils.run_in_parallel(
+      jobs,
+      number_of_workers=options.workers,
+      stop_on_first_failure=not options.no_fail_fast)
+  exit(exit_code)
+
+def create_job(compiler, compiler_build, name, options, type, version):
+  return lambda worker_id: run_job(
+      compiler, compiler_build, name, options, type, version, worker_id)
+
+def run_job(
+    compiler, compiler_build, name, options, type, version, worker_id):
+  print_thread(
+      'Executing %s/%s with %s %s %s'
+          % (compiler, compiler_build, name, version, type),
+      worker_id)
+  if worker_id is not None:
+    options.out = os.path.join(options.out, str(worker_id))
+    os.makedirs(options.out, exist_ok=True)
+  exit_code = run_with_options(options, [], worker_id=worker_id)
+  if exit_code:
+    print_thread(
+        'Failed %s %s %s with %s/%s'
+            % (name, version, type, compiler, compiler_build),
+        worker_id)
+  return exit_code
 
 def find_min_xmx(options, args):
   # Args will be destroyed
@@ -492,7 +531,8 @@ def build_desugared_library_dex(
       os.path.join(android_java8_libs_output, 'classes.dex'),
       os.path.join(outdir, dex_file_name))
 
-def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
+def run_with_options(
+    options, args, extra_args=None, stdout=None, quiet=False, worker_id=None):
   if extra_args is None:
     extra_args = []
   app_provided_pg_conf = False;
@@ -550,9 +590,9 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
 
   if options.compiler == 'r8':
     if 'pgconf' in values and not options.k:
+      sanitized_lib_path = os.path.join(
+          os.path.abspath(outdir), 'sanitized_lib.jar')
       if has_injars_and_libraryjars(values['pgconf']):
-        sanitized_lib_path = os.path.join(
-            os.path.abspath(outdir), 'sanitized_lib.jar')
         sanitized_pgconf_path = os.path.join(
             os.path.abspath(outdir), 'sanitized.config')
         SanitizeLibrariesInPgconf(
@@ -566,8 +606,6 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
         for pgconf in values['pgconf']:
           args.extend(['--pg-conf', pgconf])
         if 'sanitize_libraries' in values and values['sanitize_libraries']:
-          sanitized_lib_path = os.path.join(
-              os.path.abspath(outdir), 'sanitized_lib.jar')
           SanitizeLibraries(
             sanitized_lib_path, values['libraries'], values['inputs'])
           libraries = [sanitized_lib_path]
@@ -693,7 +731,8 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
             cmd_prefix=[
                 'taskset', '-c', options.cpu_list] if options.cpu_list else [],
             jar=jar,
-            main=main)
+            main=main,
+            worker_id=worker_id)
       if exit_code != 0:
         with open(stderr_path) as stderr:
           stderr_text = stderr.read()

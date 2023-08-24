@@ -17,6 +17,7 @@ import zipfile
 
 import defines
 import jdk
+from thread_utils import print_thread
 
 ANDROID_JAR_DIR = 'third_party/android_jar/lib-v{api}'
 ANDROID_JAR = os.path.join(ANDROID_JAR_DIR, 'android.jar')
@@ -203,16 +204,16 @@ def Warn(message):
   CEND = '\033[0m'
   print(CRED + message + CEND)
 
-def PrintCmd(cmd, env=None, quiet=False):
+def PrintCmd(cmd, env=None, quiet=False, worker_id=None):
   if quiet:
     return
   if type(cmd) is list:
     cmd = ' '.join(cmd)
   if env:
     env = ' '.join(['{}=\"{}\"'.format(x, y) for x, y in env.iteritems()])
-    print('Running: {} {}'.format(env, cmd))
+    print_thread('Running: {} {}'.format(env, cmd), worker_id)
   else:
-    print('Running: {}'.format(cmd))
+    print_thread('Running: {}'.format(cmd), worker_id)
   # I know this will hit os on windows eventually if we don't do this.
   sys.stdout.flush()
 
