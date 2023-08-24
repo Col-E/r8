@@ -15,7 +15,6 @@ import time
 import archive
 import gradle
 import gmail_data
-import gmscore_data
 import nest_data
 from sanitize_libraries import SanitizeLibraries, SanitizeLibrariesInPgconf
 import thread_utils
@@ -27,7 +26,7 @@ import youtube_data
 import chrome_data
 
 TYPES = ['dex', 'deploy', 'proguarded']
-APPS = ['gmscore', 'nest', 'youtube', 'gmail', 'chrome']
+APPS = ['nest', 'youtube', 'gmail', 'chrome']
 COMPILERS = ['d8', 'r8']
 COMPILER_BUILDS = ['full', 'lib']
 
@@ -221,7 +220,6 @@ DISABLED_PERMUTATIONS = [
 
 def get_permutations():
   data_providers = {
-      'gmscore': gmscore_data,
       'nest': nest_data,
       'youtube': youtube_data,
       'chrome': chrome_data,
@@ -415,10 +413,7 @@ def main(argv):
   return exit_code
 
 def get_version_and_data(options):
-  if options.app == 'gmscore':
-    version = options.version or gmscore_data.LATEST_VERSION
-    data = gmscore_data
-  elif options.app == 'nest':
+  if options.app == 'nest':
     version = options.version or '20180926'
     data = nest_data
   elif options.app == 'youtube':
