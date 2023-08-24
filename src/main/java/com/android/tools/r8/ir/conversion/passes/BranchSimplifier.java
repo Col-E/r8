@@ -150,7 +150,6 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
     AffectedValues affectedValues = code.removeUnreachableBlocks();
     affectedValues.narrowingWithAssumeRemoval(appView, code);
     code.removeRedundantBlocks();
-    assert code.isConsistentSSA(appView);
     return create(!affectedValues.isEmpty(), simplified);
   }
 
@@ -686,7 +685,6 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
         needToRemoveUnreachableBlocks ? code.removeUnreachableBlocks() : AffectedValues.empty();
     affectedValues.narrowingWithAssumeRemoval(appView, code);
     code.removeRedundantBlocks();
-    assert code.isConsistentSSA(appView);
     return create(affectedValues.hasNext(), anySimplifications);
   }
 

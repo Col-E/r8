@@ -185,7 +185,6 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
       code.removeRedundantBlocks();
     }
 
-    assert code.isConsistentSSA(appView);
     return hasChanged;
   }
 
