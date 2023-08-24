@@ -113,4 +113,5 @@ def run_in_sequence(jobs, stop_on_first_failure):
 def print_thread(msg, worker_id):
   if worker_id is None:
     print(msg)
-  print('WORKER %s: %s' % (worker_id, msg))
+  else:
+    print('WORKER %s: %s' % (worker_id, msg))
