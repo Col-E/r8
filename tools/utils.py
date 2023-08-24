@@ -592,10 +592,11 @@ def print_cfsegments(prefix, cf_files):
       print('{}-{}(CodeSize): {}'
             .format(prefix, segment_name, size))
 
-def print_dexsegments(prefix, dex_files):
+def print_dexsegments(prefix, dex_files, worker_id=None):
   for segment_name, size in getDexSegmentSizes(dex_files).items():
-    print('{}-{}(CodeSize): {}'
-        .format(prefix, segment_name, size))
+    print_thread(
+      '{}-{}(CodeSize): {}'.format(prefix, segment_name, size),
+      worker_id)
 
 # Ensure that we are not benchmarking with a google jvm.
 def check_java_version():

@@ -243,13 +243,14 @@ def read_dump(dump, temp, override=False):
   if os.path.isdir(dump):
     return Dump(dump)
   dump_file = zipfile.ZipFile(os.path.abspath(dump), 'r')
-  with utils.ChangedWorkingDirectory(temp, quiet=True):
-    if override or not os.path.isfile('r8-version'):
-      dump_file.extractall()
-      if not os.path.isfile('r8-version'):
-        error("Did not extract into %s. Either the zip file is invalid or the "
-              "dump is missing files" % temp)
-    return Dump(temp)
+  r8_version_file = os.path.join(temp, 'r8-version')
+
+  if override or not os.path.isfile(r8_version_file):
+    dump_file.extractall(temp)
+    if not os.path.isfile(r8_version_file):
+      error("Did not extract into %s. Either the zip file is invalid or the "
+            "dump is missing files" % temp)
+  return Dump(temp)
 
 def determine_build_properties(args, dump):
   build_properties = {}
@@ -463,7 +464,7 @@ def compile_wrapper_with_javac(dist, temp, jdkhome, path):
 def is_hash(version):
   return len(version) == 40
 
-def run1(out, args, otherargs, jdkhome=None):
+def run1(out, args, otherargs, jdkhome=None, worker_id=None):
   jvmargs = []
   compilerargs = []
   for arg in otherargs:
@@ -584,7 +585,7 @@ def run1(out, args, otherargs, jdkhome=None):
     if args.threads:
       cmd.extend(['--threads', args.threads])
     cmd.extend(compilerargs)
-    utils.PrintCmd(cmd)
+    utils.PrintCmd(cmd, worker_id=worker_id)
     try:
       print(subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8'))
       return 0
