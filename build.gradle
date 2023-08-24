@@ -1507,8 +1507,8 @@ tasks.withType(Test) {
       // On normal work machines this seems to give the best test execution time (without freezing)
       maxParallelForks = processors.intdiv(3) ?: 1
       // On low cpu count machines (bots) we under subscribe, so increase the count.
-      if (processors == 8) {
-        maxParallelForks = 3
+      if (processors == 32) {
+        maxParallelForks = 15
       }
     }
     println("NOTE: Max parallel forks " + maxParallelForks)
