@@ -396,11 +396,14 @@ def prepare_google3(args):
         result = re.search(version_match_regexp, line)
         if result:
           match_count = match_count + 1
-      if match_count != 4:
-        print(("Could not find the previous -dev release string to replace in " +
-            "METADATA. Expected to find is mentioned 4 times. Please update %s " +
-            "manually and run again with options --google3 " +
-            "--use-existing-work-branch.") % metadata_path)
+      if match_count != 7:
+        print((
+            "Could not find the previous -dev release string to replace in "
+                    + "METADATA. Expected to find is mentioned 7 times, but "
+                    + "found %s occurrences. Please update %s manually and run "
+                    + "again  with options --google3 "
+                    + "--use-existing-work-branch.")
+                % (match_count, metadata_path))
         sys.exit(1)
       sed(version_match_regexp, options.version, metadata_path)
       sed(r'\{ year.*\}',
