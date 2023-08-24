@@ -21,10 +21,10 @@ import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.Ar
 import com.android.tools.r8.optimize.argumentpropagation.unusedarguments.EffectivelyUnusedArgumentsAnalysis;
 import com.android.tools.r8.optimize.argumentpropagation.utils.ProgramClassesBidirectedGraph;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
-import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -178,7 +178,7 @@ public class ArgumentPropagator {
 
     // Using the computed optimization info, build a graph lens that describes the mapping from
     // methods with constant parameters to methods with the constant parameters removed.
-    Set<DexProgramClass> affectedClasses = Sets.newConcurrentHashSet();
+    Set<DexProgramClass> affectedClasses = SetUtils.newConcurrentHashSet();
     ArgumentPropagatorGraphLens graphLens =
         new ArgumentPropagatorProgramOptimizer(
                 appView, immediateSubtypingInfo, interfaceDispatchOutsideProgram)

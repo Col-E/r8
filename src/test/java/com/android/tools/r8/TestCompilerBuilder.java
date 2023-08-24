@@ -20,13 +20,13 @@ import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ForwardingOutputStream;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThrowingOutputStream;
 import com.android.tools.r8.utils.codeinspector.ArgumentPropagatorCodeScannerResultInspector;
 import com.android.tools.r8.utils.codeinspector.EnumUnboxingInspector;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.Sets;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -586,7 +586,7 @@ public abstract class TestCompilerBuilder<
 
   private static Set<String> computeAllGlobalSynthetics(int minApiLevel) {
     try {
-      Set<String> generatedGlobalSynthetics = Sets.newConcurrentHashSet();
+      Set<String> generatedGlobalSynthetics = SetUtils.newConcurrentHashSet();
       GlobalSyntheticsGeneratorCommand command =
           GlobalSyntheticsGeneratorCommand.builder()
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.API_DATABASE_LEVEL))

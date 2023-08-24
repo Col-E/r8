@@ -5,8 +5,6 @@ package com.android.tools.r8.internal;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.core.AnyOf.anyOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.D8TestCompileResult;
@@ -18,10 +16,8 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Set;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;

@@ -19,9 +19,9 @@ import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -84,8 +84,8 @@ public class MemberRebindingIdentityLensFactory {
       MethodAccessInfoCollection.ConcurrentBuilder methodAccessInfoCollectionBuilder,
       ExecutorService executorService)
       throws ExecutionException {
-    Set<DexField> seenFieldReferences = Sets.newConcurrentHashSet();
-    Set<DexMethod> seenMethodReferences = Sets.newConcurrentHashSet();
+    Set<DexField> seenFieldReferences = SetUtils.newConcurrentHashSet();
+    Set<DexMethod> seenMethodReferences = SetUtils.newConcurrentHashSet();
     ThreadUtils.processItems(
         appView.appInfo()::forEachMethod,
         method ->

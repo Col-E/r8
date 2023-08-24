@@ -111,7 +111,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -1199,11 +1198,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   /** A set of dexitems we have reported missing to dedupe warnings. */
-  private final Set<DexItem> reportedMissingForDesugaring = Sets.newConcurrentHashSet();
+  private final Set<DexItem> reportedMissingForDesugaring = SetUtils.newConcurrentHashSet();
 
   private final AtomicBoolean reportedErrorReadingKotlinMetadataReflectively =
       new AtomicBoolean(false);
-  private final Set<DexItem> invalidLibraryClasses = Sets.newConcurrentHashSet();
+  private final Set<DexItem> invalidLibraryClasses = SetUtils.newConcurrentHashSet();
 
   public RuntimeException errorMissingNestHost(DexClass clazz) {
     throw reporter.fatalError(

@@ -36,10 +36,10 @@ import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -67,10 +67,10 @@ public final class TrivialFieldAccessReprocessor {
       new ConcurrentHashMap<>();
 
   /** Updated concurrently from {@link #processClass(DexProgramClass)}. */
-  private final Set<DexEncodedField> constantFields = Sets.newConcurrentHashSet();
+  private final Set<DexEncodedField> constantFields = SetUtils.newConcurrentHashSet();
 
   /** Updated concurrently from {@link #processClass(DexProgramClass)}. */
-  private final Set<DexEncodedField> nonConstantFields = Sets.newConcurrentHashSet();
+  private final Set<DexEncodedField> nonConstantFields = SetUtils.newConcurrentHashSet();
 
   /** Updated concurrently from {@link #processClass(DexProgramClass)}. */
   private final ProgramMethodSet methodsToReprocess = ProgramMethodSet.createConcurrent();

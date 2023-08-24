@@ -28,6 +28,7 @@ import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
@@ -50,8 +51,8 @@ public class ApiReferenceStubber {
   private final AppView<?> appView;
   private final Map<DexLibraryClass, Set<DexProgramClass>> referencingContexts =
       new ConcurrentHashMap<>();
-  private final Set<DexLibraryClass> libraryClassesToMock = Sets.newConcurrentHashSet();
-  private final Set<DexType> seenTypes = Sets.newConcurrentHashSet();
+  private final Set<DexLibraryClass> libraryClassesToMock = SetUtils.newConcurrentHashSet();
+  private final Set<DexType> seenTypes = SetUtils.newConcurrentHashSet();
   private final AndroidApiLevelCompute apiLevelCompute;
   private final ApiReferenceStubberEventConsumer eventConsumer;
 

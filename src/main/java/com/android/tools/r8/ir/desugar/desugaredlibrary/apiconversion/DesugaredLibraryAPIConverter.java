@@ -23,9 +23,9 @@ import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -68,7 +68,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     this.emulatedMethods = emulatedMethods;
     this.wrapperSynthesizor = new DesugaredLibraryWrapperSynthesizer(appView);
     if (appView.options().testing.trackDesugaredAPIConversions) {
-      trackedAPIs = Sets.newConcurrentHashSet();
+      trackedAPIs = SetUtils.newConcurrentHashSet();
     } else {
       trackedAPIs = null;
     }

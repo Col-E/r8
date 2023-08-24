@@ -19,7 +19,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.Sets;
+import com.android.tools.r8.utils.SetUtils;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
@@ -58,8 +58,8 @@ public abstract class CodeToKeep {
 
     private static class KeepStruct {
 
-      Set<DexField> fields = Sets.newConcurrentHashSet();
-      Set<DexMethod> methods = Sets.newConcurrentHashSet();
+      Set<DexField> fields = SetUtils.newConcurrentHashSet();
+      Set<DexMethod> methods = SetUtils.newConcurrentHashSet();
       boolean all = false;
     }
 

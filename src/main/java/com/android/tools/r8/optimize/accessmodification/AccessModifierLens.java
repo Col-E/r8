@@ -12,10 +12,10 @@ import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
-import com.google.common.collect.Sets;
 import java.util.Set;
 
 public class AccessModifierLens extends DefaultNonIdentityGraphLens {
@@ -82,8 +82,9 @@ public class AccessModifierLens extends DefaultNonIdentityGraphLens {
 
     private final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> methodMap =
         new BidirectionalOneToOneHashMap<>();
-    private final Set<DexMethod> publicizedPrivateInterfaceMethods = Sets.newConcurrentHashSet();
-    private final Set<DexMethod> publicizedPrivateVirtualMethods = Sets.newConcurrentHashSet();
+    private final Set<DexMethod> publicizedPrivateInterfaceMethods =
+        SetUtils.newConcurrentHashSet();
+    private final Set<DexMethod> publicizedPrivateVirtualMethods = SetUtils.newConcurrentHashSet();
 
     public Builder addPublicizedPrivateVirtualMethod(DexProgramClass holder, DexMethod method) {
       if (holder.isInterface()) {

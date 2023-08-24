@@ -17,6 +17,7 @@ import com.android.tools.r8.profile.AbstractProfile;
 import com.android.tools.r8.profile.AbstractProfileClassRule;
 import com.android.tools.r8.profile.AbstractProfileMethodRule;
 import com.android.tools.r8.profile.AbstractProfileRule;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -80,7 +81,7 @@ public abstract class ProfileAdditions<
 
   final Map<DexType, ClassRuleBuilder> classRuleAdditions = new ConcurrentHashMap<>();
   final Map<DexMethod, MethodRuleBuilder> methodRuleAdditions = new ConcurrentHashMap<>();
-  private final Set<DexMethod> methodRuleRemovals = Sets.newConcurrentHashSet();
+  private final Set<DexMethod> methodRuleRemovals = SetUtils.newConcurrentHashSet();
 
   private final NestedMethodRuleAdditionsGraph<MethodRule, MethodRuleBuilder>
       nestedMethodRuleAdditionsGraph = new NestedMethodRuleAdditionsGraph<>();

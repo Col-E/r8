@@ -109,6 +109,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
@@ -152,7 +153,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
   // Map the enum candidates with their dependencies, i.e., the methods to reprocess for the given
   // enum if the optimization eventually decides to unbox it.
   private EnumUnboxingCandidateInfoCollection enumUnboxingCandidatesInfo;
-  private final Set<DexProgramClass> candidatesToRemoveInWave = Sets.newConcurrentHashSet();
+  private final Set<DexProgramClass> candidatesToRemoveInWave = SetUtils.newConcurrentHashSet();
   private final Map<DexType, EnumStaticFieldValues> staticFieldValuesMap =
       new ConcurrentHashMap<>();
 
