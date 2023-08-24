@@ -379,7 +379,7 @@ def app_dump():
   for release in ["", "_release"]:
       properties = {
           "builder_group" : "internal.client.r8",
-          "test_options" : ["--bot"],
+          "test_options" : ["--bot", "--workers", "4"],
           "test_wrapper" : "tools/run_on_app_dump.py"
       }
       name = "linux-run-on-app-dump" + release
