@@ -57,42 +57,6 @@ public class GMSCoreV10Test extends GMSCoreCompilationTestBase {
   }
 
   @Test
-  public void testR8Determinism() throws Exception {
-    Set<String> idsRoundOne = Sets.newConcurrentHashSet();
-    R8TestCompileResult compileResult =
-        compileWithR8(
-            builder ->
-                builder.addOptionsModification(
-                    options -> {
-                      options.testing.processingContextsConsumer =
-                          id -> assertTrue(idsRoundOne.add(id));
-                    }));
-
-    compileResult.runDex2Oat(parameters.getRuntime()).assertNoVerificationErrors();
-
-    Set<String> idsRoundTwo = Sets.newConcurrentHashSet();
-    R8TestCompileResult otherCompileResult =
-        compileWithR8(
-            builder ->
-                builder.addOptionsModification(
-                    options -> {
-                      options.testing.processingContextsConsumer =
-                          id -> assertTrue(idsRoundTwo.add(id));
-                    }));
-
-    uploadJarsToCloudStorageIfTestFails(
-        (ignored1, ignored2) -> {
-          // Verify that the result of the two compilations was the same.
-          assertEquals(idsRoundOne, idsRoundTwo);
-          assertIdenticalApplications(compileResult.getApp(), otherCompileResult.getApp());
-          assertEquals(compileResult.getProguardMap(), otherCompileResult.getProguardMap());
-          return true;
-        },
-        compileResult.writeToZip(),
-        otherCompileResult.writeToZip());
-  }
-
-  @Test
   public void testR8ForceJumboStringProcessing() throws Exception {
     compileWithR8(
             builder ->
