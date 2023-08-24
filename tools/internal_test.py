@@ -149,8 +149,9 @@ def get_file_contents():
   with open(sys.argv[0], 'r') as us:
     contents.append(us.read())
   for deps in BENCHMARK_APPS + DEPENDENT_PYTHON_FILES:
-    with open(deps.__file__, 'r') as us:
-      contents.append(us.read())
+    if os.path.exists(deps.__file__):
+      with open(deps.__file__, 'r') as us:
+        contents.append(us.read())
   return contents
 
 def restart_if_new_version(original_contents):
