@@ -990,6 +990,10 @@ def parse_options(argv):
   result.add_argument('--version',
                       default='main',
                       help='The version of R8 to use (e.g., 1.4.51)')
+  result.add_argument('--workers',
+                      help='Number of workers to use',
+                      default=1,
+                      type=int)
   (options, args) = result.parse_known_args(argv)
 
   if options.app or options.app_collection:
