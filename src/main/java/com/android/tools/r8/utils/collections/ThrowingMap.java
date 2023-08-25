@@ -8,7 +8,6 @@ import com.android.tools.r8.errors.Unreachable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import org.jetbrains.annotations.Nullable;
 
 public class ThrowingMap<K, V> implements Map<K, V> {
 
@@ -60,7 +59,6 @@ public class ThrowingMap<K, V> implements Map<K, V> {
     throw new Unreachable();
   }
 
-  @Nullable
   @Override
   public V put(K key, V value) {
     throw new Unreachable();
