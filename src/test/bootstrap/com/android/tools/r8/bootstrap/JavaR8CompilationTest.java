@@ -43,7 +43,7 @@ public class JavaR8CompilationTest extends TestBase {
         ImmutableList.of(ToolHelper.R8_WITH_RELOCATED_DEPS_17_JAR));
   }
 
-  private static final Path MAIN_KEEP = Paths.get("src/main/keep.txt");
+  private static final Path MAIN_KEEP = Paths.get(ToolHelper.getProjectRoot(), "src/main/keep.txt");
 
   private static void assertNoNests(CodeInspector inspector) {
     assertTrue(

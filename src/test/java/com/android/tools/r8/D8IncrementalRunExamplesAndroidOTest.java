@@ -131,9 +131,9 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     private List<String> collectClassFiles(Path testJarFile) {
       List<String> result = new ArrayList<>();
       // Collect Java 8 classes.
-      collectClassFiles(getClassesRoot(testJarFile), result);
+      collectClassFiles(getClassesRoot(testJarFile), result, false);
       // Collect legacy classes.
-      collectClassFiles(getLegacyClassesRoot(testJarFile), result);
+      collectClassFiles(getLegacyClassesRoot(testJarFile), result, true);
       Collections.sort(result);
       return result;
     }
@@ -150,12 +150,15 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       return parent.resolve(legacyPath);
     }
 
-    private void collectClassFiles(Path dir, List<String> result) {
+    private void collectClassFiles(Path dir, List<String> result, boolean takeLegacy) {
       if (Files.exists(dir)) {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
           for (Path entry: stream) {
             if (Files.isDirectory(entry)) {
-              collectClassFiles(entry, result);
+              if (entry.getFileName().toString().equals("legacy") && !takeLegacy) {
+                return;
+              }
+              collectClassFiles(entry, result, takeLegacy);
             } else {
               result.add(entry.toString());
             }

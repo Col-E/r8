@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -111,6 +112,7 @@ public class SanityCheck extends TestBase {
 
   @Test
   public void testLibJarsContent() throws Exception {
+    assumeTrue(ToolHelper.isTestingR8Lib());
     checkLibJarContent(ToolHelper.R8LIB_JAR, ToolHelper.R8LIB_MAP);
     checkLibJarContent(ToolHelper.R8LIB_EXCLUDE_DEPS_JAR, ToolHelper.R8LIB_EXCLUDE_DEPS_MAP);
   }
