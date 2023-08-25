@@ -144,27 +144,6 @@ def ParseOptions():
        default=False, action='store_true')
   return result.parse_args()
 
-def get_file_contents():
-  contents = []
-  with open(sys.argv[0], 'r') as us:
-    contents.append(us.read())
-  for deps in BENCHMARK_APPS + DEPENDENT_PYTHON_FILES:
-    if os.path.exists(deps.__file__):
-      with open(deps.__file__, 'r') as us:
-        contents.append(us.read())
-  return contents
-
-def restart_if_new_version(original_contents):
-  new_contents = get_file_contents()
-  log('Lengths %s %s' % (
-      [len(data) for data in original_contents],
-      [len(data) for data in new_contents]))
-  log('is main %s ' % utils.is_main())
-  # Restart if the script got updated.
-  if new_contents != original_contents:
-    log('Restarting tools/internal_test.py, content changed')
-    os.execv(sys.argv[0], sys.argv)
-
 def ensure_git_clean():
   # Ensure clean git repo.
   diff = subprocess.check_output(['git', 'diff']).decode('utf-8')
@@ -288,10 +267,7 @@ def run_bot():
     return 1
 
 def run_continuously():
-  # If this script changes, we will restart ourselves
-  own_content = get_file_contents()
   while True:
-    restart_if_new_version(own_content)
     print_magic_file_state()
     if get_magic_file_exists(READY_FOR_TESTING):
       git_hash = get_magic_file_content(READY_FOR_TESTING)
@@ -302,10 +278,6 @@ def run_continuously():
         put_magic_file(TESTING_COMPLETE, git_hash)
         delete_magic_file(READY_FOR_TESTING)
         continue
-      # If the script changed, we need to restart now to get correct commands
-      # Note that we have not removed the READY_FOR_TESTING yet, so if we
-      # execv we will pick up the same version.
-      restart_if_new_version(own_content)
       # Sanity check, if this does not succeed stop.
       if checked_out != git_hash:
         log('Inconsistent state: %s %s' % (git_hash, checked_out))
@@ -313,7 +285,7 @@ def run_continuously():
       put_magic_file(TESTING, git_hash)
       delete_magic_file(READY_FOR_TESTING)
       log('Running with hash: %s' % git_hash)
-      exitcode = run_once(archive=True)
+      exitcode = run_external()
       log('Running finished with exit code %s' % exitcode)
       # If the bot timed out or something else triggered the bot to fail, don't
       # put up the result (it will not be displayed anywhere, and we can't
@@ -324,6 +296,9 @@ def run_continuously():
         # delete) - this is unlikely and we ignore it (restart if it happens).
         delete_magic_file(TESTING)
     time.sleep(PULL_DELAY)
+
+def run_external():
+ return subprocess.call([sys.executable, "tools/internal_test.py", "--archive"])
 
 def handle_output(archive, stderr, stdout, exitcode, timed_out, cmd):
   if archive:
