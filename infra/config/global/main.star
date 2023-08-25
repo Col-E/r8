@@ -305,6 +305,18 @@ r8_builder(
   expiration_timeout = time.hour * 35,
 )
 
+r8_builder(
+  name = "linux-dex_default-new_gradle",
+  execution_timeout = time.hour * 6,
+  expiration_timeout = time.hour * 35,
+  dimensions = get_dimensions(normal=True),
+  max_concurrent_invocations = 1,
+  properties = {
+    "test_options" : ["--runtimes=dex-default", "--command_cache_dir=/tmp/ccache", "--new-gradle", "--no-r8lib"] + common_test_options,
+    "builder_group" : "internal.client.r8"
+  }
+)
+
 r8_tester_with_default("linux-dex_default",
         ["--runtimes=dex-default", "--command_cache_dir=/tmp/ccache"],
         max_concurrent_invocations = 2)
