@@ -943,8 +943,8 @@ public class DexCode extends Code
       return "["
           + StringUtils.hexString(startAddress, 2)
           + " .. "
-          + StringUtils.hexString(startAddress + instructionCount - 1, 2)
-          + "] -> "
+          + StringUtils.hexString(startAddress + instructionCount, 2)
+          + "[ -> "
           + handlerIndex;
     }
 
