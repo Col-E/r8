@@ -9,9 +9,13 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugari
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
@@ -21,6 +25,8 @@ import com.android.tools.r8.profile.art.model.ExternalArtProfileMethodRule;
 import com.android.tools.r8.profile.art.utils.ArtProfileInspector;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.AbortException;
+import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -58,14 +64,28 @@ public class DesugaredLibraryArtProfileRewritingTest extends DesugaredLibraryTes
   @Test
   public void test() throws Throwable {
     Assume.assumeTrue(libraryDesugaringSpecification.hasEmulatedInterfaceDesugaring(parameters));
-    testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
-        .addInnerClasses(getClass())
-        .addKeepMainRule(Main.class)
-        .addL8ArtProfileForRewriting(getArtProfile())
-        .compile()
-        .inspectL8ResidualArtProfile(this::inspect)
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("0");
+    AssertUtils.assertFailsCompilationIf(
+        !compilationSpecification.isL8Shrink(),
+        () ->
+            testForDesugaredLibrary(
+                    parameters, libraryDesugaringSpecification, compilationSpecification)
+                .addInnerClasses(getClass())
+                .addKeepMainRule(Main.class)
+                .addL8ArtProfileForRewriting(getArtProfile())
+                .compile()
+                .inspectL8ResidualArtProfile(this::inspect)
+                .run(parameters.getRuntime(), Main.class)
+                .assertSuccessWithOutputLines("0"),
+        exception -> {
+          assertEquals(CompilationFailedException.class, exception.getClass());
+          assertThat(exception.getMessage(), equalTo("Compilation failed to complete"));
+          assertNotNull(exception.getCause());
+          assertEquals(AbortException.class, exception.getCause().getClass());
+          assertThat(
+              exception.getCause().getMessage(),
+              containsString(
+                  "L8 does not impact ART profiles when generating DEX and not shrinking"));
+        });
   }
 
   private ExternalArtProfile getArtProfile() {

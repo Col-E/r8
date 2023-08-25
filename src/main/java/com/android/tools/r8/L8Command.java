@@ -357,9 +357,13 @@ public final class L8Command extends BaseCompilerCommand {
         if (proguardMapConsumer != null || partitionMapConsumer != null) {
           reporter.error("L8 does not support defining a map consumer when not shrinking");
         }
-        if (isGeneratingClassFiles && !getArtProfilesForRewriting().isEmpty()) {
-          reporter.error(
-              "L8 does not support rewriting of ART profiles when generating class files");
+        if (!getArtProfilesForRewriting().isEmpty()) {
+          if (isGeneratingClassFiles) {
+            reporter.error(
+                "L8 does not support rewriting of ART profiles when generating class files");
+          } else {
+            reporter.error("L8 does not impact ART profiles when generating DEX and not shrinking");
+          }
         }
       }
       super.validate();
@@ -432,12 +436,8 @@ public final class L8Command extends BaseCompilerCommand {
                 .setMode(getMode())
                 .setIncludeClassesChecksum(getIncludeClassesChecksum())
                 .setDexClassChecksumFilter(getDexClassChecksumFilter())
-                .setProgramConsumer(getProgramConsumer());
-        for (ArtProfileForRewriting artProfileForRewriting : getArtProfilesForRewriting()) {
-          d8Builder.addArtProfileForRewriting(
-              artProfileForRewriting.getArtProfileProvider(),
-              artProfileForRewriting.getResidualArtProfileConsumer());
-        }
+                .setProgramConsumer(getProgramConsumer())
+                .setEnableRewritingOfArtProfilesIsNopCheck();
         for (ClassFileResourceProvider libraryResourceProvider :
             inputs.getLibraryResourceProviders()) {
           d8Builder.addLibraryResourceProvider(libraryResourceProvider);

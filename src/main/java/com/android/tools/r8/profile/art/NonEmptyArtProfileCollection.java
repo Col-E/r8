@@ -69,7 +69,12 @@ public class NonEmptyArtProfileCollection extends ArtProfileCollection
 
   @Override
   public void supplyConsumers(AppView<?> appView) {
-    if (appView.options().getArtProfileOptions().isCompletenessCheckForTestingEnabled()) {
+    ArtProfileOptions artProfileOptions = appView.options().getArtProfileOptions();
+    if (artProfileOptions.isNopCheckForTestingEnabled()) {
+      assert artProfileOptions.verifyHasNopCheckForTestingHashCode();
+      assert artProfileOptions.setNopCheckForTestingHashCode(appView.appInfo());
+    }
+    if (artProfileOptions.isCompletenessCheckForTestingEnabled()) {
       assert ArtProfileCompletenessChecker.verify(appView);
       ListUtils.removeLast(artProfiles);
       if (artProfiles.isEmpty()) {

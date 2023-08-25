@@ -26,6 +26,7 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
@@ -321,9 +322,17 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
     FileUtils.writeTextFile(profile, profileRuleFlags + profileRuleDescriptor);
 
     // Pass the profile on the command line.
+    List<String> args =
+        new ArrayList<>(
+            ImmutableList.of("--art-profile", profile.toString(), residualProfile.toString()));
+    // L8 only accepts an art profile when shrinking.
+    if (this instanceof L8CommandTest) {
+      Path path = temp.newFile("proguard-rules.pro").toPath();
+      FileUtils.writeTextFile(path, "-dontshrink");
+      args.addAll(ImmutableList.of("--pg-conf", path.toString()));
+    }
     List<ArtProfileForRewriting> artProfilesForRewriting =
-        parseWithRequiredArgs("--art-profile", profile.toString(), residualProfile.toString())
-            .getArtProfilesForRewriting();
+        parseWithRequiredArgs(args.toArray(new String[0])).getArtProfilesForRewriting();
     assertEquals(1, artProfilesForRewriting.size());
 
     // Extract inputs.
