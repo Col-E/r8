@@ -379,9 +379,7 @@ public abstract class MethodResolutionResult
       }
       ClassResolutionResult resolutionResult =
           appInfo.contextIndependentDefinitionForWithResolutionResult(type);
-      return appInfo.options().lookupLibraryBeforeProgram
-          ? resolutionResult.toSingleClassWithLibraryOverProgram()
-          : resolutionResult.toSingleClassWithProgramOverLibrary();
+      return resolutionResult.toSingleClassWithProgramOverLibrary();
     }
 
     /**

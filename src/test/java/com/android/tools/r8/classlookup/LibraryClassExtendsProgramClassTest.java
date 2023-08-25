@@ -112,34 +112,6 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
   }
 
   @Test
-  public void testFullMode() throws Exception {
-    testForR8(parameters.getBackend())
-        .setMinApi(parameters)
-        .addProgramClasses(TestClass.class)
-        .addProgramClassFileData(junitClasses)
-        .addKeepAllClassesRule()
-        // TODO(120884788): Remove when this is the default.
-        .addOptionsModification(options -> options.lookupLibraryBeforeProgram = true)
-        .compile()
-        .inspect(this::checkClassesInResult)
-        .assertNoMessages();
-  }
-
-  @Test
-  public void testCompatibilityMode() throws Exception {
-    testForR8Compat(parameters.getBackend())
-        .setMinApi(parameters)
-        .addProgramClasses(TestClass.class)
-        .addProgramClassFileData(junitClasses)
-        .addKeepAllClassesRule()
-        // TODO(120884788): Remove when this is the default.
-        .addOptionsModification(options -> options.lookupLibraryBeforeProgram = true)
-        .compile()
-        .inspect(this::checkClassesInResult)
-        .assertNoMessages();
-  }
-
-  @Test
   public void testD8() throws Exception {
     assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
     testForD8()
@@ -158,8 +130,7 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
             .setMinApi(parameters)
             .addProgramClasses(TestClass.class)
             .addProgramClassFileData(junitClasses)
-            .addKeepAllClassesRule()
-            .addOptionsModification(options -> options.lookupLibraryBeforeProgram = false);
+            .addKeepAllClassesRule();
     if (!libraryContainsJUnit()) {
       builder.compile().inspect(this::testCaseClassInResult).assertNoMessages();
       return;
@@ -185,7 +156,6 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addProgramClassFileData(junitClasses)
         .addKeepAllClassesRule()
-        .addOptionsModification(options -> options.lookupLibraryBeforeProgram = false)
         .applyIf(libraryContainsJUnit(), R8TestBuilder::allowDiagnosticMessages)
         .compile()
         .inspectDiagnosticMessages(
@@ -208,7 +178,6 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
         .addProgramClassFileData(junitClasses)
         .addKeepAllClassesRule()
         .applyIf(libraryContainsJUnit(), builder -> builder.addDontWarn("android.test.**"))
-        .addOptionsModification(options -> options.lookupLibraryBeforeProgram = false)
         .allowDiagnosticInfoMessages(libraryContainsJUnit())
         .compile()
         .applyIf(

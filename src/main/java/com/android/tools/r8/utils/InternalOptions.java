@@ -704,12 +704,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Flag to turn on/off processing of @dalvik.annotation.codegen.CovariantReturnType and
   // @dalvik.annotation.codegen.CovariantReturnType$CovariantReturnTypes.
   public boolean processCovariantReturnTypeAnnotations = true;
-  // Flag to control library/program class lookup order.
-  // TODO(120884788): Enable this flag as the default.
-  public boolean lookupLibraryBeforeProgram = false;
-  // TODO(120884788): Leave this system property as a stop-gap for some time.
-  // public boolean lookupLibraryBeforeProgram =
-  //     System.getProperty("com.android.tools.r8.lookupProgramBeforeLibrary") == null;
 
   public boolean enableEnqueuerDeferredTracing =
       System.getProperty("com.android.tools.r8.disableEnqueuerDeferredTracing") == null;

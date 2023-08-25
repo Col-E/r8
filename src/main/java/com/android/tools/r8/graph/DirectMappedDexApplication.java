@@ -99,23 +99,14 @@ public class DirectMappedDexApplication extends DexApplication {
   @Override
   public DexClass definitionFor(DexType type) {
     assert type.isClassType() : "Cannot lookup definition for type: " + type;
-    if (options.lookupLibraryBeforeProgram) {
-      DexLibraryClass libraryClass = libraryClasses.get(type);
-      if (libraryClass != null) {
-        return libraryClass;
-      }
-      ProgramOrClasspathClass programOrClasspathClass = programOrClasspathClasses.get(type);
-      return programOrClasspathClass != null ? programOrClasspathClass.asDexClass() : null;
-    } else {
-      ProgramOrClasspathClass programOrClasspathClass = programOrClasspathClasses.get(type);
-      if (programOrClasspathClass != null && programOrClasspathClass.isProgramClass()) {
-        return programOrClasspathClass.asDexClass();
-      }
-      DexLibraryClass libraryClass = libraryClasses.get(type);
-      return libraryClass != null
-          ? libraryClass
-          : (programOrClasspathClass == null ? null : programOrClasspathClass.asDexClass());
+    ProgramOrClasspathClass programOrClasspathClass = programOrClasspathClasses.get(type);
+    if (programOrClasspathClass != null && programOrClasspathClass.isProgramClass()) {
+      return programOrClasspathClass.asDexClass();
     }
+    DexLibraryClass libraryClass = libraryClasses.get(type);
+    return libraryClass != null
+        ? libraryClass
+        : (programOrClasspathClass == null ? null : programOrClasspathClass.asDexClass());
   }
 
   @Override
