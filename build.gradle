@@ -817,25 +817,25 @@ def r8RelocateTask(r8Task, output) {
                 "--output",
                 output,
                 "--map",
-                "com.google.common->com.android.tools.r8.com.google.common",
+                "com.google.common.**->com.android.tools.r8.com.google.common",
                 "--map",
-                "com.google.gson->com.android.tools.r8.com.google.gson",
+                "com.google.gson.**->com.android.tools.r8.com.google.gson",
                 "--map",
-                "com.google.thirdparty->com.android.tools.r8.com.google.thirdparty",
+                "com.google.thirdparty.**->com.android.tools.r8.com.google.thirdparty",
                 "--map",
-                "org.objectweb.asm->com.android.tools.r8.org.objectweb.asm",
+                "org.objectweb.asm.**->com.android.tools.r8.org.objectweb.asm",
                 "--map",
-                "it.unimi.dsi.fastutil->com.android.tools.r8.it.unimi.dsi.fastutil",
+                "it.unimi.dsi.fastutil.**->com.android.tools.r8.it.unimi.dsi.fastutil",
                 "--map",
-                "kotlin->com.android.tools.r8.jetbrains.kotlin",
+                "kotlin.**->com.android.tools.r8.jetbrains.kotlin",
                 "--map",
-                "kotlinx->com.android.tools.r8.jetbrains.kotlinx",
+                "kotlinx.**->com.android.tools.r8.jetbrains.kotlinx",
                 "--map",
-                "org.jetbrains->com.android.tools.r8.org.jetbrains",
+                "org.jetbrains.**->com.android.tools.r8.org.jetbrains",
                 "--map",
-                "org.intellij->com.android.tools.r8.org.intellij",
+                "org.intellij.**->com.android.tools.r8.org.intellij",
                 "--map",
-                "org.checkerframework->com.android.tools.r8.org.checkerframework"
+                "org.checkerframework.**->com.android.tools.r8.org.checkerframework"
         ])
     }
 }
@@ -1041,7 +1041,7 @@ task testJar(type: Exec) {
             "--output",
             output,
             "--map",
-            "kotlinx.metadata->com.android.tools.r8.jetbrains.kotlinx.metadata"
+            "kotlinx.metadata.**->com.android.tools.r8.jetbrains.kotlinx.metadata"
     ])
 }
 

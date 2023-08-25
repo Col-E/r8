@@ -135,9 +135,20 @@ public class RelocatorTestBuilder
   public RelocatorTestBuilder addPackageMapping(PackageReference from, PackageReference to) {
     if (isExternal) {
       commandLineArgs.add("--map");
-      commandLineArgs.add(from.getPackageName() + "->" + to.getPackageName());
+      commandLineArgs.add(from.getPackageName() + ".*->" + to.getPackageName());
     } else {
       commandBuilder.addPackageMapping(from, to);
+    }
+    return self();
+  }
+
+  public RelocatorTestBuilder addPackageAndAllSubPackagesMapping(
+      PackageReference from, PackageReference to) {
+    if (isExternal) {
+      commandLineArgs.add("--map");
+      commandLineArgs.add(from.getPackageName() + ".**->" + to.getPackageName());
+    } else {
+      commandBuilder.addSubPackageMapping(from, to);
     }
     return self();
   }
@@ -145,7 +156,7 @@ public class RelocatorTestBuilder
   public RelocatorTestBuilder addClassMapping(ClassReference from, ClassReference to) {
     if (isExternal) {
       commandLineArgs.add("--map");
-      commandLineArgs.add(from.getDescriptor() + "->" + to.getDescriptor());
+      commandLineArgs.add(from.getTypeName() + "->" + to.getTypeName());
     } else {
       commandBuilder.addClassMapping(from, to);
     }
@@ -154,5 +165,10 @@ public class RelocatorTestBuilder
 
   public RelocatorTestBuilder addPackageMapping(String from, String to) {
     return addPackageMapping(Reference.packageFromString(from), Reference.packageFromString(to));
+  }
+
+  public RelocatorTestBuilder addPackageAndAllSubPackagesMapping(String from, String to) {
+    return addPackageAndAllSubPackagesMapping(
+        Reference.packageFromString(from), Reference.packageFromString(to));
   }
 }

@@ -31,21 +31,25 @@ public class RelocatorMapping {
 
   private final ImmutableMap<PackageReference, PackageReference> packageMappings;
   private final ImmutableMap<ClassReference, ClassReference> classMappings;
+  private final ImmutableMap<PackageReference, PackageReference> subPackageMappings;
 
   private final ConcurrentHashMap<String, PackageReference> stringToPackageReferenceCache =
       new ConcurrentHashMap<>();
 
   private RelocatorMapping(
       ImmutableMap<PackageReference, PackageReference> packageMappings,
-      ImmutableMap<ClassReference, ClassReference> classMappings) {
+      ImmutableMap<ClassReference, ClassReference> classMappings,
+      ImmutableMap<PackageReference, PackageReference> subPackageMappings) {
     this.packageMappings = packageMappings;
     this.classMappings = classMappings;
+    this.subPackageMappings = subPackageMappings;
   }
 
   public static RelocatorMapping create(
       ImmutableMap<PackageReference, PackageReference> packageMappings,
-      ImmutableMap<ClassReference, ClassReference> classMappings) {
-    return new RelocatorMapping(packageMappings, classMappings);
+      ImmutableMap<ClassReference, ClassReference> classMappings,
+      ImmutableMap<PackageReference, PackageReference> subPackageMappings) {
+    return new RelocatorMapping(packageMappings, classMappings, subPackageMappings);
   }
 
   public Map<PackageReference, PackageReference> getPackageMappings() {
@@ -99,11 +103,21 @@ public class RelocatorMapping {
       typeMappings.put(type, factory.createString(directClassMapping.getDescriptor()));
       return;
     }
-    // TODO(b/155618698): For now keep computing packages as prefixes but instead of matching
-    //  direct prefixes match parent packages. This will ensure that pattern foo/a will not match
-    //  package foo/aa.
-    computePackageMapping(
-        type, type.getPackageName(), factory, typeMappings, rewritePackageMappings);
+    PackageReference currentPackageReference = getPackageReference(type.getPackageName());
+    PackageReference packageReference = packageMappings.get(currentPackageReference);
+    if (packageReference != null) {
+      DexString sourceDescriptorPrefix = factory.createString("L" + type.getPackageDescriptor());
+      DexString targetDescriptor =
+          factory.createString("L" + packageReference.getPackageBinaryName());
+      DexString relocatedDescriptor =
+          type.descriptor.withNewPrefix(sourceDescriptorPrefix, targetDescriptor, factory);
+      typeMappings.put(type, relocatedDescriptor);
+      return;
+    }
+    if (!subPackageMappings.isEmpty() && !type.getPackageName().isEmpty()) {
+      computePackageMapping(
+          type, type.getPackageName(), factory, typeMappings, rewritePackageMappings);
+    }
   }
 
   /**
@@ -117,7 +131,7 @@ public class RelocatorMapping {
       Map<DexType, DexString> typeMappings,
       Map<String, String> rewritePackageMappings) {
     PackageReference currentPackageReference = getPackageReference(currentPackageName);
-    PackageReference packageReference = packageMappings.get(currentPackageReference);
+    PackageReference packageReference = subPackageMappings.get(currentPackageReference);
     if (packageReference != null) {
       DexString sourceDescriptorPrefix =
           factory.createString("L" + currentPackageReference.getPackageBinaryName());

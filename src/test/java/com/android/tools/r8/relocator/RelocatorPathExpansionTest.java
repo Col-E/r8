@@ -5,10 +5,9 @@
 package com.android.tools.r8.relocator;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
 
-import com.android.tools.r8.RelocatorTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.ClassReference;
@@ -48,7 +47,7 @@ public class RelocatorPathExpansionTest extends TestBase {
             Baz.dump(),
             BazImpl.dump(),
             transformer(Base.class).setClassDescriptor("Lfoo/Base;").transform())
-        .addPackageMapping("foo", "com.android.tools.r8.foo")
+        .addPackageAndAllSubPackagesMapping("foo", "com.android.tools.r8.foo")
         .addClassMapping(
             destination, Reference.classFromDescriptor("Lcom/android/tools/r8/foo/bar/Baz;"))
         .run()
@@ -87,7 +86,7 @@ public class RelocatorPathExpansionTest extends TestBase {
     String destinationPackage = "com.android.tools.r8.foo2.bar";
     testForRelocator(external)
         .addProgramClassFileData(Baz.dump(), BazImpl.dump())
-        .addPackageMapping("foo.bar", destinationPackage)
+        .addPackageAndAllSubPackagesMapping("foo.bar", destinationPackage)
         .addClassMapping(Reference.classFromDescriptor("Lfoo/bar/Baz;"), destination)
         .run()
         .inspect(
@@ -99,12 +98,18 @@ public class RelocatorPathExpansionTest extends TestBase {
   }
 
   @Test
-  public void rewriteAllSubPackages() {
-    RelocatorTestBuilder relocatorTestBuilder =
-        testForRelocator(external).addProgramClassFileData(Baz.dump(), BazImpl.dump());
-    // The language as input is very simple and ** to match sub-packages would be a feature request.
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> relocatorTestBuilder.addPackageMapping("foo/**", "com.android.tools.r8.foo"));
+  public void rewriteAllSubPackages() throws Exception {
+    testForRelocator(external)
+        .addProgramClassFileData(Baz.dump(), BazImpl.dump())
+        .addPackageAndAllSubPackagesMapping("foo", "com.android.tools.r8.foo")
+        .run()
+        .inspect(
+            inspector ->
+                inspector
+                    .allClasses()
+                    .forEach(
+                        clazz ->
+                            assertThat(
+                                clazz.getFinalName(), startsWith("com.android.tools.r8.foo"))));
   }
 }

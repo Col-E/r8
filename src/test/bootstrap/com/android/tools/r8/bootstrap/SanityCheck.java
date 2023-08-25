@@ -55,13 +55,7 @@ public class SanityCheck extends TestBase {
       ZipEntry entry = entries.nextElement();
       String name = entry.getName();
       if (ZipUtils.isClassFile(name) || name.endsWith(".kotlin_builtins")) {
-        // TODO(b/155618698): This should be "com/android/tools/r8, however, we cannot relacate
-        //  packages in that folder with the current handling of mappings.
-        assertThat(
-            name,
-            ToolHelper.isNewGradleSetup()
-                ? startsWith("com/android/")
-                : startsWith("com/android/tools/r8/"));
+        assertThat(name, startsWith("com/android/tools/r8/"));
       } else if (name.equals("META-INF/MANIFEST.MF")) {
         // Allow.
       } else if (name.equals("LICENSE")) {

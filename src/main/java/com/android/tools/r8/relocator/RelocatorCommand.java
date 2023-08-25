@@ -24,7 +24,6 @@ import com.android.tools.r8.shaking.ProguardPathList;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.Box;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FlagFile;
@@ -177,6 +176,8 @@ public class RelocatorCommand {
         ImmutableMap.builder();
     private final ImmutableMap.Builder<ClassReference, ClassReference> classMapping =
         ImmutableMap.builder();
+    private final ImmutableMap.Builder<PackageReference, PackageReference> subPackageMapping =
+        ImmutableMap.builder();
     private ClassFileConsumer consumer = null;
     private int threadCount = ThreadUtils.NOT_SPECIFIED;
     private boolean printVersion;
@@ -276,6 +277,11 @@ public class RelocatorCommand {
       return this;
     }
 
+    public Builder addSubPackageMapping(PackageReference source, PackageReference destination) {
+      subPackageMapping.put(source, destination);
+      return this;
+    }
+
     public Builder addClassMapping(ClassReference source, ClassReference destination) {
       classMapping.put(source, destination);
       return this;
@@ -317,7 +323,8 @@ public class RelocatorCommand {
             DexItemFactory factory = new DexItemFactory();
             result.set(
                 new RelocatorCommand(
-                    RelocatorMapping.create(packageMapping.build(), classMapping.build()),
+                    RelocatorMapping.create(
+                        packageMapping.build(), classMapping.build(), subPackageMapping.build()),
                     app.build(),
                     reporter,
                     factory,
@@ -424,14 +431,7 @@ public class RelocatorCommand {
             }
             String source = nextArg.substring(0, separator);
             String destination = nextArg.substring(separator + 2);
-            if (DescriptorUtils.isClassDescriptor(source)) {
-              builder.addClassMapping(
-                  Reference.classFromDescriptor(source),
-                  Reference.classFromDescriptor(destination));
-            } else {
-              builder.addPackageMapping(
-                  Reference.packageFromString(source), Reference.packageFromString(destination));
-            }
+            addMapping(source, destination, builder);
             break;
           default:
             builder.error(new StringDiagnostic("Unknown argument: " + arg, origin));
@@ -442,6 +442,21 @@ public class RelocatorCommand {
       }
       builder.setOutputPath(outputPath);
       return builder;
+    }
+
+    public static void addMapping(String source, String destination, Builder builder) {
+      if (source.endsWith(".**")) {
+        builder.addSubPackageMapping(
+            Reference.packageFromString(source.substring(0, source.length() - 3)),
+            Reference.packageFromString(destination));
+      } else if (source.endsWith(".*")) {
+        builder.addPackageMapping(
+            Reference.packageFromString(source.substring(0, source.length() - 2)),
+            Reference.packageFromString(destination));
+      } else {
+        builder.addClassMapping(
+            Reference.classFromTypeName(source), Reference.classFromTypeName(destination));
+      }
     }
   }
 }

@@ -182,7 +182,7 @@ public class RelocatorCommandTest extends TestBase {
                         "--output",
                         "output",
                         "--map",
-                        "invalid;package-name->bar",
+                        "invalid;package-name.*->bar",
                         "--input",
                         input1.toString()
                       },
