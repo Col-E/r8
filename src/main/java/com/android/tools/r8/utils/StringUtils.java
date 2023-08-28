@@ -501,4 +501,14 @@ public class StringUtils {
   public static String toUpperCase(String s) {
     return s.toUpperCase(Locale.ROOT);
   }
+
+  public static int occurrences(String largerString, String subString) {
+    int lastIndex = largerString.indexOf(subString);
+    int count = 0;
+    while (lastIndex > -1) {
+      count += 1;
+      lastIndex = largerString.indexOf(subString, lastIndex + 1);
+    }
+    return count;
+  }
 }
