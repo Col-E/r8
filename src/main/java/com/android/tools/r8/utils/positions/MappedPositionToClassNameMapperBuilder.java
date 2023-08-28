@@ -315,14 +315,16 @@ public class MappedPositionToClassNameMapperBuilder {
           // multiple inlining passes lose the canonical property of the positions.
           Position currentPosition = currentMappedPosition.getPosition();
           Position lastPosition = lastMappedPosition.getPosition();
-          if (currentPosition.getMethod() != lastPosition.getMethod()
-              || mappedPositionRange.isOutOfRange()
+          if (mappedPositionRange.isOutOfRange()
+              // Check if inline positions has changed
+              || currentPosition.getMethod() != lastPosition.getMethod()
               || !Objects.equals(
                   currentPosition.getCallerPosition(), lastPosition.getCallerPosition())
-              // Break when we see a mapped outline
-              || currentPosition.getOutlineCallee() != null
-              // Ensure that we break when we start iterating with an outline caller again.
-              || firstMappedPosition.getPosition().getOutlineCallee() != null) {
+              // Check if outline positions has changed
+              || !Objects.equals(
+                  currentPosition.getOutlineCallee(), lastPosition.getOutlineCallee())
+              || !Objects.equals(
+                  currentPosition.getOutlinePositions(), lastPosition.getOutlinePositions())) {
             break;
           }
           lastMappedPosition = currentMappedPosition;
