@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.ir.optimize.logging;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.errors.DuplicateTypeInProgramAndLibraryDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -79,7 +81,16 @@ public class AndroidLogRemovalTest extends TestBase {
                 transformer(Log.class).setClassDescriptor("Landroid/util/Log;").transform())
             .addKeepAllClassesRule()
             .setMinApi(parameters)
-            .compile()
+            .allowDiagnosticInfoMessages(parameters.isDexRuntime())
+            .compileWithExpectedDiagnostics(
+                diagnostics -> {
+                  if (parameters.isDexRuntime()) {
+                    diagnostics.assertAllInfosMatch(
+                        diagnosticType(DuplicateTypeInProgramAndLibraryDiagnostic.class));
+                  } else {
+                    diagnostics.assertNoMessages();
+                  }
+                })
             .writeToZip();
 
     testForR8(parameters.getBackend())

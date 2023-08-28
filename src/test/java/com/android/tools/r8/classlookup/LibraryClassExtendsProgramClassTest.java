@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.classlookup;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -13,9 +14,12 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.errors.DuplicateTypeInProgramAndLibraryDiagnostic;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -163,7 +167,9 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
     try {
       builder.compileWithExpectedDiagnostics(
           diagnostics -> {
-            diagnostics.assertOnlyErrors();
+            diagnostics.assertNoWarnings();
+            diagnostics.assertAllInfosMatch(
+                diagnosticType(DuplicateTypeInProgramAndLibraryDiagnostic.class));
             checkDiagnostics(diagnostics.getErrors());
           });
       fail("Expected compilation failure");
@@ -180,11 +186,14 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
         .addProgramClassFileData(junitClasses)
         .addKeepAllClassesRule()
         .addOptionsModification(options -> options.lookupLibraryBeforeProgram = false)
-        .allowDiagnosticWarningMessages(libraryContainsJUnit())
+        .applyIf(libraryContainsJUnit(), R8TestBuilder::allowDiagnosticMessages)
         .compile()
         .inspectDiagnosticMessages(
             diagnostics -> {
               if (libraryContainsJUnit()) {
+                diagnostics.assertNoErrors();
+                diagnostics.assertAllInfosMatch(
+                    diagnosticType(DuplicateTypeInProgramAndLibraryDiagnostic.class));
                 checkDiagnostics(diagnostics.getWarnings());
               }
             })
@@ -200,8 +209,12 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
         .addKeepAllClassesRule()
         .applyIf(libraryContainsJUnit(), builder -> builder.addDontWarn("android.test.**"))
         .addOptionsModification(options -> options.lookupLibraryBeforeProgram = false)
+        .allowDiagnosticInfoMessages(libraryContainsJUnit())
         .compile()
-        .assertNoMessages();
+        .applyIf(
+            libraryContainsJUnit(),
+            TestCompileResult::assertOnlyInfos,
+            TestCompileResult::assertNoMessages);
   }
 
   static class TestClass {

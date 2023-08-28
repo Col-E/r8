@@ -3,11 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.errors.DuplicateTypeInProgramAndLibraryDiagnostic;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.StringUtils;
@@ -89,7 +91,11 @@ public class DesugarLambdaContextDuplicateInLibraryTest extends TestBase {
                 b.getBuilder()
                     .setDexClassChecksumFilter(
                         (desc, checksum) -> !desc.contains(binaryName(LIBRARY_CONTEXT))))
-        .compile()
+        .allowDiagnosticInfoMessages()
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics.assertAllInfosMatch(
+                    diagnosticType(DuplicateTypeInProgramAndLibraryDiagnostic.class)))
         .addRunClasspathClasses(LIBRARY)
         .run(parameters.getRuntime(), MAIN)
         .applyIf(

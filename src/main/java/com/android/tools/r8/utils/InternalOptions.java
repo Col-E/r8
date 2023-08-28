@@ -34,6 +34,7 @@ import com.android.tools.r8.dex.MixedSectionLayoutStrategy;
 import com.android.tools.r8.dex.VirtualFile;
 import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.DuplicateTypeInProgramAndLibraryDiagnostic;
 import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
@@ -123,6 +124,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -882,8 +884,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return testing.readInputStackMaps ? testing.readInputStackMaps : isGeneratingClassFiles();
   }
 
-  public boolean printCfg = false;
-  public String printCfgFile;
   public boolean ignoreMissingClasses = false;
   public boolean reportMissingClassesInEnclosingMethodAttribute = false;
   public boolean reportMissingClassesInInnerClassAttributes = false;
@@ -1068,6 +1068,46 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   private final Map<Origin, List<Pair<ProgramMethod, String>>> warningInvalidDebugInfo =
       new HashMap<>();
+
+  private Map<DexType, Pair<DexProgramClass, DexLibraryClass>> warningLibraryProgramDuplicates;
+
+  public void recordLibraryAndProgramDuplicate(
+      DexType type, DexProgramClass programClass, DexLibraryClass libraryClass) {
+    if (warningLibraryProgramDuplicates != null) {
+      warningLibraryProgramDuplicates.computeIfAbsent(
+          type, k -> new Pair<>(programClass, libraryClass));
+    }
+  }
+
+  public void prepareForReportingLibraryAndProgramDuplicates() {
+    warningLibraryProgramDuplicates = new ConcurrentHashMap<>();
+  }
+
+  public void reportLibraryAndProgramDuplicates(AppView<AppInfoWithLiveness> appViewWithLiveness) {
+    assert warningLibraryProgramDuplicates != null;
+    if (warningLibraryProgramDuplicates.isEmpty()) {
+      warningLibraryProgramDuplicates = null;
+      return;
+    }
+    List<DexType> sortedKeys =
+        ListUtils.sort(warningLibraryProgramDuplicates.keySet(), DexType::compareTo);
+    for (DexType key : sortedKeys) {
+      // If the type has been pruned from the program then don't issue a diagnostic.
+      if (DexProgramClass.asProgramClassOrNull(
+              appViewWithLiveness.appInfo().definitionForWithoutExistenceAssert(key))
+          == null) {
+        continue;
+      }
+      Pair<DexProgramClass, DexLibraryClass> classes = warningLibraryProgramDuplicates.get(key);
+      reporter.info(
+          new DuplicateTypeInProgramAndLibraryDiagnostic(
+              key.asClassReference(),
+              classes.getFirst().getOrigin(),
+              classes.getSecond().getOrigin()));
+    }
+    warningLibraryProgramDuplicates = null;
+    reporter.failIfPendingErrors();
+  }
 
   // Don't read code from dex files. Used to extract non-code information from vdex files where
   // the code contains unsupported byte codes.

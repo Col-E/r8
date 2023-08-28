@@ -202,7 +202,12 @@ public class LazyLoadedDexApplication extends DexApplication {
                   allLibraryClasses,
                   type -> {
                     DexProgramClass clazz = programClasses.get(type);
-                    return clazz != null ? clazz : classpathClasses.get(type);
+                    if (clazz != null) {
+                      options.recordLibraryAndProgramDuplicate(
+                          type, clazz, allLibraryClasses.get(type));
+                      return clazz;
+                    }
+                    return classpathClasses.get(type);
                   },
                   options);
         }

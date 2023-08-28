@@ -265,6 +265,7 @@ public class R8 {
       System.out.println("R8 is running with free memory:" + runtime.freeMemory());
       System.out.println("R8 is running with max memory:" + runtime.maxMemory());
     }
+    options.prepareForReportingLibraryAndProgramDuplicates();
     try {
       AppView<AppInfoWithClassHierarchy> appView;
       {
@@ -436,6 +437,8 @@ public class R8 {
 
       assert appView.appInfo().hasLiveness();
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+
+      options.reportLibraryAndProgramDuplicates(appViewWithLiveness);
 
       new CfOpenClosedInterfacesAnalysis(appViewWithLiveness).run(executorService);
 
