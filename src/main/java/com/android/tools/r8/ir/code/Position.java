@@ -274,6 +274,10 @@ public abstract class Position implements StructuralItem<Position> {
 
   public abstract PositionBuilder<?, ?> builderWithCopy();
 
+  public OutlineCallerPosition asOutlineCaller() {
+    return null;
+  }
+
   public abstract static class PositionBuilder<
       P extends Position, B extends PositionBuilder<P, B>> {
 
@@ -605,6 +609,11 @@ public abstract class Position implements StructuralItem<Position> {
     @Override
     public boolean isOutlineCaller() {
       return true;
+    }
+
+    @Override
+    public OutlineCallerPosition asOutlineCaller() {
+      return this;
     }
 
     @Override

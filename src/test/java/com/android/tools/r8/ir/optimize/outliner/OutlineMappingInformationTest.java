@@ -98,9 +98,8 @@ public class OutlineMappingInformationTest extends TestBase {
     String proguardMap = compileResult.getProguardMap();
 
     if (parameters.isDexRuntime()) {
-      // TODO(b/263357015, b/293630963): Outline information is duplicated for pc encoding.
-      assertEquals(
-          20, StringUtils.occurrences(proguardMap, "com.android.tools.r8.outlineCallsite"));
+      // TODO(b/263357015, b/293630963): Outline information is not reset for new default events.
+      assertEquals(6, StringUtils.occurrences(proguardMap, "com.android.tools.r8.outlineCallsite"));
     } else {
       assertEquals(4, StringUtils.occurrences(proguardMap, "com.android.tools.r8.outlineCallsite"));
     }
