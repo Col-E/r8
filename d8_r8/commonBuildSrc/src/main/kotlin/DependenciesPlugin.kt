@@ -23,14 +23,6 @@ import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 class DependenciesPlugin: Plugin<Project> {
 
   override fun apply(target: Project) {
-    val dependenciesPath = "file:" +
-      target.getRoot().resolve("third_party").resolve("dependencies").getAbsolutePath()
-    val dependenciesNewPath = "file:" +
-      target.getRoot().resolve("third_party").resolve("dependencies_new").getAbsolutePath()
-    val repositories = target.getRepositories()
-    repositories.maven { name = "LOCAL_MAVEN_REPO";  url = URI(dependenciesPath) }
-    repositories.maven { name = "LOCAL_MAVEN_REPO_NEW";  url = URI(dependenciesNewPath) }
-
     // Setup all test tasks to listen after system properties passed in by test.py.
     val testTask = target.tasks.findByName("test")
     if (testTask != null) {

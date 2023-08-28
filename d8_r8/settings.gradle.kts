@@ -45,8 +45,28 @@ downloadFromGoogleStorage(thirdParty.resolve("dependencies.tar.gz.sha1"))
 downloadFromGoogleStorage(thirdParty.resolve("dependencies_new.tar.gz.sha1"))
 
 pluginManagement {
+  repositories {
+    maven {
+      url = uri("file:../third_party/dependencies")
+    }
+    maven {
+      url = uri("file:../third_party/dependencies_new")
+    }
+  }
   includeBuild(rootProject.projectDir.resolve("commonBuildSrc"))
 }
+
+dependencyResolutionManagement {
+  repositories {
+    maven {
+      url = uri("file:../third_party/dependencies")
+    }
+    maven {
+      url = uri("file:../third_party/dependencies_new")
+    }
+  }
+}
+
 // This project is temporarily located in d8_r8. When moved to root, the parent
 // folder should just be removed.
 includeBuild(root.resolve("keepanno"))

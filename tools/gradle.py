@@ -81,8 +81,10 @@ def RunGradleIn(
     gradleCmd, args, cwd, throw_on_failure=True, env=None, new_gradle=False):
   EnsureDeps()
   cmd = [gradleCmd]
-  args.append(
-    '-c=d8_r8/settings.gradle.kts' if new_gradle else '-b=build.gradle')
+  if new_gradle:
+    args.extend(['--offline', '-c=d8_r8/settings.gradle.kts'])
+  else:
+    args.append('-b=build.gradle')
   cmd.extend(args)
   utils.PrintCmd(cmd)
   with utils.ChangedWorkingDirectory(cwd):
