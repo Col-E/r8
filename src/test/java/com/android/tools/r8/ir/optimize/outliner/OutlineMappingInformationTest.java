@@ -95,14 +95,10 @@ public class OutlineMappingInformationTest extends TestBase {
               assertEquals(5, inspector.allClasses().size());
               assertEquals(expectedStackTrace, stackTrace);
             });
-    String proguardMap = compileResult.getProguardMap();
-
-    if (parameters.isDexRuntime()) {
-      // TODO(b/263357015, b/293630963): Outline information is not reset for new default events.
-      assertEquals(6, StringUtils.occurrences(proguardMap, "com.android.tools.r8.outlineCallsite"));
-    } else {
-      assertEquals(4, StringUtils.occurrences(proguardMap, "com.android.tools.r8.outlineCallsite"));
-    }
+    assertEquals(
+        4,
+        StringUtils.occurrences(
+            compileResult.getProguardMap(), "com.android.tools.r8.outlineCallsite"));
   }
 
   @NoHorizontalClassMerging

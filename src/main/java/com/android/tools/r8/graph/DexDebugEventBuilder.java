@@ -258,9 +258,13 @@ public class DexDebugEventBuilder {
         nextPosition.getCallerPosition() != previousPosition.getCallerPosition()
             || nextPosition.getMethod() != previousPosition.getMethod();
     boolean isOutline = nextPosition.isOutline();
-    boolean isOutlineCallee =
-        nextPosition.getOutlineCallee() != null && !nextPosition.getOutlinePositions().isEmpty();
-    if (isNewPosition || isOutline || isOutlineCallee) {
+    boolean isOutlineCallerWithInfo =
+        nextPosition.isOutlineCaller()
+            && nextPosition.getOutlineCallee() != null
+            && !nextPosition.getOutlinePositions().isEmpty();
+    boolean isNoLongerOutlineCaller =
+        previousPosition.isOutlineCaller() && !nextPosition.isOutlineCaller();
+    if (isNewPosition || isOutline || isOutlineCallerWithInfo || isNoLongerOutlineCaller) {
       events.add(factory.createPositionFrame(nextPosition));
     }
     addDefaultEventWithAdvancePcIfNecessary(lineDelta, pcDelta, events, factory);
