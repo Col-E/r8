@@ -209,7 +209,8 @@ public class ConcreteCfFrameState extends CfFrameState {
     assert frameType.isUninitialized();
     StringBuilder message = new StringBuilder("Constructor mismatch, expected constructor from ");
     if (frameType.isUninitializedNew()) {
-      message.append(frameType.getUninitializedNewType().getTypeName());
+      DexType uninitializedNewType = frameType.getUninitializedNewType();
+      message.append(uninitializedNewType == null ? "null" : uninitializedNewType.getTypeName());
     } else {
       assert frameType.isUninitializedThis();
       message
