@@ -68,10 +68,12 @@ def EnsureGradle():
     get_gradle(True), GRADLE8_TGZ, GRADLE8_SHA1, 'Gradle binary')
 
 def EnsureJdk():
-  jdkRoot = jdk.GetJdkRoot()
-  jdkTgz = jdkRoot + '.tar.gz'
-  jdkSha1 = jdkTgz + '.sha1'
-  utils.EnsureDepFromGoogleCloudStorage(jdkRoot, jdkTgz, jdkSha1, 'JDK')
+  # Gradle in the new setup will use the jdks in the evaluation - fetch
+  # all beforehand.
+  for root in jdk.GetAllJdkDirs():
+    jdkTgz = root + '.tar.gz'
+    jdkSha1 = jdkTgz + '.sha1'
+    utils.EnsureDepFromGoogleCloudStorage(root, jdkTgz, jdkSha1, root)
 
 def EnsureDeps():
   EnsureGradle()

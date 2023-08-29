@@ -10,6 +10,10 @@ import defines
 
 JDK_DIR = os.path.join(defines.THIRD_PARTY, 'openjdk')
 
+ALL_JDKS = ['openjdk-9.0.4', 'jdk-11', 'jdk-15', 'jdk-16', 'jdk-17',
+            'jdk-18', 'jdk-20']
+
+
 def GetJdkHome():
   return GetJdk11Home()
 
@@ -18,6 +22,10 @@ def GetJdkRoot():
 
 def GetJdk11Root():
   root = os.path.join(JDK_DIR, 'jdk-11')
+  os_root = GetOSPath(root)
+  return os_root if os_root else os.environ['JAVA_HOME']
+
+def GetOSPath(root):
   if defines.IsLinux():
     return os.path.join(root, 'linux')
   elif defines.IsOsX():
@@ -25,7 +33,16 @@ def GetJdk11Root():
   elif defines.IsWindows():
     return os.path.join(root, 'windows')
   else:
-    return os.environ['JAVA_HOME']
+    return None
+
+def GetAllJdkDirs():
+  dirs = []
+  for jdk in ALL_JDKS:
+    root = GetOSPath(os.path.join(JDK_DIR, jdk))
+    # Some jdks are not available on windows, don't try to get these.
+    if os.path.exists(root + '.tar.gz.sha1'):
+      dirs.append(root)
+  return dirs
 
 def GetJdk11Home():
   root = GetJdk11Root()
