@@ -14,9 +14,12 @@ import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockInstructionListIterator;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
+import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstNumber;
+import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilled;
@@ -25,13 +28,18 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.utils.InternalOptions.RewriteArrayOptions;
+import com.android.tools.r8.utils.SetUtils;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.Set;
 
 public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
 
   private final RewriteArrayOptions rewriteArrayOptions;
+  private static final Set<Instruction> NOTHING = ImmutableSet.of();
 
   private boolean mayHaveRedundantBlocks;
+  Set<Instruction> toRemove = NOTHING;
 
   public FilledNewArrayRewriter(AppView<?> appView) {
     super(appView);
@@ -45,6 +53,8 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
 
   @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
+    assert !mayHaveRedundantBlocks;
+    assert toRemove == NOTHING;
     BasicBlockIterator blockIterator = code.listIterator();
     CodeRewriterResult result = noChange();
     while (blockIterator.hasNext()) {
@@ -56,6 +66,15 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
           result =
               processInstruction(
                   code, blockIterator, instructionIterator, instruction.asNewArrayFilled(), result);
+        }
+      }
+    }
+    if (!toRemove.isEmpty()) {
+      InstructionListIterator it = code.instructionListIterator();
+      while (it.hasNext()) {
+        if (toRemove.contains(it.next())) {
+          it.remove();
+          mayHaveRedundantBlocks = true;
         }
       }
     }
@@ -287,14 +306,56 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
         BasicBlock splitBlock =
             instructionIterator.splitCopyCatchHandlers(code, blockIterator, options);
         instructionIterator = splitBlock.listIterator(code);
-        addArrayPut(code, instructionIterator, newArrayEmpty, index, elementValue);
+        Value putValue = getPutValue(code, instructionIterator, newArrayEmpty, elementValue);
+        blockIterator.positionAfterPreviousBlock(splitBlock);
+        splitBlock = instructionIterator.splitCopyCatchHandlers(code, blockIterator, options);
+        instructionIterator = splitBlock.listIterator(code);
+        addArrayPut(code, instructionIterator, newArrayEmpty, index, putValue);
         blockIterator.positionAfterPreviousBlock(splitBlock);
         mayHaveRedundantBlocks = true;
       } else {
-        addArrayPut(code, instructionIterator, newArrayEmpty, index, elementValue);
+        Value putValue = getPutValue(code, instructionIterator, newArrayEmpty, elementValue);
+        addArrayPut(code, instructionIterator, newArrayEmpty, index, putValue);
       }
       index++;
     }
+  }
+
+  private Value getPutValue(
+      IRCode code,
+      BasicBlockInstructionListIterator instructionIterator,
+      NewArrayEmpty newArrayEmpty,
+      Value elementValue) {
+    // If the value was only used by the NewArrayFilled instruction it now has no normal users.
+    if (elementValue.hasAnyUsers()
+        || !(elementValue.isConstString()
+            || elementValue.isConstNumber()
+            || elementValue.isConstClass())) {
+      return elementValue;
+    }
+    Instruction copy;
+    if (elementValue.isConstNumber()) {
+      copy = ConstNumber.copyOf(code, elementValue.definition.asConstNumber());
+    } else if (elementValue.isConstString()) {
+      copy = ConstString.copyOf(code, elementValue.definition.asConstString());
+    } else if (elementValue.isConstClass()) {
+      copy = ConstClass.copyOf(code, elementValue.definition.asConstClass());
+    } else {
+      assert false;
+      return elementValue;
+    }
+    copy.setBlock(instructionIterator.getBlock());
+    copy.setPosition(newArrayEmpty.getPosition());
+    instructionIterator.add(copy);
+    addToRemove(elementValue.definition);
+    return copy.outValue();
+  }
+
+  private void addToRemove(Instruction instruction) {
+    if (toRemove == NOTHING) {
+      toRemove = SetUtils.newIdentityHashSet();
+    }
+    toRemove.add(instruction);
   }
 
   private void addArrayPut(
