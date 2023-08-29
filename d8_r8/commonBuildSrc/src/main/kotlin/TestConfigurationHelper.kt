@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import org.gradle.api.tasks.testing.Test
+import org.gradle.api.tasks.testing.TestListener
+import org.gradle.api.tasks.testing.TestDescriptor
+import org.gradle.api.tasks.testing.TestResult
 
 class TestConfigurationHelper {
 
@@ -69,6 +72,19 @@ class TestConfigurationHelper {
         test.maxHeapSize = "4G"
       }
 
+      if (project.hasProperty("one_line_per_test")) {
+        test.addTestListener(object: TestListener {
+          override fun beforeSuite(desc: TestDescriptor?) { }
+          override fun afterSuite(desc: TestDescriptor?, result: TestResult?) { }
+          override fun beforeTest(desc: TestDescriptor?) {
+              println("Start executing ${desc}")
+          }
+          override fun afterTest(desc: TestDescriptor?, result: TestResult?) {
+              println("Done executing ${desc} with result: ${result?.resultType}")
+          }
+        })
+      }
+
       val userDefinedCoresPerFork = System.getenv("R8_GRADLE_CORES_PER_FORK")
       val processors = Runtime.getRuntime().availableProcessors()
       // See https://docs.gradle.org/current/dsl/org.gradle.api.tasks.testing.Test.html.
@@ -78,8 +94,8 @@ class TestConfigurationHelper {
         // On work machines this seems to give the best test execution time (without freezing).
         test.maxParallelForks = processors.div(3)
         // On low cpu count machines (bots) we under subscribe, so increase the count.
-        if (processors == 8) {
-          test.maxParallelForks = 3
+        if (processors == 32) {
+          test.maxParallelForks = 15
         }
       }
     }
