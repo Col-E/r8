@@ -2426,6 +2426,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean disableShortenLiveRanges = false;
 
+    public boolean emitDebugLocalStartBeforeDefaultEvent = false;
+
     // Option for testing outlining with interface array arguments, see b/132420510.
     public boolean allowOutlinerInterfaceArrayArguments = false;
 

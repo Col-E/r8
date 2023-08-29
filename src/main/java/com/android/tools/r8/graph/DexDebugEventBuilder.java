@@ -159,6 +159,9 @@ public class DexDebugEventBuilder {
     for (Entry<DebugLocalInfo> entry : locals.int2ReferenceEntrySet()) {
       if (entry.getValue().signature == null) {
         emittedLocals.put(entry.getIntKey(), entry.getValue());
+      } else if (options.testing.emitDebugLocalStartBeforeDefaultEvent) {
+        events.add(new StartLocal(entry.getIntKey(), entry.getValue()));
+        emittedLocals.put(entry.getIntKey(), entry.getValue());
       }
     }
     lastKnownLocals = new Int2ReferenceOpenHashMap<>(emittedLocals);
