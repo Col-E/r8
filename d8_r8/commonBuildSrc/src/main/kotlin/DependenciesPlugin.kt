@@ -356,6 +356,10 @@ object ThirdPartyDeps {
     "ddmlib",
     Paths.get("third_party", "ddmlib").toFile(),
     Paths.get("third_party", "ddmlib.tar.gz.sha1").toFile())
+  val examplesAndroidOLegacy = ThirdPartyDependency(
+    "examplesAndroidOLegacy",
+    Paths.get("third_party", "examplesAndroidOLegacy").toFile(),
+    Paths.get("third_party", "examplesAndroidOLegacy.tar.gz.sha1").toFile())
   val desugarJdkLibs = ThirdPartyDependency(
     "desugar-jdk-libs",
     Paths.get("third_party", "openjdk", "desugar_jdk_libs").toFile(),

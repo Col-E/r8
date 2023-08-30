@@ -96,6 +96,8 @@ third_party/dependencies_new/
 third_party/dependencies_new.tar.gz
 third_party/desugar/desugar_*.tar.gz
 third_party/desugar/desugar_*/
+third_party/examplesAndroidOLegacy
+third_party/examplesAndroidOLegacy.tar.gz
 third_party/framework
 third_party/framework.tar.gz
 third_party/gmail/*

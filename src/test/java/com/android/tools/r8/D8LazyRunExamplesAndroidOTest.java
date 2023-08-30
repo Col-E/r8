@@ -38,7 +38,7 @@ public class D8LazyRunExamplesAndroidOTest
     @Override
     void addClasspathReference(Path testJarFile, D8Command.Builder builder) {
       addClasspathPath(getClassesRoot(testJarFile), builder);
-      addClasspathPath(getLegacyClassesRoot(testJarFile), builder);
+      addClasspathPath(getLegacyClassesRoot(testJarFile, packageName), builder);
     }
 
     private void addClasspathPath(Path location, D8Command.Builder builder) {

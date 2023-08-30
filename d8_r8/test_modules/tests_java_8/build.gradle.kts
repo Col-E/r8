@@ -75,6 +75,7 @@ val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
     ThirdPartyDeps.desugarJdkLibs,
     ThirdPartyDeps.desugarJdkLibsLegacy,
     ThirdPartyDeps.desugarJdkLibs11,
+    ThirdPartyDeps.examplesAndroidOLegacy,
     ThirdPartyDeps.gson,
     ThirdPartyDeps.jacoco,
     ThirdPartyDeps.java8Runtime,
@@ -189,6 +190,7 @@ tasks {
     exclude("com/android/tools/r8/classmerging/vertical/ForceInlineConstructorWithRetargetedLibMemberTest**")
     exclude("com/android/tools/r8/ir/optimize/inliner/InlineMethodWithRetargetedLibMemberTest**")
     exclude("com/android/tools/r8/profile/art/DesugaredLibraryArtProfileRewritingTest**")
+    exclude("com/android/tools/r8/profile/art/dump/DumpArtProfileProvidersTest**")
   }
 
   val testJar by registering(Jar::class) {

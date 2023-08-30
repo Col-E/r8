@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.origin.Origin;
@@ -37,6 +38,8 @@ import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -168,7 +171,7 @@ public abstract class RunExamplesAndroidOTest<
       return Paths.get(EXAMPLE_DIR, packageName + JAR_EXTENSION);
     }
 
-    void run() throws Throwable {
+    void run(Path... additionalJavaClasspaths) throws Throwable {
       if (minSdkErrorExpected(testName)) {
         thrown.expect(CompilationFailedException.class);
       }
@@ -190,7 +193,11 @@ public abstract class RunExamplesAndroidOTest<
         }
       }
 
-      execute(testName, qualifiedMainClass, new Path[]{inputFile}, new Path[]{out}, args);
+      List<Path> paths = new ArrayList<>();
+      paths.add(inputFile);
+      paths.addAll(Arrays.asList(additionalJavaClasspaths));
+
+      execute(testName, qualifiedMainClass, paths.toArray(new Path[0]), new Path[] {out}, args);
     }
 
     abstract C withMinApiLevel(AndroidApiLevel minApiLevel);
@@ -368,7 +375,7 @@ public abstract class RunExamplesAndroidOTest<
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withKeepAll()
-        .run();
+        .run(Paths.get(ToolHelper.THIRD_PARTY_DIR, "examplesAndroidOLegacy"));
   }
 
   @Test
@@ -599,6 +606,7 @@ public abstract class RunExamplesAndroidOTest<
         .addLibraryFiles(ToolHelper.getAndroidJar(minApi))
         .setIntermediate(true)
         .addProgramFiles(input);
+    visitFiles(getLegacyClassesRoot(input, packageName), command::addProgramFiles);
     ToolHelper.runD8(command, option -> {
       option.interfaceMethodDesugaring = OffOrAuto.Auto;
     });
@@ -645,7 +653,9 @@ public abstract class RunExamplesAndroidOTest<
         javaArgs.add(0, qualifiedMainClass);
         ToolHelper.ProcessResult javaResult =
             ToolHelper.runJava(
-                ImmutableList.copyOf(jars), javaArgs.toArray(StringUtils.EMPTY_ARRAY));
+                CfRuntime.getCheckedInJdk11(),
+                ImmutableList.copyOf(jars),
+                javaArgs.toArray(StringUtils.EMPTY_ARRAY));
         assertEquals("JVM run failed", javaResult.exitCode, 0);
         assertTrue(
             "JVM output does not match art output.\n\tjvm: "
@@ -671,4 +681,25 @@ public abstract class RunExamplesAndroidOTest<
     }
   }
 
+  protected Path getLegacyClassesRoot(Path testJarFile, String packageName) {
+    Path parent = testJarFile.getParent();
+    return Paths.get(
+        ToolHelper.THIRD_PARTY_DIR, parent.getFileName().toString() + "Legacy", packageName);
+  }
+
+  public void visitFiles(Path dir, Consumer<Path> consumer) {
+    if (Files.exists(dir)) {
+      try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
+        for (Path entry : stream) {
+          if (Files.isDirectory(entry)) {
+            visitFiles(entry, consumer);
+          } else {
+            consumer.accept(entry);
+          }
+        }
+      } catch (IOException x) {
+        throw new AssertionError(x);
+      }
+    }
+  }
 }

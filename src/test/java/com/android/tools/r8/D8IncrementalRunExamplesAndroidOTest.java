@@ -27,7 +27,6 @@ import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -118,8 +117,10 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     private Path makeRelative(Path testJarFile, Path classFile) {
       Path regularParent =
           testJarFile.getParent().resolve(Paths.get("classes"));
-      Path legacyParent = regularParent.resolve(Paths.get("..",
-          regularParent.getFileName().toString() + "Legacy", "classes"));
+      Path legacyParent =
+          regularParent.resolve(
+              Paths.get(
+                  ToolHelper.THIRD_PARTY_DIR, regularParent.getFileName().toString() + "Legacy"));
 
       if (classFile.startsWith(regularParent)) {
         return regularParent.relativize(classFile);
@@ -131,9 +132,10 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     private List<String> collectClassFiles(Path testJarFile) {
       List<String> result = new ArrayList<>();
       // Collect Java 8 classes.
-      collectClassFiles(getClassesRoot(testJarFile), result, false);
+      visitFiles(getClassesRoot(testJarFile), path -> result.add(path.toString()));
       // Collect legacy classes.
-      collectClassFiles(getLegacyClassesRoot(testJarFile), result, true);
+      visitFiles(
+          getLegacyClassesRoot(testJarFile, packageName), path -> result.add(path.toString()));
       Collections.sort(result);
       return result;
     }
@@ -141,32 +143,6 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     Path getClassesRoot(Path testJarFile) {
       Path parent = testJarFile.getParent();
       return parent.resolve(Paths.get("classes", packageName));
-    }
-
-    Path getLegacyClassesRoot(Path testJarFile) {
-      Path parent = testJarFile.getParent();
-      Path legacyPath = Paths.get("..",
-          parent.getFileName().toString() + "Legacy", "classes", packageName);
-      return parent.resolve(legacyPath);
-    }
-
-    private void collectClassFiles(Path dir, List<String> result, boolean takeLegacy) {
-      if (Files.exists(dir)) {
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
-          for (Path entry: stream) {
-            if (Files.isDirectory(entry)) {
-              if (entry.getFileName().toString().equals("legacy") && !takeLegacy) {
-                return;
-              }
-              collectClassFiles(entry, result, takeLegacy);
-            } else {
-              result.add(entry.toString());
-            }
-          }
-        } catch (IOException x) {
-          throw new AssertionError(x);
-        }
-      }
     }
 
     AndroidApp compileClassFilesInIntermediate(
