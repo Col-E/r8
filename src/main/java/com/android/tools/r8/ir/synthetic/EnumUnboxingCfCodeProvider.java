@@ -144,12 +144,20 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       List<CfInstruction> instructions = new ArrayList<>();
       DexMethod representative = methodMap.values().iterator().next();
       CfFrame.Builder frameBuilder = CfFrame.builder();
+      int paramRegisterSize = 0;
       for (DexType parameter : representative.getParameters()) {
         frameBuilder.appendLocal(FrameType.initialized(parameter));
+        paramRegisterSize += parameter.getRequiredRegisters();
       }
       addCfSwitch(
           instructions, this::addReturnInvoke, methodMap, superEnumMethod, frameBuilder, false);
-      return new CfCodeWithLens(getHolder(), defaultMaxStack(), defaultMaxLocals(), instructions);
+      // We need to get an estimate of the stack and local with is greater than the actual number,
+      // IR processing will compute the exact number. There are at most 255 parameters, so this is
+      // always within unsigned 16 bits bounds.
+      assert paramRegisterSize < 256;
+      int maxStack = 2 * paramRegisterSize + 16;
+      int maxLocals = paramRegisterSize + 16;
+      return new CfCodeWithLens(getHolder(), maxStack, maxLocals, instructions);
     }
 
     private void addReturnInvoke(List<CfInstruction> instructions, DexMethod method) {
