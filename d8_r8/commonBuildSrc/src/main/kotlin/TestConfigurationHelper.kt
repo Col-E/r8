@@ -2,6 +2,8 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import java.io.File
+import java.util.Date
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.TestListener
 import org.gradle.api.tasks.testing.TestDescriptor
@@ -72,18 +74,24 @@ class TestConfigurationHelper {
         test.maxHeapSize = "4G"
       }
 
-      if (project.hasProperty("one_line_per_test")) {
-        test.addTestListener(object: TestListener {
-          override fun beforeSuite(desc: TestDescriptor?) { }
-          override fun afterSuite(desc: TestDescriptor?, result: TestResult?) { }
-          override fun beforeTest(desc: TestDescriptor?) {
-              println("Start executing ${desc}")
+      test.addTestListener(object: TestListener {
+        override fun beforeSuite(desc: TestDescriptor?) { }
+        override fun afterSuite(desc: TestDescriptor?, result: TestResult?) { }
+        override fun beforeTest(desc: TestDescriptor?) {
+          if (project.hasProperty("one_line_per_test")) {
+            println("Start executing ${desc}")
           }
-          override fun afterTest(desc: TestDescriptor?, result: TestResult?) {
-              println("Done executing ${desc} with result: ${result?.resultType}")
+        }
+        override fun afterTest(desc: TestDescriptor?, result: TestResult?) {
+          if (project.hasProperty("one_line_per_test")) {
+            println("Done executing ${desc} with result: ${result?.resultType}")
           }
-        })
-      }
+          if (project.hasProperty("update_test_timestamp")) {
+            File(project.property("update_test_timestamp")!!.toString())
+                .writeText(Date().getTime().toString())
+          }
+        }
+      })
 
       val userDefinedCoresPerFork = System.getenv("R8_GRADLE_CORES_PER_FORK")
       val processors = Runtime.getRuntime().availableProcessors()
