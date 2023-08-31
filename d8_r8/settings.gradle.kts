@@ -18,7 +18,17 @@ fun getRepoRoot() : File {
   return current.getParentFile()
 }
 
-fun downloadFromGoogleStorage(sha1File : File) {
+fun downloadFromGoogleStorage(outputDir : File) {
+  val targz = File(outputDir.toString() + ".tar.gz")
+  val sha1File = File(targz.toString() + ".sha1")
+  if (outputDir.exists()
+      && outputDir.isDirectory
+      && targz.exists()
+      && sha1File.lastModified() <= targz.lastModified()) {
+      // We already downloaded, no need to recheck the hash
+      return
+  }
+
   val cmd = listOf(
     "download_from_google_storage.py",
     "--extract",
@@ -27,6 +37,7 @@ fun downloadFromGoogleStorage(sha1File : File) {
     "--sha1_file",
     "${sha1File}"
   )
+
   println("Executing command: ${cmd.joinToString(" ")}")
   val process = ProcessBuilder().command(cmd).start()
   process.waitFor()
@@ -41,8 +52,8 @@ fun downloadFromGoogleStorage(sha1File : File) {
 }
 
 val thirdParty = getRepoRoot().resolve("third_party")
-downloadFromGoogleStorage(thirdParty.resolve("dependencies.tar.gz.sha1"))
-downloadFromGoogleStorage(thirdParty.resolve("dependencies_new.tar.gz.sha1"))
+downloadFromGoogleStorage(thirdParty.resolve("dependencies"))
+downloadFromGoogleStorage(thirdParty.resolve("dependencies_new"))
 
 pluginManagement {
   repositories {
