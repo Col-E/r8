@@ -69,7 +69,7 @@ NEW_DEPENDENCIES = [
   'org.jetbrains.kotlin:kotlin-script-runtime:1.8.10',
   'org.jetbrains.kotlin:kotlin-tooling-core:1.8.10',
   'net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:3.0.1',
-
+  'com.google.errorprone:javac:9+181-r4173-1',
   # Resource shrinker
   'com.android.tools.build:aapt2-proto:{version}'.format(version = AAPT2_PROTO_VERSION),
   'com.android.tools.layoutlib:layoutlib-api:{version}'.format(version = STUDIO_SDK_VERSION),
