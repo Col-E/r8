@@ -10,6 +10,7 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugari
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
@@ -18,6 +19,7 @@ import java.time.Month;
 import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -122,6 +124,7 @@ public class MonthTest extends DesugaredLibraryTestBase {
   @Test
   public void testMonth() throws Exception {
     if (parameters.isCfRuntime()) {
+      Assume.assumeFalse("Missing data for Locale RU on Windows", ToolHelper.isWindows());
       testForJvm(parameters)
           .addInnerClasses(MonthTest.class)
           .run(parameters.getRuntime(), Main.class)
