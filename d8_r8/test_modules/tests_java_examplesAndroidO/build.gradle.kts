@@ -39,13 +39,7 @@ val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
 tasks {
   withType<JavaCompile> {
     dependsOn(thirdPartyCompileDependenciesTask)
-    options.setFork(true)
     options.compilerArgs.add("-Xlint:-options")
     options.compilerArgs.add("-parameters")
-    options.forkOptions.memoryMaximumSize = "3g"
-    options.forkOptions.jvmArgs = listOf(
-      "-Xss256m",
-      // Set the bootclass path so compilation is consistent with 1.8 target compatibility.
-      "-Xbootclasspath/a:third_party/openjdk/openjdk-rt-1.8/rt.jar")
   }
 }

@@ -550,8 +550,6 @@ sourceSets.configureEach { sourceSet ->
         options.forkOptions.jvmArgs << "-Xss256m"
         // Test compilation is sometimes hitting the default limit at 1g, increase it.
         options.forkOptions.jvmArgs << "-Xmx3g"
-        // Set the bootclass path so compilation is consistent with 1.8 target compatibility.
-        options.forkOptions.jvmArgs << "-Xbootclasspath/a:third_party/openjdk/openjdk-rt-1.8/rt.jar"
     }
 }
 
