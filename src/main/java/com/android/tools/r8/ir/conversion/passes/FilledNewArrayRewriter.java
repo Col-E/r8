@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.ir.conversion.passes;
 
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexItem;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -31,6 +34,8 @@ import com.android.tools.r8.utils.InternalOptions.RewriteArrayOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Set;
 
 public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
@@ -294,19 +299,157 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
     return result;
   }
 
+  private static class ConstantMaterializingInstructionCache {
+
+    // All DEX aput instructions takes an 8-bit wide register value for the source.
+    private final int MAX_MATERIALIZING_CONSTANTS = Constants.U8BIT_MAX - 16;
+    // Track constants as DexItems, DexString for string constants and DexType for class constants.
+    private final Map<DexItem, Integer> constantOccurrences = new IdentityHashMap<>();
+    private final Map<DexItem, Value> constantValue = new IdentityHashMap<>();
+
+    private ConstantMaterializingInstructionCache(NewArrayFilled newArrayFilled) {
+      for (Value elementValue : newArrayFilled.inValues()) {
+        if (elementValue.hasAnyUsers()) {
+          continue;
+        }
+        if (elementValue.isConstString()) {
+          addOccurrence(elementValue.getDefinition().asConstString().getValue());
+        } else if (elementValue.isConstClass()) {
+          addOccurrence(elementValue.getDefinition().asConstClass().getValue());
+        }
+        // Don't canonicalize numbers, as on DEX FilledNewArray is supported for primitives
+        // on all versions.
+      }
+    }
+
+    private Value getValue(Value elementValue) {
+      if (elementValue.isConstString()) {
+        DexString string = elementValue.getDefinition().asConstString().getValue();
+        Value value = constantValue.get(string);
+        if (value != null) {
+          seenOcourence(string);
+          return value;
+        }
+      } else if (elementValue.isConstClass()) {
+        DexType type = elementValue.getDefinition().asConstClass().getValue();
+        Value value = constantValue.get(type);
+        if (value != null) {
+          seenOcourence(type);
+          return value;
+        }
+      }
+      return null;
+    }
+
+    private DexItem smallestConstant(DexItem c1, DexItem c2) {
+      if (c1 instanceof DexString) {
+        if (c2 instanceof DexString) {
+          return ((DexString) c1).compareTo((DexString) c2) < 0 ? c1 : c2;
+        } else {
+          assert c2 instanceof DexType;
+          return c2; // String larger than class.
+        }
+      } else {
+        assert c1 instanceof DexType;
+        if (c2 instanceof DexType) {
+          return ((DexType) c1).compareTo((DexType) c2) < 0 ? c1 : c2;
+        } else {
+          assert c2 instanceof DexString;
+          return c1; // String larger than class.
+        }
+      }
+    }
+
+    private DexItem getConstant(Value value) {
+      Instruction instruction = value.getDefinition();
+      if (instruction.isConstString()) {
+        return instruction.asConstString().getValue();
+      } else {
+        assert instruction.isConstClass();
+        return instruction.asConstClass().getValue();
+      }
+    }
+
+    private void putNewValue(Value value) {
+      DexItem constant = getConstant(value);
+      assert constantOccurrences.containsKey(constant);
+      assert !constantValue.containsKey(constant);
+      if (constantValue.size() < MAX_MATERIALIZING_CONSTANTS) {
+        constantValue.put(constant, value);
+      } else {
+        assert constantValue.size() == MAX_MATERIALIZING_CONSTANTS;
+        // Find the least valuable active constant.
+        int leastOccurrences = Integer.MAX_VALUE;
+        DexItem valueWithLeastOccurrences = null;
+        for (DexItem key : constantValue.keySet()) {
+          int remainingOccurrences = constantOccurrences.get(key);
+          if (remainingOccurrences < leastOccurrences) {
+            leastOccurrences = remainingOccurrences;
+            valueWithLeastOccurrences = key;
+          } else if (remainingOccurrences == leastOccurrences) {
+            assert valueWithLeastOccurrences
+                != null; // Will always be set before the else branch is ever hit.
+            valueWithLeastOccurrences = smallestConstant(valueWithLeastOccurrences, key);
+          }
+        }
+        // Replace the new constant with the current least valuable one if more valuable.
+        int newConstantOccurrences = constantOccurrences.get(constant);
+        if (newConstantOccurrences > leastOccurrences
+            || (newConstantOccurrences == leastOccurrences
+                && smallestConstant(valueWithLeastOccurrences, constant)
+                    == valueWithLeastOccurrences)) {
+          constantValue.remove(valueWithLeastOccurrences);
+          constantValue.put(constant, value);
+        }
+        assert constantValue.size() == MAX_MATERIALIZING_CONSTANTS;
+      }
+      seenOcourence(constant);
+    }
+
+    private void addOccurrence(DexItem constant) {
+      constantOccurrences.compute(constant, (k, v) -> (v == null) ? 1 : ++v);
+    }
+
+    private void seenOcourence(DexItem constant) {
+      int remainingOccourences =
+          constantOccurrences.compute(constant, (k, v) -> (v == null) ? Integer.MAX_VALUE : --v);
+      // Remove from sets after last occurrence.
+      if (remainingOccourences == 0) {
+        constantOccurrences.remove(constant);
+        constantValue.remove(constant);
+      }
+    }
+
+    private boolean checkAllOccurrenceProcessed() {
+      assert constantOccurrences.size() == 0;
+      assert constantValue.size() == 0;
+      return true;
+    }
+  }
+
   private void rewriteToArrayPuts(
       IRCode code,
       BasicBlockIterator blockIterator,
       BasicBlockInstructionListIterator instructionIterator,
       NewArrayFilled newArrayFilled) {
     NewArrayEmpty newArrayEmpty = rewriteToNewArrayEmpty(code, instructionIterator, newArrayFilled);
+
+    ConstantMaterializingInstructionCache constantMaterializingInstructionCache =
+        new ConstantMaterializingInstructionCache(newArrayFilled);
+
     int index = 0;
     for (Value elementValue : newArrayFilled.inValues()) {
       if (instructionIterator.getBlock().hasCatchHandlers()) {
         BasicBlock splitBlock =
             instructionIterator.splitCopyCatchHandlers(code, blockIterator, options);
         instructionIterator = splitBlock.listIterator(code);
-        Value putValue = getPutValue(code, instructionIterator, newArrayEmpty, elementValue);
+        Value putValue =
+            getPutValue(
+                code,
+                instructionIterator,
+                newArrayEmpty,
+                elementValue,
+                constantMaterializingInstructionCache);
         blockIterator.positionAfterPreviousBlock(splitBlock);
         splitBlock = instructionIterator.splitCopyCatchHandlers(code, blockIterator, options);
         instructionIterator = splitBlock.listIterator(code);
@@ -314,18 +457,27 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
         blockIterator.positionAfterPreviousBlock(splitBlock);
         mayHaveRedundantBlocks = true;
       } else {
-        Value putValue = getPutValue(code, instructionIterator, newArrayEmpty, elementValue);
+        Value putValue =
+            getPutValue(
+                code,
+                instructionIterator,
+                newArrayEmpty,
+                elementValue,
+                constantMaterializingInstructionCache);
         addArrayPut(code, instructionIterator, newArrayEmpty, index, putValue);
       }
       index++;
     }
+
+    assert constantMaterializingInstructionCache.checkAllOccurrenceProcessed();
   }
 
   private Value getPutValue(
       IRCode code,
       BasicBlockInstructionListIterator instructionIterator,
       NewArrayEmpty newArrayEmpty,
-      Value elementValue) {
+      Value elementValue,
+      ConstantMaterializingInstructionCache constantMaterializingInstructionCache) {
     // If the value was only used by the NewArrayFilled instruction it now has no normal users.
     if (elementValue.hasAnyUsers()
         || !(elementValue.isConstString()
@@ -333,13 +485,22 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
             || elementValue.isConstClass())) {
       return elementValue;
     }
+
+    Value existingValue = constantMaterializingInstructionCache.getValue(elementValue);
+    if (existingValue != null) {
+      addToRemove(elementValue.definition);
+      return existingValue;
+    }
+
     Instruction copy;
     if (elementValue.isConstNumber()) {
       copy = ConstNumber.copyOf(code, elementValue.definition.asConstNumber());
     } else if (elementValue.isConstString()) {
       copy = ConstString.copyOf(code, elementValue.definition.asConstString());
+      constantMaterializingInstructionCache.putNewValue(copy.asConstString().outValue());
     } else if (elementValue.isConstClass()) {
       copy = ConstClass.copyOf(code, elementValue.definition.asConstClass());
+      constantMaterializingInstructionCache.putNewValue(copy.asConstClass().outValue());
     } else {
       assert false;
       return elementValue;

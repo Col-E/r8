@@ -16,7 +16,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.Arrays;
-import java.util.Iterator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -24,7 +23,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class StringArrayTest extends TestBase {
+public class StringArrayWithNonUniqueValuesTest extends TestBase {
 
   @Parameter(0)
   public TestParameters parameters;
@@ -39,53 +38,31 @@ public class StringArrayTest extends TestBase {
         CompilationMode.values());
   }
 
-  private static final String EXPECTED_OUTPUT =
-      StringUtils.lines("[A, B, C, D, E]", "[F, G, H, I, J]");
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("100", "104");
 
   public boolean canUseFilledNewArrayOfStrings(TestParameters parameters) {
     return parameters.isDexRuntime()
         && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K);
   }
 
-  private enum State {
-    EXPECTING_CONSTSTRING,
-    EXPECTING_APUTOBJECT
-  }
-
-  private void inspect(MethodSubject method, boolean insideCatchHandler) {
+  private void inspect(
+      MethodSubject method, int constStrings, int puts, boolean insideCatchHandler) {
     boolean expectingFilledNewArray =
         canUseFilledNewArrayOfStrings(parameters) && !insideCatchHandler;
     assertEquals(
-        expectingFilledNewArray ? 0 : 5,
+        expectingFilledNewArray ? 0 : puts,
         method.streamInstructions().filter(InstructionSubject::isArrayPut).count());
     assertEquals(
         expectingFilledNewArray ? 1 : 0,
         method.streamInstructions().filter(InstructionSubject::isFilledNewArray).count());
-    if (!expectingFilledNewArray) {
-      // Test that const-string and aput instructions are interleaved by the lowering of
-      // filled-new-array.
-      int aputCount = 0;
-      State state = State.EXPECTING_CONSTSTRING;
-      Iterator<InstructionSubject> iterator = method.iterateInstructions();
-      while (iterator.hasNext()) {
-        InstructionSubject instruction = iterator.next();
-        if (instruction.isConstString()) {
-          assertEquals(State.EXPECTING_CONSTSTRING, state);
-          state = State.EXPECTING_APUTOBJECT;
-        } else if (instruction.isArrayPut()) {
-          assertEquals(State.EXPECTING_APUTOBJECT, state);
-          state = State.EXPECTING_CONSTSTRING;
-          aputCount++;
-        }
-      }
-      assertEquals(State.EXPECTING_CONSTSTRING, state);
-      assertEquals(5, aputCount);
-    }
+    assertEquals(
+        expectingFilledNewArray || parameters.isCfRuntime() ? puts : constStrings,
+        method.streamInstructions().filter(InstructionSubject::isConstString).count());
   }
 
   private void inspect(CodeInspector inspector) {
-    inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m1"), false);
-    inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m2"), true);
+    inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m1"), 1, 100, false);
+    inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m2"), 26, 104, false);
   }
 
   @Test
@@ -116,18 +93,36 @@ public class StringArrayTest extends TestBase {
 
     @NeverInline
     public static void m1() {
-      String[] stringArray = {"A", "B", "C", "D", "E"};
-      System.out.println(Arrays.asList(stringArray));
+      String[] array =
+          new String[] {
+            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
+            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
+            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
+            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
+            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
+            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
+            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
+            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
+            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
+            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
+          };
+      System.out.println(Arrays.asList(array).size());
     }
 
     @NeverInline
     public static void m2() {
-      try {
-        String[] stringArray = {"F", "G", "H", "I", "J"};
-        System.out.println(Arrays.asList(stringArray));
-      } catch (Exception e) {
-        throw new RuntimeException();
-      }
+      String[] array =
+          new String[] {
+            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q",
+                "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q",
+                "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q",
+                "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q",
+                "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+          };
+      System.out.println(Arrays.asList(array).size());
     }
 
     public static void main(String[] args) {
