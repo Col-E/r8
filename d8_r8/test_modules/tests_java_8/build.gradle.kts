@@ -210,10 +210,6 @@ tasks {
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
     dependsOn(gradle.includedBuild("resourceshrinker").task(":jar"))
     dependsOn(thirdPartyCompileDependenciesTask)
-    doFirst {
-      println(header("Test Java 8 dependencies"))
-    }
-    testDependencies().forEach({ println(it) })
     from(testDependencies().map(::zipTree))
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveFileName.set("deps.jar")

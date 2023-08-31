@@ -79,10 +79,6 @@ tasks {
 
   val depsJar by registering(Jar::class) {
     dependsOn(keepAnnoJarTask)
-    doFirst {
-      println(header("R8 full dependencies"))
-      mainJarDependencies().forEach({ println(it) })
-    }
     dependsOn(resourceShrinkerJarTask)
     dependsOn(resourceShrinkerDepsTask)
     from(mainJarDependencies().map(::zipTree))

@@ -55,8 +55,6 @@ tasks {
   }
 
   val depsJar by registering(Jar::class) {
-    println(header("Resource shrinker dependencies"))
-    jarDependencies().forEach({ println(it) })
     from(jarDependencies().map(::zipTree))
     exclude("**/*.proto")
     exclude("versions-offline/**")
