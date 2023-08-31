@@ -65,6 +65,12 @@ public class ClassNamingForMapApplier implements ClassNaming {
         if (signature.isQualified()) {
           qualifiedMethodMembers.computeIfAbsent(signature, k -> new ArrayList<>(2)).add(entry);
         } else if (methodMembers.put(signature, entry) != null) {
+          // TODO(b/293630963): We are simply not able to handle positions correctly for outlines
+          //  at this point. Remove when we do not call GraphLens.getOriginalMethodSignature when
+          //  constructing positions.
+          if (true) {
+            return this;
+          }
           reporter.error(
               ProguardMapError.duplicateSourceMember(
                   signature.toString(), this.originalName, entry.getPosition()));
