@@ -50,9 +50,7 @@ tasks {
 
   withType<KotlinCompile> {
     kotlinOptions {
-      // We are using a new JDK to compile to an older language version, which is not directly
-      // compatible with java toolchains.
-      jvmTarget = "1.8"
+      enabled = false
     }
   }
 
