@@ -5,7 +5,6 @@ package com.android.tools.r8.mappingcompose;
 
 import static com.android.tools.r8.mappingcompose.ComposeTestHelpers.doubleToSingleQuote;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -56,7 +55,10 @@ public class ComposeUnknownJsonD8Test extends TestBase {
                 assertTrue(options.mappingComposeOptions().enableExperimentalMappingComposition))
         .apply(b -> b.getBuilder().setProguardInputMapFile(inputMap))
         .apply(testBuilder)
-        .compile();
+        .allowStdoutMessages()
+        .collectStdout()
+        .compile()
+        .assertStdoutThatMatches(containsString("Info: Could not find a handler for custom_info"));
   }
 
   @Test
@@ -67,8 +69,7 @@ public class ComposeUnknownJsonD8Test extends TestBase {
             builder
                 .getBuilder()
                 .setProguardMapConsumer((string, handler) -> mappingComposed.append(string)));
-    // TODO(b/297927590): Should contain input preamble.
-    assertThat(doubleToSingleQuote(mappingComposed.toString()), not(containsString(CUSTOM_DATA)));
+    assertThat(doubleToSingleQuote(mappingComposed.toString()), containsString(CUSTOM_DATA));
   }
 
   @Test
@@ -99,8 +100,7 @@ public class ComposeUnknownJsonD8Test extends TestBase {
         .setConsumer((string, handler) -> mappingComposed.append(string))
         .build()
         .run();
-    // TODO(b/297927590): Should contain input preamble.
-    assertThat(doubleToSingleQuote(mappingComposed.toString()), not(containsString(CUSTOM_DATA)));
+    assertThat(doubleToSingleQuote(mappingComposed.toString()), containsString(CUSTOM_DATA));
   }
 
   public static class A {}

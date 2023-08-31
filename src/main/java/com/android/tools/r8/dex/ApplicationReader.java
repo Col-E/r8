@@ -280,14 +280,13 @@ public class ApplicationReader {
         executorService.submit(
             () -> {
               try {
-                String content = map.getString();
                 builder.setProguardMap(
                     ClassNameMapper.mapperFromString(
-                        content,
+                        map.getString(),
                         options.reporter,
                         options.mappingComposeOptions().allowEmptyMappedRanges,
                         options.testing.enableExperimentalMapFileVersion,
-                        false));
+                        true));
               } catch (IOException | ResourceException e) {
                 throw new CompilationError("Failure to read proguard map file", e, map.getOrigin());
               }
