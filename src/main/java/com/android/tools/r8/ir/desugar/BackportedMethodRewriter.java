@@ -187,7 +187,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
           appView
               .contextIndependentDefinitionForWithResolutionResult(provider.method.holder)
               .toSingleClassWithProgramOverLibrary();
-      if (!clazz.isProgramDefinition()) {
+      if (clazz == null || !clazz.isProgramDefinition()) {
         appView
             .reporter()
             .warning(
