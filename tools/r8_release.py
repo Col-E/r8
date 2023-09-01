@@ -7,6 +7,7 @@ import argparse
 import datetime
 import os.path
 import re
+import stat
 import subprocess
 import sys
 import urllib.request
@@ -27,6 +28,23 @@ ANDROID_TOOLS_PACKAGE = 'com.android.tools'
 
 GITHUB_DESUGAR_JDK_LIBS = 'https://github.com/google/desugar_jdk_libs'
 
+def install_gerrit_change_id_hook(checkout_dir):
+  with utils.ChangedWorkingDirectory(checkout_dir):
+    # Fancy way of getting the string ".git".
+    git_dir = subprocess.check_output(
+        ['git', 'rev-parse', '--git-dir']).decode('utf-8').strip()
+    commit_msg_hooks = '%s/hooks/commit-msg' % git_dir
+    if not os.path.exists(os.path.dirname(commit_msg_hooks)):
+      os.mkdir(os.path.dirname(commit_msg_hooks))
+    # Install commit hook to generate Gerrit 'Change-Id:'.
+    urllib.request.urlretrieve(
+        'https://gerrit-review.googlesource.com/tools/hooks/commit-msg',
+        commit_msg_hooks)
+    st = os.stat(commit_msg_hooks)
+    os.chmod(
+        commit_msg_hooks,
+        st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
 def checkout_r8(temp, branch):
   subprocess.check_call(['git', 'clone', utils.REPO_SOURCE, temp])
   with utils.ChangedWorkingDirectory(temp):
@@ -36,6 +54,7 @@ def checkout_r8(temp, branch):
       '--upstream',
       'origin/%s' % branch,
       'dev-release'])
+  install_gerrit_change_id_hook(temp)
   return temp
 
 
@@ -70,7 +89,7 @@ def prepare_release(args):
 
         # Verify that the merge point from main is not empty.
         merge_diff_output = subprocess.check_output([
-          'git', 'diff', 'HEAD..%s' % commithash]).decode('utf-8')
+            'git', 'diff', 'HEAD..%s' % commithash]).decode('utf-8')
         other_diff = version_change_diff(
             merge_diff_output, old_version, "main")
         if not other_diff:
@@ -78,14 +97,16 @@ def prepare_release(args):
             'is the same as exiting release (%s).' % old_version)
           sys.exit(1)
 
+        subprocess.check_call([
+            'git', 'cl', 'new-branch', 'release-%s' % version])
+
         if args.dev_pre_cherry_pick:
           for pre_commit in args.dev_pre_cherry_pick:
             subprocess.check_call([
                 'git', 'cherry-pick', '--no-edit', pre_commit])
 
         # Merge the desired commit from main on to the branch.
-        subprocess.check_call([
-          'git', 'merge', '--no-ff', '--no-edit', commithash])
+        subprocess.check_call(['git', 'merge', '--no-ff', '--no-edit', commithash])
 
         # Rewrite the version, commit and validate.
         sed(old_version, version, R8_VERSION_FILE)
@@ -98,19 +119,15 @@ def prepare_release(args):
 
         validate_version_change_diff(version_diff_output, "main", version)
 
-        # Double check that we want to push the release.
-        if not args.dry_run:
-          answer = input('Publish dev release version %s [y/N]:' % version)
-          if answer != 'y':
-            print('Aborting dev release for %s' % version)
-            sys.exit(1)
+        maybe_check_call(args, ['git', 'cl', 'upload', '--no-squash'])
 
-        maybe_check_call(args, [
-          'git', 'push', 'origin', 'HEAD:%s' % R8_DEV_BRANCH])
-        maybe_tag(args, version)
+        if args.dry_run:
+          input(
+              'DryRun: check %s for content of version %s [enter to continue]:'
+              % (temp, version))
 
-        return "%s dev version %s from hash %s" % (
-          'DryRun: omitted publish of' if args.dry_run else 'Published',
+        return "%s dev version %s from hash %s for review" % (
+          'DryRun: omitted upload of' if args.dry_run else 'Uploaded',
           version,
           commithash)
 
