@@ -33,6 +33,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -130,19 +131,33 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     }
 
     private List<String> collectClassFiles(Path testJarFile) {
-      List<String> result = new ArrayList<>();
+      Map<String, String> result = new HashMap<>();
       // Collect Java 8 classes.
-      visitFiles(getClassesRoot(testJarFile), path -> result.add(path.toString()));
+      visitFiles(
+          getClassesRoot(testJarFile),
+          path -> result.put(path.toFile().getName(), path.toString()));
+      // Collect generated classes, overwrite non-generated files.
+      visitFiles(
+          getGeneratedRoot(testJarFile),
+          path -> result.put(path.toFile().getName(), path.toString()));
       // Collect legacy classes.
       visitFiles(
-          getLegacyClassesRoot(testJarFile, packageName), path -> result.add(path.toString()));
-      Collections.sort(result);
-      return result;
+          getLegacyClassesRoot(testJarFile, packageName),
+          path -> result.put(path.toFile().getName(), path.toString()));
+      List<String> files = new ArrayList<>(result.values());
+      Collections.sort(files);
+      return files;
     }
 
     Path getClassesRoot(Path testJarFile) {
       Path parent = testJarFile.getParent();
       return parent.resolve(Paths.get("classes", packageName));
+    }
+
+    Path getGeneratedRoot(Path testJarFile) {
+      String sourceSet = testJarFile.getParent().toFile().getName();
+      Path parent = testJarFile.getParent().getParent().getParent();
+      return parent.resolve(Paths.get("generated", sourceSet, packageName));
     }
 
     AndroidApp compileClassFilesInIntermediate(

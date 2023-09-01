@@ -13,6 +13,7 @@ import java.lang.invoke.MethodType;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -24,19 +25,24 @@ import org.objectweb.asm.Type;
 public class TestGenerator {
 
   private final Path classNamePath;
+  private final Path outputClassNamePath;
 
   public static void main(String[] args) throws IOException {
-    assert args.length == 1;
-    TestGenerator testGenerator = new TestGenerator(Paths.get(args[0],
-        TestGenerator.class.getPackage().getName(), InvokeCustom.class.getSimpleName() + ".class"));
+    assert args.length == 2;
+    String fileName = InvokeCustom.class.getSimpleName() + ".class";
+    Path inputFile = Paths.get(args[0], TestGenerator.class.getPackage().getName(), fileName);
+    Path outputFile = Paths.get(args[1], fileName);
+    TestGenerator testGenerator = new TestGenerator(inputFile, outputFile);
     testGenerator.generateTests();
   }
 
-  public TestGenerator(Path classNamePath) {
+  public TestGenerator(Path classNamePath, Path outputClassNamePath) {
     this.classNamePath = classNamePath;
+    this.outputClassNamePath = outputClassNamePath;
   }
 
   private void generateTests() throws IOException {
+    Files.createDirectories(outputClassNamePath.getParent());
     try (InputStream inputStream = Files.newInputStream(classNamePath)) {
       ClassReader cr = new ClassReader(inputStream);
       ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
@@ -52,7 +58,8 @@ public class TestGenerator {
               super.visitEnd();
             }
           }, 0);
-      try (OutputStream output = Files.newOutputStream(classNamePath)) {
+      try (OutputStream output =
+          Files.newOutputStream(outputClassNamePath, StandardOpenOption.CREATE)) {
         output.write(cw.toByteArray());
       }
     }
