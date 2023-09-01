@@ -1320,7 +1320,7 @@ task buildExampleAndroidOJars {
                     dependsOn: "compile_examplesAndroidO") {
                 main = name + ".TestGenerator"
                 classpath = files(destinationDir, sourceSets.main.compileClasspath)
-                args destinationDir, destinationDir
+                args destinationDir, file("build/test/examplesAndroidO/classes/${name}").toString()
             }
         } else {
             task "generate_examplesAndroidO_${name}" () {}
@@ -1364,8 +1364,8 @@ task buildExampleAndroidPJars {
             task "generate_examplesAndroidP_${name}"(type: JavaExec,
                     dependsOn: "compile_examplesAndroidP") {
                 main = name + ".TestGenerator"
-                classpath = files(destinationDir, sourceSets.main.compileClasspath)
-                args destinationDir, destinationDir
+                classpath = files(destinationDir.toString(), sourceSets.main.compileClasspath)
+                args destinationDir, file("build/test/examplesAndroidP/classes/${name}").toString()
             }
         } else {
             task "generate_examplesAndroidP_${name}" () {}
