@@ -105,17 +105,17 @@ public class AndroidResourceTestingUtils {
 
   public static class AndroidTestResourceBuilder {
     private String manifest;
-    private Map<String, String> stringValues = new TreeMap<>();
-    private Map<String, byte[]> drawables = new TreeMap<>();
-    private List<Class> classesToRemap = new ArrayList();
+    private final Map<String, String> stringValues = new TreeMap<>();
+    private final Map<String, byte[]> drawables = new TreeMap<>();
+    private final List<Class<?>> classesToRemap = new ArrayList<>();
 
     // Create the android resources from the passed in R classes
     // All values will be generated based on the fields in the class.
     // This takes the actual inner classes (e.g., R$String)
     // These R classes will be used to rewrite the namespace and class names on the aapt2
     // generated names.
-    AndroidTestResourceBuilder addRClassInitializeWithDefaultValues(Class... rClasses) {
-      for (Class rClass : rClasses) {
+    AndroidTestResourceBuilder addRClassInitializeWithDefaultValues(Class<?>... rClasses) {
+      for (Class<?> rClass : rClasses) {
         classesToRemap.add(rClass);
         RClassType rClassType = RClassType.fromClass(rClass);
         for (Field declaredField : rClass.getDeclaredFields()) {
