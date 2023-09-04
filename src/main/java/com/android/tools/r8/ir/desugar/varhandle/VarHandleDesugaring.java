@@ -221,22 +221,23 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
       Collection<? extends ProgramDefinition> contexts) {
     assert contexts.stream()
         .allMatch(context -> context.getContextType() != appView.dexItemFactory().varHandleType);
-    DexProgramClass clazz =
-        appView
-            .getSyntheticItems()
-            .ensureGlobalClass(
-                () -> new MissingGlobalSyntheticsConsumerDiagnostic("VarHandle desugaring"),
-                kinds -> kinds.VAR_HANDLE,
-                appView.dexItemFactory().varHandleType,
-                contexts,
-                appView,
-                builder ->
-                    VarHandleDesugaringMethods.generateDesugarVarHandleClass(
-                        builder, appView.dexItemFactory()),
-                eventConsumer::acceptVarHandleDesugaringClass);
-    for (ProgramDefinition context : contexts) {
-      eventConsumer.acceptVarHandleDesugaringClassContext(clazz, context);
-    }
+    appView
+        .getSyntheticItems()
+        .ensureGlobalClass(
+            () -> new MissingGlobalSyntheticsConsumerDiagnostic("VarHandle desugaring"),
+            kinds -> kinds.VAR_HANDLE,
+            appView.dexItemFactory().varHandleType,
+            contexts,
+            appView,
+            builder ->
+                VarHandleDesugaringMethods.generateDesugarVarHandleClass(
+                    builder, appView.dexItemFactory()),
+            eventConsumer::acceptVarHandleDesugaringClass,
+            clazz -> {
+              for (ProgramDefinition context : contexts) {
+                eventConsumer.acceptVarHandleDesugaringClassContext(clazz, context);
+              }
+            });
   }
 
   private void ensureVarHandleClass(

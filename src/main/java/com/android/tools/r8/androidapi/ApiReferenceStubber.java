@@ -204,40 +204,41 @@ public class ApiReferenceStubber {
     if (contexts == null) {
       throw new Unreachable("Attempt to create a global synthetic with no contexts");
     }
-    DexProgramClass mockClass =
-        appView
-            .appInfo()
-            .getSyntheticItems()
-            .ensureGlobalClass(
-                () -> new MissingGlobalSyntheticsConsumerDiagnostic("API stubbing"),
-                kinds -> kinds.API_MODEL_STUB,
-                libraryClass.getType(),
-                contexts,
-                appView,
-                classBuilder -> {
-                  classBuilder
-                      .setSuperType(libraryClass.getSuperType())
-                      .setInterfaces(Arrays.asList(libraryClass.getInterfaces().values))
-                      // Add throwing static initializer
-                      .addMethod(
-                          methodBuilder ->
-                              methodBuilder
-                                  .setName(factory.classConstructorMethodName)
-                                  .setProto(factory.createProto(factory.voidType))
-                                  .setAccessFlags(MethodAccessFlags.createForClassInitializer())
-                                  .setCode(method -> throwExceptionCode));
-                  if (libraryClass.isInterface()) {
-                    classBuilder.setInterface();
-                  }
-                  if (!libraryClass.isFinal()) {
-                    classBuilder.unsetFinal();
-                  }
-                },
-                clazz -> eventConsumer.acceptMockedLibraryClass(clazz, libraryClass));
-    if (!eventConsumer.isEmpty()) {
-      for (DexProgramClass context : contexts) {
-        eventConsumer.acceptMockedLibraryClassContext(mockClass, libraryClass, context);
-      }
-    }
+    appView
+        .appInfo()
+        .getSyntheticItems()
+        .ensureGlobalClass(
+            () -> new MissingGlobalSyntheticsConsumerDiagnostic("API stubbing"),
+            kinds -> kinds.API_MODEL_STUB,
+            libraryClass.getType(),
+            contexts,
+            appView,
+            classBuilder -> {
+              classBuilder
+                  .setSuperType(libraryClass.getSuperType())
+                  .setInterfaces(Arrays.asList(libraryClass.getInterfaces().values))
+                  // Add throwing static initializer
+                  .addMethod(
+                      methodBuilder ->
+                          methodBuilder
+                              .setName(factory.classConstructorMethodName)
+                              .setProto(factory.createProto(factory.voidType))
+                              .setAccessFlags(MethodAccessFlags.createForClassInitializer())
+                              .setCode(method -> throwExceptionCode));
+              if (libraryClass.isInterface()) {
+                classBuilder.setInterface();
+              }
+              if (!libraryClass.isFinal()) {
+                classBuilder.unsetFinal();
+              }
+            },
+            clazz -> eventConsumer.acceptMockedLibraryClass(clazz, libraryClass),
+            clazz -> {
+              if (!eventConsumer.isEmpty()) {
+                for (DexProgramClass context : contexts) {
+                  eventConsumer.acceptMockedLibraryClassContext(clazz, libraryClass, context);
+                }
+              }
+            });
   }
 }

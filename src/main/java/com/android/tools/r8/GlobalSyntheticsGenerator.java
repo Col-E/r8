@@ -175,7 +175,9 @@ public class GlobalSyntheticsGenerator {
     RecordDesugaring.ensureRecordClassHelper(
         appView,
         synthesizingContext,
-        recordTagClass -> recordTagClass.programMethods().forEach(methodsToProcess::add));
+        recordTagClass -> recordTagClass.programMethods().forEach(methodsToProcess::add),
+        null,
+        null);
 
     VarHandleDesugaringEventConsumer varHandleEventConsumer =
         new VarHandleDesugaringEventConsumer() {

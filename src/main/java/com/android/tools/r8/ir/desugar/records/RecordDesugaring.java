@@ -416,17 +416,13 @@ public class RecordDesugaring
 
   private void ensureRecordClass(
       RecordInstructionDesugaringEventConsumer eventConsumer, ProgramMethod context) {
-    DexProgramClass recordTagClass =
-        internalEnsureRecordClass(eventConsumer, ImmutableList.of(context));
-    eventConsumer.acceptRecordClassContext(recordTagClass, context);
+    internalEnsureRecordClass(eventConsumer, null, eventConsumer, ImmutableList.of(context));
   }
 
   private void ensureRecordClass(
       RecordClassSynthesizerDesugaringEventConsumer eventConsumer,
       Collection<DexProgramClass> recordClasses) {
-    DexProgramClass recordTagClass = internalEnsureRecordClass(eventConsumer, recordClasses);
-    recordClasses.forEach(
-        recordClass -> eventConsumer.acceptRecordClassContext(recordTagClass, recordClass));
+    internalEnsureRecordClass(eventConsumer, eventConsumer, null, recordClasses);
   }
 
   /**
@@ -439,16 +435,25 @@ public class RecordDesugaring
    */
   private DexProgramClass internalEnsureRecordClass(
       RecordDesugaringEventConsumer eventConsumer,
+      RecordClassSynthesizerDesugaringEventConsumer recordClassSynthesizerDesugaringEventConsumer,
+      RecordInstructionDesugaringEventConsumer recordInstructionDesugaringEventConsumer,
       Collection<? extends ProgramDefinition> contexts) {
     DexItemFactory factory = appView.dexItemFactory();
     checkRecordTagNotPresent(factory);
-    return ensureRecordClassHelper(appView, contexts, eventConsumer);
+    return ensureRecordClassHelper(
+        appView,
+        contexts,
+        eventConsumer,
+        recordClassSynthesizerDesugaringEventConsumer,
+        recordInstructionDesugaringEventConsumer);
   }
 
   public static DexProgramClass ensureRecordClassHelper(
       AppView<?> appView,
       Collection<? extends ProgramDefinition> contexts,
-      RecordDesugaringEventConsumer eventConsumer) {
+      RecordDesugaringEventConsumer eventConsumer,
+      RecordClassSynthesizerDesugaringEventConsumer recordClassSynthesizerDesugaringEventConsumer,
+      RecordInstructionDesugaringEventConsumer recordInstructionDesugaringEventConsumer) {
     return appView
         .getSyntheticItems()
         .ensureGlobalClass(
@@ -461,7 +466,21 @@ public class RecordDesugaring
               DexEncodedMethod init = synthesizeRecordInitMethod(appView);
               builder.setAbstract().setDirectMethods(ImmutableList.of(init));
             },
-            eventConsumer::acceptRecordClass);
+            eventConsumer::acceptRecordClass,
+            clazz -> {
+              if (recordClassSynthesizerDesugaringEventConsumer != null) {
+                for (ProgramDefinition context : contexts) {
+                  recordClassSynthesizerDesugaringEventConsumer.acceptRecordClassContext(
+                      clazz, context.asClass());
+                }
+              }
+              if (recordInstructionDesugaringEventConsumer != null) {
+                for (ProgramDefinition context : contexts) {
+                  recordInstructionDesugaringEventConsumer.acceptRecordClassContext(
+                      clazz, context.asMethod());
+                }
+              }
+            });
   }
 
   private void checkRecordTagNotPresent(DexItemFactory factory) {
