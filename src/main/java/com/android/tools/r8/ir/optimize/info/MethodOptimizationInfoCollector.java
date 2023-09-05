@@ -261,6 +261,7 @@ public class MethodOptimizationInfoCollector {
         method, InstanceInitializerInfoCollection.of(instanceInitializerInfo));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // This method defines trivial instance initializer as follows:
   //
   // ** The holder class must not define a finalize method.
@@ -728,6 +729,7 @@ public class MethodOptimizationInfoCollector {
    * Returns true if the given instruction is {@code v <- new-instance NullPointerException}, and
    * the next instruction is {@code invoke-direct v, NullPointerException.<init>()}.
    */
+  @SuppressWarnings("ReferenceEquality")
   private static boolean isInstantiationOfNullPointerException(
       Instruction instruction, InstructionIterator it, DexItemFactory dexItemFactory) {
     if (!instruction.isNewInstance()
@@ -961,6 +963,7 @@ public class MethodOptimizationInfoCollector {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Returns true if the given class overrides the method `void java.lang.Object.finalize()`.
   private boolean hasNonTrivialFinalizeMethod(DexProgramClass clazz) {
     if (clazz.isInterface()) {

@@ -39,6 +39,7 @@ public class RegisterMove implements Comparable<RegisterMove> {
     return dst == register;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isBlocked(Set<RegisterMove> moveSet, Map<Integer, Integer> valueMap) {
     for (RegisterMove move : moveSet) {
       if (move.src == LiveIntervals.NO_REGISTER) {
@@ -64,6 +65,7 @@ public class RegisterMove implements Comparable<RegisterMove> {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean equals(Object other) {
     if (!(other instanceof RegisterMove)) {
       return false;

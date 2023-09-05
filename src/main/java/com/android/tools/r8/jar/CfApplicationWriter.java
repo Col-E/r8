@@ -499,6 +499,7 @@ public class CfApplicationWriter {
     visitor.visitEnd();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void writeMethodParametersAnnotation(MethodVisitor visitor, DexAnnotation[] annotations) {
     for (DexAnnotation annotation : annotations) {
       if (annotation.annotation.type == appView.dexItemFactory().annotationMethodParameters) {
@@ -580,6 +581,7 @@ public class CfApplicationWriter {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void writeAnnotationElement(AnnotationVisitor visitor, String name, DexValue value) {
     switch (value.getValueKind()) {
       case ANNOTATION:

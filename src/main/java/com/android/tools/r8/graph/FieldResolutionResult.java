@@ -161,6 +161,7 @@ public abstract class FieldResolutionResult
     private final T resolvedHolder;
     private final DexEncodedField resolvedField;
 
+    @SuppressWarnings("ReferenceEquality")
     SingleFieldResolutionResult(
         DexClass initialResolutionHolder, T resolvedHolder, DexEncodedField resolvedField) {
       assert resolvedHolder.type == resolvedField.getHolderType();

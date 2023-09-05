@@ -38,6 +38,7 @@ public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollectio
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
@@ -55,6 +56,7 @@ public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollectio
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void optimizeBooleanValue(
       IRCode code, InstructionListIterator instructionIterator, InvokeMethod invoke) {
     Value argument = invoke.arguments().get(0).getAliasedValue();

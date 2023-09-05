@@ -345,6 +345,7 @@ public abstract class ProguardTypeMatcher {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean matches(DexType type) {
       return this.type == type;
     }

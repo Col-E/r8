@@ -270,6 +270,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isSubtype(DexType subtype, DexType supertype) {
     assert subtype != null;
     assert supertype != null;
@@ -278,6 +279,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return subtype == supertype || isStrictSubtypeOf(subtype, supertype);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isStrictSubtypeOf(DexType subtype, DexType supertype) {
     assert subtype != null;
     assert supertype != null;
@@ -313,6 +315,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         : isSubtypeOfClass(subclass, superclass);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isSubtypeOfClass(DexClass subclass, DexClass superclass) {
     assert subclass != null;
     assert superclass != null;
@@ -323,6 +326,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return subclass == superclass || isStrictSubtypeOfClass(subclass, superclass);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isStrictSubtypeOfClass(DexClass subclass, DexClass superclass) {
     assert subclass != null;
     assert superclass != null;
@@ -372,6 +376,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   /** Collect all interfaces that this type directly or indirectly implements. */
+  @SuppressWarnings("ReferenceEquality")
   public InterfaceCollection implementedInterfaces(DexType type) {
     assert type.isClassType();
     DexClass clazz = definitionFor(type);
@@ -393,6 +398,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     }
     // First find all interface leafs from the class super-type chain.
     Set<DexType> seenAndKnown = Sets.newIdentityHashSet();
+    @SuppressWarnings("ReferenceEquality")
     Deque<Pair<DexClass, Boolean>> worklist = new ArrayDeque<>();
     {
       DexClass implementor = clazz;
@@ -476,6 +482,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return Collections.emptyList();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isInterfaceInSuperTypes(
       DexProgramClass clazz, DexType ifaceToFind, WorkList<DexType> workList) {
     workList.addIfNotSeen(clazz.allImmediateSupertypes());
@@ -492,6 +499,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private List<DexProgramClass> computeChainInClassHierarchy(
       DexProgramClass subClass, DexType superType) {
     assert isSubtype(subClass.type, superType);

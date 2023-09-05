@@ -159,6 +159,7 @@ class SpillMoveSet {
     return usedTempRegisters;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private TypeElement moveTypeForIntervals(LiveIntervals to, LiveIntervals from) {
     TypeElement toType = to.getValue().getType();
     TypeElement fromType = from.getValue().getType();

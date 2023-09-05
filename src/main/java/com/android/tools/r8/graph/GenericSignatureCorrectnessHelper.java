@@ -243,6 +243,7 @@ public class GenericSignatureCorrectnessHelper {
       this.context = context;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private SignatureEvaluationResult evaluateClassSignatureForContext(
         TypeParameterContext typeParameterContext) {
       ClassSignature classSignature = context.classSignature;

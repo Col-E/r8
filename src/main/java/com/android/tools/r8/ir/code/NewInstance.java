@@ -81,6 +81,7 @@ public class NewInstance extends Instruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isNewInstance() && other.asNewInstance().clazz == clazz;
   }
@@ -155,6 +156,7 @@ public class NewInstance extends Instruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean instructionMayHaveSideEffects(
       AppView<?> appView,
       ProgramMethod context,
@@ -212,11 +214,13 @@ public class NewInstance extends Instruction {
     allowSpilling = false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isSpillingAllowed() {
     return allowSpilling;
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     if (appView.enableWholeProgramOptimizations()) {
       // In R8, check if the class initialization of the holder or any of its ancestor types may
@@ -230,6 +234,7 @@ public class NewInstance extends Instruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean verifyTypes(
       AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
     TypeElement type = getOutType();

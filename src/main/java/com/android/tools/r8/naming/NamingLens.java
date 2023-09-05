@@ -41,6 +41,7 @@ public abstract class NamingLens {
 
   public abstract DexString lookupDescriptor(DexType type);
 
+  @SuppressWarnings("ReferenceEquality")
   public DexString lookupClassDescriptor(DexType type) {
     assert type.isClassType();
     return internalLookupClassDescriptor(type);
@@ -52,6 +53,7 @@ public abstract class NamingLens {
 
   public abstract DexString lookupName(DexMethod method);
 
+  @SuppressWarnings("ReferenceEquality")
   public final DexString lookupMethodName(DexCallSite callSite, AppView<?> appView) {
     if (!appView.appInfo().hasLiveness()) {
       return callSite.methodName;

@@ -200,6 +200,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private FilledArrayConversionInfo computeConversionInfo(
       IRCode code, FilledArrayCandidate candidate, LinearFlowInstructionListIterator it) {
     NewArrayEmpty newArrayEmpty = candidate.newArrayEmpty;

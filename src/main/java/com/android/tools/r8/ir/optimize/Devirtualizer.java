@@ -55,6 +55,7 @@ public class Devirtualizer {
     this.options = appView.options();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void devirtualizeInvokeInterface(IRCode code) {
     AffectedValues affectedValues = new AffectedValues();
     ProgramMethod context = code.context();
@@ -314,6 +315,7 @@ public class Devirtualizer {
   }
 
   /** This rebinds invoke-super instructions to their most specific target. */
+  @SuppressWarnings("ReferenceEquality")
   private DexClass rebindSuperInvokeToMostSpecific(DexMethod target, ProgramMethod context) {
     DexClassAndMethod method = appView.appInfo().lookupSuperTarget(target, context, appView);
     if (method == null) {
@@ -357,6 +359,7 @@ public class Devirtualizer {
    * <p>If A.foo() ends up being unused, this helps to ensure that we can get rid of A.foo()
    * entirely. Without this rewriting, we would have to keep A.foo() because the method is targeted.
    */
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod rebindVirtualInvokeToMostSpecific(
       DexMethod target, Value receiver, ProgramMethod context) {
     if (!receiver.getType().isClassType()) {

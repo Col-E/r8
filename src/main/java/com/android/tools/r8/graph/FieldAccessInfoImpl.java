@@ -140,6 +140,7 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     forEachIndirectAccess(consumer, writesWithContexts, visited);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void forEachIndirectAccess(
       Consumer<DexField> consumer,
       AbstractAccessContexts accessesWithContexts,
@@ -157,6 +158,7 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void forEachIndirectAccessWithContexts(BiConsumer<DexField, ProgramMethodSet> consumer) {
     Map<DexField, ProgramMethodSet> indirectAccessesWithContexts = new IdentityHashMap<>();
     addAccessesWithContextsToMap(

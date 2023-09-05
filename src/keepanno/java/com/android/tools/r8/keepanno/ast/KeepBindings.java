@@ -211,6 +211,7 @@ public class KeepBindings {
       return pattern.getClassReference().asBindingReference();
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public KeepBindings build() {
       if (bindings.isEmpty()) {
         return NONE_INSTANCE;

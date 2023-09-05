@@ -111,8 +111,8 @@ public class SupportedClassesGenerator {
   }
 
   private <EM extends DexEncodedMember<EM, M>, M extends DexMember<EM, M>>
-      boolean analyzeMissingMembers(
-          Iterable<EM> maxClassMembers, Collection<EM> referenceMembers, List<M> missingMembers) {
+      @SuppressWarnings("ReferenceEquality") boolean analyzeMissingMembers(
+      Iterable<EM> maxClassMembers, Collection<EM> referenceMembers, List<M> missingMembers) {
     boolean fullySupported = true;
     for (EM member : maxClassMembers) {
       if (!(member.getAccessFlags().isPublic() || member.getAccessFlags().isProtected())) {
@@ -413,6 +413,7 @@ public class SupportedClassesGenerator {
     return dexEncodedMethod;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void addBackports(DexProgramClass clazz, List<DexMethod> backports) {
     for (DexMethod backport : backports) {
       if (clazz.type == backport.getHolderType()) {

@@ -193,6 +193,7 @@ public class ProfileRewritingCfInstructionDesugaringEventConsumer
         });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void addLambdaVirtualMethodsIfLambdaImplementationIsInProfile(
       LambdaClass lambdaClass, ProgramMethod context) {
     Target target = lambdaClass.getTarget();
@@ -221,6 +222,7 @@ public class ProfileRewritingCfInstructionDesugaringEventConsumer
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean shouldConservativelyAddLambdaVirtualMethodsIfLambdaInstantiated(
       LambdaClass lambdaClass, ProgramMethod context) {
     Target target = lambdaClass.getTarget();

@@ -174,6 +174,7 @@ public class EscapeAnalysis {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isDirectlyEscaping(
       Instruction instr, ProgramMethod context, List<Value> arguments) {
     // As return value.

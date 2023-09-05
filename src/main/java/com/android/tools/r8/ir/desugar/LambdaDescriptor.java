@@ -179,6 +179,7 @@ public final class LambdaDescriptor {
     return encodedMethod.isPublicized() && isInstanceMethod(encodedMethod);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public final boolean verifyTargetFoundInClass(DexType type) {
     return targetHolder == type;
   }
@@ -299,6 +300,7 @@ public final class LambdaDescriptor {
    * Matches call site for lambda metafactory invocation pattern and returns extracted match
    * information, or MATCH_FAILED if match failed.
    */
+  @SuppressWarnings("ReferenceEquality")
   static LambdaDescriptor infer(
       DexCallSite callSite,
       AppView<?> appView,
@@ -460,11 +462,11 @@ public final class LambdaDescriptor {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Checks if the types are the same OR both types are reference types and
   // `subType` is derived from `b`. Note that in the latter case we only check if
   // both types are class types, for the reasons mentioned in isSameOrAdaptableTo(...).
-  static boolean isSameOrDerived(
-      DexItemFactory factory, DexType subType, DexType superType) {
+  static boolean isSameOrDerived(DexItemFactory factory, DexType subType, DexType superType) {
     if (subType == superType || (subType.isClassType() && superType.isClassType())) {
       return true;
     }

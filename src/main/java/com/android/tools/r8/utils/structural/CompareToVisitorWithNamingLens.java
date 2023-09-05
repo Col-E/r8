@@ -31,6 +31,7 @@ public class CompareToVisitorWithNamingLens extends CompareToVisitorBase {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public int visitDexType(DexType type1, DexType type2) {
     if (type1 == type2) {
       return 0;
@@ -42,6 +43,7 @@ public class CompareToVisitorWithNamingLens extends CompareToVisitorBase {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public int visitDexField(DexField field1, DexField field2) {
     if (field1 == field2) {
       return 0;
@@ -58,6 +60,7 @@ public class CompareToVisitorWithNamingLens extends CompareToVisitorBase {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public int visitDexMethod(DexMethod method1, DexMethod method2) {
     if (method1 == method2) {
       return 0;

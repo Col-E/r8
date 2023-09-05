@@ -216,6 +216,7 @@ public class GeneratedMessageLiteShrinker {
     assert code.isConsistentSSA(appView);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexType getNewMutableInstanceType(
       AppView<AppInfoWithLiveness> appView, Instruction instruction) {
     if (!instruction.isInvokeMethodWithReceiver()) {

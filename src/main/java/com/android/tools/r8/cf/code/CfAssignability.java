@@ -37,6 +37,7 @@ public class CfAssignability {
         : isFrameTypeAssignable(source.asWide(), target.asWide());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Based on https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.2.
   public boolean isFrameTypeAssignable(SingleFrameType source, SingleFrameType target) {
     if (source.equals(target) || target.isOneWord()) {
@@ -80,6 +81,7 @@ public class CfAssignability {
     return source.lessThanOrEqualTo(target);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Rules found at https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.2
   public boolean isAssignable(DexType source, DexType target) {
     assert !target.isNullValueType();

@@ -361,6 +361,7 @@ public class EnumUnboxingRewriter {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Rewrites specific enum methods, such as ordinal, into their corresponding enum unboxed
   // counterpart. The rewriting (== or match) is based on the following:
   // - name, ordinal and compareTo are final and implemented only on java.lang.Enum,
@@ -518,6 +519,7 @@ public class EnumUnboxingRewriter {
     convertedEnums.put(newArray, newArrayFilled.getArrayType());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void rewriteInvokeStatic(
       InvokeStatic invoke,
       IRCode code,

@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 
 public class NestUtils {
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean sameNest(DexType type1, DexType type2, DexDefinitionSupplier definitions) {
     if (type1 == type2) {
       return true;
@@ -41,6 +42,7 @@ public class NestUtils {
     return clazz1.getNestHost() == clazz2.getNestHost();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static void rewriteNestCallsForInlining(
       IRCode code, ProgramMethod callerContext, AppView<?> appView) {
     // This method is called when inlining code into the nest member callerHolder.

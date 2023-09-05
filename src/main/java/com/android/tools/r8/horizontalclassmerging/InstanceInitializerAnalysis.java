@@ -63,6 +63,7 @@ public class InstanceInitializerAnalysis {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static InstanceInitializerDescription analyze(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       IRCodeProvider codeProvider,

@@ -74,6 +74,7 @@ public abstract class Invoke extends Instruction {
     return !arguments().isEmpty();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean hasReturnTypeVoid(DexItemFactory factory) {
     return getReturnType() == factory.voidType;
   }

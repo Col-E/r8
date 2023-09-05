@@ -90,6 +90,7 @@ public class DesugaredLibraryDisableDesugarer implements CfInstructionDesugaring
     return rewrittenField != null ? fieldInstruction.createWithField(rewrittenField) : null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private CfInstruction rewriteTypeInstruction(CfTypeInstruction typeInstruction) {
     DexType rewrittenType = helper.rewriteType(typeInstruction.getType());
     return rewrittenType != typeInstruction.getType()

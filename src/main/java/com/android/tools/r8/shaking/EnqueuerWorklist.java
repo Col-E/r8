@@ -377,6 +377,7 @@ public abstract class EnqueuerWorklist {
       this.metadata = metadata;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     protected boolean baseEquals(TraceFieldAccessAction action) {
       return field == action.field
           && context.isStructurallyEqualTo(action.context)

@@ -14,6 +14,7 @@ public abstract class DexClassAndMember<D extends DexEncodedMember<D, R>, R exte
   private final DexClass holder;
   private final D definition;
 
+  @SuppressWarnings("ReferenceEquality")
   public DexClassAndMember(DexClass holder, D definition) {
     assert holder != null;
     assert definition != null;

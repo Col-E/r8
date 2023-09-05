@@ -318,6 +318,7 @@ public class PrimaryR8IRConverter extends IRConverter {
     appView.setGraphLens(rewrittenMemberRebindingLens);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void finalizeLirMethodToOutputFormat(
       ProgramMethod method,
       DeadCodeRemover deadCodeRemover,

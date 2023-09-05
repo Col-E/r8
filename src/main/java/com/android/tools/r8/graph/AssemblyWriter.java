@@ -75,6 +75,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   void writeClassHeader(DexProgramClass clazz, PrintStream ps) {
     String clazzName = retracer.toSourceString(clazz.getType());
     ps.println("# Bytecode for");
@@ -195,6 +196,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
                 MethodConversionOptions.forD8(converter.appView)));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void writeAnnotations(
       DexProgramClass clazz, DexAnnotationSet annotations, PrintStream ps) {
     if (writeAnnotations) {

@@ -154,6 +154,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public DexType toDexType(DexItemFactory dexItemFactory) {
     if (type == dexItemFactory.objectType) {
       DexType singleKnownInterface = getInterfaces().getSingleKnownInterface();
@@ -193,6 +194,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public TypeElement fixupClassTypeReferences(
       AppView<? extends AppInfoWithClassHierarchy> ignore,
       Function<DexType, DexType> mapping,
@@ -301,6 +303,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
     return joinWithClassHierarchy(lubType, other.getInterfaces(), other.nullability());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private ClassTypeElement joinWithClassHierarchy(
       DexType lubType, InterfaceCollection otherInterfaces, Nullability nullability) {
     assert appView != null;
@@ -327,6 +330,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
         : create(lubType, lubNullability, appView, lubInterfaces);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   ClassTypeElement joinWithoutClassHierarchy(
       DexType other, Nullability nullability, AppView<?> appView) {
     assert !appView.enableWholeProgramOptimizations();
@@ -401,6 +405,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
       return left.isTrue() && right.isTrue();
     }
 
+    @SuppressWarnings("ReferenceEquality")
     boolean merge(InterfaceMarker marker) {
       assert marker.isMarked();
       assert !marker.isMarkedOnBothSides();
@@ -428,6 +433,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static DexType computeLeastUpperBoundOfClasses(
       AppInfoWithClassHierarchy appInfo, DexType type1, DexType type2) {
     // Compiling R8 with R8, this hits more than 1/3 of cases.

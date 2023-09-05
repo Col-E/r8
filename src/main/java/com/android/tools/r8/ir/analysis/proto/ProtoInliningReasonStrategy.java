@@ -53,6 +53,7 @@ public class ProtoInliningReasonStrategy implements InliningReasonStrategy {
         : parent.computeInliningReason(invoke, target, context, oracle, methodProcessor);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private Reason computeInliningReasonForDynamicMethod(
       InvokeMethod invoke, ProgramMethod target, ProgramMethod context) {
     // Do not allow inlining of dynamicMethod() into a proto library class. This should only happen

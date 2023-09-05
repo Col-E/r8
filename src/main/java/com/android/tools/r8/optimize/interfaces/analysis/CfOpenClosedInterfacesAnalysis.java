@@ -125,6 +125,7 @@ public class CfOpenClosedInterfacesAnalysis {
       }
 
       @Override
+      @SuppressWarnings("ReferenceEquality")
       public boolean isImmediateSuperClassOfCurrentContext(DexType type) {
         return type == method.getHolder().getSuperType();
       }

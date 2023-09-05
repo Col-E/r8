@@ -86,6 +86,7 @@ public abstract class ProgramMethodSet extends DexClassAndMethodSetBase<ProgramM
     return add(new ProgramMethod(clazz, definition));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public ProgramMethodSet rewrittenWithLens(DexDefinitionSupplier definitions, GraphLens lens) {
     GraphLens appliedLens = GraphLens.getIdentityLens();
     List<ProgramMethod> elementsToRemove = null;

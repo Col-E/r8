@@ -75,6 +75,7 @@ public final class EnclosingMethodAttribute {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean equals(Object obj) {
     return obj instanceof EnclosingMethodAttribute &&
         enclosingClass == ((EnclosingMethodAttribute) obj).enclosingClass &&

@@ -54,6 +54,7 @@ public class CheckCast extends Instruction {
     return new Builder();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isRefiningStaticType(InternalOptions options) {
     TypeElement inType = object().getType();
     if (inType.isNullType()) {
@@ -126,6 +127,7 @@ public class CheckCast extends Instruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isCheckCast() && other.asCheckCast().type == type;
   }

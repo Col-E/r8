@@ -251,6 +251,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean addInvokeVirtualValueToValueGraph(
       Value value,
       Node node,

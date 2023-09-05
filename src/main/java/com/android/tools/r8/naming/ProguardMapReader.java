@@ -340,6 +340,7 @@ public class ProguardMapReader implements AutoCloseable {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void parseMemberMappings(
       ProguardMap.Builder mapBuilder, ClassNaming.Builder classNamingBuilder) throws IOException {
     MemberNaming lastAddedNaming = null;

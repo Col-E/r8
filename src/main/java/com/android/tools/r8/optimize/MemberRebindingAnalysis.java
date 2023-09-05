@@ -284,6 +284,7 @@ public class MemberRebindingAnalysis {
         methodAccessInfoCollection::forEachStaticInvoke, this::resolveMethod, InvokeType.STATIC);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void computeMethodRebinding(
       BiForEachable<DexMethod, ProgramMethodSet> methodsWithContexts,
       Function<DexMethod, MethodResolutionResult> resolver,
@@ -442,6 +443,7 @@ public class MemberRebindingAnalysis {
     return findHolderForInterfaceMethodBridge(superClass.asProgramClass(), iface);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean mayNeedBridgeForVisibility(ProgramMethod context, DexClassAndMethod method) {
     DexType holderType = method.getHolderType();
     DexClass holder = appView.definitionFor(holderType);
@@ -529,6 +531,7 @@ public class MemberRebindingAnalysis {
     appView.notifyOptimizationFinishedForTesting();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean verifyFieldAccessCollectionContainsAllNonReboundFieldReferences(
       ExecutorService executorService) throws ExecutionException {
     Set<DexField> nonReboundFieldReferences = computeNonReboundFieldReferences(executorService);
@@ -582,6 +585,7 @@ public class MemberRebindingAnalysis {
                     registerFieldReference(field);
                   }
 
+                  @SuppressWarnings("ReferenceEquality")
                   private void registerFieldReference(DexField field) {
                     appView()
                         .appInfo()

@@ -217,6 +217,7 @@ public class DexSourceCode implements SourceCode {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void updateCurrentCatchHandlers(int instructionIndex, DexItemFactory factory) {
     Try tryRange = getTryForOffset(instructionOffset(instructionIndex));
     if (tryRange == currentTryRange) {
@@ -423,6 +424,7 @@ public class DexSourceCode implements SourceCode {
     return new CatchHandlers<>(handlerGuards, handlerOffsets);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void forEachTryRange(
       Try tryRange, DexItemFactory factory, BiConsumer<DexType, Integer> fn) {
     TryHandler handler = code.handlers[tryRange.handlerIndex];

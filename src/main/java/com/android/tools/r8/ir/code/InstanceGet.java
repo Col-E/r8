@@ -150,6 +150,7 @@ public class InstanceGet extends FieldInstruction implements FieldGet, InstanceF
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     if (!other.isInstanceGet()) {
       return false;

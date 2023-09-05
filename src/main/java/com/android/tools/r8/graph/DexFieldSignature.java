@@ -50,6 +50,7 @@ public class DexFieldSignature implements StructuralItem<DexFieldSignature> {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean isEqualTo(DexFieldSignature other) {
     return getName() == other.getName() && getType() == other.getType();
   }

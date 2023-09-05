@@ -266,6 +266,7 @@ public abstract class MethodResolutionResult
     private final T resolvedHolder;
     private final DexEncodedMethod resolvedMethod;
 
+    @SuppressWarnings("ReferenceEquality")
     public SingleResolutionResult(
         DexClass initialResolutionHolder, T resolvedHolder, DexEncodedMethod resolvedMethod) {
       assert initialResolutionHolder != null;
@@ -455,6 +456,7 @@ public abstract class MethodResolutionResult
       return null;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private DexClassAndMethod internalInvokeSpecialOrSuper(
         DexProgramClass context,
         AppInfoWithClassHierarchy appInfo,
@@ -538,6 +540,7 @@ public abstract class MethodResolutionResult
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public LookupResult lookupVirtualDispatchTargets(
         DexProgramClass context,
         AppView<? extends AppInfoWithClassHierarchy> appView,
@@ -724,6 +727,7 @@ public abstract class MethodResolutionResult
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public LookupMethodTarget lookupVirtualDispatchTarget(
         DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
       return lookupVirtualDispatchTarget(
@@ -750,6 +754,7 @@ public abstract class MethodResolutionResult
           lambdaInstance, appInfo, typeCausingFailureConsumer, methodCausingFailureConsumer);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private LookupMethodTarget lookupVirtualDispatchTarget(
         DexClass dynamicInstance,
         AppInfoWithClassHierarchy appInfo,
@@ -856,6 +861,7 @@ public abstract class MethodResolutionResult
       return null;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private static DexClassAndMethod findWideningOverride(
         DexClassAndMethod resolvedMethod, DexClass clazz, AppInfoWithClassHierarchy appInfo) {
       // Otherwise, lookup to first override that is distinct from resolvedMethod.
@@ -1340,6 +1346,7 @@ public abstract class MethodResolutionResult
       return true;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean verifyInvalidSymbolicReference() {
       BooleanBox invalidSymbolicReference = new BooleanBox(true);
       forEachFailureDependency(

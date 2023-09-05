@@ -86,6 +86,7 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
     return action;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private InlineAction computeForInvoke(
       InvokeMethod invoke,
       SingleResolutionResult<?> resolutionResult,

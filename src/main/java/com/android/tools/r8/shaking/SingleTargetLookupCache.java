@@ -17,6 +17,7 @@ public class SingleTargetLookupCache {
 
   private Map<DexType, Map<DexMethod, DexEncodedMethod>> cache = new ConcurrentHashMap<>();
 
+  @SuppressWarnings("ReferenceEquality")
   public void addToCache(DexType refinedReceiverType, DexMethod method, DexEncodedMethod target) {
     assert target != DexEncodedMethod.SENTINEL;
     Map<DexMethod, DexEncodedMethod> methodCache =
@@ -48,6 +49,7 @@ public class SingleTargetLookupCache {
         });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexEncodedMethod getCachedItem(DexType receiverType, DexMethod method) {
     Map<DexMethod, DexEncodedMethod> cachedMethods = cache.get(receiverType);
     if (cachedMethods == null) {

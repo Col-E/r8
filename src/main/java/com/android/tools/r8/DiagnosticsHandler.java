@@ -16,6 +16,7 @@ import java.io.PrintStream;
 public interface DiagnosticsHandler {
 
   /** Should be considered private. */
+  @SuppressWarnings("ReferenceEquality")
   static void printDiagnosticToStream(Diagnostic diagnostic, String prefix, PrintStream stream) {
     if (diagnostic.getOrigin() != Origin.unknown()) {
       stream.print(prefix + " in " + diagnostic.getOrigin());

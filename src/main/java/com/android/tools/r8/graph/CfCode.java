@@ -416,6 +416,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void writeCf(
       ProgramMethod method,
       CfVersion classFileVersion,
@@ -823,6 +824,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     return new CfPrinter(this, method, retracer).toString();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public ConstraintWithTarget computeInliningConstraint(
       ProgramMethod method,
       AppView<AppInfoWithLiveness> appView,

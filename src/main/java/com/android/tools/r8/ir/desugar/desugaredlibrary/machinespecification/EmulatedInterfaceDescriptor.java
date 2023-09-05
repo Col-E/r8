@@ -41,6 +41,7 @@ public class EmulatedInterfaceDescriptor implements SpecificationDescriptor {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean equals(Object o) {
     if (this == o) {
       return true;

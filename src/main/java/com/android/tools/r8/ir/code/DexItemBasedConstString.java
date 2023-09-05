@@ -94,6 +94,7 @@ public class DexItemBasedConstString extends ConstInstruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isDexItemBasedConstString()
         && other.asDexItemBasedConstString().item == item

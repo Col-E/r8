@@ -73,6 +73,7 @@ public class InitializedClassesOnNormalExitAnalysis {
       knownToBeInitialized.forEach(this::markInitializedOnNormalExit);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void markInitializedOnNormalExit(DexType knownToBeInitialized) {
       if (knownToBeInitialized == context.getHolderType()) {
         // Do not record that the given method causes its own holder to be initialized, since this

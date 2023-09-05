@@ -224,6 +224,7 @@ public class IfRuleEvaluator {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean evaluateIfRuleMembersAndMaterialize(
       ProguardIfRule rule, DexClass sourceClass, DexClass targetClass) {
     Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();

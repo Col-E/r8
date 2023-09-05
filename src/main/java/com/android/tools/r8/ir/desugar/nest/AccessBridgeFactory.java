@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 
 public class AccessBridgeFactory {
 
+  @SuppressWarnings("ReferenceEquality")
   static ProgramMethod createFieldAccessorBridge(
       DexMethod bridgeMethodReference, ProgramField field, boolean isGet) {
     assert bridgeMethodReference.getHolderType() == field.getHolderType();
@@ -42,6 +43,7 @@ public class AccessBridgeFactory {
             .build());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   static ProgramMethod createInitializerAccessorBridge(
       DexMethod bridgeMethodReference, ProgramMethod method, DexItemFactory dexItemFactory) {
     assert bridgeMethodReference.getHolderType() == method.getHolderType();
@@ -64,6 +66,7 @@ public class AccessBridgeFactory {
             .build());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   static ProgramMethod createMethodAccessorBridge(
       DexMethod bridgeMethodReference, ProgramMethod method, DexItemFactory dexItemFactory) {
     assert bridgeMethodReference.getHolderType() == method.getHolderType();

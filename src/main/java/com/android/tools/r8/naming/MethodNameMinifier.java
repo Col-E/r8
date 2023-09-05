@@ -96,6 +96,7 @@ class MethodNameMinifier {
   // from the method name minifier to the interface method name minifier.
   class State {
 
+    @SuppressWarnings("ReferenceEquality")
     void putRenaming(DexEncodedMethod key, DexString newName) {
       if (newName != key.getName()) {
         renaming.put(key.getReference(), newName);
@@ -242,6 +243,7 @@ class MethodNameMinifier {
             });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void renameMethodsInUnrelatedClasspathClasses() {
     if (appView.options().getProguardConfiguration().hasApplyMappingFile()) {
       appView
@@ -258,6 +260,7 @@ class MethodNameMinifier {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void assignNameToMethod(
       DexClass holder, DexEncodedMethod method, MethodNamingState<?> state) {
     if (method.isInitializer()) {
@@ -276,6 +279,7 @@ class MethodNameMinifier {
     state.addRenaming(newName, method);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void reserveNamesInClasses() {
     // Ensure reservation state for java.lang.Object is always created, even if the type is missing.
     allocateReservationStateAndReserve(
@@ -317,6 +321,7 @@ class MethodNameMinifier {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private MethodNamingState<?> getOrAllocateMethodNamingStates(DexType type) {
     MethodNamingState<?> namingState = namingStates.get(type);
     if (namingState == null) {
@@ -372,6 +377,7 @@ class MethodNameMinifier {
     renaming.putAll(nonReboundRenamings);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void renameNonReboundMethodReference(
       DexMethod method, Map<DexMethod, DexString> nonReboundRenamings) {
     if (method.getHolderType().isArrayType()) {

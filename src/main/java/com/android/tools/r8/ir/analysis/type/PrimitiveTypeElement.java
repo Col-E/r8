@@ -131,6 +131,7 @@ public abstract class PrimitiveTypeElement extends TypeElement {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   TypeElement join(PrimitiveTypeElement other) {
     if (this == other) {
       return this;

@@ -55,6 +55,7 @@ public class SingleDexItemBasedStringValue extends SingleConstValue {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) {
       return false;

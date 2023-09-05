@@ -166,12 +166,19 @@ tasks.withType<JavaCompile> {
   dependsOn(thirdPartyCompileDependenciesTask)
   println("NOTE: Running with JDK: " + org.gradle.internal.jvm.Jvm.current().javaHome)
 
-  // Enable error prone for D8/R8 main sources and make all warnings errors.
-  // Warnings that we have chosen not to fix (or suppress) are disabled outright below.
-  options.compilerArgs.add("-Werror")
+  // Enable error prone for D8/R8 main sources.
   options.errorprone.isEnabled.set(true)
 
+  // Make all warnings errors. Warnings that we have chosen not to fix (or suppress) are disabled
+  // outright below.
+  options.compilerArgs.add("-Werror")
+
+  // Increase number of reported errors to 1000 (default is 100).
+  options.compilerArgs.add("-Xmaxerrs")
+  options.compilerArgs.add("1000")
+
   // Non-default / Experimental checks - explicitly enforced.
+  options.errorprone.error("ReferenceEquality")
   options.errorprone.error("RemoveUnusedImports")
   options.errorprone.error("InconsistentOverloads")
   options.errorprone.error("MissingDefault")
@@ -229,6 +236,5 @@ tasks.withType<JavaCompile> {
   options.errorprone.disable("AlmostJavadoc")
 
   // Moving away from identity and canonical items is not planned.
-  options.errorprone.disable("ReferenceEquality")
   options.errorprone.disable("IdentityHashMapUsage")
 }

@@ -168,6 +168,7 @@ public class StaticGet extends FieldInstruction implements FieldGet, StaticField
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     if (!other.isStaticGet()) {
       return false;
@@ -244,11 +245,13 @@ public class StaticGet extends FieldInstruction implements FieldGet, StaticField
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
     return getField().type.isBooleanType();
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     DexType holder = getField().holder;
     if (appView.enableWholeProgramOptimizations()) {

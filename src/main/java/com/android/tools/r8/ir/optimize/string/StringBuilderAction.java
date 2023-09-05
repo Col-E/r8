@@ -151,6 +151,7 @@ public interface StringBuilderAction {
           || factory.stringBuilderMethods.isAppendStringMethod(method);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private DexMethod getAppendWithStringParameter(
         DexMethod invokedMethod, DexItemFactory factory) {
       if (invokedMethod.getHolderType() == factory.stringBufferType) {
@@ -359,6 +360,7 @@ public interface StringBuilderAction {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   static DexMethod getConstructorWithStringParameter(
       DexMethod invokedMethod, DexItemFactory factory) {
     if (invokedMethod.getHolderType() == factory.stringBufferType) {

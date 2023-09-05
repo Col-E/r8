@@ -67,6 +67,7 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
     return wrappedConflictResolver(null, reporter);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static ProgramClassConflictResolver wrappedConflictResolver(
       ClassConflictResolver clientResolver, Reporter reporter) {
     return (a, b) -> {
@@ -99,6 +100,7 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
             ImmutableList.of(a.getOrigin(), b.getOrigin())));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static DexProgramClass mergeClasses(DexProgramClass a, DexProgramClass b) {
     assert a.type == b.type;
     boolean syntheticA = a.accessFlags.isSynthetic();

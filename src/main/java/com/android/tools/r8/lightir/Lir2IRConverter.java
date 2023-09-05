@@ -288,6 +288,7 @@ public class Lir2IRConverter {
               : null;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public void parseArguments(ProgramMethod method) {
       ArgumentInfoCollection argumentsInfo = protoChanges.getArgumentInfoCollection();
       currentBlock = getBasicBlock(ENTRY_BLOCK_INDEX);
@@ -339,6 +340,7 @@ public class Lir2IRConverter {
       advanceNextPositionEntry();
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public void ensureDebugInfo() {
       if (code.getDebugLocalInfoTable() == null) {
         return;

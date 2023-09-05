@@ -58,6 +58,7 @@ interface StringBuilderOracle {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean isModeledStringBuilderInstruction(
         Instruction instruction, Predicate<Value> isLiveStringBuilder) {
       if (instruction.isNewInstance()) {
@@ -75,6 +76,7 @@ interface StringBuilderOracle {
       return false;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean isStringBuildingMethod(StringBuildingMethods methods, DexMethod method) {
       return methods.isAppendMethod(method)
           || methods.isConstructorMethod(method)
@@ -89,11 +91,13 @@ interface StringBuilderOracle {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean isStringBuilderType(DexType type) {
       return type == factory.stringBuilderType || type == factory.stringBufferType;
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean isToString(Instruction instruction, Value value) {
       if (!instruction.isInvokeMethod()) {
         return false;
@@ -158,6 +162,7 @@ interface StringBuilderOracle {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean isInspecting(Instruction instruction) {
       if (!instruction.isInvokeMethodWithReceiver()) {
         return false;
@@ -225,6 +230,7 @@ interface StringBuilderOracle {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean isStringConstructor(Instruction instruction) {
       if (!instruction.isInvokeMethod()) {
         return false;
@@ -235,6 +241,7 @@ interface StringBuilderOracle {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean isConstructorInvokeSideEffectFree(Instruction instruction) {
       if (!instruction.isInvokeConstructor(factory)) {
         return false;

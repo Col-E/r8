@@ -333,6 +333,7 @@ public class IdentifierNameStringMarker {
     return iterator;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private int getIdentifierPositionInArguments(InvokeMethod invoke) {
     DexType returnType = invoke.getReturnType();
     if (isClassNameComparison(invoke, appView.dexItemFactory())) {

@@ -68,6 +68,7 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
@@ -195,6 +196,7 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
      * Adds all the aliases of the given StringBuilder value to {@param aliases}, or returns false
      * if all aliases were not found (e.g., due to a phi user).
      */
+    @SuppressWarnings("ReferenceEquality")
     private boolean computeAllAliasesIfUnusedStringBuilder(Value value, Set<Value> aliases) {
       WorkList<Value> worklist = WorkList.newIdentityWorkList(value);
       while (worklist.hasNext()) {

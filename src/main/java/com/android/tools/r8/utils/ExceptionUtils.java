@@ -93,6 +93,7 @@ public abstract class ExceptionUtils {
         AbortException.class);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static <T extends Exception, A extends Exception> T failWithFakeEntry(
       DiagnosticsHandler diagnosticsHandler,
       Throwable topMostException,
@@ -272,6 +273,7 @@ public abstract class ExceptionUtils {
       this.position = position;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private static boolean needsAttachment(RuntimeException e, Origin origin, Position position) {
       if (origin == Origin.unknown() && position == Position.UNKNOWN) {
         return false;

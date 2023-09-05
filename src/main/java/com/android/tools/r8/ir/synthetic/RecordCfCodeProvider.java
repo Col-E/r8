@@ -114,6 +114,7 @@ public abstract class RecordCfCodeProvider {
       return standardCfCodeFromInstructions(instructions);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void loadFieldAsObject(List<CfInstruction> instructions, DexField field) {
       DexItemFactory factory = appView.dexItemFactory();
       instructions.add(new CfLoad(ValueType.OBJECT, 0));

@@ -365,6 +365,7 @@ public class MethodArrayBacking extends MethodCollectionBacking {
     addVirtualMethods(newVirtualMethods);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private List<DexEncodedMethod> internalReplaceDirectMethods(
       Function<DexEncodedMethod, DexEncodedMethod> replacement) {
     List<DexEncodedMethod> newVirtualMethods = new ArrayList<>();
@@ -398,6 +399,7 @@ public class MethodArrayBacking extends MethodCollectionBacking {
     addDirectMethods(newDirectMethods);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private List<DexEncodedMethod> internalReplaceVirtualMethods(
       Function<DexEncodedMethod, DexEncodedMethod> replacement) {
     List<DexEncodedMethod> newDirectMethods = new ArrayList<>();

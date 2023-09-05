@@ -76,6 +76,7 @@ public abstract class GraphLens {
 
     protected Builder() {}
 
+    @SuppressWarnings("ReferenceEquality")
     public void move(DexMethod from, DexMethod to) {
       if (from == to) {
         return;
@@ -211,6 +212,7 @@ public abstract class GraphLens {
     return reference;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Predicate indicating if a rewritten reference is a simple renaming, meaning the move from one
   // reference to another is simply either just a renaming or/also renaming of the references. In
   // other words, the content of the definition, including the definition of all of its members is
@@ -450,6 +452,7 @@ public abstract class GraphLens {
     return this;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean assertFieldsNotModified(Iterable<DexEncodedField> fields) {
     for (DexEncodedField field : fields) {
       DexField reference = field.getReference();
@@ -467,6 +470,7 @@ public abstract class GraphLens {
     return assertReferencesNotModified(pinnedItems);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public <T extends DexReference> boolean assertReferencesNotModified(Iterable<T> references) {
     for (DexReference reference : references) {
       if (reference.isDexField()) {
@@ -504,6 +508,7 @@ public abstract class GraphLens {
     return result;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public Set<DexField> rewriteFields(Set<DexField> fields, Timing timing) {
     timing.begin("Rewrite fields");
     GraphLens appliedLens = getIdentityLens();
@@ -541,6 +546,7 @@ public abstract class GraphLens {
     return rewrittenFields;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean verifyIsIdentityLensForFields(
       Collection<DexField> fields, GraphLens appliedLens) {
     for (DexField field : fields) {

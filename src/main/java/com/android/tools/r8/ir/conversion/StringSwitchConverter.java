@@ -187,6 +187,7 @@ public class StringSwitchConverter {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean isDefinedByStringHashCode(Value value, DexItemFactory dexItemFactory) {
     Value root = value.getAliasedValue();
     if (root.isPhi()) {
@@ -408,6 +409,7 @@ public class StringSwitchConverter {
         return toBeExtended;
       }
 
+      @SuppressWarnings("ReferenceEquality")
       private StringToIdMapping extendWithPredecessor(
           StringToIdMapping toBeExtended, BasicBlock block) {
         boolean mayExtendWithPredecessor = true;
@@ -528,6 +530,7 @@ public class StringSwitchConverter {
         return addMappingsForStringsWithHash(block, hash, extension, Sets.newIdentityHashSet());
       }
 
+      @SuppressWarnings("ReferenceEquality")
       private boolean addMappingsForStringsWithHash(
           BasicBlock block,
           int hash,

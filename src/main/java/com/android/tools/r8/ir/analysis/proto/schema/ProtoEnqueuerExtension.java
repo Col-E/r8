@@ -110,6 +110,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void markGeneratedMessageLiteSubtypeAsInstantiated(
       DexProgramClass clazz, EnqueuerWorklist worklist) {
     if (clazz.isAbstract()) {
@@ -314,6 +315,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
    *
    * <p>See also {@link #populateExtensionGraph}.
    */
+  @SuppressWarnings("ReferenceEquality")
   private void populateExtensionGraphWithExtensionFieldDefinition(StaticPut staticPut) {
     Value value = staticPut.value().getAliasedValue();
     if (value.isPhi()) {

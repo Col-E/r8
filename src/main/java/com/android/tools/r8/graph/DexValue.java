@@ -408,6 +408,7 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     return null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isDefault(DexType type) {
     return this == defaultForType(type);
   }
@@ -1794,11 +1795,13 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     void internalAcceptHashing(HashingVisitor visitor) {
       assert this == NULL;
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     int internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
       assert this == NULL;
       assert other == NULL;

@@ -29,6 +29,7 @@ public class MethodNamingUtility {
     this.localSignatures = localSignatures;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexMethod nextUniqueMethod(
       DexEncodedMethod method, DexProto newProto, DexType initExtraType) {
     DexMethod reference = method.getReference();
@@ -50,6 +51,7 @@ public class MethodNamingUtility {
     return nextUniquePrivateOrStaticMethod(reference, newProto);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod nextUniqueInitializer(
       DexMethod reference, DexProto newProto, DexType initExtraType) {
     assert !inheritedSignatures.containsKey(reference.getSignature());
@@ -92,6 +94,7 @@ public class MethodNamingUtility {
         || inheritedSignatures.containsValue(method.getSignature());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod nextUniqueMethod(
       DexMethod reference, DexProto newProto, BiConsumer<DexMethod, DexMethod> registration) {
     // 1) We check if the reference has already been reserved (pinning or override).

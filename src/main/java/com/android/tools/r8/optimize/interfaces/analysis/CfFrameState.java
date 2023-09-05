@@ -69,11 +69,13 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public CfFrameState asAbstractState() {
     return this;
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean isGreaterThanOrEquals(AppView<?> appView, CfFrameState state) {
     if (this == state) {
       return true;

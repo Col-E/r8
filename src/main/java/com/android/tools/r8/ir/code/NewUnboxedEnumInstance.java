@@ -84,6 +84,7 @@ public class NewUnboxedEnumInstance extends Instruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isNewUnboxedEnumInstance() && other.asNewUnboxedEnumInstance().clazz == clazz;
   }
@@ -155,6 +156,7 @@ public class NewUnboxedEnumInstance extends Instruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean verifyTypes(
       AppView<?> appView, ProgramMethod context, VerifyTypesHelper verifyTypesHelper) {
     TypeElement type = getOutType();

@@ -179,6 +179,7 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
     return builder.build();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   boolean rewrite(
       Consumer<KmFunction> functionConsumer,
       Consumer<KmProperty> propertyConsumer,

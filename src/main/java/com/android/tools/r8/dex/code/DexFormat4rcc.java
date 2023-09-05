@@ -53,6 +53,7 @@ public abstract class DexFormat4rcc extends DexBase4Format {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void write(
       ShortBuffer dest,
       ProgramMethod context,

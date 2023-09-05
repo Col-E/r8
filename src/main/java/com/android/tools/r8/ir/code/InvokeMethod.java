@@ -93,6 +93,7 @@ public abstract class InvokeMethod extends Invoke {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isInvokeMethod() && method == other.asInvokeMethod().getInvokedMethod();
   }
@@ -253,6 +254,7 @@ public abstract class InvokeMethod extends Invoke {
     return UnknownValue.getInstance();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   boolean verifyD8LookupResult(
       DexEncodedMethod hierarchyResult, DexEncodedMethod lookupDirectTargetOnItself) {
     if (lookupDirectTargetOnItself == null) {

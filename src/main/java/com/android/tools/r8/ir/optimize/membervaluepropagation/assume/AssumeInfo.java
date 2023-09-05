@@ -52,6 +52,7 @@ public class AssumeInfo {
     return assumeValue;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isEmpty() {
     if (this == empty()) {
       return true;
@@ -98,11 +99,13 @@ public class AssumeInfo {
     return AbstractValue.bottom();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean internalMeetIsSideEffectFree(
       boolean isSideEffectFree, boolean otherIsSideEffectFree) {
     return isSideEffectFree || otherIsSideEffectFree;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public AssumeInfo rewrittenWithLens(AppView<?> appView, GraphLens graphLens) {
     // Verify that there is no need to rewrite the assumed type.
     assert assumeType.isNotNullType() || assumeType.isUnknown();

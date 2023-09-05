@@ -81,6 +81,7 @@ public abstract class NonIdentityGraphLens extends GraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public MethodLookupResult lookupMethod(
       DexMethod method, DexMethod context, InvokeType type, GraphLens codeLens) {
     if (method.getHolderType().isArrayType()) {
@@ -102,6 +103,7 @@ public abstract class NonIdentityGraphLens extends GraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public final DexType lookupType(DexType type, GraphLens appliedLens) {
     if (type.isClassType()) {
       return lookupClassType(type, appliedLens);

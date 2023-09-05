@@ -13,12 +13,14 @@ import com.android.tools.r8.ir.code.Value;
 
 public class ValueUtils {
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isStringBuilder(Value value, DexItemFactory dexItemFactory) {
     TypeElement type = value.getType();
     return type.isClassType()
         && type.asClassType().getClassType() == dexItemFactory.stringBuilderType;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isNonNullStringBuilder(Value value, DexItemFactory dexItemFactory) {
     while (true) {
       if (value.isPhi()) {

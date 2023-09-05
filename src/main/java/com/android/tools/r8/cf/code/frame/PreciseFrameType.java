@@ -10,6 +10,7 @@ import java.util.function.Function;
 public interface PreciseFrameType extends FrameType {
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   default PreciseFrameType map(Function<DexType, DexType> fn) {
     assert !isInitializedNonNullReferenceTypeWithInterfaces();
     if (isInitializedNonNullReferenceTypeWithoutInterfaces()) {

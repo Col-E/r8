@@ -229,6 +229,7 @@ final class ClassProcessor {
       return this == EMPTY;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     boolean isTargetedByForwards(DexClassAndMethod method) {
       return IterableUtils.any(
               forwardedMethodTargets,
@@ -534,6 +535,7 @@ final class ClassProcessor {
         });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Computes the set of method signatures that may need forwarding methods on derived classes.
   private SignaturesInfo computeInterfaceInfo(DexClass iface, SignaturesInfo interfaceInfo) {
     assert iface.isInterface();
@@ -550,6 +552,7 @@ final class ClassProcessor {
     return interfaceInfo;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private SignaturesInfo computeEmulatedInterfaceInfo(
       DexClass iface, SignaturesInfo interfaceInfo) {
     assert iface.isInterface();
@@ -617,6 +620,7 @@ final class ClassProcessor {
         superInfo, additionalForwards.build(), signatureInfo.emulatedInterfaceInfo);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // All classes implementing an emulated interface and overriding a default method should now
   // implement the interface and the emulated one for correct emulated dispatch.
   // The class signature won't include the correct type parameters for the duplicated interfaces,
@@ -1027,6 +1031,7 @@ final class ClassProcessor {
         desugaringForwardingMethod.asProgramMethod(clazz.asProgramClass()), target);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Topological order traversal and its helpers.
   private DexClass definitionOrNull(DexType type, ReportingContext context) {
     // No forwards at the top of the class hierarchy (assuming java.lang.Object is never amended).

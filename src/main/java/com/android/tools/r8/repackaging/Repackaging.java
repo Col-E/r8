@@ -129,6 +129,7 @@ public class Repackaging {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private RepackagingLens repackageClasses(
       DirectMappedDexApplication.Builder appBuilder, ExecutorService executorService)
       throws ExecutionException {

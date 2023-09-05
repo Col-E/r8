@@ -128,10 +128,12 @@ public abstract class Position implements StructuralItem<Position> {
         .withBool(Position::isD8R8Synthesized);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static Position syntheticNone() {
     return SyntheticPosition.NO_POSITION_SYNTHETIC;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static Position getPositionForInlining(
       AppView<?> appView, InvokeMethod invoke, ProgramMethod context) {
     Position position = invoke.getPosition();
@@ -157,6 +159,7 @@ public abstract class Position implements StructuralItem<Position> {
     return line == -1;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isSyntheticNone() {
     return this == syntheticNone();
   }
@@ -206,6 +209,7 @@ public abstract class Position implements StructuralItem<Position> {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean hasMethodInChain(DexMethod method) {
     return hasPositionMatching(position -> position.getMethod() == method);
   }
@@ -219,6 +223,7 @@ public abstract class Position implements StructuralItem<Position> {
         .build();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public Position replacePosition(Position originalPosition, Position newPosition) {
     if (this == originalPosition) {
       return newPosition;

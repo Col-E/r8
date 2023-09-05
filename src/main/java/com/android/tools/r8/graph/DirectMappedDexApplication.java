@@ -146,6 +146,7 @@ public class DirectMappedDexApplication extends DexApplication {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean mappingIsValid(
       Collection<DexProgramClass> classesBeforeLensApplication, GraphLens lens) {
     // The lens might either map to a different type that is already present in the application

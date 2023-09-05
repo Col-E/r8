@@ -145,6 +145,7 @@ public class FieldAssignmentTracker {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void acceptClassInitializerDefaultsResult(
       ClassInitializerDefaultsResult classInitializerDefaultsResult) {
     classInitializerDefaultsResult.forEachOptimizedField(
@@ -323,6 +324,7 @@ public class FieldAssignmentTracker {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void recordAllFieldPutsProcessed(
       ProgramField field, OptimizationFeedbackDelayed feedback) {
     FieldState fieldState = fieldStates.getOrDefault(field.getDefinition(), FieldState.bottom());

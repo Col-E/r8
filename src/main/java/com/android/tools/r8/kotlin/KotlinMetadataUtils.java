@@ -118,6 +118,7 @@ public class KotlinMetadataUtils {
       kmProperty.accept(
           new KmPropertyVisitor() {
             @Override
+            @SuppressWarnings("ReferenceEquality")
             public KmPropertyExtensionVisitor visitExtensions(KmExtensionType type) {
               if (type != JvmPropertyExtensionVisitor.TYPE) {
                 return null;

@@ -121,6 +121,7 @@ public class NoDefaultInterfaceMethodCollisions
     return newDefaultMethodsAddedToClassByMerge;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isSafeToAddDefaultMethodsToClass(
       DexProgramClass clazz,
       Set<DexMethod> newDefaultMethodsAddedToClassByMerge,

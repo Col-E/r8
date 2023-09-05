@@ -262,6 +262,7 @@ public final class ClassInliner {
     return eligible;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Class is eligible for this optimization. Eligibility implementation:
   //   - is not an abstract class or interface
   //   - does not declare finalizer

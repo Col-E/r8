@@ -99,6 +99,7 @@ public class ConcreteClassTypeParameterState extends ConcreteReferenceTypeParame
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public ParameterState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       ConcreteReferenceTypeParameterState parameterState,

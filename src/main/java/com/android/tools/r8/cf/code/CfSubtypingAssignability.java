@@ -16,6 +16,7 @@ public class CfSubtypingAssignability extends CfAssignability {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   boolean internalIsClassTypeAssignableToClassType(DexType source, DexType target) {
     if (source == target || target == dexItemFactory.objectType) {
       return true;

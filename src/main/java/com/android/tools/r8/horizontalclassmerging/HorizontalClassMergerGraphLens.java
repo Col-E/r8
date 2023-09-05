@@ -87,6 +87,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
     FieldLookupResult lookup = super.internalDescribeLookupField(previous);
     if (lookup.getReference() == previous.getReference()) {
@@ -155,6 +156,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       newFieldSignatures.put(oldFieldSignature, newFieldSignature);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     void recordNewFieldSignature(
         Iterable<DexField> oldFieldSignatures,
         DexField newFieldSignature,
@@ -194,6 +196,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       moveMethods(methods, to, null);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     void moveMethods(Iterable<ProgramMethod> methods, DexMethod to, ProgramMethod representative) {
       for (ProgramMethod from : methods) {
         boolean isRepresentative = representative != null && from == representative;

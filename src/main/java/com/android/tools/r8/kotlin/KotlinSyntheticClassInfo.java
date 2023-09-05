@@ -106,6 +106,7 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
     return metadataVersion;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static Flavour getFlavour(DexClass clazz, Kotlin kotlin) {
     // Returns KotlinStyleLambda if the given clazz has shape of a Kotlin-style lambda:
     //   a class that directly extends kotlin.jvm.internal.Lambda

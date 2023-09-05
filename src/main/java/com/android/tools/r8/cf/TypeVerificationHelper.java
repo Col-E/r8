@@ -198,6 +198,7 @@ public class TypeVerificationHelper {
             types.stream().map(DexType::toSourceString).collect(Collectors.toList())));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public TypeInfo join(TypeInfo info1, TypeInfo info2) {
     if (info1 == info2) {
       return info1;
@@ -220,10 +221,12 @@ public class TypeVerificationHelper {
     return TypeElement.fromDexType(type, Nullability.maybeNull(), appView);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public Map<Value, TypeInfo> computeVerificationTypes() {
     computingVerificationTypes = true;
     types = new HashMap<>();
     List<ConstNumber> nullsUsedInPhis = new ArrayList<>();
+    @SuppressWarnings("ReferenceEquality")
     Set<Value> worklist = Sets.newIdentityHashSet();
     {
       InstructionIterator it = code.instructionIterator();

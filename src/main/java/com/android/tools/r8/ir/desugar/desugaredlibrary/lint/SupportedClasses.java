@@ -146,11 +146,13 @@ public class SupportedClasses {
         }
       }
 
+      @SuppressWarnings("ReferenceEquality")
       void addSupportedMethod(DexEncodedMethod method) {
         assert method.getHolderType() == clazz.type;
         supportedMethods.put(method.getReference(), method);
       }
 
+      @SuppressWarnings("ReferenceEquality")
       void addSupportedField(DexEncodedField field) {
         assert field.getHolderType() == clazz.type;
         supportedFields.put(field.getReference(), field);
@@ -162,6 +164,7 @@ public class SupportedClasses {
         classAnnotation = annotation;
       }
 
+      @SuppressWarnings("ReferenceEquality")
       void annotateMethod(DexMethod method, MethodAnnotation annotation) {
         assert method.getHolderType() == clazz.type;
         MethodAnnotation prev =
@@ -169,6 +172,7 @@ public class SupportedClasses {
         methodAnnotations.put(method, annotation.combine(prev));
       }
 
+      @SuppressWarnings("ReferenceEquality")
       void annotateField(DexField field, FieldAnnotation annotation) {
         assert field.getHolderType() == clazz.type;
         FieldAnnotation prev = fieldAnnotations.getOrDefault(field, FieldAnnotation.getDefault());

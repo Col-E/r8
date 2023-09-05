@@ -156,6 +156,7 @@ public class ClassMerger {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void mergeDirectMethods(DexProgramClass toMerge) {
     toMerge.forEachProgramDirectMethod(
         method -> {
@@ -270,6 +271,7 @@ public class ClassMerger {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void fixNestMemberAttributes() {
     if (group.getTarget().isInANest() && !group.getTarget().hasNestMemberAttributes()) {
       for (DexProgramClass clazz : group.getSources()) {

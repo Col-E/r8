@@ -34,6 +34,7 @@ class SyntheticClasspathClassReference
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   SyntheticClasspathClassReference internalRewrite(
       SynthesizingContext rewrittenContext, NonIdentityGraphLens lens) {
     assert type == lens.lookupType(type)

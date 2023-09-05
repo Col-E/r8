@@ -213,6 +213,7 @@ public class FileUtils {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static ZipFile createZipFile(File file, Charset charset) throws IOException {
     if (!isAndroid) {
       return new ZipFile(file, charset);

@@ -1437,6 +1437,7 @@ public class RootSetUtils {
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void evaluateAssumeNoSideEffectsRule(
         Definition item, ProguardAssumeNoSideEffectRule context, ProguardMemberRule rule) {
       assert assumeInfoCollectionBuilder != null;
@@ -1732,6 +1733,7 @@ public class RootSetUtils {
           && item.asMethod().getDefinition().hasCode();
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void reportAssumeNoSideEffectsWarningForJavaLangClassMethod(
         DexClassAndMethod method, ProguardAssumeNoSideEffectRule context) {
       assert method.getHolderType() == options.dexItemFactory().objectType;
@@ -1741,6 +1743,7 @@ public class RootSetUtils {
           .add(method.getReference());
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean isWaitOrNotifyMethod(DexMethod method) {
       return method.name == options.itemFactory.waitMethodName
           || method.name == options.itemFactory.notifyMethodName

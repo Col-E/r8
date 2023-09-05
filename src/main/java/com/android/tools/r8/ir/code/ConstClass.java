@@ -118,6 +118,7 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean instructionInstanceCanThrow(
       AppView<?> appView,
       ProgramMethod context,
@@ -160,6 +161,7 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isConstClass() && other.asConstClass().clazz == clazz;
   }

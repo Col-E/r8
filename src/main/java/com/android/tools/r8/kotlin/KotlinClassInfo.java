@@ -284,11 +284,13 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public KotlinClassInfo asClass() {
     return this;
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public Pair<Metadata, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
     KmClass kmClass = new KmClass();
     // TODO(b/154348683): Set flags.

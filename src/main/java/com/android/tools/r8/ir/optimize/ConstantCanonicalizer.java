@@ -532,6 +532,7 @@ public class ConstantCanonicalizer {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isEffectivelyFinalField(StaticGet staticGet) {
     AbstractValue abstractValue = staticGet.outValue().getAbstractValue(appView, context);
     if (!abstractValue.isSingleFieldValue()) {

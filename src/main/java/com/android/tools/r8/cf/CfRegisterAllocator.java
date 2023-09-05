@@ -412,6 +412,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean hasEqualTypesAtEntry(BasicBlock first, BasicBlock second) {
     if (!java.util.Objects.equals(first.getLocalsAtEntry(), second.getLocalsAtEntry())) {
       return false;

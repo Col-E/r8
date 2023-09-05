@@ -234,6 +234,7 @@ public class DexDebugEventBuilder {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static void emitAdvancementEvents(
       int previousPc,
       Position previousPosition,
@@ -292,6 +293,7 @@ public class DexDebugEventBuilder {
     events.add(factory.createDefault(specialOpcode));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void emitLocalChangeEvents(
       Int2ReferenceMap<DebugLocalInfo> previousLocals,
       Int2ReferenceMap<DebugLocalInfo> nextLocals,

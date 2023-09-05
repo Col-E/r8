@@ -147,6 +147,7 @@ public class ReflectionOptimizer {
     };
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void applyTypeForGetClassTo(
       AppView<AppInfoWithLiveness> appView,
       ProgramMethod context,
@@ -199,6 +200,7 @@ public class ReflectionOptimizer {
     consumer.accept(type, clazz);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void applyTypeForClassForNameTo(
       AppView<AppInfoWithLiveness> appView,
       ProgramMethod context,

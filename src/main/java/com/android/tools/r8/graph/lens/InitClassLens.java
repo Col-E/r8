@@ -32,6 +32,7 @@ public abstract class InitClassLens {
 
     private final Map<DexType, DexField> mapping = new ConcurrentHashMap<>();
 
+    @SuppressWarnings("ReferenceEquality")
     public void map(DexType type, DexField field) {
       assert field.holder == type;
       mapping.put(type, field);

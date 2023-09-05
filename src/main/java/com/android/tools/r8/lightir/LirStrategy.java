@@ -292,6 +292,7 @@ public abstract class LirStrategy<V, EV> {
       }
 
       @Override
+      @SuppressWarnings("ReferenceEquality")
       public Value getValueDefinitionForInstructionIndex(
           int index, TypeElement type, Function<PhiOrValue, DebugLocalInfo> getLocalInfo) {
         PhiOrValue encodedValue = new PhiOrValue(index);

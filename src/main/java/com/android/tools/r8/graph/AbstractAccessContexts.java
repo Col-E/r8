@@ -221,6 +221,7 @@ public abstract class AbstractAccessContexts {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     void flattenAccessContexts(DexField field) {
       if (accessesWithContexts != null) {
         ProgramMethodSet flattenedAccessContexts =
@@ -274,6 +275,7 @@ public abstract class AbstractAccessContexts {
      * Returns true if this field is written by a method in the program other than {@param method}.
      */
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean isAccessedOutside(DexEncodedMethod method) {
       for (ProgramMethodSet encodedWriteContexts : accessesWithContexts.values()) {
         for (ProgramMethod encodedWriteContext : encodedWriteContexts) {
@@ -307,6 +309,7 @@ public abstract class AbstractAccessContexts {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     ConcreteAccessContexts rewrittenWithLens(DexDefinitionSupplier definitions, GraphLens lens) {
       Map<DexField, ProgramMethodSet> rewrittenAccessesWithContexts = null;
       for (Entry<DexField, ProgramMethodSet> entry : accessesWithContexts.entrySet()) {

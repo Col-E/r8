@@ -73,6 +73,7 @@ public class MissingClasses {
       this.alreadyMissingClasses = alreadyMissingClasses;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public void addNewMissingClass(DexType type, ProgramDerivedContext context) {
       assert context != null;
       assert context.getContext().getContextType() != type;

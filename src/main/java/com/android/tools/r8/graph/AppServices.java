@@ -192,6 +192,7 @@ public class AppServices {
     return result;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean verifyRewrittenWithLens() {
     for (Entry<DexType, Map<FeatureSplit, List<DexType>>> entry : services.entrySet()) {
       assert entry.getKey() == appView.graphLens().lookupClassType(entry.getKey(), applied);

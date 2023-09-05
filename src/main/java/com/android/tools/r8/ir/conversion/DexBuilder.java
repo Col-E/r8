@@ -436,6 +436,7 @@ public class DexBuilder {
     return current.exit().asGoto().getTarget() != nextBlock;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Eliminates unneeded debug positions.
   //
   // After this pass all remaining debug positions mark places where we must ensure a materializing
@@ -1002,6 +1003,7 @@ public class DexBuilder {
     return tries;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private TryHandler[] getDexTryHandlers(Map<Integer, CatchHandlers<BasicBlock>> catchHandlers) {
     TryHandler[] handlers = new TryHandler[catchHandlers.size()];
     for (int j = 0; j < catchHandlers.size(); j++) {

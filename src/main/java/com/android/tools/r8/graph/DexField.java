@@ -191,6 +191,7 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean match(DexField field) {
     return field.name == name && field.type == type;
   }

@@ -52,6 +52,7 @@ class SyntheticMethodReference
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   SyntheticMethodReference internalRewrite(
       SynthesizingContext rewrittenContext, NonIdentityGraphLens lens) {
     DexMethod rewritten = lens.getRenamedMethodSignature(method);

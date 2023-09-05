@@ -30,6 +30,7 @@ public class ObjectMethodOptimizer extends StatelessLibraryMethodModelCollection
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void optimize(
       IRCode code,
       BasicBlockIterator blockIterator,

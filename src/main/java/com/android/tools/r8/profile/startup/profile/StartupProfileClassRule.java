@@ -52,6 +52,7 @@ public class StartupProfileClassRule extends StartupProfileRule
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean equals(Object o) {
     if (this == o) {
       return true;

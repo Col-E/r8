@@ -338,6 +338,7 @@ public class VirtualFile {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public List<VirtualFile> run() {
       Map<DexType, VirtualFile> files = new IdentityHashMap<>();
       Map<DexType, List<DexProgramClass>> derivedSynthetics = new LinkedHashMap<>();
@@ -1480,6 +1481,7 @@ public class VirtualFile {
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private List<DexProgramClass> addNonStartupClasses() {
       int prefixLength = MINIMUM_PREFIX_LENGTH;
       int transactionStartIndex = 0;

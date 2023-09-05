@@ -186,6 +186,7 @@ public class TypeUtils {
     return staticPut.getField().getType().toTypeElement(appView);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isNullPointerException(TypeElement type, AppView<?> appView) {
     return type.isClassType()
         && type.asClassType().getClassType() == appView.dexItemFactory().npeType;

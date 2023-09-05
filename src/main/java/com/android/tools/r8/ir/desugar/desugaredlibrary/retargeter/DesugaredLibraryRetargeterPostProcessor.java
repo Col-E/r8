@@ -52,6 +52,7 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
     ensureInterfacesAndForwardingMethodsSynthesized(programClasses, eventConsumer);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void ensureInterfacesAndForwardingMethodsSynthesized(
       Collection<DexProgramClass> programClasses,
       DesugaredLibraryRetargeterPostProcessingEventConsumer eventConsumer) {
@@ -83,6 +84,7 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean inherit(
       DexLibraryClass clazz,
       DexType typeToInherit,
@@ -142,6 +144,7 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexEncodedMethod createForwardingMethod(
       DexMethod target, EmulatedDispatchMethodDescriptor descriptor, DexClass clazz) {
     // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar

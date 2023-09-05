@@ -65,6 +65,7 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
     return CodeRewriterResult.hasChanged(hasChanged);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Rewrite 'throw new NullPointerException()' to 'throw null'.
   private boolean rewriteThrowNullPointerException(IRCode code) {
     boolean hasChanged = false;

@@ -127,6 +127,7 @@ class IdentifierMinifier {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexString getRenamedStringLiteral(DexString originalLiteral) {
     String descriptor =
         DescriptorUtils.javaTypeToDescriptorIfValidJavaType(originalLiteral.toString());

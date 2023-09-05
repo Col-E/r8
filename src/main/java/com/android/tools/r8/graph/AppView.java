@@ -869,6 +869,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return appViewWithLiveness;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public OptionalBool isSubtype(DexType subtype, DexType supertype) {
     // Even if we can compute isSubtype by having class hierarchy we may not be allowed to ask the
     // question for all code paths in D8. Having the check for liveness ensure that we are in R8

@@ -91,6 +91,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean verifyIsContextFreeForMethod(DexMethod method, GraphLens codeLens) {
     if (codeLens == this) {
       return true;
@@ -134,6 +135,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public MethodLookupResult internalDescribeLookupMethod(
       MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
     assert context != null || verifyIsContextFreeForMethod(previous.getReference(), codeLens);
@@ -174,6 +176,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   protected RewrittenPrototypeDescription internalDescribePrototypeChanges(
       RewrittenPrototypeDescription prototypeChanges, DexMethod method) {
     // Rewrite the single value of the given RewrittenPrototypeDescription if it is referring to an
@@ -216,6 +219,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   protected InvokeType mapInvocationType(
       DexMethod newMethod, DexMethod originalMethod, InvokeType type) {
     if (typeMap.containsKey(originalMethod.getHolderType())) {
@@ -261,6 +265,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
       return this;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public void move(DexField from, DexField to) {
       if (from == to) {
         return;
@@ -308,6 +313,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
       return prototypeChanges;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private RewrittenPrototypeDescription computePrototypeChanges(
         DexMethod from,
         DexMethod to,

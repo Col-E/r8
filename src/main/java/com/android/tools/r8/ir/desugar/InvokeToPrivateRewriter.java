@@ -52,6 +52,7 @@ public class InvokeToPrivateRewriter implements CfInstructionDesugaring {
         .build();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexEncodedMethod privateMethodInvokedOnSelf(CfInvoke invoke, ProgramMethod context) {
     DexMethod method = invoke.getMethod();
     if (method.getHolderType() != context.getHolderType()) {

@@ -145,6 +145,7 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
     return newTargets;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isNumberAgainstConstNumberIf(If theIf) {
     if (!(theIf.lhs().getType().isInt() || theIf.lhs().getType().isFloat())) {
       return false;

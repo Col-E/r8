@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 
 public class MemberRebindingUtils {
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isNonReboundMethodReference(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       DexMethod method,

@@ -87,6 +87,7 @@ final class LambdaMainMethodSourceCode {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Checks if the types are the same OR type `a` is adaptable to type `b`.
   private static boolean isSameOrAdaptableTo(DexType a, DexType b, DexItemFactory factory) {
     if (a == b) {
@@ -170,6 +171,7 @@ final class LambdaMainMethodSourceCode {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static CfCode build(
       LambdaClass lambda, DexMethod mainMethod, DesugarInvoke desugarInvoke) {
     DexItemFactory factory = lambda.appView.dexItemFactory();
@@ -363,6 +365,7 @@ final class LambdaMainMethodSourceCode {
     return adjustType(enforcedType, expectedType, false, instructions, factory);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void enforceParameterType(
       DexType paramType,
       DexType enforcedType,
@@ -377,6 +380,7 @@ final class LambdaMainMethodSourceCode {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static int adjustType(
       DexType fromType,
       DexType toType,
@@ -398,6 +402,7 @@ final class LambdaMainMethodSourceCode {
             ValueType.fromDexType(toType).requiredRegisters()));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void internalAdjustType(
       DexType fromType,
       DexType toType,
@@ -475,6 +480,7 @@ final class LambdaMainMethodSourceCode {
         + fromType.toSourceString() + " to " + toType);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void addPrimitiveWideningConversion(
       DexType fromType, DexType toType, Builder<CfInstruction> instructions) {
     assert fromType.isPrimitiveType() && toType.isPrimitiveType();

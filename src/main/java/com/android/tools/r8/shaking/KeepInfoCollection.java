@@ -113,6 +113,7 @@ public abstract class KeepInfoCollection {
     return getMethodInfo(method.getDefinition(), method.getHolder());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public final KeepMethodInfo getMethodInfo(
       DexEncodedMethod method, DexDefinitionSupplier definitions) {
     DexProgramClass holder =
@@ -139,6 +140,7 @@ public abstract class KeepInfoCollection {
     return getFieldInfo(field.getDefinition(), field.getHolder());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public final KeepFieldInfo getFieldInfo(
       DexEncodedField field, DexDefinitionSupplier definitions) {
     DexProgramClass holder =
@@ -352,6 +354,7 @@ public abstract class KeepInfoCollection {
       return result;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private Map<DexType, KeepClassInfo> rewriteClassInfo(
         NonIdentityGraphLens lens, InternalOptions options, Timing timing) {
       timing.begin("Rewrite class info");
@@ -374,6 +377,7 @@ public abstract class KeepInfoCollection {
       return newClassInfo;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private Map<DexField, KeepFieldInfo> rewriteFieldInfo(
         NonIdentityGraphLens lens, InternalOptions options, Timing timing) {
       timing.begin("Rewrite field info");
@@ -391,6 +395,7 @@ public abstract class KeepInfoCollection {
       return newFieldInfo;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private Map<DexMethod, KeepMethodInfo> rewriteMethodInfo(
         NonIdentityGraphLens lens, InternalOptions options, Timing timing) {
       timing.begin("Rewrite method info");
@@ -495,12 +500,14 @@ public abstract class KeepInfoCollection {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public KeepMethodInfo getMethodInfo(DexEncodedMethod method, DexProgramClass holder) {
       assert method.getHolderType() == holder.type;
       return keepMethodInfo.getOrDefault(method.getReference(), KeepMethodInfo.bottom());
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public KeepFieldInfo getFieldInfo(DexEncodedField field, DexProgramClass holder) {
       assert field.getHolderType() == holder.type;
       return keepFieldInfo.getOrDefault(field.getReference(), KeepFieldInfo.bottom());

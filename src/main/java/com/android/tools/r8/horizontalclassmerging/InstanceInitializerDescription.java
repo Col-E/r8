@@ -92,6 +92,7 @@ public class InstanceInitializerDescription {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean equals(Object obj) {
     if (obj == null || getClass() != obj.getClass()) {
       return false;
@@ -138,6 +139,7 @@ public class InstanceInitializerDescription {
       this(dexItemFactory, method.getReference());
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public void addInstancePut(DexField field, InstanceFieldInitializationInfo value) {
       if (parentConstructor == null) {
         instanceFieldAssignmentsPre.put(field, value);

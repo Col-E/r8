@@ -98,6 +98,7 @@ class FieldNameMinifier {
         type, ignore -> new ReservedFieldNamingState(appView));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void reserveFieldNames() {
     // Build up all reservations in the class hierarchy such that all reserved names are placed
     // at the boundary between a library class and a program class - referred to as the frontier.
@@ -213,6 +214,7 @@ class FieldNameMinifier {
             });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void renameFieldsInUnrelatedClasspathClasses() {
     if (appView.options().getProguardConfiguration().hasApplyMappingFile()) {
       appView
@@ -272,6 +274,7 @@ class FieldNameMinifier {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexString renameField(ProgramField field, FieldNamingState state) {
     DexString newName = state.getOrCreateNameFor(field);
     if (newName != field.getReference().name) {
@@ -290,6 +293,7 @@ class FieldNameMinifier {
     fieldAccessInfo.forEachIndirectAccess(this::renameNonReboundAccessToField);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void renameNonReboundAccessToField(DexField field) {
     // If the given field reference is a non-rebound reference to a program field, then assign the
     // same name as the resolved field.
@@ -333,6 +337,7 @@ class FieldNameMinifier {
       return partitions;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private Set<DexClass> buildSortedPartition(DexClass src) {
       Set<DexClass> partition = new TreeSet<>(Comparator.comparing(DexClass::getType));
 

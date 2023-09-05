@@ -68,6 +68,7 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (instruction.isInvokeDynamic()) {
       // We are interested in bootstrap methods StringConcatFactory::makeConcat

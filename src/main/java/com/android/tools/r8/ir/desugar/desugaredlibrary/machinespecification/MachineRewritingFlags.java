@@ -177,6 +177,7 @@ public class MachineRewritingFlags {
     return dontRetarget;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isCustomConversionRewrittenType(DexType type) {
     return Iterables.any(
         customConversions.values(),
@@ -209,6 +210,7 @@ public class MachineRewritingFlags {
         || !staticFieldRetarget.isEmpty();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isEmulatedInterfaceRewrittenType(DexType type) {
     return Iterables.any(
         emulatedInterfaces.values(), descriptor -> descriptor.getRewrittenType() == type);
@@ -279,6 +281,7 @@ public class MachineRewritingFlags {
     return builder.build();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private EmulatedInterfaceDescriptor descriptorWithPostPrefix(
       EmulatedInterfaceDescriptor descriptor,
       DexItemFactory factory,
@@ -372,6 +375,7 @@ public class MachineRewritingFlags {
     private final ImmutableMap.Builder<DexField, FieldAccessFlags> amendLibraryField =
         ImmutableMap.builder();
 
+    @SuppressWarnings("ReferenceEquality")
     public void rewriteType(DexType src, DexType target) {
       assert src != null;
       assert target != null;

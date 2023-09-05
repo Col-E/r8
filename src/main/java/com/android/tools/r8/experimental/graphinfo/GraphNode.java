@@ -36,6 +36,7 @@ public abstract class GraphNode {
     return CYCLE;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public final boolean isCycle() {
     return this == cycle();
   }

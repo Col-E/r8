@@ -92,6 +92,7 @@ public class CfSourceCode implements SourceCode {
       return guards.isEmpty();
     }
 
+    @SuppressWarnings("ReferenceEquality")
     static TryHandlerList computeTryHandlers(
         int instructionOffset,
         List<CfTryCatch> tryCatchRanges,
@@ -447,6 +448,7 @@ public class CfSourceCode implements SourceCode {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void buildBlockTransfer(
       IRBuilder builder, int predecessorOffset, int successorOffset, boolean isExceptional) {
     if (predecessorOffset == IRBuilder.INITIAL_BLOCK_OFFSET
@@ -490,6 +492,7 @@ public class CfSourceCode implements SourceCode {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void buildInstruction(
       IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
     if (isExceptionalExitForMethodSynchronization(instructionIndex)) {

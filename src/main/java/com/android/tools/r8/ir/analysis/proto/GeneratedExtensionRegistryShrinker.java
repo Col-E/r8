@@ -253,6 +253,7 @@ public class GeneratedExtensionRegistryShrinker {
     return field != null && isDeadProtoExtensionField(field, fieldAccessInfoCollection, keepInfo);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isDeadProtoExtensionField(
       ProgramField field,
       FieldAccessInfoCollection<?> fieldAccessInfoCollection,

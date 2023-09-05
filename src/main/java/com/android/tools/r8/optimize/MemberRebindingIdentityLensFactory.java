@@ -143,6 +143,7 @@ public class MemberRebindingIdentityLensFactory {
       registerFieldAccess(field);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void registerFieldAccess(DexField field) {
       if (!seenFieldReferences.add(field)) {
         return;
@@ -204,6 +205,7 @@ public class MemberRebindingIdentityLensFactory {
       registerInvokeMethod(method, methodAccessInfoCollectionBuilder.getVirtualInvokes());
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void registerInvokeMethod(DexMethod method, Map<DexMethod, ProgramMethodSet> invokes) {
       if (!seenMethodReferences.add(method)) {
         return;

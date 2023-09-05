@@ -151,6 +151,7 @@ public class GenericSignatureTypeRewriter {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public List<ClassTypeSignature> visitSuperInterfaces(
         List<ClassTypeSignature> interfaceSignatures) {
       if (interfaceSignatures.isEmpty()) {
@@ -172,6 +173,7 @@ public class GenericSignatureTypeRewriter {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public ClassTypeSignature visitSuperInterface(ClassTypeSignature classTypeSignature) {
       ClassTypeSignature rewritten = classTypeSignature.visit(this);
       return rewritten == null || rewritten.type() == context.type ? null : rewritten;

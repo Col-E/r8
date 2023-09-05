@@ -394,6 +394,7 @@ final class InlineCandidateProcessor {
     return anyInlinedMethods;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean forceInlineDirectMethodInvocations(
       IRCode code, InliningIRProvider inliningIRProvider) throws IllegalClassInlinerStateException {
     if (directMethodCalls.isEmpty()) {
@@ -458,6 +459,7 @@ final class InlineCandidateProcessor {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean forceInlineIndirectMethodInvocations(
       IRCode code, InliningIRProvider inliningIRProvider) throws IllegalClassInlinerStateException {
     if (indirectMethodCallsOnInstance.isEmpty()) {
@@ -585,6 +587,7 @@ final class InlineCandidateProcessor {
     assert eligibleInstance.aliasedUsers().stream().noneMatch(Instruction::isCheckCast);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Remove miscellaneous users before handling field reads.
   private void removeMiscUsages(IRCode code, AffectedValues affectedValues) {
     boolean needToRemoveUnreachableBlocks = false;
@@ -856,6 +859,7 @@ final class InlineCandidateProcessor {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private InliningInfo isEligibleConstructorCall(InvokeDirect invoke, ProgramMethod singleTarget) {
     assert dexItemFactory.isConstructor(invoke.getInvokedMethod());
     assert isEligibleSingleTarget(singleTarget);
@@ -1027,6 +1031,7 @@ final class InlineCandidateProcessor {
         && !nonEmptyUsage.isParameterReturned();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isEligibleVirtualMethodCall(DexMethod callee, ProgramMethod singleTarget) {
     assert isEligibleSingleTarget(singleTarget);
 
@@ -1120,6 +1125,7 @@ final class InlineCandidateProcessor {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isEligibleLibraryMethodCall(InvokeMethod invoke, LibraryMethod singleTarget) {
     boolean isSideEffectFree =
         appView.getLibraryMethodSideEffectModelCollection().isSideEffectFree(invoke, singleTarget);

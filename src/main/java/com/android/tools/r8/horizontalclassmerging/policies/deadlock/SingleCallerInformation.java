@@ -100,6 +100,7 @@ public class SingleCallerInformation {
         this.appView = appView;
       }
 
+      @SuppressWarnings("ReferenceEquality")
       private void recordDispatchTarget(ProgramMethod target) {
         callers.compute(
             target,
@@ -142,6 +143,7 @@ public class SingleCallerInformation {
         }
       }
 
+      @SuppressWarnings("ReferenceEquality")
       private void triggerClassInitializer(DexProgramClass clazz) {
         Optional<ProgramMethod> callers = clinitCallers.get(clazz);
         if (callers != null) {

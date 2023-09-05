@@ -346,6 +346,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void analyzeInvokeCustom(
       InvokeCustom invoke, Set<DexType> eligibleEnums, ProgramMethod context) {
     invoke.getCallSite().getMethodProto().forEachType(t -> markEnumEligible(t, eligibleEnums));
@@ -500,6 +501,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     eligibleEnums.add(enumType);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isLegitimateConstClassUser(
       Instruction user, ProgramMethod context, DexProgramClass enumClass) {
     if (user.isAssume()) {
@@ -576,6 +578,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         enumClass, factory.enumMembers.nameField);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isUnboxableNameMethod(DexMethod method) {
     return method == factory.classMethods.getName
         || method == factory.classMethods.getCanonicalName
@@ -852,6 +855,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return enumDataMap;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private EnumDataMap analyzeEnumInstances() {
     ImmutableMap.Builder<DexType, DexType> enumSubtypes = ImmutableMap.builder();
     ImmutableMap.Builder<DexType, EnumData> builder = ImmutableMap.builder();
@@ -1265,6 +1269,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.INVALID_ARRAY_PUT;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private Reason analyzeNewArrayFilledUser(
       NewArrayFilled newArrayFilled,
       IRCode code,
@@ -1338,6 +1343,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.ELIGIBLE;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // An If using enum as inValue is valid if it matches e == null
   // or e == X with X of same enum type as e. Ex: if (e == MyEnum.A).
   private Reason analyzeIfUser(
@@ -1359,6 +1365,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.INVALID_IF_TYPES;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private Reason analyzeInstanceGetUser(
       InstanceGet instanceGet,
       IRCode code,
@@ -1371,6 +1378,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.ELIGIBLE;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // All invokes in the library are invalid, besides a few cherry picked cases such as ordinal().
   private Reason analyzeInvokeUser(
       InvokeMethod invoke,
@@ -1507,6 +1515,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return new UnboxedValueNonComparable(invoke.getInvokedMethod(), type1, type2);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private Reason analyzeLibraryInvoke(
       InvokeMethod invoke,
       IRCode code,
@@ -1637,6 +1646,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return new UnsupportedLibraryInvokeReason(singleTargetReference);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Return is used for valueOf methods.
   private Reason analyzeReturnUser(
       Return theReturn,

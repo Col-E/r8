@@ -80,6 +80,7 @@ public class KotlinMetadataRewriter {
     this.kotlin = factory.kotlin;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean isNotKotlinMetadata(DexAnnotation annotation, DexType kotlinMetadataType) {
     return annotation.annotation.type != kotlinMetadataType;
   }
@@ -163,6 +164,7 @@ public class KotlinMetadataRewriter {
         executorService);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void writeKotlinInfoToAnnotation(
       DexClass clazz,
       KotlinClassLevelInfo kotlinInfo,
@@ -220,6 +222,7 @@ public class KotlinMetadataRewriter {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean kotlinMetadataFieldExists(
       DexClass kotlinMetadata, AppView<?> appView, DexString fieldName) {
     if (!appView.appInfo().hasLiveness()) {

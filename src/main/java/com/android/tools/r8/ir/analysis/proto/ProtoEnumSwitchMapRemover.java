@@ -44,6 +44,7 @@ public class ProtoEnumSwitchMapRemover {
     staticFieldValuesMapDelayed.clear();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isProtoEnum(DexProgramClass clazz) {
     assert clazz.isEnum();
     if (clazz.type == references.methodToInvokeType) {

@@ -409,6 +409,7 @@ public class HorizontalClassMerger {
    * Fix all references to merged classes using the {@link TreeFixer}. Construct a graph lens
    * containing all changes performed by horizontal class merging.
    */
+  @SuppressWarnings("ReferenceEquality")
   private HorizontalClassMergerGraphLens createLens(
       HorizontallyMergedClasses mergedClasses,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
@@ -425,6 +426,7 @@ public class HorizontalClassMerger {
         .fixupTypeReferences();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean verifyNoCyclesInInterfaceHierarchies(
       AppView<?> appView, Collection<MergeGroup> groups) {
     for (MergeGroup group : groups) {

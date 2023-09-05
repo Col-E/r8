@@ -172,6 +172,7 @@ public class CfInvoke extends CfInstruction {
 
   // We should avoid interpreting a CF invoke using DEX semantics.
   @Deprecated
+  @SuppressWarnings("ReferenceEquality")
   public boolean isInvokeSuper(DexType clazz) {
     return opcode == Opcodes.INVOKESPECIAL
         && method.holder != clazz
@@ -283,6 +284,7 @@ public class CfInvoke extends CfInstruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, CfCode code, ProgramMethod context) {
     GraphLens graphLens = inliningConstraints.getGraphLens();
@@ -368,6 +370,7 @@ public class CfInvoke extends CfInstruction {
     return frame.push(config, method.getReturnType());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private InvokeType computeInvokeTypeForInvokeSpecial(
       AppView<?> appView, DexMethod method, ProgramMethod context, DexType originalHolder) {
     if (appView.dexItemFactory().isConstructor(method)) {

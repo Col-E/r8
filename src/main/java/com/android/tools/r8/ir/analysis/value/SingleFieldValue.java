@@ -142,6 +142,7 @@ public abstract class SingleFieldValue extends SingleValue {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public SingleValue rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
     AbstractValueFactory factory = appView.abstractValueFactory();

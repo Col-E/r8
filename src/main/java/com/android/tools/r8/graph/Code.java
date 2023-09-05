@@ -224,6 +224,7 @@ public abstract class Code extends CachedHashValueDexItem {
   }
 
   @Deprecated()
+  @SuppressWarnings("ReferenceEquality")
   // TODO(b/261971803): When having complete control over the positions we should not need this.
   private static Position removeSameMethodAndLineZero(
       Position calleePosition, Position callerPosition) {

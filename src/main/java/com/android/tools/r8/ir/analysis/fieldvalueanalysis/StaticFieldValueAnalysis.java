@@ -119,6 +119,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   boolean isSubjectToOptimization(DexClassAndField field) {
     return field.getAccessFlags().isStatic()
         && field.getHolderType() == context.getHolderType()
@@ -126,6 +127,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   boolean isSubjectToOptimizationIgnoringPinning(DexClassAndField field) {
     return field.getAccessFlags().isStatic()
         && field.getHolderType() == context.getHolderType()
@@ -166,6 +168,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void updateFieldOptimizationInfoWith2Values(
       DexClassAndField field, Value valuePut, DexValue valueBeforePut) {
     // We are interested in the AbstractValue only if it's null or a value, so we can use the value
@@ -246,6 +249,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     return singleFieldValue;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private SingleFieldValue internalComputeSingleEnumFieldValueForValuesArray(Value value) {
     NewArrayEmpty newArrayEmpty = value.definition.asNewArrayEmpty();
     NewArrayFilled newArrayFilled = value.definition.asNewArrayFilled();
@@ -389,6 +393,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     return intValue == ordinal;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private SingleFieldValue computeSingleEnumFieldValueForInstance(Value value) {
     assert value.isDefinedByInstructionSatisfying(Instruction::isNewInstance);
 

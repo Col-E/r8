@@ -224,6 +224,7 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
     rewriteFieldGet(code, affectedValues, blocks, iterator, current);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void rewriteFieldGet(
       IRCode code,
       Set<Value> affectedValues,

@@ -252,6 +252,7 @@ public class BasicBlockBehavioralSubsumption {
     return instructionsDefineIdenticalValues(value.definition, other.definition);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean instructionsDefineIdenticalValues(Instruction instruction, Instruction other) {
     assert instruction.hasOutValue();
     assert other.hasOutValue();

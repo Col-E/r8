@@ -171,6 +171,7 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public CfFrameState pop(BiFunction<CfFrameState, PreciseFrameType, CfFrameState> fn) {
     if (stack.isEmpty()) {
       return error("Unexpected pop from empty stack");
@@ -181,6 +182,7 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public CfFrameState popAndInitialize(
       AppView<?> appView, DexMethod constructor, CfAnalysisConfig config) {
     return pop(
@@ -467,6 +469,7 @@ public class ConcreteCfFrameState extends CfFrameState {
     setSingleLocalToTop(localIndex, builder);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void joinWideLocalsWithSameIndex(
       int localIndex,
       WidePrimitiveFrameType frameType,

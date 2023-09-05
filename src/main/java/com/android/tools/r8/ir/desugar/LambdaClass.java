@@ -133,6 +133,7 @@ public final class LambdaClass {
     return type;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void setClass(DexProgramClass clazz) {
     assert this.clazz == null;
     assert clazz != null;
@@ -367,6 +368,7 @@ public final class LambdaClass {
         && !desugaring.isDirectTargetedLambdaImplementationMethod(descriptor.implHandle);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private Target createLambdaImplMethodTarget(ProgramMethod accessedFrom) {
     DexMethodHandle implHandle = descriptor.implHandle;
     assert implHandle != null;

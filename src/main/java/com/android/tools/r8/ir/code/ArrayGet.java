@@ -71,6 +71,7 @@ public class ArrayGet extends ArrayAccess {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void buildDex(DexBuilder builder) {
     int dest = builder.allocatedRegister(dest(), getNumber());
     int array = builder.allocatedRegister(array(), getNumber());
@@ -156,11 +157,13 @@ public class ArrayGet extends ArrayAccess {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean hasInvariantOutType() {
     return false;
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
     // This method is not called for ArrayGet on primitive array.
     assert this.outValue.getType().isReferenceType();
@@ -252,6 +255,7 @@ public class ArrayGet extends ArrayAccess {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
     return array().getType().isArrayType()
         && array().getType().asArrayType().getMemberType() == TypeElement.getBoolean();

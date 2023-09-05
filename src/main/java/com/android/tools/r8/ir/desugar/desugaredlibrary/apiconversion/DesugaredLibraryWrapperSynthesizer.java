@@ -168,6 +168,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod ensureApiGenericConversion(
       DexMethod conversion, DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer) {
     if (appView.appInfoForDesugaring().resolveMethod(conversion, false).isSingleResolution()) {
@@ -192,6 +193,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return conversion;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexMethod ensureConversionMethod(
       DexType type,
       boolean destIsVivified,
@@ -228,6 +230,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return conversion;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod ensureArrayConversionMethod(
       DexType type,
       DexType srcType,
@@ -247,6 +250,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         srcType, destType, eventConsumer, context, contextSupplier, conversion);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod ensureArrayConversionMethodFromExistingBaseConversion(
       DexType type,
       DexType srcType,
@@ -297,6 +301,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return arrayConversion.getReference();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexMethod getExistingProgramConversionMethod(
       DexType type,
       boolean destIsVivified,
@@ -331,6 +336,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return conversion;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod getCustomConversion(DexType type, DexType srcType, DexType destType) {
     // ConversionType holds the methods "rewrittenType convert(type)" and the other way around.
     // But everything is going to be rewritten, so we need to use vivifiedType and type".
@@ -587,6 +593,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
                         wrapperField, reverseWrapperField, context, subwrapperConvertList)));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod getConversion(DexProgramClass subwrapperWrapper) {
     Iterator<DexEncodedMethod> iterator = subwrapperWrapper.directMethods().iterator();
     DexEncodedMethod method;

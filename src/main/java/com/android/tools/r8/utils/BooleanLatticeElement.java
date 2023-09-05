@@ -52,6 +52,7 @@ public abstract class BooleanLatticeElement {
     return isFalse() || isUnknown();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public BooleanLatticeElement join(BooleanLatticeElement other) {
     if (this == other || other.isBottom() || isUnknown()) {
       return this;

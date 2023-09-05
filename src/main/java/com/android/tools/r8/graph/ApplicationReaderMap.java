@@ -56,11 +56,13 @@ public abstract class ApplicationReaderMap {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public DexType getType(DexType type) {
       return type == factory.recordTagType ? factory.recordType : type;
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public DexType getInvertedType(DexType type) {
       return type == factory.recordType ? factory.recordTagType : type;
     }

@@ -831,6 +831,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * @param callSite Call site to resolve.
    * @return Methods implemented by the lambda expression that created the {@code callSite}.
    */
+  @SuppressWarnings("ReferenceEquality")
   public Set<DexEncodedMethod> lookupLambdaImplementedMethods(
       DexCallSite callSite, AppView<AppInfoWithLiveness> appView) {
     assert checkIfObsolete();
@@ -996,6 +997,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         && !fieldAccessInfo.isWrittenOutside(method);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isInstanceFieldWrittenOnlyInInstanceInitializers(DexClassAndField field) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
@@ -1338,6 +1340,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         appView, method, context, isInterface, modeledPredicate, DynamicType.unknown());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexEncodedMethod lookupSingleVirtualTarget(
       AppView<AppInfoWithLiveness> appView,
       DexMethod method,
@@ -1446,6 +1449,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return singleMethodTarget;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexEncodedMethod getMethodTargetFromExactRuntimeInformation(
       DexType refinedReceiverType,
       ClassTypeElement receiverLowerBoundType,

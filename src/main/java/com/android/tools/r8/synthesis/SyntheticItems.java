@@ -187,6 +187,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       return definitions.containsKey(type);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     boolean containsTypeOfKind(DexType type, SyntheticKind kind) {
       SyntheticDefinition<?, ?, ?> definition = definitions.get(type);
       return definition != null && definition.getKind() == kind;
@@ -215,6 +216,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   private final ContextsForGlobalSynthetics globalContexts;
   private final GlobalSyntheticsStrategy globalSyntheticsStrategy;
 
+  @SuppressWarnings("ReferenceEquality")
   public Set<DexType> collectSyntheticsFromContext(DexType context) {
     Set<DexType> result = Sets.newIdentityHashSet();
     committed
@@ -407,6 +409,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return mode.isFinal() || isSyntheticLambda(clazz);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isSyntheticLambda(DexProgramClass clazz) {
     if (!isSynthetic(clazz)) {
       return false;
@@ -1194,6 +1197,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         .computeFinalSynthetics(appView, timing);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void reportSyntheticsInformation(SyntheticInfoConsumer consumer) {
     assert isFinalized();
     Map<DexType, DexType> seen = new IdentityHashMap<>();

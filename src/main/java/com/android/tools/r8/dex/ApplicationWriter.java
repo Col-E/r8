@@ -765,6 +765,7 @@ public class ApplicationWriter {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void insertAttributeAnnotationsForClass(DexProgramClass clazz) {
     EnclosingMethodAttribute enclosingMethod = clazz.getEnclosingMethodAttribute();
     List<InnerClassAttribute> innerClasses = clazz.getInnerClasses();

@@ -123,6 +123,7 @@ public class CodeRewriter {
     assert code.isConsistentSSA(appView);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static void removeOrReplaceByDebugLocalWrite(
       Instruction currentInstruction, InstructionListIterator it, Value inValue, Value outValue) {
     if (outValue.hasLocalInfo() && outValue.getLocalInfo() != inValue.getLocalInfo()) {
@@ -139,6 +140,7 @@ public class CodeRewriter {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // TODO(mikaelpeltier) Manage that from and to instruction do not belong to the same block.
   private static boolean hasLocalOrLineChangeBetween(
       Instruction from, Instruction to, DexString localVar) {

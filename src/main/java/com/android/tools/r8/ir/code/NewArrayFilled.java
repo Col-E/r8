@@ -98,6 +98,7 @@ public class NewArrayFilled extends Invoke {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isNewArrayFilled() && type == other.asNewArrayFilled().type;
   }
@@ -159,6 +160,7 @@ public class NewArrayFilled extends Invoke {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean instructionInstanceCanThrow(
       AppView<?> appView,
       ProgramMethod context,

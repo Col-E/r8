@@ -56,6 +56,7 @@ public class AccessModifierLens extends DefaultNonIdentityGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public MethodLookupResult internalDescribeLookupMethod(
       MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
     assert !previous.hasReboundReference();
@@ -95,6 +96,7 @@ public class AccessModifierLens extends DefaultNonIdentityGraphLens {
       return this;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public Builder recordMove(DexMethod from, DexMethod to) {
       assert from != to;
       synchronized (methodMap) {

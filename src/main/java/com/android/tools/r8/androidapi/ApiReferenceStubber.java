@@ -172,6 +172,7 @@ public class ApiReferenceStubber {
             });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isJavaType(DexType type, DexItemFactory factory) {
     DexString typeDescriptor = type.getDescriptor();
     return type == factory.objectType

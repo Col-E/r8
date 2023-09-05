@@ -200,6 +200,7 @@ public class VirtualMethodMerger {
    * If there is only a single method that does not override anything then it is safe to just move
    * it to the target type if it is not already in it.
    */
+  @SuppressWarnings("ReferenceEquality")
   private void mergeTrivial(
       ClassMethodsBuilder classMethodsBuilder, HorizontalClassMergerGraphLens.Builder lensBuilder) {
     DexMethod newMethodReference = getNewMethodReference();

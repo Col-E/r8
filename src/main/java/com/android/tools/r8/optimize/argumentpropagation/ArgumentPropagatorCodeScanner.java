@@ -517,6 +517,7 @@ public class ArgumentPropagatorCodeScanner {
         : new ConcretePrimitiveTypeParameterState(abstractValue);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod getRepresentative(InvokeMethod invoke, ProgramMethod resolvedMethod) {
     if (resolvedMethod.getDefinition().belongsToDirectPool()) {
       return resolvedMethod.getReference();

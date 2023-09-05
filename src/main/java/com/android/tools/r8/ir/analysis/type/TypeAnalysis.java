@@ -229,6 +229,7 @@ public class TypeAnalysis {
         invoke.getReceiver().getDynamicType(appView), invoke.getInvokedMethod(), appView);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static DexType toRefinedReceiverType(
       DynamicType dynamicReceiverType,
       DexMethod method,

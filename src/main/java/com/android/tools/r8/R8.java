@@ -942,6 +942,7 @@ public class R8 {
         executorService);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean verifyMovedMethodsHaveOriginalMethodPosition(
       AppView<?> appView, DirectMappedDexApplication application) {
     application
@@ -968,6 +969,7 @@ public class R8 {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean verifyOriginalMethodInPosition(
       Code code, DexMethod originalMethod, ProgramMethod context) {
     code.forEachPosition(

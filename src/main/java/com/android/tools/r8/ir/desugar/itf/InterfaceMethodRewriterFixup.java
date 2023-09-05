@@ -36,6 +36,7 @@ class InterfaceMethodRewriterFixup {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private EnclosingMethodAttribute fixupEnclosingMethodAttribute(
       EnclosingMethodAttribute enclosingMethodAttribute) {
     DexMethod enclosingMethod = enclosingMethodAttribute.getEnclosingMethod();

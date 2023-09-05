@@ -92,6 +92,7 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   protected void processSingleTarget(ProgramMethod singleTarget, ProgramMethod context) {
     assert !context.getDefinition().isBridge()
         || singleTarget.getDefinition() != context.getDefinition();

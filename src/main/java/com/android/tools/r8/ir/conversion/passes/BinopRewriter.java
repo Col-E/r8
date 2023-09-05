@@ -427,6 +427,7 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private ConstNumber getConstNumber(Value val) {
     ConstNumber constNumber = getConstNumberIfConstant(val);
     if (constNumber != null) {

@@ -325,6 +325,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
     return descriptor.getFirstByteAsChar() == 'D';
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isNullValueType() {
     boolean isNullValueType = descriptor.getFirstByteAsChar() == 'N';
     assert !isNullValueType || this == DexItemFactory.nullValueType;

@@ -75,6 +75,7 @@ public class InstanceOf extends Instruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isInstanceOf() && other.asInstanceOf().type == type;
   }

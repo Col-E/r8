@@ -61,6 +61,7 @@ public class UninitializedNew extends UninitializedFrameType {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean equals(Object o) {
     if (this == o) {
       return true;

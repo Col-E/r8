@@ -222,7 +222,7 @@ public class InliningConstraints {
     return forResolvedMember(resolutionResult.getInitialResolutionHolder(), context, target);
   }
 
-  @SuppressWarnings("ConstantConditions")
+  @SuppressWarnings({"ConstantConditions", "ReferenceEquality"})
   private DexEncodedMethod singleTargetWhileVerticalClassMerging(
       MethodResolutionResult resolutionResult,
       ProgramMethod context,
@@ -381,6 +381,7 @@ public class InliningConstraints {
         resolutionResult.getInitialResolutionHolder(), context, resolutionResult.getSingleTarget());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private ConstraintWithTarget forResolvedMember(
       DexClass initialResolutionHolder,
       ProgramMethod context,

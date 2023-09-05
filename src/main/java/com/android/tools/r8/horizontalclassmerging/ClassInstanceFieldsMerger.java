@@ -229,6 +229,7 @@ public interface ClassInstanceFieldsMerger {
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean needsRelaxedType(
         DexEncodedField targetField, Iterable<DexEncodedField> sourceFields) {
       return Iterables.any(

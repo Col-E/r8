@@ -161,12 +161,14 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
         && matchesMethodOfThrowable(instruction.asInvoke().getMethod(), suppressed);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean matchesMethodOfThrowable(DexMethod invoked, DexMethod expected) {
     return invoked.name == expected.name
         && invoked.proto == expected.proto
         && isSubtypeOfThrowable(invoked.holder);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isSubtypeOfThrowable(DexType type) {
     while (type != null && type != dexItemFactory.objectType) {
       if (type == dexItemFactory.throwableType) {
@@ -189,6 +191,7 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
         && isTwrCloseResourceMethod(instruction.asInvoke().getMethod());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isTwrCloseResourceMethod(DexMethod method) {
     return method.name == dexItemFactory.twrCloseResourceMethodName
         && method.proto == dexItemFactory.twrCloseResourceMethodProto;

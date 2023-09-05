@@ -84,6 +84,7 @@ public class CheckCastAndInstanceOfMethodSpecialization {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void processCandidateForInstanceOfOptimization(
       ProgramMethod method, MethodProcessor methodProcessor) {
     DexEncodedMethod definition = method.getDefinition();

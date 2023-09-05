@@ -199,6 +199,7 @@ public final class TrivialFieldAccessReprocessor {
         });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static FieldClassification classifyField(
       DexEncodedField field, AppView<AppInfoWithLiveness> appView) {
     FieldAccessInfo fieldAccessInfo =

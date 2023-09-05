@@ -19,6 +19,7 @@ public class VerifyTypesHelper {
     return new VerifyTypesHelper(appView);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isAssignable(TypeElement one, TypeElement other) {
     if (one.isPrimitiveType() != other.isPrimitiveType()) {
       return false;

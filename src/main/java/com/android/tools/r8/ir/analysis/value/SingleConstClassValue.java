@@ -126,6 +126,7 @@ public class SingleConstClassValue extends SingleConstValue {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public SingleValue rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
     assert lens.lookupType(type, codeLens) == type;

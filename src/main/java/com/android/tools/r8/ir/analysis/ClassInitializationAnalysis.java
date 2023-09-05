@@ -487,6 +487,7 @@ public class ClassInitializationAnalysis {
       return field != null && isTypeInitializedBy(instruction, type, field, appView, mode);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private static boolean isTypeInitializedBy(
         Instruction instruction,
         DexType typeToBeInitialized,

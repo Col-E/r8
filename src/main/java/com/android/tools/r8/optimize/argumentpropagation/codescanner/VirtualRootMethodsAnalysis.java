@@ -49,6 +49,7 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
       this.root = root;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     void addOverride(ProgramMethod override) {
       assert override != root;
       assert override.getMethodSignature().equals(root.getMethodSignature());

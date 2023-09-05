@@ -99,6 +99,7 @@ public class LineNumberOptimizer {
         || newMapVersion.isUnknown();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static ClassNameMapper run(
       AppView<?> appView,
       AndroidApp inputApp,

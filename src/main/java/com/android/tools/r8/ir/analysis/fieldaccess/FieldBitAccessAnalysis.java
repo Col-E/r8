@@ -62,6 +62,7 @@ public class FieldBitAccessAnalysis {
     return bitsRead;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isOnlyUsedToUpdateFieldValue(Instruction user, DexEncodedField encodedField) {
     if (user.isLogicalBinop()) {
       LogicalBinop binop = user.asLogicalBinop();

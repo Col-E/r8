@@ -130,6 +130,7 @@ public class HumanToMachineEmulatedInterfaceConverter {
     return extraDispatchCases;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean implementsInterface(DexClass clazz, DexType interfaceType) {
     WorkList<DexType> workList =
         WorkList.newIdentityWorkList(Arrays.asList(clazz.interfaces.values));

@@ -72,6 +72,7 @@ public class JumboStringRewriter {
       this.endsAfterLastInstruction = endsAfterLastInstruction;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     void replaceTarget(DexInstruction target, DexInstruction newTarget) {
       if (start == target) {
         start = newTarget;
@@ -474,6 +475,7 @@ public class JumboStringRewriter {
     return offsetDelta;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void replaceTarget(DexInstruction target, DexInstruction newTarget) {
     for (List<DexInstruction> instructions : instructionTargets.values()) {
       instructions.replaceAll((i) -> i == target ? newTarget : i);

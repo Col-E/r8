@@ -115,6 +115,7 @@ public class AccessControl {
     return OptionalBool.FALSE;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean isNestMate(DexClass clazz, DexClass context) {
     if (clazz == context) {
       return true;

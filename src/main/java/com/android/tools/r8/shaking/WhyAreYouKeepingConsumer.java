@@ -58,6 +58,7 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
     super(subConsumer);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public ClassGraphNode getClassNode(ClassReference clazz) {
     for (GraphNode node : getTargets()) {
       if (node instanceof ClassGraphNode && ((ClassGraphNode) node).getReference() == clazz) {
@@ -67,6 +68,7 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
     return null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public MethodGraphNode getMethodNode(MethodReference method) {
     for (GraphNode node : getTargets()) {
       if (node instanceof MethodGraphNode && ((MethodGraphNode) node).getReference() == method) {
@@ -76,6 +78,7 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
     return null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public FieldGraphNode getFieldNode(FieldReference field) {
     for (GraphNode node : getTargets()) {
       if (node instanceof FieldGraphNode && ((FieldGraphNode) node).getReference() == field) {
@@ -193,6 +196,7 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
     addNodeMessage(node, formatter);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private String getNodeString(GraphNode node) {
     if (node instanceof ClassGraphNode) {
       return DescriptorUtils.descriptorToJavaType(

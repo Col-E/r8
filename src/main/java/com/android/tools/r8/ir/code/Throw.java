@@ -84,6 +84,7 @@ public class Throw extends JumpInstruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void buildCf(CfBuilder builder) {
     builder.add(new CfThrow(), this);
   }
@@ -94,6 +95,7 @@ public class Throw extends JumpInstruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, ProgramMethod context) {
     if (exception() == value) {
       return true;

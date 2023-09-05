@@ -63,6 +63,7 @@ public class SyntheticMethodBuilder {
     return setName(factory.createString(name));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public SyntheticMethodBuilder setName(DexString name) {
     assert name != null;
     assert this.name == null || this.name == name;

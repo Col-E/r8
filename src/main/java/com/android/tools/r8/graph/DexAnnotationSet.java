@@ -152,6 +152,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem
     sorted = hashCode();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexAnnotation getFirstMatching(DexType type) {
     for (DexAnnotation annotation : annotations) {
       if (annotation.annotation.type == type) {
@@ -161,6 +162,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem
     return null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexAnnotationSet getWithout(DexType annotationType) {
     int index = 0;
     for (DexAnnotation annotation : annotations) {
@@ -182,6 +184,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem
     return hashCode == UNSORTED ? 1 : hashCode;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexAnnotationSet getWithAddedOrReplaced(DexAnnotation newAnnotation) {
 
     // Check existing annotation for replacement.
@@ -218,6 +221,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem
     return rewritten != annotations ? create(rewritten) : this;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexAnnotationSet methodParametersWithFakeThisArguments(DexItemFactory factory) {
     DexAnnotation[] newAnnotations = null;
     for (int i = 0; i < annotations.length; i++) {

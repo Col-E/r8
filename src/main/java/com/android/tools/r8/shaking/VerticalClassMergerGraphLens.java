@@ -216,6 +216,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
       this.dexItemFactory = dexItemFactory;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     static Builder createBuilderForFixup(Builder builder, VerticallyMergedClasses mergedClasses) {
       Builder newBuilder = new Builder(builder.dexItemFactory);
       builder.fieldMap.forEach(
@@ -292,6 +293,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
           prototypeChanges);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private DexField getFieldSignatureAfterClassMerging(
         DexField field, VerticallyMergedClasses mergedClasses) {
       assert !field.holder.isArrayType();
@@ -308,6 +310,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
       return dexItemFactory.createField(newHolder, newType, field.name);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private DexMethod getMethodSignatureAfterClassMerging(
         DexMethod signature, VerticallyMergedClasses mergedClasses) {
       assert !signature.holder.isArrayType();
@@ -326,6 +329,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
       return dexItemFactory.createMethod(newHolder, newProto, signature.name);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private DexType getTypeAfterClassMerging(DexType type, VerticallyMergedClasses mergedClasses) {
       if (type.isArrayType()) {
         DexType baseType = type.toBaseType(dexItemFactory);
@@ -405,6 +409,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
       virtualToDirectMethodMap.put(from, to);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public void merge(VerticalClassMergerGraphLens.Builder builder) {
       fieldMap.putAll(builder.fieldMap);
       methodMap.putAll(builder.methodMap);

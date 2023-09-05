@@ -383,6 +383,7 @@ public class DesugaredLibraryConversionCfProvider {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private CfCode computeParameterConversionCfCode(
       DexType holder, DexMethod invokedMethod, DexMethod[] parameterConversions) {
     ArrayList<CfInstruction> cfInstructions = new ArrayList<>();
@@ -581,6 +582,7 @@ public class DesugaredLibraryConversionCfProvider {
         method.getHolderType());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod convertedMethod(
       DexMethod method,
       boolean parameterDestIsVivified,
@@ -619,6 +621,7 @@ public class DesugaredLibraryConversionCfProvider {
     return convertedAPI;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static DexType invalidType(
       DexMethod invokedMethod,
       DexMethod returnConversion,

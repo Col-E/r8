@@ -113,6 +113,7 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
     return CodeRewriterResult.HAS_CHANGED;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean canUseNewArrayFilled(NewArrayFilled newArrayFilled) {
     if (!options.isGeneratingDex()) {
       return false;
@@ -167,6 +168,7 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean canStoreElementInNewArrayFilled(TypeElement valueType, DexType elementType) {
     if (elementType == dexItemFactory.objectType) {
       return true;

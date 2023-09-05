@@ -299,6 +299,7 @@ public class ProguardMapMinifier {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void checkAndAddMappedNames(DexType type, DexString mappedName, Position position) {
     if (mappedNames.inverse().containsKey(mappedName)
         && mappedNames.inverse().get(mappedName) != type) {
@@ -333,6 +334,7 @@ public class ProguardMapMinifier {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void computeDefaultInterfaceMethodMappingsForType(
       DexType type,
       ClassNamingForMapApplier classNaming,
@@ -439,6 +441,7 @@ public class ProguardMapMinifier {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public DexString next(
         DexEncodedMethod method,
         InternalNamingState internalState,
@@ -539,6 +542,7 @@ public class ProguardMapMinifier {
     private final Set<DexReference> unmappedReferences;
     private final Map<DexString, DexType> classRenamingsMappingToDifferentName;
 
+    @SuppressWarnings("ReferenceEquality")
     ProguardMapMinifiedRenaming(
         AppView<? extends AppInfoWithClassHierarchy> appView,
         ClassRenaming classRenaming,

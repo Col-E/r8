@@ -182,6 +182,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean shouldReserveAsIfPinned(ProgramMethod method) {
     DexProto oldProto = method.getProto();
     DexProto newProto = fixupProto(oldProto);
@@ -304,6 +305,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
         executorService);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void fixupSuperEnumClassInitializer(
       IRConverter converter, DexProgramClass unboxedEnum, DexEncodedField ordinalField) {
     if (!unboxedEnum.hasClassInitializer()) {
@@ -579,6 +581,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
                         }));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void processMethod(
       ProgramMethod method,
       DexMethodSignatureSet nonPrivateVirtualMethods,
@@ -640,6 +643,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     return localUtilityMethods.values();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void processVirtualMethod(
       DexMethodSignature nonPrivateVirtualMethod,
       DexProgramClass unboxedEnum,
@@ -885,6 +889,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
             && !field.getDefinition().getOptimizationInfo().isDead());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexEncodedMethod fixupEncodedMethod(
       DexEncodedMethod method, MethodNamingUtility utility) {
     DexProto oldProto = method.getProto();
@@ -921,6 +926,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
                     method.isNonPrivateVirtualMethod(), OptionalBool.FALSE));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexEncodedField fixupEncodedField(DexEncodedField encodedField) {
     DexField field = encodedField.getReference();
     DexType newType = fixupType(field.type);
@@ -945,6 +951,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     return factory.createProto(returnType, arguments);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexType fixupType(DexType type) {
     if (type.isArrayType()) {
       DexType base = type.toBaseType(factory);

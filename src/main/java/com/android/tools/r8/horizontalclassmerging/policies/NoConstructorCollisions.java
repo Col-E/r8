@@ -125,6 +125,7 @@ public class NoConstructorCollisions extends MultiClassPolicyWithPreprocessing<S
         method.getName());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexType rewriteType(DexType type, Map<DexType, MergeGroup> groups) {
     if (type.isArrayType()) {
       DexType baseType = type.toBaseType(dexItemFactory);

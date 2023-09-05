@@ -273,6 +273,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   void replaceMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
     // The code assumes that when replacement.apply(method) is called, the map is up-to-date with
     // the previously replaced methods. We therefore cannot postpone the map updates to the end of
@@ -369,6 +370,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
     assert verifyVirtualizedMethods(privateInstanceMethods);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean verifyVirtualizedMethods(Set<DexEncodedMethod> methods) {
     for (DexEncodedMethod method : methods) {
       assert belongsToVirtualPool(method);

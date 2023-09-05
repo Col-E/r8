@@ -61,6 +61,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
     return method.getReference();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexMethod ensureRetargetMethod(
       DexMethod retarget, DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
     DexClass holderClass = appView.definitionFor(retarget.getHolderType());

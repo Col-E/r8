@@ -53,6 +53,7 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis
             .collect(Collectors.toList());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isUsingJavaAssertionsDisabledField(DexField field) {
     // This does not check the holder, as for inner classes the field is read from the outer class
     // and not the class itself.
@@ -60,6 +61,7 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis
         && field.getType() == dexItemFactory.booleanType;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isUsingKotlinAssertionsEnabledField(DexField field) {
     return field == dexItemFactory.kotlin.assertions.enabledField;
   }
@@ -158,6 +160,7 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis
   private static List<Class<?>> jacocoInstructionSequence =
       ImmutableList.of(CfLoad.class, CfConstNumber.class, CfConstNumber.class, CfArrayStore.class);
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean hasJavacClinitAssertionCode(CfCode code) {
     for (int i = 0; i < code.getInstructions().size(); i++) {
       CfInstruction instruction = code.getInstructions().get(i);
@@ -186,6 +189,7 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean hasKotlincClinitAssertionCode(ProgramMethod method) {
     if (method.getHolderType() == dexItemFactory.kotlin.assertions.type) {
       CfCode code = method.getDefinition().getCode().asCfCode();

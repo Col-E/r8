@@ -84,6 +84,7 @@ public class ProtoNormalizer {
       }
 
       @Override
+      @SuppressWarnings("ReferenceEquality")
       protected TraversalContinuation<Void, LocalReservationState> joiner(
           DFSNodeWithState<DexClass, LocalReservationState> node,
           List<DFSNodeWithState<DexClass, LocalReservationState>> childStates) {

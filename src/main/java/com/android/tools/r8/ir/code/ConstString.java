@@ -78,6 +78,7 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isConstString() && other.asConstString().value == value;
   }

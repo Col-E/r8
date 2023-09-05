@@ -198,6 +198,7 @@ public class RewrittenPrototypeDescription {
     return dexItemFactory.createProto(newReturnType, newParameters);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexType[] rewriteParameters(ProgramMethod method, DexItemFactory dexItemFactory) {
     DexType[] params = method.getParameters().values;
     if (isEmpty()) {
@@ -226,6 +227,7 @@ public class RewrittenPrototypeDescription {
     return newParams;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public RewrittenPrototypeDescription rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
     ArgumentInfoCollection newArgumentInfoCollection =

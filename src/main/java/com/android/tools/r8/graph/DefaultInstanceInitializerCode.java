@@ -87,6 +87,7 @@ public class DefaultInstanceInitializerCode extends Code
     method.setCode(get().toCfCode(method, appView.dexItemFactory(), superType), appView);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean hasDefaultInstanceInitializerCode(
       ProgramMethod method, AppView<?> appView) {
     if (!method.getDefinition().isInstanceInitializer()) {

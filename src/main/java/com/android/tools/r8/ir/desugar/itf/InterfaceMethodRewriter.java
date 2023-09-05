@@ -541,6 +541,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         .build();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DesugarDescription computeInvokeDirect(
       DexClass clazz, CfInvoke invoke, ProgramMethod context) {
     DexMethod invokedMethod = invoke.getMethod();
@@ -692,6 +693,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DesugarDescription rewriteInvokeSuper(CfInvoke invoke, ProgramMethod context) {
     DexMethod invokedMethod = invoke.getMethod();
     DexClass clazz = appView.definitionFor(invokedMethod.holder, context);

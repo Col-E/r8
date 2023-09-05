@@ -51,6 +51,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
     super(appView, holder);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void addCfInstructionsForAbstractValue(
       List<CfInstruction> instructions, AbstractValue value, DexType returnType) {
     // TODO(b/155368026): Support fields and const class fields.

@@ -303,6 +303,7 @@ public class VerticalClassMerger {
 
   // Returns true if [clazz] is a merge candidate. Note that the result of the checks in this
   // method do not change in response to any class merges.
+  @SuppressWarnings("ReferenceEquality")
   private boolean isMergeCandidate(
       DexProgramClass sourceClass, DexProgramClass targetClass, Set<DexType> pinnedTypes) {
     assert targetClass != null;
@@ -391,6 +392,7 @@ public class VerticalClassMerger {
   // Returns true if [clazz] is a merge candidate. Note that the result of the checks in this
   // method may change in response to class merges. Therefore, this method should always be called
   // before merging [clazz] into its subtype.
+  @SuppressWarnings("ReferenceEquality")
   private boolean isStillMergeCandidate(DexProgramClass sourceClass, DexProgramClass targetClass) {
     assert isMergeCandidate(sourceClass, targetClass, pinnedTypes);
     assert !mergedClasses.containsValue(sourceClass.getType());
@@ -517,6 +519,7 @@ public class VerticalClassMerger {
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public Collection<DexMethod> get() {
       Map<DexString, DexProto> overloadingInfo = new HashMap<>();
 
@@ -658,6 +661,7 @@ public class VerticalClassMerger {
     return lens;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean verifyGraphLens(VerticalClassMergerGraphLens graphLens) {
     // Note that the method assertReferencesNotModified() relies on getRenamedFieldSignature() and
     // getRenamedMethodSignature() instead of lookupField() and lookupMethod(). This is important
@@ -719,6 +723,7 @@ public class VerticalClassMerger {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean methodResolutionMayChange(DexProgramClass source, DexProgramClass target) {
     for (DexEncodedMethod virtualSourceMethod : source.virtualMethods()) {
       DexEncodedMethod directTargetMethod =
@@ -836,6 +841,7 @@ public class VerticalClassMerger {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean fieldResolutionMayChange(DexClass source, DexClass target) {
     if (source.type == target.superType) {
       // If there is a "iget Target.f" or "iput Target.f" instruction in target, and the class
@@ -1468,6 +1474,7 @@ public class VerticalClassMerger {
       return bridge;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     // Returns the method that shadows the given method, or null if method is not shadowed.
     private DexEncodedMethod findMethodInTarget(DexEncodedMethod method) {
       MethodResolutionResult resolutionResult =
@@ -1808,6 +1815,7 @@ public class VerticalClassMerger {
 
     }
 
+    @SuppressWarnings("ReferenceEquality")
     // Given a method signature and a type, this method computes a bit vector that denotes the
     // positions at which the given type is used in the method signature.
     private int computePositionsFor(
@@ -1848,6 +1856,7 @@ public class VerticalClassMerger {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private AbortReason disallowInlining(ProgramMethod method, DexProgramClass context) {
     if (appView.options().inlinerOptions().enableInlining) {
       Code code = method.getDefinition().getCode();
@@ -1899,6 +1908,7 @@ public class VerticalClassMerger {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public final DexType getNextClassType(DexType type) {
       return type == source ? target.type : mergedClasses.getOrDefault(type, type);
     }
@@ -2169,6 +2179,7 @@ public class VerticalClassMerger {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public void registerInvokeSpecial(DexMethod method) {
       ProgramMethod context = getContext();
       if (method.getHolderType() != context.getHolderType()) {

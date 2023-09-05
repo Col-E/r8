@@ -45,6 +45,7 @@ public abstract class OpenClosedInterfacesCollection {
         appView, () -> value.getDynamicType(appView), value.getType());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public final boolean isDefinitelyInstanceOfStaticType(
       AppView<?> appView, Supplier<DynamicType> dynamicTypeSupplier, TypeElement staticType) {
     if (!staticType.isClassType()) {

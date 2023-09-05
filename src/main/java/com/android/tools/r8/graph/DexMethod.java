@@ -244,6 +244,7 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean match(DexMethod method) {
     return method == this || match(method.getProto(), method.getName());
   }
@@ -252,6 +253,7 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     return match(method.getProto(), method.getName());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean match(DexProto methodProto, DexString methodName) {
     return proto == methodProto && name == methodName;
   }
@@ -305,6 +307,7 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     return builder.append(")").toString();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isLambdaDeserializeMethod(DexItemFactory dexItemFactory) {
     return name == dexItemFactory.deserializeLambdaMethodName
         && proto == dexItemFactory.deserializeLambdaMethodProto;

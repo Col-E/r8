@@ -28,6 +28,7 @@ public class RecordRewriterHelper {
     return isInvokeDynamicOnRecord(invokeDynamic.getCallSite(), appView, context);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isInvokeDynamicOnRecord(
       DexCallSite callSite, AppView<?> appView, ProgramMethod context) {
     DexItemFactory factory = appView.dexItemFactory();

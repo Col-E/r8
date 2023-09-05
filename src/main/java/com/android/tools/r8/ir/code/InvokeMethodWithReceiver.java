@@ -94,6 +94,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
    * <p>For desugaring we use invoke-direct instead. We need to do this as the Android Runtime will
    * not allow invoke-virtual of a private method.
    */
+  @SuppressWarnings("ReferenceEquality")
   protected boolean isPrivateMethodInvokedOnSelf(DexBuilder builder) {
     DexMethod method = getInvokedMethod();
     if (method.getHolderType()

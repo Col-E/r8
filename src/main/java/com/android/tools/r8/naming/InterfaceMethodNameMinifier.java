@@ -260,6 +260,7 @@ class InterfaceMethodNameMinifier {
       callSites.add(callSite);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     DexString getReservedName() {
       if (methodStates.isEmpty()) {
         return null;
@@ -410,6 +411,7 @@ class InterfaceMethodNameMinifier {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void assignNamesToInterfaceMethods(Timing timing, Iterable<DexClass> interfaces) {
     timing.begin("Interface minification");
     // Reserve all the names that are required for interfaces.

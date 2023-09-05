@@ -122,6 +122,7 @@ public class Inliner {
             : null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private ConstraintWithTarget instructionAllowedForInlining(
       Instruction instruction, InliningConstraints inliningConstraints, ProgramMethod context) {
     ConstraintWithTarget result = instruction.inliningConstraint(inliningConstraints, context);
@@ -131,6 +132,7 @@ public class Inliner {
     return result;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public ConstraintWithTarget computeInliningConstraint(IRCode code) {
     if (containsPotentialCatchHandlerVerificationError(code)) {
       return ConstraintWithTarget.NEVER;
@@ -276,6 +278,7 @@ public class Inliner {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean equals(Object other) {
       if (!(other instanceof ConstraintWithTarget)) {
         return false;
@@ -285,6 +288,7 @@ public class Inliner {
           && this.targetHolder == o.targetHolder;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public static ConstraintWithTarget deriveConstraint(
         ProgramMethod context, DexType targetHolder, AccessFlags<?> flags, AppView<?> appView) {
       if (flags.isPublic()) {
@@ -330,6 +334,7 @@ public class Inliner {
           : deriveConstraint(context, clazz, definition.accessFlags, appView);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public static ConstraintWithTarget meet(
         ConstraintWithTarget one, ConstraintWithTarget other, AppView<?> appView) {
       if (one.equals(other)) {

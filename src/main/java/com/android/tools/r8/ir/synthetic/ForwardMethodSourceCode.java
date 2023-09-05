@@ -142,6 +142,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean checkSignatures() {
     List<DexType> sourceParams = new ArrayList<>();
     if (receiver != null) {
@@ -174,6 +175,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   protected void prepareInstructions() {
     // Prepare call arguments.
     List<ValueType> argValueTypes = new ArrayList<>();

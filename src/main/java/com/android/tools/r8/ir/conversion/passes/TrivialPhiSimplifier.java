@@ -30,6 +30,7 @@ public class TrivialPhiSimplifier {
     assert !unusedArgument.outValue().hasPhiUsers();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static void ensureDirectStringNewToInit(AppView<?> appView, IRCode code) {
     boolean changed = false;
     DexItemFactory dexItemFactory = appView.dexItemFactory();

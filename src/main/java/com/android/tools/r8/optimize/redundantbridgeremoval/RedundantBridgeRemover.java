@@ -193,6 +193,7 @@ public class RedundantBridgeRemover {
     return traversal.getRemovedBridges();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexClassAndMethod getTargetForRedundantAbstractBridge(ProgramMethod method) {
     if (!method.getAccessFlags().isAbstract() || method.getDefinition().getCode() != null) {
       return null;

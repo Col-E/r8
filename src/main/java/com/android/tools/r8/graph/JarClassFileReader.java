@@ -590,6 +590,7 @@ public class JarClassFileReader<T extends DexClass> {
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean hasReachabilitySensitiveField() {
       DexType reachabilitySensitive = application.getFactory().annotationReachabilitySensitive;
       for (DexEncodedField field : Iterables.concat(instanceFields, staticFields)) {
@@ -721,6 +722,7 @@ public class JarClassFileReader<T extends DexClass> {
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private DexValue getStaticValue(Object value, DexType type) {
       if (value == null) {
         return null;
@@ -986,6 +988,7 @@ public class JarClassFileReader<T extends DexClass> {
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean isReachabilitySensitive() {
       DexType reachabilitySensitive =
           parent.application.getFactory().annotationReachabilitySensitive;

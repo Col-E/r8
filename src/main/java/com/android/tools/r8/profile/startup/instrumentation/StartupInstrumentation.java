@@ -133,6 +133,7 @@ public class StartupInstrumentation {
         InstrumentationServerFactory.createClass(dexItemFactory), instrumentationServerImplClass);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void instrumentClass(DexProgramClass clazz) {
     // Do not instrument the instrumentation server if it is already in the app.
     if (clazz.getType() == references.instrumentationServerType

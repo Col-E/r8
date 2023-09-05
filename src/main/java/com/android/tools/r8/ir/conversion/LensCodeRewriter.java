@@ -250,6 +250,7 @@ public class LensCodeRewriter {
         unusedArguments);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void rewritePartialDefault(
       IRCode code,
       ProgramMethod method,
@@ -1275,6 +1276,7 @@ public class LensCodeRewriter {
     return TypeElement.getNull();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // If the given invoke is on the form "invoke-direct A.<init>, v0, ..." and the definition of
   // value v0 is "new-instance v0, B", where B is a subtype of A (see the Art800 and B116282409
   // tests), then fail with a compilation error if A has previously been merged into B.
@@ -1368,6 +1370,7 @@ public class LensCodeRewriter {
       this.affectedPhis = affectedPhis;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     Instruction replaceInstructionIfTypeChanged(
         DexType type,
         BiFunction<DexType, Value, Instruction> constructor,

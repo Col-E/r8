@@ -54,6 +54,7 @@ import java.util.function.Predicate;
 
 public class Value implements Comparable<Value> {
 
+  @SuppressWarnings("ReferenceEquality")
   public void constrainType(
       ValueTypeConstraint constraint, DexMethod method, Origin origin, Reporter reporter) {
     TypeElement constrainedType = constrainedType(constraint);

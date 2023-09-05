@@ -284,6 +284,7 @@ public class TreePruner {
                     && !isLive.test(nestMemberAttr.getNestMember()));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void claimNestOwnership(
       DexClass newHost, Predicate<DexType> isLive, Function<DexType, DexClass> definition) {
     DexClass previousHost = definition.apply(newHost.getNestHost());

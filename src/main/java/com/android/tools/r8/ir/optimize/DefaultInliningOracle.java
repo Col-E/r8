@@ -472,6 +472,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean canInlineInstanceInitializer(
       IRCode code,
       InvokeDirect invoke,
@@ -505,6 +506,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return true;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     // Only allow inlining a constructor into a non-constructor if:
     // (1) the first use of the uninitialized object is the receiver of an invoke of <init>(),
     // (2) the constructor does not initialize any final fields, as such is only allowed from within

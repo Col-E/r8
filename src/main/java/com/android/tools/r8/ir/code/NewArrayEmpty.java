@@ -120,6 +120,7 @@ public class NewArrayEmpty extends Instruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isNewArrayEmpty() && other.asNewArrayEmpty().type == type;
   }

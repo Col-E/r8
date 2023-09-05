@@ -378,6 +378,7 @@ public class ClassNameMapper implements ProguardMap {
     return new ClassNameMapper(builder.build(), mapVersions, originalSourceFiles, preamble);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean verifyIsSorted() {
     Iterator<Entry<String, ClassNamingForNameMapper>> iterator =
         getClassNameMappings().entrySet().iterator();

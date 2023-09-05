@@ -75,6 +75,7 @@ public class AndroidApiReferenceLevelCache {
     return lookup(reference, unknownValue, true);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private ComputedApiLevel lookup(
       DexReference reference, ComputedApiLevel unknownValue, boolean ignoringDesugaredLibrary) {
     DexType contextType = reference.getContextType();

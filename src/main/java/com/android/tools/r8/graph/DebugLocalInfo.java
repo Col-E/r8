@@ -68,6 +68,7 @@ public class DebugLocalInfo implements StructuralItem<DebugLocalInfo> {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static Int2ReferenceSortedMap<DebugLocalInfo> endingLocals(
       Int2ReferenceMap<DebugLocalInfo> previousLocals,
       Int2ReferenceMap<DebugLocalInfo> nextLocals) {
@@ -82,6 +83,7 @@ public class DebugLocalInfo implements StructuralItem<DebugLocalInfo> {
     return ending;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static Int2ReferenceSortedMap<DebugLocalInfo> startingLocals(
       Int2ReferenceMap<DebugLocalInfo> previousLocals,
       Int2ReferenceMap<DebugLocalInfo> nextLocals) {
@@ -97,6 +99,7 @@ public class DebugLocalInfo implements StructuralItem<DebugLocalInfo> {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean equals(Object other) {
     if (this == other) {
       return true;

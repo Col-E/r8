@@ -23,6 +23,7 @@ public class RemovedReceiverInfo extends RemovedArgumentInfo {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public RemovedReceiverInfo rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
     SingleValue rewrittenSingleValue =
@@ -35,6 +36,7 @@ public class RemovedReceiverInfo extends RemovedArgumentInfo {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean equals(Object obj) {
     if (obj == null || getClass() != obj.getClass()) {
       return false;

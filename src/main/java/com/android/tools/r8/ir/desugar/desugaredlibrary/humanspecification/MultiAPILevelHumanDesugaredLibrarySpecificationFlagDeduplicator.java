@@ -33,6 +33,7 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void deduplicateFlags(
       MultiAPILevelHumanDesugaredLibrarySpecification specification,
       Reporter reporter,
@@ -148,6 +149,7 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
             });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void deduplicateAmendLibraryMemberFlags(
       HumanRewritingFlags flags,
       HumanRewritingFlags otherFlags,
@@ -211,6 +213,7 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
             });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static <T extends DexItem> void deduplicateFlags(
       Map<T, DexType> flags,
       Map<T, DexType> otherFlags,

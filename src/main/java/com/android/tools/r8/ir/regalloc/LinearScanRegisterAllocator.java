@@ -248,7 +248,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   // TODO(b/270398965): Replace LinkedList.
-  @SuppressWarnings("JdkObsolete")
+  @SuppressWarnings({"JdkObsolete", "ReferenceEquality"})
   public static void computeDebugInfo(
       IRCode code,
       ImmutableList<BasicBlock> blocks,
@@ -462,6 +462,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void setLocalsAtEntry(
       BasicBlock block,
       InstructionListIterator instructionIterator,
@@ -512,6 +513,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static DebugLocalsChange createLocalsChange(
       Int2ReferenceMap<DebugLocalInfo> ending,
       Int2ReferenceMap<DebugLocalInfo> starting,
@@ -1071,6 +1073,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void setHintForDestRegOfCheckCast(LiveIntervals unhandledInterval) {
     if (unhandledInterval.getHint() == null &&
         unhandledInterval.getValue().definition instanceof CheckCast) {

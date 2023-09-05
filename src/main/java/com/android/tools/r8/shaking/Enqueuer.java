@@ -1101,6 +1101,7 @@ public class Enqueuer {
     return info;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean registerFieldAccess(
       DexField field, ProgramMethod context, boolean isRead, boolean isReflective) {
     FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
@@ -1234,6 +1235,7 @@ public class Enqueuer {
     internalTraceConstClassOrCheckCast(type, currentMethod, true);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void traceConstClass(
       DexType type,
       ProgramMethod currentMethod,
@@ -1263,6 +1265,7 @@ public class Enqueuer {
    *
    * <p>Some common usages of const-class values are handled, such as calls to Class.get*Name().
    */
+  @SuppressWarnings("ReferenceEquality")
   private boolean isConstClassMaybeUsedAsLock(
       ProgramMethod currentMethod, ListIterator<? extends CfOrDexInstruction> iterator) {
     if (iterator == null) {
@@ -1475,6 +1478,7 @@ public class Enqueuer {
     traceInvokeStatic(invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void traceInvokeStatic(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
@@ -1524,6 +1528,7 @@ public class Enqueuer {
     traceInvokeVirtual(invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void traceInvokeVirtual(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
     if (invokedMethod == appView.dexItemFactory().classMethods.newInstance
@@ -1680,6 +1685,7 @@ public class Enqueuer {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void traceInstanceFieldRead(
       DexField fieldReference, ProgramMethod currentMethod, FieldAccessMetadata metadata) {
     if (!metadata.isDeferred() && !registerFieldRead(fieldReference, currentMethod)) {
@@ -1741,6 +1747,7 @@ public class Enqueuer {
     traceInstanceFieldWrite(field, currentMethod, FieldAccessMetadata.FROM_METHOD_HANDLE);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void traceInstanceFieldWrite(
       DexField fieldReference, ProgramMethod currentMethod, FieldAccessMetadata metadata) {
     if (!metadata.isDeferred() && !registerFieldWrite(fieldReference, currentMethod)) {
@@ -1804,6 +1811,7 @@ public class Enqueuer {
     traceStaticFieldRead(field, currentMethod, FieldAccessMetadata.FROM_METHOD_HANDLE);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void traceStaticFieldRead(
       DexField fieldReference, ProgramMethod currentMethod, FieldAccessMetadata metadata) {
     if (!metadata.isDeferred() && !registerFieldRead(fieldReference, currentMethod)) {
@@ -1884,6 +1892,7 @@ public class Enqueuer {
     traceStaticFieldWrite(field, currentMethod, FieldAccessMetadata.FROM_METHOD_HANDLE);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void traceStaticFieldWrite(
       DexField fieldReference, ProgramMethod currentMethod, FieldAccessMetadata metadata) {
     if (!metadata.isDeferred() && !registerFieldWrite(fieldReference, currentMethod)) {
@@ -2180,6 +2189,7 @@ public class Enqueuer {
     analyses.forEach(analysis -> analysis.processNewlyLiveClass(clazz, workList));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void processDeferredAnnotations(
       DexProgramClass clazz,
       Map<DexType, Map<DexAnnotation, List<ProgramDefinition>>> deferredAnnotations,
@@ -2945,6 +2955,7 @@ public class Enqueuer {
             });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void markLibraryAndClasspathMethodOverridesAsLive(
       InstantiatedObject instantiation, DexClass libraryClass) {
     assert libraryClass.isNotProgramClass();
@@ -4188,6 +4199,7 @@ public class Enqueuer {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private EnqueuerResult createEnqueuerResult(AppInfoWithClassHierarchy appInfo, Timing timing)
       throws ExecutionException {
     timing.begin("Remove dead protos");
@@ -4632,6 +4644,7 @@ public class Enqueuer {
   private final Map<DexMethod, InterfaceMethodSyntheticBridgeAction>
       syntheticInterfaceMethodBridges = new LinkedHashMap<>();
 
+  @SuppressWarnings("ReferenceEquality")
   private void identifySyntheticInterfaceMethodBridges(
       InterfaceMethodSyntheticBridgeAction action) {
     ProgramMethod methodToKeep = action.getMethodToKeep();
@@ -4938,6 +4951,7 @@ public class Enqueuer {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void handleReflectiveBehavior(ProgramMethod method, Instruction instruction) {
     if (!instruction.isInvokeMethod()) {
       return;
@@ -5082,6 +5096,7 @@ public class Enqueuer {
   }
 
   /** Handles reflective uses of {@link java.lang.reflect.Constructor#newInstance(Object...)}. */
+  @SuppressWarnings("ReferenceEquality")
   private void handleJavaLangReflectConstructorNewInstance(
       ProgramMethod method, InvokeMethod invoke) {
     if (!invoke.isInvokeVirtual()) {
@@ -5476,6 +5491,7 @@ public class Enqueuer {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean addField(DexField fieldReference) {
       recordFieldReference(fieldReference, context);
       DexProgramClass holder = getProgramHolderOrNull(fieldReference, context);
@@ -5517,6 +5533,7 @@ public class Enqueuer {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean addMethod(DexMethod method) {
       // Record the references in case they are not program types.
       recordMethodReference(method, context);
@@ -5592,6 +5609,7 @@ public class Enqueuer {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean equals(Object o) {
       if (o == null || getClass() != o.getClass()) {
         return false;

@@ -54,6 +54,7 @@ public enum InvokeType {
     return fromCfOpcode(opcode, invokedMethod, context, appView, appView.codeLens());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static InvokeType fromCfOpcode(
       int opcode,
       DexMethod invokedMethod,
@@ -77,6 +78,7 @@ public enum InvokeType {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static InvokeType fromInvokeSpecial(
       DexMethod invokedMethod, DexClassAndMethod context, AppView<?> appView, GraphLens codeLens) {
     if (invokedMethod.isInstanceInitializer(appView.dexItemFactory())) {

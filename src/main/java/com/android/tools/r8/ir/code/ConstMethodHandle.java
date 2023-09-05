@@ -78,6 +78,7 @@ public class ConstMethodHandle extends ConstInstruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isConstMethodHandle() && other.asConstMethodHandle().methodHandle == methodHandle;
   }

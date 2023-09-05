@@ -351,6 +351,7 @@ public class BridgeHoisting {
         });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private CfCode createCfCodeForVirtualBridge(CfCode code, DexMethod methodToInvoke) {
     List<CfInstruction> newInstructions = new ArrayList<>();
     boolean modified = false;
@@ -377,6 +378,7 @@ public class BridgeHoisting {
         : code;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexCode createDexCodeForVirtualBridge(DexCode code, DexMethod methodToInvoke) {
     DexInstruction[] newInstructions = new DexInstruction[code.instructions.length];
     boolean modified = false;

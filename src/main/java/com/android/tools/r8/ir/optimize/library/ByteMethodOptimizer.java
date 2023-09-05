@@ -33,6 +33,7 @@ public class ByteMethodOptimizer extends StatelessLibraryMethodModelCollection {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
@@ -46,6 +47,7 @@ public class ByteMethodOptimizer extends StatelessLibraryMethodModelCollection {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void optimizeByteValue(
       InstructionListIterator instructionIterator, InvokeMethod byteValueInvoke) {
     // Optimize Byte.valueOf(b).byteValue() into b.

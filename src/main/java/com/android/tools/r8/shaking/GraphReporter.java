@@ -179,6 +179,7 @@ public class GraphReporter {
     return KeepReasonWitness.INSTANCE;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public KeepReasonWitness reportCompatKeepDefaultInitializer(ProgramMethod defaultInitializer) {
     assert defaultInitializer.getHolder().getDefaultInitializer()
         == defaultInitializer.getDefinition();
@@ -265,6 +266,7 @@ public class GraphReporter {
     return KeepReasonWitness.INSTANCE;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public KeepReasonWitness reportReachableMethodAsLive(
       DexMethod overriddenMethod, ProgramMethod derivedMethod) {
     if (keptGraphConsumer != null

@@ -116,6 +116,7 @@ public class LazyLoadedDexApplication extends DexApplication {
     private final ImmutableMap<DexType, DexClasspathClass> classpathClasses;
     private final ImmutableMap<DexType, DexLibraryClass> libraryClasses;
 
+    @SuppressWarnings("ReferenceEquality")
     AllClasses(
         LibraryClassCollection libraryClassesLoader,
         ClasspathClassCollection classpathClassesLoader,

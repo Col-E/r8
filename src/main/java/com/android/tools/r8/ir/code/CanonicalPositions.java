@@ -90,6 +90,7 @@ public class CanonicalPositions {
             : caller.builderWithCopy().setCallerPosition(callerOfCaller).build());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // If we need to emit a synthetic position for exceptional monitor exits, we try to cook up a
   // position that is not actually a valid program position, so as not to incorrectly position the
   // user on an exit that is not the actual exit being taken. Our heuristic for this is that if the

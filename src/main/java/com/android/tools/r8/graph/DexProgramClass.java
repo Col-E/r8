@@ -191,6 +191,7 @@ public class DexProgramClass extends DexClass
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public DexProgramClass getContext() {
     return this;
   }
@@ -210,6 +211,7 @@ public class DexProgramClass extends DexClass
     return reachabilitySensitive.isTrue();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean internalComputeReachabilitySensitive(AppView<?> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     for (DexEncodedMember<?, ?> member : members()) {

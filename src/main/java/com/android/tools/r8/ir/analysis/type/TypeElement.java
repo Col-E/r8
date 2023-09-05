@@ -104,10 +104,12 @@ public abstract class TypeElement {
         appView, type -> graphLens.lookupType(type, codeLens), prunedTypes);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isNullable() {
     return nullability().isNullable();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public abstract Nullability nullability();
 
   /**
@@ -117,6 +119,7 @@ public abstract class TypeElement {
    * @param appView {@link DexDefinitionSupplier}.
    * @return {@link TypeElement}, a least upper bound of {@param this} and {@param other}.
    */
+  @SuppressWarnings("ReferenceEquality")
   public TypeElement join(TypeElement other, AppView<?> appView) {
     if (this == other || other.isBottom()) {
       return this;
@@ -183,6 +186,7 @@ public abstract class TypeElement {
    * @param other to check for equality with this
    * @return {@code true} if {@param this} is equal up to nullability with {@param other}.
    */
+  @SuppressWarnings("ReferenceEquality")
   public boolean lessThanOrEqualUpToNullability(TypeElement other, AppView<?> appView) {
     if (this == other) {
       return true;
@@ -217,6 +221,7 @@ public abstract class TypeElement {
    * @param other to check for equality with this
    * @return {@code true} if {@param this} is equal up to nullability with {@param other}.
    */
+  @SuppressWarnings("ReferenceEquality")
   public boolean equalUpToNullability(TypeElement other) {
     if (this == other) {
       return true;
@@ -287,6 +292,7 @@ public abstract class TypeElement {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public final boolean isClassType(DexType type) {
     assert type.isClassType();
     return isClassType() && asClassType().getClassType() == type;
@@ -391,6 +397,7 @@ public abstract class TypeElement {
     return nullability().isDefinitelyNotNull();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public int requiredRegisters() {
     assert !isBottom() && !isTop();
     return 1;
@@ -424,6 +431,7 @@ public abstract class TypeElement {
     return fromDexType(type, nullability, appView, false);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static TypeElement fromDexType(
       DexType type, Nullability nullability, AppView<?> appView, boolean asArrayElementType) {
     if (type == DexItemFactory.nullValueType) {

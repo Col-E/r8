@@ -123,11 +123,13 @@ public class SyntheticFinalization {
       return false;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     void move(DexType from, DexType to) {
       DexType old = typeMap.put(from, to);
       assert old == null || old == to;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     void move(DexField from, DexField to) {
       DexField old = fieldMap.put(from, to);
       assert old == null || old == to;

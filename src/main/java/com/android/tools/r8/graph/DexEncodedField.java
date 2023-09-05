@@ -258,6 +258,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     this.staticValue = null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexValue getStaticValue() {
     assert accessFlags.isStatic();
     return staticValue == null ? DexValue.defaultForType(getReference().type) : staticValue;
@@ -267,6 +268,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return toTypeSubstitutedField(appView, field, ConsumerUtils.emptyConsumer());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexEncodedField toTypeSubstitutedField(
       AppView<?> appView, DexField field, Consumer<Builder> consumer) {
     if (this.getReference() == field) {
@@ -281,6 +283,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
         .build();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean validateDexValue(DexItemFactory factory) {
     if (!accessFlags.isStatic() || staticValue == null) {
       return true;
@@ -331,6 +334,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return isInlinableByJavaC;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean getOrComputeIsInlinableByJavaC(DexItemFactory dexItemFactory) {
     if (getIsInlinableByJavaC()) {
       return true;

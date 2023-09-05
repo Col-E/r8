@@ -26,6 +26,7 @@ public class NoIllegalInlining extends SingleClassPolicy {
     this.appView = appView;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean disallowInlining(ProgramMethod method) {
     Code code = method.getDefinition().getCode();
 

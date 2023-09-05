@@ -137,6 +137,7 @@ public class LogMethodOptimizer extends StatelessLibraryMethodModelCollection {
    * @return The log level of the given invoke if it is a call to an android.util.Log method and the
    *     log level can be determined, otherwise returns -1.
    */
+  @SuppressWarnings("ReferenceEquality")
   private int getLogLevel(InvokeMethod invoke, DexClassAndMethod singleTarget) {
     DexMethod singleTargetReference = singleTarget.getReference();
     switch (singleTargetReference.getName().getFirstByteAsChar()) {

@@ -124,6 +124,7 @@ public abstract class EnqueuerEvent {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public EnqueuerEvent rewrittenWithLens(GraphLens lens) {
       DexType rewrittenType = lens.lookupType(getType());
       if (rewrittenType == getType()) {
@@ -136,6 +137,7 @@ public abstract class EnqueuerEvent {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean equals(Object obj) {
       if (obj == this) {
         return true;
@@ -174,6 +176,7 @@ public abstract class EnqueuerEvent {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public EnqueuerEvent rewrittenWithLens(GraphLens lens) {
       DexType rewrittenType = lens.lookupType(getType());
       if (rewrittenType == getType()) {
@@ -186,6 +189,7 @@ public abstract class EnqueuerEvent {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean equals(Object obj) {
       if (obj == this) {
         return true;

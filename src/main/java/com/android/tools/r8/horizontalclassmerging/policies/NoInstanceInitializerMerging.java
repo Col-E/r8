@@ -280,6 +280,7 @@ public class NoInstanceInitializerMerging
     return getRelaxedSignature(instanceInitializer.getReference());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod getRelaxedSignature(DexMethod instanceInitializerReference) {
     DexType objectType = appView.dexItemFactory().objectType;
     DexTypeList parameters = instanceInitializerReference.getParameters();

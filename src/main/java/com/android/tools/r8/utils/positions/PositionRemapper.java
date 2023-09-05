@@ -77,6 +77,7 @@ public interface PositionRemapper {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public Pair<Position, Position> createRemappedPosition(Position position) {
       assert position.getMethod() != null;
       if (previousMethod == position.getMethod()) {

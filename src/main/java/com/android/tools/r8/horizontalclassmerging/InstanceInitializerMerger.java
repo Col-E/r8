@@ -297,6 +297,7 @@ public class InstanceInitializerMerger {
   }
 
   /** Synthesize a new method which selects the constructor based on a parameter type. */
+  @SuppressWarnings("ReferenceEquality")
   void merge(
       ProfileCollectionAdditions profileCollectionAdditions,
       ClassMethodsBuilder classMethodsBuilder,

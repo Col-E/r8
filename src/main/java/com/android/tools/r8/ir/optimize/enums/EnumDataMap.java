@@ -60,6 +60,7 @@ public class EnumDataMap {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isAssignableTo(DexType subtype, DexType superType) {
     assert superType != null;
     assert subtype != null;
@@ -232,6 +233,7 @@ public class EnumDataMap {
       return null;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public SingleNumberValue subEnumTypeSingleValue(AbstractValueFactory factory, DexType type) {
       assert valuesTypes.values().stream().filter(t -> t == type).count() <= 1;
       for (Entry<DexType> entry : valuesTypes.int2ReferenceEntrySet()) {

@@ -192,6 +192,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public TraversalContinuation<?, ?> traverseInstantiatedSubtypes(
       DexType type,
       Function<DexProgramClass, TraversalContinuation<?, ?>> onClass,
@@ -446,6 +447,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void populateInstantiatedHierarchy(
         DexDefinitionSupplier definitions, DexType type, DexClass subtype) {
       if (type == definitions.dexItemFactory().objectType) {
@@ -575,11 +577,13 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
       return true;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean typeIsInHierarchy(DexDefinitionSupplier definitions, DexType type) {
       return type == definitions.dexItemFactory().objectType
           || instantiatedHierarchy.containsKey(type);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean isImmediateSuperType(DexType type, DexClass subtype) {
       for (DexType supertype : subtype.allImmediateSupertypes()) {
         if (type == supertype) {

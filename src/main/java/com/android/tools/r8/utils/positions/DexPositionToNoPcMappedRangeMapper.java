@@ -117,6 +117,7 @@ public class DexPositionToNoPcMappedRangeMapper {
 
     // A default event denotes a line table entry and must always be emitted. Remap its line.
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public void visit(Default defaultEvent) {
       super.visit(defaultEvent);
       assert getCurrentLine() >= 0;

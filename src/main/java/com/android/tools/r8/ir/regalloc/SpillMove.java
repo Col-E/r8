@@ -40,6 +40,7 @@ class SpillMove {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean equals(Object other) {
     if (other == this) {
       return true;

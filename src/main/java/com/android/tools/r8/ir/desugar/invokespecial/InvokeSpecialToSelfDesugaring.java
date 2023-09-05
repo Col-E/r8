@@ -31,6 +31,7 @@ public class InvokeSpecialToSelfDesugaring implements CfInstructionDesugaring {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (!instruction.isInvokeSpecial()) {
       return DesugarDescription.nothing();

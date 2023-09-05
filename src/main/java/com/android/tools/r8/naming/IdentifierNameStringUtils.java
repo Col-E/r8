@@ -49,6 +49,7 @@ public final class IdentifierNameStringUtils {
    * @param method to test
    * @return {@code true} if the given {@param method} is a reflection method in Java.
    */
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isReflectionMethod(DexItemFactory dexItemFactory, DexMethod method) {
     // So, why is this simply not like:
     //   return dexItemFactory.classMethods.isReflectiveClassLookup(method)
@@ -178,6 +179,7 @@ public final class IdentifierNameStringUtils {
         && isClassNameComparison(invoke.asInvokeVirtual(), dexItemFactory);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   static boolean isClassNameComparison(InvokeVirtual invoke, DexItemFactory dexItemFactory) {
     return invoke.getInvokedMethod() == dexItemFactory.stringMembers.equals
         && (isClassNameValue(invoke.getReceiver(), dexItemFactory)
@@ -202,6 +204,7 @@ public final class IdentifierNameStringUtils {
    * @return {@link DexReference} corresponding to the first constant string argument that matches a
    *     class or member name, or {@code null} if no such constant was found.
    */
+  @SuppressWarnings("ReferenceEquality")
   public static IdentifierNameStringLookupResult<?> identifyIdentifier(
       InvokeMethod invoke, DexDefinitionSupplier definitions, ProgramMethod context) {
     DexItemFactory dexItemFactory = definitions.dexItemFactory();
@@ -378,6 +381,7 @@ public final class IdentifierNameStringUtils {
     return itemBasedString;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static DexField inferFieldInHolder(DexClass holder, String name, DexType fieldType) {
     for (DexEncodedField encodedField : holder.fields()) {
       if (encodedField.getReference().name.toString().equals(name)
@@ -527,6 +531,7 @@ public final class IdentifierNameStringUtils {
    * @param classListValue the register that holds an array of {@link Class}'s
    * @return a list of {@link DexType} that corresponds to const class in {@param classListValue}
    */
+  @SuppressWarnings("ReferenceEquality")
   private static DexTypeList retrieveDexTypeListFromClassList(
       InvokeMethod invoke, Value classListValue, DexItemFactory factory) {
 

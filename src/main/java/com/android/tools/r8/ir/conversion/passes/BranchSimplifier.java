@@ -284,6 +284,7 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean simplifyNonIfZeroTest(IRCode code, BasicBlock block, If theIf) {
     Value lhs = theIf.lhs();
     Value lhsRoot = lhs.getAliasedValue();
@@ -532,6 +533,7 @@ public class BranchSimplifier extends CodeRewriterPass<AppInfo> {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isBlockSupportedBySimplifyKnownBooleanCondition(BasicBlock b) {
     if (b.isTrivialGoto()) {
       return true;

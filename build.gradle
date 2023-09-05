@@ -623,12 +623,19 @@ if (!project.hasProperty('without_error_prone') &&
         !org.gradle.internal.jvm.Jvm.current().javaVersion.java8) {
     compileJava {
 
-        // Enable error prone for D8/R8 main sources and make all warnings errors.
-        // Warnings that we have chosen not to fix (or suppress) are disabled outright below.
-        options.compilerArgs << "-Werror"
+        // Enable error prone for D8/R8 main sources
         options.errorprone.enabled = true
 
+        // Make all warnings errors. Warnings that we have chosen not to fix (or suppress) are
+        // disabled outright below.
+        options.compilerArgs << "-Werror"
+
+        // Increase number of reported errors to 1000 (default is 100).
+        options.compilerArgs << "-Xmaxerrs"
+        options.compilerArgs << "1000"
+
         // Non-default / Experimental checks - explicitly enforced.
+        options.errorprone.check('ReferenceEquality', CheckSeverity.ERROR)
         options.errorprone.check('RemoveUnusedImports', CheckSeverity.ERROR)
         options.errorprone.check('InconsistentOverloads', CheckSeverity.ERROR)
         options.errorprone.check('MissingDefault', CheckSeverity.ERROR)
@@ -687,7 +694,6 @@ if (!project.hasProperty('without_error_prone') &&
         options.errorprone.check('AlmostJavadoc', CheckSeverity.OFF)
 
         // Moving away from identity and canonical items is not planned.
-        options.errorprone.check('ReferenceEquality', CheckSeverity.OFF)
         options.errorprone.check('IdentityHashMapUsage', CheckSeverity.OFF)
     }
 }

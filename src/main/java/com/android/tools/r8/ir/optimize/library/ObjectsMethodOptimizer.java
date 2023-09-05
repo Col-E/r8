@@ -44,6 +44,7 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
@@ -169,6 +170,7 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void optimizeRequireNonNull(
       IRCode code,
       BasicBlockIterator blockIterator,
@@ -212,6 +214,7 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void optimizeToStringWithObject(
       IRCode code,
       InstructionListIterator instructionIterator,

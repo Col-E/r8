@@ -81,6 +81,7 @@ public final class KeepRuleGraphNode extends GraphNode {
    * {@code <keep-rule-file>:<keep-rule-start-line>:<keep-rule-start-column>}.
    */
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public String toString() {
     return (getOrigin() == Origin.unknown() ? getContent() : getOrigin())
         + ":"

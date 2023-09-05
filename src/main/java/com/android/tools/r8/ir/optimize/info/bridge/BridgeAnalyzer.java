@@ -113,6 +113,7 @@ public class BridgeAnalyzer {
         : analyzeCheckCastAfterInvoke(method, checkCast, invoke);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean analyzeCheckCastBeforeInvoke(CheckCast checkCast) {
     Value object = checkCast.object().getAliasedValue();
     // It must be casting one of the arguments.
@@ -153,6 +154,7 @@ public class BridgeAnalyzer {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean analyzeCheckCastAfterInvoke(
       DexEncodedMethod method, CheckCast checkCast, InvokeMethod invoke) {
     Value returnValue = invoke.outValue();

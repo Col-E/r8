@@ -132,6 +132,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     mixedItems.add(this);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean retainCompileTimeAnnotation(DexType annotation, InternalOptions options) {
     if (options.retainCompileTimeAnnotations) {
       return true;
@@ -181,38 +182,46 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     return value.asDexValueMethod().value;
   }
 
-  public static boolean isEnclosingClassAnnotation(DexAnnotation annotation,
-      DexItemFactory factory) {
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean isEnclosingClassAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationEnclosingClass;
   }
 
-  public static boolean isEnclosingMethodAnnotation(DexAnnotation annotation,
-      DexItemFactory factory) {
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean isEnclosingMethodAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationEnclosingMethod;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isInnerClassAnnotation(DexAnnotation annotation, DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationInnerClass;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isMemberClassesAnnotation(
       DexAnnotation annotation, DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationMemberClasses;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isNestHostAnnotation(DexAnnotation annotation, DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationNestHost;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isNestMembersAnnotation(DexAnnotation annotation, DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationNestMembers;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isPermittedSubclassesAnnotation(
       DexAnnotation annotation, DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationPermittedSubclasses;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isRecordAnnotation(DexAnnotation annotation, DexItemFactory factory) {
     return annotation.getAnnotationType() == factory.annotationRecord;
   }
@@ -232,6 +241,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
             }));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static Pair<DexString, Integer> getInnerClassFromAnnotation(
       DexAnnotation annotation, DexItemFactory factory) {
     assert isInnerClassAnnotation(annotation, factory);
@@ -642,6 +652,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
         }));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static DexValue getSystemValueAnnotationValue(DexType type, DexAnnotation annotation) {
     assert annotation.visibility == VISIBILITY_SYSTEM;
     assert annotation.annotation.type == type;
@@ -650,6 +661,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
         : annotation.annotation.elements[0].value;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static DexValue getSystemValueAnnotationValueWithName(
       DexType type, DexAnnotation annotation, DexString name) {
     assert annotation.visibility == VISIBILITY_SYSTEM;
@@ -662,34 +674,37 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     return null;
   }
 
-  public static boolean isThrowingAnnotation(DexAnnotation annotation,
-      DexItemFactory factory) {
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean isThrowingAnnotation(DexAnnotation annotation, DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationThrows;
   }
 
-  public static boolean isSignatureAnnotation(DexAnnotation annotation,
-      DexItemFactory factory) {
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean isSignatureAnnotation(DexAnnotation annotation, DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationSignature;
 
   }
 
-  public static boolean isAnnotationDefaultAnnotation(DexAnnotation annotation,
-      DexItemFactory factory) {
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean isAnnotationDefaultAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationDefault;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isJavaLangRetentionAnnotation(
       DexAnnotation annotation, DexItemFactory factory) {
     return annotation.getAnnotationType() == factory.retentionType;
   }
 
-  public static boolean isSourceDebugExtension(DexAnnotation annotation,
-      DexItemFactory factory) {
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean isSourceDebugExtension(DexAnnotation annotation, DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationSourceDebugExtension;
   }
 
-  public static boolean isParameterNameAnnotation(DexAnnotation annotation,
-      DexItemFactory factory) {
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean isParameterNameAnnotation(
+      DexAnnotation annotation, DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationMethodParameters;
   }
 
@@ -768,6 +783,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
         != null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static SynthesizedAnnotationClassInfo getSynthesizedClassAnnotationInfo(
       DexAnnotationSet annotations,
       DexItemFactory factory,
@@ -839,6 +855,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexAnnotation rewrite(Function<DexEncodedAnnotation, DexEncodedAnnotation> rewriter) {
     DexEncodedAnnotation rewritten = rewriter.apply(annotation);
     if (rewritten == annotation) {

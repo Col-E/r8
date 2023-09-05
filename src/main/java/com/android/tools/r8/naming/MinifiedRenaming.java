@@ -100,6 +100,7 @@ class MinifiedRenaming extends NonIdentityNamingLens {
    * renaming of the resolution target of {@param method}.
    */
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean verifyRenamingConsistentWithResolution(DexMethod method) {
     if (method.holder.isArrayType()) {
       // Array methods are never renamed, so do not bother to check.

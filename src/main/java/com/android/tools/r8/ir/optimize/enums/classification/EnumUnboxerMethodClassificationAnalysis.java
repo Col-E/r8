@@ -30,6 +30,7 @@ public class EnumUnboxerMethodClassificationAnalysis {
    * CheckNotNullEnumUnboxerMethodClassification} if the method is static and has a parameter of
    * type Object, which has a single if-zero user.
    */
+  @SuppressWarnings("ReferenceEquality")
   public static EnumUnboxerMethodClassification analyze(
       AppView<AppInfoWithLiveness> appView,
       ProgramMethod method,

@@ -134,6 +134,7 @@ public abstract class CallSiteInformation {
      * library method this always returns false.
      */
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean hasSingleCallSite(ProgramMethod method, ProgramMethod context) {
       return singleCallerMethods.get(method.getReference()) == context.getReference();
     }

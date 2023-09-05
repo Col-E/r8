@@ -85,6 +85,7 @@ public class RemovedArgumentInfo extends ArgumentInfo {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public RemovedArgumentInfo rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
     SingleValue rewrittenSingleValue =
@@ -97,6 +98,7 @@ public class RemovedArgumentInfo extends ArgumentInfo {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean equals(Object obj) {
     if (obj == null || getClass() != obj.getClass()) {
       return false;

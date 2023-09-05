@@ -22,6 +22,7 @@ public class SwitchCaseAnalyzer {
     return INSTANCE;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean switchCaseIsAlwaysHit(Switch theSwitch, int index) {
     Value switchValue = theSwitch.value();
     if (theSwitch.isIntSwitch()) {
@@ -39,6 +40,7 @@ public class SwitchCaseAnalyzer {
         && key == rootSwitchValue.definition.asConstString().getValue();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean switchCaseIsUnreachable(
       Switch theSwitch, AbstractValue switchAbstractValue, int index) {
     Value switchValue = theSwitch.value();

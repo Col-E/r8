@@ -175,6 +175,7 @@ public class AppInfo implements DexDefinitionSupplier {
     return definitionForWithoutExistenceAssert(type) != null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexClass definitionForDesugarDependency(DexClass dependent, DexType type) {
     if (dependent.type == type) {
       return dependent;
@@ -205,6 +206,7 @@ public class AppInfo implements DexDefinitionSupplier {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void reportDependencyEdge(
       DesugarGraphConsumer consumer, Origin dependencyOrigin, Origin dependentOrigin) {
     if (dependencyOrigin == GlobalSyntheticOrigin.instance()
@@ -224,6 +226,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * @param context the method the invoke is contained in, i.e., the caller.
    * @return The actual target for {@code method} if on the holder, or {@code null}.
    */
+  @SuppressWarnings("ReferenceEquality")
   public final DexEncodedMethod lookupStaticTargetOnItself(
       DexMethod method, ProgramMethod context) {
     if (method.holder != context.getHolderType()) {
@@ -243,6 +246,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * @param context the method the invoke is contained in, i.e., the caller.
    * @return The actual target for {@code method} if on the holder, or {@code null}.
    */
+  @SuppressWarnings("ReferenceEquality")
   public final DexEncodedMethod lookupDirectTargetOnItself(
       DexMethod method, ProgramMethod context) {
     if (method.holder != context.getHolderType()) {
@@ -279,6 +283,7 @@ public class AppInfo implements DexDefinitionSupplier {
     return resolveFieldOn(field.holder, field, context);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public FieldResolutionResult resolveFieldOn(DexType type, DexField field, ProgramMethod context) {
     // Only allow resolution if the field is declared in the context.
     if (type != context.getHolderType()) {

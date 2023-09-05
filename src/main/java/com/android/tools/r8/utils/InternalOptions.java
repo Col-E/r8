@@ -2115,10 +2115,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
           || enableEnumLiteProtoShrinking;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public boolean isEnumLiteProtoShrinkingEnabled() {
       return enableEnumLiteProtoShrinking;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public boolean shouldApplyInliningToInlinee(
         AppView<?> appView, ProgramMethod inlinee, int inliningDepth) {
       if (isProtoShrinkingEnabled()) {

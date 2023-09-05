@@ -18,6 +18,7 @@ public class CompareToVisitorWithStringTable extends CompareToVisitorWithNamingL
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public int visitDexString(DexString string1, DexString string2) {
     if (string1 == string2) {
       return 0;

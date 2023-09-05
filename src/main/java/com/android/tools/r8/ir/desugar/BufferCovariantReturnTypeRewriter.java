@@ -61,6 +61,7 @@ public class BufferCovariantReturnTypeRewriter implements CfInstructionDesugarin
         .build();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod matchingBufferCovariantMethod(DexMethod invokedMethod) {
     if (invokedMethod.getArity() > 1
         || (invokedMethod.getArity() == 1 && !invokedMethod.getParameter(0).isIntType())

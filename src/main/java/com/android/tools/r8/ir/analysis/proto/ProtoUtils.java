@@ -14,6 +14,7 @@ public class ProtoUtils {
 
   public static final int IS_PROTO_2_MASK = 0x1;
 
+  @SuppressWarnings("ReferenceEquality")
   public static Value getInfoValueFromMessageInfoConstructionInvoke(
       InvokeMethod invoke, ProtoReferences references) {
     assert references.isMessageInfoConstruction(invoke);
@@ -41,6 +42,7 @@ public class ProtoUtils {
     throw new Unreachable();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   static Value getObjectsValueFromMessageInfoConstructionInvoke(
       InvokeMethod invoke, ProtoReferences references) {
     assert references.isMessageInfoConstruction(invoke);
@@ -62,6 +64,7 @@ public class ProtoUtils {
     throw new Unreachable();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   static void setObjectsValueForMessageInfoConstructionInvoke(
       InvokeMethod invoke, Value newObjectsValue, ProtoReferences references) {
     assert references.isMessageInfoConstruction(invoke);

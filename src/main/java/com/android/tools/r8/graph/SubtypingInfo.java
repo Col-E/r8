@@ -93,6 +93,7 @@ public class SubtypingInfo {
     return typeInfo.computeIfAbsent(type, TypeInfo::new);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void populateAllSuperTypes(
       Map<DexType, Set<DexType>> map,
       Map<DexType, TypeInfo> typeInfo,
@@ -138,6 +139,7 @@ public class SubtypingInfo {
     assert validateLevelsAreCorrect(typeInfo, definitionSupplier);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean validateLevelsAreCorrect(
       Map<DexType, TypeInfo> typeInfo, DexDefinitionSupplier definitionSupplier) {
     Set<DexType> seenTypes = Sets.newIdentityHashSet();
@@ -283,6 +285,7 @@ public class SubtypingInfo {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean equals(Object obj) {
       if (!(obj instanceof TypeInfo)) {
         return false;

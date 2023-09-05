@@ -40,6 +40,7 @@ public class StringMethodOptimizer extends StatelessLibraryMethodModelCollection
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
@@ -101,6 +102,7 @@ public class StringMethodOptimizer extends StatelessLibraryMethodModelCollection
    * {@param constStringValue} is a constant string that is identical to the name of a class that
    * has been pruned by the {@link com.android.tools.r8.shaking.Enqueuer}.
    */
+  @SuppressWarnings("ReferenceEquality")
   private boolean isPrunedClassNameComparison(
       Value classNameValue, Value constStringValue, ProgramMethod context) {
     if (classNameValue.isPhi() || constStringValue.isPhi()) {

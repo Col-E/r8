@@ -163,11 +163,13 @@ public class ProtoReferences {
     return dexItemFactory.createField(holder.type, enumVerifierType, instanceFieldName);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isAbstractGeneratedMessageLiteBuilder(DexProgramClass clazz) {
     return clazz.type == generatedMessageLiteBuilderType
         || clazz.type == generatedMessageLiteExtendableBuilderType;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isDynamicMethod(DexMethod method) {
     return method.name == dynamicMethodName && method.proto == dynamicMethodProto;
   }
@@ -180,6 +182,7 @@ public class ProtoReferences {
     return isDynamicMethod(method.getReference());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isDynamicMethodBridge(DexMethod method) {
     return method == generatedMessageLiteMethods.dynamicMethodBridgeMethod
         || method == generatedMessageLiteMethods.dynamicMethodBridgeMethodWithObject;
@@ -193,6 +196,7 @@ public class ProtoReferences {
     return isDynamicMethodBridge(method.getReference());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isFindLiteExtensionByNumberMethod(DexMethod method) {
     return method.proto == findLiteExtensionByNumberProto
         && method.name.startsWith(findLiteExtensionByNumberName)
@@ -203,12 +207,14 @@ public class ProtoReferences {
     return isFindLiteExtensionByNumberMethod(method.getReference());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isGeneratedMessageLiteBuilder(DexProgramClass clazz) {
     return (clazz.superType == generatedMessageLiteBuilderType
             || clazz.superType == generatedMessageLiteExtendableBuilderType)
         && !isAbstractGeneratedMessageLiteBuilder(clazz);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isMessageInfoConstruction(InvokeMethod invoke) {
     if (invoke.getInvokedMethod().match(newMessageInfoMethod)) {
       return true;
@@ -261,6 +267,7 @@ public class ProtoReferences {
       consumer.accept(constructorWithClass);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public boolean isConstructor(DexMethod method) {
       return method == constructor || method == constructorWithClass;
     }
@@ -405,6 +412,7 @@ public class ProtoReferences {
       // Intentionally empty.
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public boolean isNewMutableInstanceEnum(DexField field) {
       return field == newMutableInstanceField;
     }
@@ -416,6 +424,7 @@ public class ProtoReferences {
           && isNewMutableInstanceEnum(root.definition.asStaticGet().getField());
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public boolean isMethodToInvokeWithSimpleBody(DexField field) {
       return field == getDefaultInstanceField
           || field == getMemoizedIsInitializedField
@@ -424,6 +433,7 @@ public class ProtoReferences {
           || field == setMemoizedIsInitializedField;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public boolean isMethodToInvokeWithNonSimpleBody(DexField field) {
       return field == buildMessageInfoField || field == getParserField;
     }

@@ -186,6 +186,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
       registerInvokeMethod(method);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void registerInvokeMethod(DexMethod method) {
       SingleResolutionResult<?> resolutionResult =
           appView.appInfo().unsafeResolveMethodDueToDexFormatLegacy(method).asSingleResolution();
@@ -222,6 +223,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
       registerFieldAccess(field);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void registerFieldAccess(DexField field) {
       FieldResolutionResult resolutionResult = appView.appInfo().resolveField(field);
       if (resolutionResult.getSingleProgramField() == null) {

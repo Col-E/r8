@@ -65,6 +65,7 @@ public class AnnotationFixer {
     return rewritten;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexAnnotationElement rewriteAnnotationElement(DexAnnotationElement original) {
     DexValue rewrittenValue = rewriteComplexValue(original.value);
     if (rewrittenValue != original.value) {
@@ -73,6 +74,7 @@ public class AnnotationFixer {
     return original;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexValue rewriteComplexValue(DexValue value) {
     if (value.isDexValueArray()) {
       DexValue[] originalValues = value.asDexValueArray().getValues();
@@ -92,6 +94,7 @@ public class AnnotationFixer {
     return rewriteNestedValue(value);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexValue rewriteNestedValue(DexValue value) {
     if (value.isDexItemBasedValueString()) {
       DexItemBasedValueString valueString = value.asDexItemBasedValueString();

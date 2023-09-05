@@ -239,6 +239,7 @@ public class TypeConstraintResolver {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Link two values as having the same type.
   private void link(Value canonical1, Value canonical2) {
     if (canonical1 == canonical2) {

@@ -88,6 +88,7 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
             builder -> builder.setGenericSignature(FieldTypeSignature.noSignature())));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void fixupMethods(DexProgramClass clazz) {
     MethodCollection methodCollection = clazz.getMethodCollection();
     methodCollection.replaceMethods(

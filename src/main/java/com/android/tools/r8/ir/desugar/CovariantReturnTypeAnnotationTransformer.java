@@ -227,6 +227,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
     return covariantReturnTypes;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void getCovariantReturnTypesFromAnnotation(
       DexClass clazz,
       DexEncodedMethod method,
@@ -290,6 +291,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
     return isCovariantReturnTypeAnnotation(annotation.type, factory);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isCovariantReturnTypeAnnotation(DexType type, DexItemFactory factory) {
     return type == factory.annotationCovariantReturnType
         || type == factory.annotationCovariantReturnTypes;

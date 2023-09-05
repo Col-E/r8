@@ -187,6 +187,7 @@ public class MappedPositionToClassNameMapperBuilder {
       return this;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private MappedPositionToClassNamingBuilder addFields() {
       MapVersion mapFileVersion = appView.options().getMapFileVersion();
       clazz.forEachField(
@@ -216,6 +217,7 @@ public class MappedPositionToClassNameMapperBuilder {
       return this;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public MappedPositionToClassNamingBuilder addMappedPositions(
         ProgramMethod method,
         List<MappedPosition> mappedPositions,
@@ -476,6 +478,7 @@ public class MappedPositionToClassNameMapperBuilder {
       return outermostCaller.isOutline() ? outermostCaller.getMethod() : null;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean isIdentityMapping(
         MapVersion mapFileVersion,
         List<MappedPosition> mappedPositions,

@@ -279,6 +279,7 @@ public class LegacyToHumanSpecificationConverter {
         });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private List<DexClassAndMethod> findMethodsWithName(
       DexString methodName,
       DexClass clazz,

@@ -193,6 +193,7 @@ public class ParameterAnnotationsList extends DexItem
   }
 
   /** Return a ParameterAnnotationsList extended to the given number of parameters. */
+  @SuppressWarnings("ReferenceEquality")
   public ParameterAnnotationsList withParameterCount(int parameterCount) {
     if (this == EMPTY_PARAMETER_ANNOTATIONS_LIST || parameterCount == size()) {
       return this;
@@ -224,6 +225,7 @@ public class ParameterAnnotationsList extends DexItem
    * Return a new ParameterAnnotationsList that keeps only the annotations matched by {@code
    * filter}.
    */
+  @SuppressWarnings("ReferenceEquality")
   public ParameterAnnotationsList keepIf(Predicate<DexAnnotation> filter) {
     DexAnnotationSet[] filtered = null;
     boolean allEmpty = true;

@@ -33,6 +33,7 @@ public class ClassMethodsBuilder {
     return !reservedMethods.contains(method);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void setClassMethods(DexProgramClass clazz) {
     assert virtualMethods.stream().allMatch(method -> method.getHolderType() == clazz.type);
     assert virtualMethods.stream().allMatch(DexEncodedMethod::belongsToVirtualPool);

@@ -685,6 +685,7 @@ public class ComposingBuilder {
       return composedRanges;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private List<MappedRange> fixupInlinedOutlines(
         ComputedOutlineInformation computedOutlineInformation, List<MappedRange> composedRanges)
         throws MappingComposeException {

@@ -41,6 +41,7 @@ public class StringBuilderHelper {
     return instruction.isAssume() || instruction.isCheckCast() || oracle.isAppend(instruction);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   static String extractConstantArgument(
       DexItemFactory factory, DexMethod method, Value arg, DexType argumentType) {
     if (arg.isPhi()) {
@@ -80,6 +81,7 @@ public class StringBuilderHelper {
     return null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   static Number extractConstantNumber(DexItemFactory factory, Value arg) {
     if (arg.isPhi()) {
       return null;

@@ -184,6 +184,7 @@ public class StaticPut extends FieldInstruction implements FieldPut, StaticField
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     if (!other.isStaticPut()) {
       return false;
@@ -244,6 +245,7 @@ public class StaticPut extends FieldInstruction implements FieldPut, StaticField
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
       ProgramMethod context,
@@ -255,6 +257,7 @@ public class StaticPut extends FieldInstruction implements FieldPut, StaticField
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     DexType holder = getField().holder;
     if (appView.enableWholeProgramOptimizations()) {

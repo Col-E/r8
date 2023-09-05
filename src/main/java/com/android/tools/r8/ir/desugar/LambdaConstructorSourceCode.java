@@ -21,6 +21,7 @@ import org.objectweb.asm.Opcodes;
 
 final class LambdaConstructorSourceCode {
 
+  @SuppressWarnings("ReferenceEquality")
   public static CfCode build(LambdaClass lambda) {
     int maxStack = 1;
     ImmutableList<CfTryCatch> tryCatchRanges = ImmutableList.of();
