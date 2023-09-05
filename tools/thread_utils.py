@@ -25,6 +25,7 @@ class WorkerThread(Thread):
   # initialization of other WorkerThreads.
   def __init__(self, jobs, jobs_lock, stop_on_first_failure, worker_id):
     Thread.__init__(self)
+    self.completed = False
     self.jobs = jobs
     self.jobs_lock = jobs_lock
     self.number_of_jobs = len(jobs)
@@ -50,16 +51,17 @@ class WorkerThread(Thread):
         if exit_code:
           self.success = False
           if self.stop_on_first_failure:
-            self.clear_jobs(jobs, jobs_lock)
+            self.clear_jobs(self.jobs, self.jobs_lock)
             break
       except:
         print_thread("Job %s crashed" % job_id, self.worker_id)
         print_thread(traceback.format_exc(), self.worker_id)
         self.success = False
         if self.stop_on_first_failure:
-          self.clear_jobs(jobs, jobs_lock)
+          self.clear_jobs(self.jobs, self.jobs_lock)
           break
     print_thread("Exiting", self.worker_id)
+    self.completed = True
 
   def take_job(self, jobs, jobs_lock):
     jobs_lock.acquire()
@@ -89,7 +91,7 @@ def run_in_parallel(jobs, number_of_workers, stop_on_first_failure):
   for thread in threads:
     thread.join()
   for thread in threads:
-    if not thread.success:
+    if not thread.completed or not thread.success:
       return 1
   return 0
 
