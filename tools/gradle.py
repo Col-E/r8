@@ -17,12 +17,12 @@ import utils
 
 GRADLE_DIR = os.path.join(utils.REPO_ROOT, 'third_party', 'gradle')
 GRADLE_SHA1 = os.path.join(GRADLE_DIR, 'gradle.tar.gz.sha1')
-GRADLE8_SHA1 = os.path.join(GRADLE_DIR, 'gradle-8.3.tar.gz.sha1')
+GRADLE8_SHA1 = os.path.join(GRADLE_DIR, 'gradle-8.0.tar.gz.sha1')
 GRADLE_TGZ = os.path.join(GRADLE_DIR, 'gradle.tar.gz')
-GRADLE8_TGZ = os.path.join(GRADLE_DIR, 'gradle-8.3.tar.gz')
+GRADLE8_TGZ = os.path.join(GRADLE_DIR, 'gradle-8.0.tar.gz')
 
 def get_gradle(new_gradle):
-  gradle_dir = 'gradle-8.3' if new_gradle else 'gradle'
+  gradle_dir = 'gradle-8.0' if new_gradle else 'gradle'
   if utils.IsWindows():
     return os.path.join(GRADLE_DIR, gradle_dir, 'bin', 'gradle.bat')
   else:

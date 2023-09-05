@@ -35,8 +35,8 @@ val mainDepsJarTask = projectTask("main", "depsJar")
 
 dependencies {
   implementation(keepAnnoJarTask.outputs.files)
-  implementation(mainCompileTask.outputs.files)
-  implementation(projectTask("resourceshrinker", "compileJava").outputs.files)
+  implementation(projectTask("main", "jar").outputs.files)
+  implementation(projectTask("resourceshrinker", "jar").outputs.files)
   implementation(projectTask("resourceshrinker", "depsJar").outputs.files)
   implementation(Deps.asm)
   implementation(Deps.asmCommons)

@@ -34,7 +34,6 @@ abstract class DownloadDependencyTask : DefaultTask() {
   private var _outputDir: File? = null
   private var _tarGzFile: File? = null
   private var _sha1File: File? = null
-  private var _root: File? = null
 
   @InputFile
   fun getInputFile(): File? {
@@ -52,11 +51,10 @@ abstract class DownloadDependencyTask : DefaultTask() {
   @Option(
     option = "dependency",
     description = "Sets the dependency information for a cloud stored file")
-  fun setDependency(sha1File: File, outputDir: File, dependencyType: DependencyType, root: File) {
+  fun setDependency(sha1File: File, outputDir: File, dependencyType: DependencyType) {
     _outputDir = outputDir
     _sha1File = sha1File
     _tarGzFile = sha1File.resolveSibling(sha1File.name.replace(".sha1", ""))
-    _root = root
     this.dependencyType = dependencyType
   }
 
@@ -84,7 +82,7 @@ abstract class DownloadDependencyTask : DefaultTask() {
         this.outputDir.set(outputDir)
         this.tarGzFile.set(tarGzFile)
         this.lockFile.set(lockFile)
-        this.root.set(_root!!)
+        this.root.set(computeRoot(project.projectDir))
       }
   }
 

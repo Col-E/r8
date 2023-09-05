@@ -114,8 +114,6 @@ third_party/gradle/gradle
 third_party/gradle/gradle.tar.gz
 third_party/gradle/gradle-8.0
 third_party/gradle/gradle-8.0.tar.gz
-third_party/gradle/gradle-8.3
-third_party/gradle/gradle-8.3.tar.gz
 third_party/gson/gson-2.10.1
 third_party/gson/gson-2.10.1.tar.gz
 third_party/guava/guava-32.1.2-android

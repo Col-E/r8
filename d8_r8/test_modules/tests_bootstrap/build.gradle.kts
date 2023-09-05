@@ -29,7 +29,7 @@ val testJar = projectTask("tests_java_8", "testJar")
 
 dependencies {
   implementation(files(testJar.outputs.files.getSingleFile()))
-  implementation(projectTask("main", "compileJava").outputs.files)
+  implementation(projectTask("main", "jar").outputs.files)
   implementation(Deps.asm)
   implementation(Deps.asmCommons)
   implementation(Deps.asmUtil)
