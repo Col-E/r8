@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import java.nio.file.Paths
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
@@ -160,6 +160,10 @@ tasks {
              "android.aapt.**->com.android.tools.r8.android.aaapt"
       ))
   }
+}
+
+tasks.withType<KotlinCompile> {
+  enabled = false
 }
 
 tasks.withType<JavaCompile> {
