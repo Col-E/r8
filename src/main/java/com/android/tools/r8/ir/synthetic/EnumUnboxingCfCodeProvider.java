@@ -18,6 +18,8 @@ import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
+import com.android.tools.r8.cf.code.CfStaticFieldRead;
+import com.android.tools.r8.cf.code.CfStaticFieldWrite;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfSwitch.Kind;
 import com.android.tools.r8.cf.code.CfThrow;
@@ -170,6 +172,25 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
               ? new CfReturnVoid()
               : new CfReturn(ValueType.fromDexType(method.getReturnType())));
     }
+
+    public static class CfCodeWithLens extends CfCode {
+      private GraphLens codeLens;
+
+      public void setCodeLens(GraphLens codeLens) {
+        this.codeLens = codeLens;
+      }
+
+      public CfCodeWithLens(
+          DexType originalHolder, int maxStack, int maxLocals, List<CfInstruction> instructions) {
+        super(originalHolder, maxStack, maxLocals, instructions);
+      }
+
+      @Override
+      public GraphLens getCodeLens(AppView<?> appView) {
+        assert codeLens != null;
+        return codeLens;
+      }
+    }
   }
 
   public static class EnumUnboxingInstanceFieldCfCodeProvider extends EnumUnboxingCfCodeProvider {
@@ -305,23 +326,47 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
     }
   }
 
-  public static class CfCodeWithLens extends CfCode {
+  public static class EnumUnboxingValuesCfCodeProvider extends EnumUnboxingCfCodeProvider {
 
-    private GraphLens codeLens;
+    private final DexField utilityField;
+    private final int numEnumInstances;
+    private final DexMethod initializationMethod;
 
-    public void setCodeLens(GraphLens codeLens) {
-      this.codeLens = codeLens;
-    }
-
-    public CfCodeWithLens(
-        DexType originalHolder, int maxStack, int maxLocals, List<CfInstruction> instructions) {
-      super(originalHolder, maxStack, maxLocals, instructions);
+    public EnumUnboxingValuesCfCodeProvider(
+        AppView<?> appView,
+        DexType holder,
+        DexField utilityField,
+        int numEnumInstances,
+        DexMethod initializationMethod) {
+      super(appView, holder);
+      assert utilityField.type == appView.dexItemFactory().intArrayType;
+      this.utilityField = utilityField;
+      this.numEnumInstances = numEnumInstances;
+      this.initializationMethod = initializationMethod;
     }
 
     @Override
-    public GraphLens getCodeLens(AppView<?> appView) {
-      assert codeLens != null;
-      return codeLens;
+    public CfCode generateCfCode() {
+      // Generated static method, for class com.x.MyEnum {A,B}, and a field in VALUES$com$x$MyEnum
+      // on Utility class, would look like:
+      // synchronized int[] UtilityClass#com$x$MyEnum_VALUES() {
+      //    if (VALUES$com$x$MyEnum == null) {
+      //      VALUES$com$x$MyEnum = EnumUnboxingMethods_values(2);
+      //    }
+      //    return VALUES$com$x$MyEnum;
+      List<CfInstruction> instructions = new ArrayList<>();
+      CfLabel nullDest = new CfLabel();
+      instructions.add(new CfStaticFieldRead(utilityField, utilityField));
+      instructions.add(new CfIf(IfType.NE, ValueType.OBJECT, nullDest));
+      instructions.add((new CfConstNumber(numEnumInstances, ValueType.INT)));
+      assert initializationMethod.getArity() == 1;
+      instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, initializationMethod, false));
+      instructions.add(new CfStaticFieldWrite(utilityField, utilityField));
+      instructions.add(nullDest);
+      instructions.add(new CfFrame());
+      instructions.add(new CfStaticFieldRead(utilityField, utilityField));
+      instructions.add(new CfReturn(ValueType.OBJECT));
+      return standardCfCodeFromInstructions(instructions);
     }
   }
 }
