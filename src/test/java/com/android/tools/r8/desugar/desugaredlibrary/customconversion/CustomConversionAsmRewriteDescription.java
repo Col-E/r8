@@ -1,8 +1,8 @@
-// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package desugaredlibrary;
+package com.android.tools.r8.desugar.desugaredlibrary.customconversion;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
@@ -16,8 +16,7 @@ public class CustomConversionAsmRewriteDescription {
 
   private static final Set<String> ENUM_WRAP_CONVERT_OWNER =
       ImmutableSet.of(
-          "j$/nio/file/attribute/PosixFilePermission",
-          "j$/util/stream/Collector$Characteristics");
+          "j$/nio/file/attribute/PosixFilePermission", "j$/util/stream/Collector$Characteristics");
   private static final Set<String> WRAP_CONVERT_OWNER =
       ImmutableSet.of(
           "j$/util/stream/DoubleStream",

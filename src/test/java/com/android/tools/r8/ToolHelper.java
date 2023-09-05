@@ -196,6 +196,7 @@ public class ToolHelper {
   private static final AndroidApiLevel DEFAULT_MIN_SDK = AndroidApiLevel.I;
 
   public static final String OPEN_JDK_DIR = THIRD_PARTY_DIR + "openjdk/";
+  public static final String CUSTOM_CONVERSION_DIR = OPEN_JDK_DIR + "custom_conversion/";
   public static final String JAVA_8_RUNTIME = OPEN_JDK_DIR + "openjdk-rt-1.8/rt.jar";
   public static final String JDK_11_TESTS_DIR = OPEN_JDK_DIR + "jdk-11-test/";
   public static final String JDK_11_TIME_TESTS_DIR = JDK_11_TESTS_DIR + "java/time/";
@@ -257,9 +258,7 @@ public class ToolHelper {
   public static final Path AAPT2 = Paths.get(THIRD_PARTY_DIR, "aapt2", "aapt2");
 
   public static Path getDesugarLibConversions(CustomConversionVersion legacy) {
-    return legacy == CustomConversionVersion.LEGACY
-        ? Paths.get(LIBS_DIR, "library_desugar_conversions_legacy.jar")
-        : Paths.get(LIBS_DIR, "library_desugar_conversions.jar");
+    return Paths.get(CUSTOM_CONVERSION_DIR, legacy.getFileName());
   }
 
   public static boolean isLocalDevelopment() {

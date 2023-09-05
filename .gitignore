@@ -156,6 +156,8 @@ third_party/kotlinx-coroutines-1.3.6
 third_party/multidex
 third_party/multidex.tar.gz
 third_party/nest/*
+third_party/openjdk/custom_conversion
+third_party/openjdk/custom_conversion.tar.gz
 third_party/openjdk/desugar_jdk_libs
 third_party/openjdk/desugar_jdk_libs.tar.gz
 third_party/openjdk/desugar_jdk_libs_11

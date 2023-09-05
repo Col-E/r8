@@ -88,8 +88,18 @@ public class LibraryDesugaringSpecification {
   }
 
   public enum CustomConversionVersion {
-    LEGACY,
-    LATEST
+    LEGACY("library_desugar_conversions_legacy.jar"),
+    LATEST("library_desugar_conversions.jar");
+
+    private final String fileName;
+
+    CustomConversionVersion(String fileName) {
+      this.fileName = fileName;
+    }
+
+    public String getFileName() {
+      return fileName;
+    }
   }
 
   private static Path tempLibraryJdk11UndesugarCache;

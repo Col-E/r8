@@ -3,11 +3,13 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-import create_maven_release
-import gradle
 import jdk
 import optparse
 import os
+
+import create_maven_release
+import gradle
+
 try:
   import resource
 except ImportError:
@@ -16,10 +18,8 @@ except ImportError:
 import shutil
 import subprocess
 import sys
-import toolhelper
 import utils
 import zipfile
-from build_r8lib import build_r8lib
 
 ARCHIVE_BUCKET = 'r8-releases'
 
@@ -165,7 +165,6 @@ def Main():
           utils.R8LIB_NO_DEPS,
           utils.R8RETRACE,
           utils.R8RETRACE_NO_DEPS,
-          utils.LIBRARY_DESUGAR_CONVERSIONS,
           utils.KEEPANNO_ANNOTATIONS_TARGET,
           '-Pno_internal'
       ])

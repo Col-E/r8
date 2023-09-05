@@ -4,7 +4,6 @@
 
 
 
-import desugaredlibrary.CustomConversionAsmRewriterTask
 import net.ltgt.gradle.errorprone.CheckSeverity
 import org.gradle.internal.os.OperatingSystem
 import tasks.DownloadDependency
@@ -93,12 +92,6 @@ sourceSets {
             srcDirs = ['third_party/classlib/java', 'src/cf_segments/java']
         }
         output.resourcesDir = 'build/classes/cfSegments'
-    }
-    libraryDesugarConversions {
-        java {
-            srcDirs = ['src/library_desugar/java']
-        }
-        output.resourcesDir = 'build/classes/library_desugar_conversions'
     }
     debugTestResources {
         java {
@@ -337,6 +330,7 @@ def cloudDependencies = [
                 "kotlin/kotlin-compiler-1.8.0",
                 "kotlinx-coroutines-1.3.6",
                 "multidex",
+                "openjdk/custom_conversion",
                 "openjdk/openjdk-rt-1.8",
                 "openjdk/desugar_jdk_libs",
                 "openjdk/desugar_jdk_libs_11",
@@ -972,19 +966,7 @@ def r8LibCreateTask(name, pgConfs = [], r8Task, output, libs = [], classpath = [
     }
 }
 
-task rawBuildLibraryDesugarConversions(type: Zip, dependsOn: downloadDeps) {
-    from sourceSets.libraryDesugarConversions.output
-    include "java/**/*.class"
-    baseName 'library_desugar_conversions_raw'
-    destinationDir file('build/tmp/desugaredlibrary')
-}
-
-task buildLibraryDesugarConversions(type: CustomConversionAsmRewriterTask, dependsOn: rawBuildLibraryDesugarConversions) {
-    rawJar = file("build/tmp/desugaredlibrary/library_desugar_conversions_raw.zip")
-    outputDirectory = file("build/libs")
-}
-
-task testJarSources(type: Jar, dependsOn: [testClasses, buildLibraryDesugarConversions]) {
+task testJarSources(type: Jar, dependsOn: [testClasses]) {
     archiveFileName = "r8testsbase.jar"
     from sourceSets.test.output
     // We only want to include tests that use R8 when generating keep rules for applymapping.
@@ -1873,7 +1855,6 @@ def numberOfTestTimesToPrint = 100
 test { task ->
 
     dependsOn sourceSets.keepanno.output
-    dependsOn buildLibraryDesugarConversions
     // R8.jar is required for running bootstrap tests.
     dependsOn r8
 

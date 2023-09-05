@@ -1,17 +1,17 @@
-// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2023, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package desugaredlibrary;
+package com.android.tools.r8.desugar.desugaredlibrary.customconversion;
 
-import static desugaredlibrary.AsmRewriter.ASM_VERSION;
-import static desugaredlibrary.CustomConversionAsmRewriteDescription.CONVERT;
-import static desugaredlibrary.CustomConversionAsmRewriteDescription.WRAP_CONVERT;
-import static desugaredlibrary.CustomConversionAsmRewriter.CustomConversionVersion.LEGACY;
+import static com.android.tools.r8.TestBase.transformer;
+import static com.android.tools.r8.desugar.desugaredlibrary.customconversion.CustomConversionAsmRewriteDescription.CONVERT;
+import static com.android.tools.r8.desugar.desugaredlibrary.customconversion.CustomConversionAsmRewriteDescription.WRAP_CONVERT;
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 
+import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion;
+import com.android.tools.r8.transformers.MethodTransformer;
 import com.google.common.io.ByteStreams;
-import desugaredlibrary.AsmRewriter.MethodTransformer;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,33 +27,24 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-public class CustomConversionAsmRewriter {
+public class GenerateCustomConversion {
 
-  public enum CustomConversionVersion {
-    LEGACY,
-    LATEST
+  public GenerateCustomConversion(CustomConversionVersion version) {
+    this.version = version;
   }
 
-  public CustomConversionAsmRewriter(CustomConversionVersion legacy) {
-    this.legacy = legacy;
-  }
-
-  private final CustomConversionVersion legacy;
+  private final CustomConversionVersion version;
   private final Map<String, String> wrapConvertOwnerMap =
       CustomConversionAsmRewriteDescription.getWrapConvertOwnerMap();
 
   public static void generateJars(Path jar, Path outputDirectory) throws IOException {
     for (CustomConversionVersion version : CustomConversionVersion.values()) {
-      new CustomConversionAsmRewriter(version).convert(jar, outputDirectory);
+      new GenerateCustomConversion(version).convert(jar, outputDirectory);
     }
   }
 
   private void convert(Path jar, Path outputDirectory) throws IOException {
-    String fileName = jar.getFileName().toString();
-    String newFileName =
-        fileName.substring(0, fileName.length() - "_raw.jar".length())
-            + (legacy == LEGACY ? "_legacy" : "")
-            + ".jar";
+    String newFileName = version.getFileName();
     Path convertedJar = outputDirectory.resolve(newFileName);
     internalConvert(jar, convertedJar);
   }
@@ -64,7 +55,7 @@ public class CustomConversionAsmRewriter {
     try (ZipOutputStream out =
         new ZipOutputStream(
             new BufferedOutputStream(Files.newOutputStream(convertedJar, options)))) {
-      new CustomConversionAsmRewriter(legacy).convert(jar, out, legacy);
+      new GenerateCustomConversion(version).convert(jar, out, version);
     }
   }
 
@@ -88,7 +79,7 @@ public class CustomConversionAsmRewriter {
     if (!entry.getName().endsWith(".class")) {
       return;
     }
-    if (legacy == LEGACY
+    if (legacy == CustomConversionVersion.LEGACY
         && (entry.getName().contains("java/nio/file")
             || entry.getName().contains("ApiFlips")
             || entry.getName().contains("java/adapter"))) {
@@ -118,13 +109,15 @@ public class CustomConversionAsmRewriter {
   }
 
   private byte[] transformInvoke(byte[] bytes) {
-    return AsmRewriter.transformInvoke(bytes, new CustomConversionRewriter(ASM_VERSION));
+    return transformer(bytes, null)
+        .addMethodTransformer(new CustomConversionMethodTransformer())
+        .transform();
   }
 
-  class CustomConversionRewriter extends MethodTransformer {
+  class CustomConversionMethodTransformer extends MethodTransformer {
 
-    protected CustomConversionRewriter(int api) {
-      super(api);
+    protected CustomConversionMethodTransformer() {
+      super();
     }
 
     @Override
@@ -154,6 +147,5 @@ public class CustomConversionAsmRewriter {
       String newOwner = wrapConvertOwnerMap.get(firstArg);
       super.visitMethodInsn(opcode, newOwner, CONVERT, descriptor, isInterface);
     }
-
   }
 }
