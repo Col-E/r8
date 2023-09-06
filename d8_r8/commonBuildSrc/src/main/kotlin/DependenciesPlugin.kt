@@ -84,11 +84,12 @@ fun Project.header(title : String) : String {
 
 fun Project.ensureThirdPartyDependencies(name : String, deps : List<ThirdPartyDependency>) : Task {
   val outputFiles : MutableList<File> = mutableListOf()
+  val root = getRoot()
   val depsTasks = deps.map { tpd ->
     val projectAndTaskName = "${project.name}-$name"
     val downloadTaskName = "download-third-party-$projectAndTaskName-${tpd.packageName}"
     val downloadTask = tasks.register<DownloadDependencyTask>(downloadTaskName) {
-      setDependency(getRoot().resolve(tpd.sha1File), getRoot().resolve(tpd.path), tpd.type)
+      setDependency(root.resolve(tpd.sha1File), root.resolve(tpd.path), tpd.type, root)
     }.get()
     outputFiles.add(tpd.path)
     downloadTask
