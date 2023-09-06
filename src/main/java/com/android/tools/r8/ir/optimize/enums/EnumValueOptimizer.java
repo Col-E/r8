@@ -54,7 +54,7 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "EnumValueOptimizer";
   }
 

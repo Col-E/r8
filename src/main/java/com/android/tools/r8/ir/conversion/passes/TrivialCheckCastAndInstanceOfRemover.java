@@ -41,7 +41,7 @@ public class TrivialCheckCastAndInstanceOfRemover extends CodeRewriterPass<AppIn
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "TrivialCheckCastAndInstanceOfRemover";
   }
 

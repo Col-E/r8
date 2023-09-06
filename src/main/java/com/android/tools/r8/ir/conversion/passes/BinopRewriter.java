@@ -239,7 +239,7 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "BinopRewriter";
   }
 

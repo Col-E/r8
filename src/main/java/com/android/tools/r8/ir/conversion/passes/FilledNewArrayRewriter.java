@@ -52,7 +52,7 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "FilledNewArrayRemover";
   }
 

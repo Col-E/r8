@@ -48,7 +48,7 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "SparseConditionalConstantPropagation";
   }
 

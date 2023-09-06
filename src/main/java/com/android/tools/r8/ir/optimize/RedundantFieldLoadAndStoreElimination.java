@@ -77,7 +77,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "RedundantFieldLoadAndStoreElimination";
   }
 
