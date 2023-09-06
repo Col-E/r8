@@ -191,5 +191,10 @@ public abstract class PartitionMappingSupplierBase<T extends PartitionMappingSup
         MappingSupplierInternalImpl.createInternal(classNameMapper), diagnosticsHandler);
   }
 
+  @Override
+  public void finished(DiagnosticsHandler handler) {
+    finishedCallback.finished(handler);
+  }
+
   public abstract T self();
 }
