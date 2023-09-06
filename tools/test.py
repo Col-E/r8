@@ -275,6 +275,9 @@ def Main():
 
   gradle_args = []
 
+  testing_state = False
+  testing_state_path = None
+
   if options.stacktrace or utils.is_bot():
     gradle_args.append('--stacktrace')
 
@@ -363,12 +366,23 @@ def Main():
   if options.no_arttests:
     gradle_args.append('-Pno_arttests=true')
   if options.reset_testing_state:
-    gradle_args.append('-Ptesting-state')
+    testing_state = True
     gradle_args.append('-Preset-testing-state')
   elif options.with_testing_state:
-    gradle_args.append('-Ptesting-state')
+    testing_state = True
   if options.testing_state_name:
     gradle_args.append('-Ptesting-state-name=' + options.testing_state_name)
+    testing_state_path = "%s/test-state/%s" % (utils.BUILD, options.testing_state_name)
+
+  if testing_state:
+    if options.new_gradle:
+      # In the new build the test state directory must be passed explictitly.
+      # TODO(b/297316723): Simplify this and just support a single flag: --testing-state <path>
+      if not testing_state_path:
+        testing_state_path = "%s/test-state/%s" % (utils.BUILD, utils.get_HEAD_branch())
+      gradle_args.append('-Ptesting-state=%s' % testing_state_path)
+    else:
+      gradle_args.append('-Ptesting-state')
 
   # Enable completeness testing of ART profile rewriting.
   gradle_args.append('-Part_profile_rewriting_completeness_check=true')

@@ -355,6 +355,10 @@ def is_main():
                                      'HEAD']).decode('utf-8')
   return 'origin/main' in remotes
 
+def get_HEAD_branch():
+  result = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('utf-8')
+  return result.strip()
+
 def get_HEAD_sha1():
   return get_HEAD_sha1_for_checkout(REPO_ROOT)
 

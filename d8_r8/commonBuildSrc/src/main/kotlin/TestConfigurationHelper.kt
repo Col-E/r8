@@ -5,8 +5,8 @@
 import java.io.File
 import java.util.Date
 import org.gradle.api.tasks.testing.Test
-import org.gradle.api.tasks.testing.TestListener
 import org.gradle.api.tasks.testing.TestDescriptor
+import org.gradle.api.tasks.testing.TestListener
 import org.gradle.api.tasks.testing.TestResult
 
 class TestConfigurationHelper {
@@ -72,6 +72,10 @@ class TestConfigurationHelper {
         test.maxHeapSize = project.property("test_xmx")!!.toString()
       } else {
         test.maxHeapSize = "4G"
+      }
+
+      if (project.hasProperty("testing-state")) {
+        TestingState.setUpTestingState(test)
       }
 
       if (project.hasProperty("one_line_per_test")
