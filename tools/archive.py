@@ -165,6 +165,7 @@ def Main():
           utils.R8LIB_NO_DEPS,
           utils.R8RETRACE,
           utils.R8RETRACE_NO_DEPS,
+          utils.LIBRARY_DESUGAR_CONVERSIONS,
           utils.KEEPANNO_ANNOTATIONS_TARGET,
           '-Pno_internal'
       ])

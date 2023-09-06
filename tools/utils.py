@@ -49,6 +49,8 @@ R8LIB_NO_DEPS = 'r8LibNoDeps'
 R8RETRACE = 'R8Retrace'
 R8RETRACE_NO_DEPS = 'R8RetraceNoDeps'
 R8_SRC = 'sourceJar'
+LIBRARY_DESUGAR_CONVERSIONS =\
+  'download_deps_third_party_openjdk_custom_conversion'
 R8_TESTS_TARGET = 'TestJar'
 R8_TESTS_DEPS_TARGET = 'RepackageTestDeps'
 R8LIB_TESTS_TARGET = 'configureTestForR8Lib'
