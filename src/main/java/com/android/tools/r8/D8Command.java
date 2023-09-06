@@ -100,6 +100,7 @@ public final class D8Command extends BaseCompilerCommand {
     private boolean minimalMainDex = false;
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
     private boolean enableMissingLibraryApiModeling = false;
+    private boolean enableRewritingOfArtProfilesIsNopCheck = false;
 
     private Builder() {
       this(new DefaultD8DiagnosticsHandler());
@@ -410,6 +411,11 @@ public final class D8Command extends BaseCompilerCommand {
       return self();
     }
 
+    Builder setEnableRewritingOfArtProfilesIsNopCheck() {
+      enableRewritingOfArtProfilesIsNopCheck = true;
+      return self();
+    }
+
     @Override
     void validate() {
       if (isPrintHelp()) {
@@ -523,6 +529,7 @@ public final class D8Command extends BaseCompilerCommand {
           proguardMapConsumer,
           partitionMapConsumer,
           enableMissingLibraryApiModeling,
+          enableRewritingOfArtProfilesIsNopCheck,
           getAndroidPlatformBuild(),
           getArtProfilesForRewriting(),
           getStartupProfileProviders(),
@@ -545,6 +552,7 @@ public final class D8Command extends BaseCompilerCommand {
   private final StringConsumer proguardMapConsumer;
   private final PartitionMapConsumer partitionMapConsumer;
   private final boolean enableMissingLibraryApiModeling;
+  private final boolean enableRewritingOfArtProfilesIsNopCheck;
   private final DexItemFactory factory;
 
   public static Builder builder() {
@@ -621,6 +629,7 @@ public final class D8Command extends BaseCompilerCommand {
       StringConsumer proguardMapConsumer,
       PartitionMapConsumer partitionMapConsumer,
       boolean enableMissingLibraryApiModeling,
+      boolean enableRewritingOfArtProfilesIsNopCheck,
       boolean isAndroidPlatformBuild,
       List<ArtProfileForRewriting> artProfilesForRewriting,
       List<StartupProfileProvider> startupProfileProviders,
@@ -662,6 +671,7 @@ public final class D8Command extends BaseCompilerCommand {
     this.proguardMapConsumer = proguardMapConsumer;
     this.partitionMapConsumer = partitionMapConsumer;
     this.enableMissingLibraryApiModeling = enableMissingLibraryApiModeling;
+    this.enableRewritingOfArtProfilesIsNopCheck = enableRewritingOfArtProfilesIsNopCheck;
     this.factory = factory;
   }
 
@@ -680,6 +690,7 @@ public final class D8Command extends BaseCompilerCommand {
     proguardMapConsumer = null;
     partitionMapConsumer = null;
     enableMissingLibraryApiModeling = false;
+    enableRewritingOfArtProfilesIsNopCheck = false;
     factory = null;
   }
 
@@ -749,6 +760,10 @@ public final class D8Command extends BaseCompilerCommand {
     if (!enableMissingLibraryApiModeling) {
       internal.apiModelingOptions().disableApiCallerIdentification();
       internal.apiModelingOptions().disableOutliningAndStubbing();
+    }
+
+    if (enableRewritingOfArtProfilesIsNopCheck) {
+      internal.getArtProfileOptions().setEnableNopCheckForTesting();
     }
 
     // Default is to remove all javac generated assertion code when generating dex.

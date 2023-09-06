@@ -125,25 +125,9 @@ public class JarApplicationReader {
     assert isValidDescriptor(desc);
     String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(desc);
     String[] argumentDescriptors = DescriptorUtils.getArgumentTypeDescriptors(desc);
-    StringBuilder shortyDescriptor = new StringBuilder();
-    shortyDescriptor.append(getShortyDescriptor(returnTypeDescriptor));
-    for (int i = 0; i < argumentDescriptors.length; i++) {
-      shortyDescriptor.append(getShortyDescriptor(argumentDescriptors[i]));
-    }
-    DexProto proto =
-        options.itemFactory.createProto(
-            getTypeFromDescriptor(returnTypeDescriptor),
-            getTypeListFromDescriptors(argumentDescriptors),
-            getString(shortyDescriptor.toString()));
-    return proto;
-  }
-
-  private static String getShortyDescriptor(String descriptor) {
-    if (descriptor.length() == 1) {
-      return descriptor;
-    }
-    assert descriptor.charAt(0) == 'L' || descriptor.charAt(0) == '[';
-    return "L";
+    return options.itemFactory.createProto(
+        getTypeFromDescriptor(returnTypeDescriptor),
+        getTypeListFromDescriptors(argumentDescriptors));
   }
 
   private boolean isValidDescriptor(String desc) {

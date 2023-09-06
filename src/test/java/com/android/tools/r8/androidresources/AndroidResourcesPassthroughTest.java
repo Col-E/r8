@@ -44,8 +44,7 @@ public class AndroidResourcesPassthroughTest extends TestBase {
 
     AndroidTestResource testResource =
         new AndroidTestResourceBuilder()
-            .withSimpleManifest()
-            .addStringValue("app_name", "The App")
+            .withSimpleManifestAndAppNameString()
             .addDrawable("foo.png", AndroidResourceTestingUtils.TINY_PNG)
             .build(temp);
     Path resources = testResource.getResourceZip();

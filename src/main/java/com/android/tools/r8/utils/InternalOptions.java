@@ -34,6 +34,7 @@ import com.android.tools.r8.dex.MixedSectionLayoutStrategy;
 import com.android.tools.r8.dex.VirtualFile;
 import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.DuplicateTypeInProgramAndLibraryDiagnostic;
 import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
@@ -111,7 +112,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -124,6 +124,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -330,10 +331,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // See go/r8platformflag and b/232073181.
   public void configureAndroidPlatformBuild(boolean isAndroidPlatformBuild) {
     assert !addAndroidPlatformBuildToMarker;
-    if (isAndroidPlatformBuild || minApiLevel.isPlatform()) {
+    if (isAndroidPlatformBuild) {
       apiModelingOptions().disableApiModeling();
-      // TODO(b/232073181): This should also enable throwing errors on triggered backports.
-      disableBackports = true;
+      disableBackportsAndReportIfTriggered = true;
       addAndroidPlatformBuildToMarker = isAndroidPlatformBuild;
     }
   }
@@ -697,9 +697,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Flag to turn on/off partial VarHandle desugaring.
   public boolean enableVarHandleDesugaring = false;
   // Flag to turn off backport methods (and report errors if triggered).
-  public boolean disableBackports = false;
-  public boolean disableBackportsWithErrorDiagnostics =
-      System.getProperty("com.android.tools.r8.throwErrorOnBackport") != null;
+  public boolean disableBackportsAndReportIfTriggered = false;
   // Flag to turn on/off reduction of nest to improve class merging optimizations.
   public boolean enableNestReduction = true;
   // Defines interface method rewriter behavior.
@@ -709,12 +707,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Flag to turn on/off processing of @dalvik.annotation.codegen.CovariantReturnType and
   // @dalvik.annotation.codegen.CovariantReturnType$CovariantReturnTypes.
   public boolean processCovariantReturnTypeAnnotations = true;
-  // Flag to control library/program class lookup order.
-  // TODO(120884788): Enable this flag as the default.
-  public boolean lookupLibraryBeforeProgram = false;
-  // TODO(120884788): Leave this system property as a stop-gap for some time.
-  // public boolean lookupLibraryBeforeProgram =
-  //     System.getProperty("com.android.tools.r8.lookupProgramBeforeLibrary") == null;
 
   public boolean enableEnqueuerDeferredTracing =
       System.getProperty("com.android.tools.r8.disableEnqueuerDeferredTracing") == null;
@@ -889,8 +881,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return testing.readInputStackMaps ? testing.readInputStackMaps : isGeneratingClassFiles();
   }
 
-  public boolean printCfg = false;
-  public String printCfgFile;
   public boolean ignoreMissingClasses = false;
   public boolean reportMissingClassesInEnclosingMethodAttribute = false;
   public boolean reportMissingClassesInInnerClassAttributes = false;
@@ -1076,6 +1066,46 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   private final Map<Origin, List<Pair<ProgramMethod, String>>> warningInvalidDebugInfo =
       new HashMap<>();
 
+  private Map<DexType, Pair<DexProgramClass, DexLibraryClass>> warningLibraryProgramDuplicates;
+
+  public void recordLibraryAndProgramDuplicate(
+      DexType type, DexProgramClass programClass, DexLibraryClass libraryClass) {
+    if (warningLibraryProgramDuplicates != null) {
+      warningLibraryProgramDuplicates.computeIfAbsent(
+          type, k -> new Pair<>(programClass, libraryClass));
+    }
+  }
+
+  public void prepareForReportingLibraryAndProgramDuplicates() {
+    warningLibraryProgramDuplicates = new ConcurrentHashMap<>();
+  }
+
+  public void reportLibraryAndProgramDuplicates(AppView<AppInfoWithLiveness> appViewWithLiveness) {
+    assert warningLibraryProgramDuplicates != null;
+    if (warningLibraryProgramDuplicates.isEmpty()) {
+      warningLibraryProgramDuplicates = null;
+      return;
+    }
+    List<DexType> sortedKeys =
+        ListUtils.sort(warningLibraryProgramDuplicates.keySet(), DexType::compareTo);
+    for (DexType key : sortedKeys) {
+      // If the type has been pruned from the program then don't issue a diagnostic.
+      if (DexProgramClass.asProgramClassOrNull(
+              appViewWithLiveness.appInfo().definitionForWithoutExistenceAssert(key))
+          == null) {
+        continue;
+      }
+      Pair<DexProgramClass, DexLibraryClass> classes = warningLibraryProgramDuplicates.get(key);
+      reporter.info(
+          new DuplicateTypeInProgramAndLibraryDiagnostic(
+              key.asClassReference(),
+              classes.getFirst().getOrigin(),
+              classes.getSecond().getOrigin()));
+    }
+    warningLibraryProgramDuplicates = null;
+    reporter.failIfPendingErrors();
+  }
+
   // Don't read code from dex files. Used to extract non-code information from vdex files where
   // the code contains unsupported byte codes.
   public boolean skipReadingDexCode = false;
@@ -1205,11 +1235,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   /** A set of dexitems we have reported missing to dedupe warnings. */
-  private final Set<DexItem> reportedMissingForDesugaring = Sets.newConcurrentHashSet();
+  private final Set<DexItem> reportedMissingForDesugaring = SetUtils.newConcurrentHashSet();
 
   private final AtomicBoolean reportedErrorReadingKotlinMetadataReflectively =
       new AtomicBoolean(false);
-  private final Set<DexItem> invalidLibraryClasses = Sets.newConcurrentHashSet();
+  private final Set<DexItem> invalidLibraryClasses = SetUtils.newConcurrentHashSet();
 
   public RuntimeException errorMissingNestHost(DexClass clazz) {
     throw reporter.fatalError(
@@ -2399,6 +2429,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean disableShortenLiveRanges = false;
 
+    public boolean emitDebugLocalStartBeforeDefaultEvent = false;
+
     // Option for testing outlining with interface array arguments, see b/132420510.
     public boolean allowOutlinerInterfaceArrayArguments = false;
 
@@ -2639,7 +2671,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean enableBackportedMethodRewriting() {
-    return desugarState.isOn() && minApiLevel.isLessThan(AndroidApiLevel.ANDROID_PLATFORM);
+    return desugarState.isOn();
   }
 
   public boolean enableTryWithResourcesDesugaring() {

@@ -7,10 +7,12 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import java.util.List;
 import org.junit.Before;
@@ -58,23 +60,25 @@ public class OutlineMappingInformationTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(TestClass.class, TestClass2.class, Greeter.class)
-        .addKeepMainRule(TestClass.class)
-        .addOptionsModification(
-            options -> {
-              options.outline.threshold = 2;
-              options.outline.minSize = 2;
-            })
-        .addKeepAttributeLineNumberTable()
-        .addKeepAttributeSourceFile()
-        .enableNoHorizontalClassMergingAnnotations()
-        .noHorizontalClassMergingOfSynthetics()
-        .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
-        .enableInliningAnnotations()
-        .setMinApi(parameters)
-        .compile()
+    R8TestCompileResult compileResult =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(TestClass.class, TestClass2.class, Greeter.class)
+            .addKeepMainRule(TestClass.class)
+            .addOptionsModification(
+                options -> {
+                  options.outline.threshold = 2;
+                  options.outline.minSize = 2;
+                })
+            .addKeepAttributeLineNumberTable()
+            .addKeepAttributeSourceFile()
+            .enableNoHorizontalClassMergingAnnotations()
+            .noHorizontalClassMergingOfSynthetics()
+            .addHorizontallyMergedClassesInspector(
+                HorizontallyMergedClassesInspector::assertNoClassesMerged)
+            .enableInliningAnnotations()
+            .setMinApi(parameters)
+            .compile();
+    compileResult
         .run(
             parameters.getRuntime(),
             TestClass.class,
@@ -91,6 +95,10 @@ public class OutlineMappingInformationTest extends TestBase {
               assertEquals(5, inspector.allClasses().size());
               assertEquals(expectedStackTrace, stackTrace);
             });
+    assertEquals(
+        4,
+        StringUtils.occurrences(
+            compileResult.getProguardMap(), "com.android.tools.r8.outlineCallsite"));
   }
 
   @NoHorizontalClassMerging

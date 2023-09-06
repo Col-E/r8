@@ -6,12 +6,10 @@ package com.android.tools.r8.ir.conversion.passes;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
@@ -34,6 +32,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.phis.EffectivelyTrivialPhiOptimization;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.BitSet;
@@ -213,34 +212,13 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
   // it with a block throwing a null value (which should result in NPE). Note that this throw is not
   // expected to be ever reached, but is intended to satisfy verifier.
   private boolean optimizeAlwaysThrowingInstructions(IRCode code) {
+    boolean hasChanged =
+        new EffectivelyTrivialPhiOptimization(appView, code).removeEffectivelyTrivialPhis();
     AffectedValues affectedValues = new AffectedValues();
     Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     ProgramMethod context = code.context();
     boolean hasUnlinkedCatchHandlers = false;
-    boolean hasChanged = false;
-    // For cyclic phis we sometimes do not propagate the dynamic upper type after rewritings.
-    // The inValue.isAlwaysNull(appView) check below will not recompute the dynamic type of phi's
-    // so we recompute all phis here if they are always null.
-    AppView<AppInfoWithClassHierarchy> appViewWithClassHierarchy =
-        appView.hasClassHierarchy() ? appView.withClassHierarchy() : null;
-    if (appViewWithClassHierarchy != null) {
-      code.blocks.forEach(
-          block ->
-              block
-                  .getPhis()
-                  .forEach(
-                      phi -> {
-                        if (!phi.getType().isDefinitelyNull()) {
-                          TypeElement dynamicUpperBoundType =
-                              phi.getDynamicUpperBoundType(appViewWithClassHierarchy);
-                          if (dynamicUpperBoundType.isDefinitelyNull()) {
-                            affectedValues.add(phi);
-                            phi.setType(dynamicUpperBoundType);
-                          }
-                        }
-                      }));
-    }
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (block.getNumber() != 0 && block.getPredecessors().isEmpty()) {

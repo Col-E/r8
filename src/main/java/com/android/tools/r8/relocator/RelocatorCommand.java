@@ -16,6 +16,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.PackageReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -38,7 +39,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 
 @Keep
@@ -70,7 +70,7 @@ public class RelocatorCommand {
   private final DexItemFactory factory;
   private final ClassFileConsumer consumer;
   private final AndroidApp app;
-  private final ImmutableMap<PackageReference, PackageReference> mapping;
+  private final RelocatorMapping mapping;
   private final int threadCount;
 
   private RelocatorCommand(boolean printHelp, boolean printVersion) {
@@ -85,7 +85,7 @@ public class RelocatorCommand {
   }
 
   private RelocatorCommand(
-      ImmutableMap<PackageReference, PackageReference> mapping,
+      RelocatorMapping mapping,
       AndroidApp app,
       Reporter reporter,
       DexItemFactory factory,
@@ -163,7 +163,7 @@ public class RelocatorCommand {
     return options;
   }
 
-  public Map<PackageReference, PackageReference> getMapping() {
+  public RelocatorMapping getMapping() {
     return mapping;
   }
 
@@ -172,7 +172,11 @@ public class RelocatorCommand {
 
     private final AndroidApp.Builder app;
     private final Reporter reporter;
-    private final ImmutableMap.Builder<PackageReference, PackageReference> mapping =
+    private final ImmutableMap.Builder<PackageReference, PackageReference> packageMapping =
+        ImmutableMap.builder();
+    private final ImmutableMap.Builder<ClassReference, ClassReference> classMapping =
+        ImmutableMap.builder();
+    private final ImmutableMap.Builder<PackageReference, PackageReference> subPackageMapping =
         ImmutableMap.builder();
     private ClassFileConsumer consumer = null;
     private int threadCount = ThreadUtils.NOT_SPECIFIED;
@@ -269,7 +273,17 @@ public class RelocatorCommand {
     }
 
     public Builder addPackageMapping(PackageReference source, PackageReference destination) {
-      mapping.put(source, destination);
+      packageMapping.put(source, destination);
+      return this;
+    }
+
+    public Builder addSubPackageMapping(PackageReference source, PackageReference destination) {
+      subPackageMapping.put(source, destination);
+      return this;
+    }
+
+    public Builder addClassMapping(ClassReference source, ClassReference destination) {
+      classMapping.put(source, destination);
       return this;
     }
 
@@ -309,7 +323,13 @@ public class RelocatorCommand {
             DexItemFactory factory = new DexItemFactory();
             result.set(
                 new RelocatorCommand(
-                    mapping.build(), app.build(), reporter, factory, consumer, threadCount));
+                    RelocatorMapping.create(
+                        packageMapping.build(), classMapping.build(), subPackageMapping.build()),
+                    app.build(),
+                    reporter,
+                    factory,
+                    consumer,
+                    threadCount));
           });
       return result.get();
     }
@@ -409,10 +429,9 @@ public class RelocatorCommand {
                   new StringDiagnostic("--map " + nextArg + " is not on the form from->to"));
               continue;
             }
-            // TODO(b/155047633): Handle invalid package names.
-            builder.addPackageMapping(
-                Reference.packageFromString(nextArg.substring(0, separator)),
-                Reference.packageFromString(nextArg.substring(separator + 2)));
+            String source = nextArg.substring(0, separator);
+            String destination = nextArg.substring(separator + 2);
+            addMapping(source, destination, builder);
             break;
           default:
             builder.error(new StringDiagnostic("Unknown argument: " + arg, origin));
@@ -423,6 +442,21 @@ public class RelocatorCommand {
       }
       builder.setOutputPath(outputPath);
       return builder;
+    }
+
+    public static void addMapping(String source, String destination, Builder builder) {
+      if (source.endsWith(".**")) {
+        builder.addSubPackageMapping(
+            Reference.packageFromString(source.substring(0, source.length() - 3)),
+            Reference.packageFromString(destination));
+      } else if (source.endsWith(".*")) {
+        builder.addPackageMapping(
+            Reference.packageFromString(source.substring(0, source.length() - 2)),
+            Reference.packageFromString(destination));
+      } else {
+        builder.addClassMapping(
+            Reference.classFromTypeName(source), Reference.classFromTypeName(destination));
+      }
     }
   }
 }

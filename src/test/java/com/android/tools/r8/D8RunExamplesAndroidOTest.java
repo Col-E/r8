@@ -41,11 +41,8 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
           ToolHelper.getAndroidJar(
               androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion.getLevel()));
       builder.addProgramFiles(inputFile);
+      visitFiles(getLegacyClassesRoot(inputFile, packageName), builder::addProgramFiles);
       ToolHelper.runD8(builder, this::combinedOptionConsumer);
-    }
-
-    D8TestRunner withIntermediate(boolean intermediate) {
-      return withBuilderTransformation(builder -> builder.setIntermediate(intermediate));
     }
 
     @Override

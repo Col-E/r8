@@ -20,8 +20,8 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaring;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.WorkList;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
@@ -45,7 +45,7 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
     this.isLiveMethod = isLiveMethod;
     this.wrapperSynthesizor = new DesugaredLibraryWrapperSynthesizer(appView);
     if (appView.options().testing.trackDesugaredAPIConversions) {
-      trackedCallBackAPIs = Sets.newConcurrentHashSet();
+      trackedCallBackAPIs = SetUtils.newConcurrentHashSet();
     } else {
       trackedCallBackAPIs = null;
     }

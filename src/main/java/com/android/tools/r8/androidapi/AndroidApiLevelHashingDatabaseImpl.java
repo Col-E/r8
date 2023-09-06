@@ -5,7 +5,6 @@
 package com.android.tools.r8.androidapi;
 
 import static com.android.tools.r8.lightir.ByteUtils.isU2;
-import static com.android.tools.r8.utils.AndroidApiLevel.ANDROID_PLATFORM;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.graph.DexField;
@@ -20,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDatabase {
@@ -125,7 +125,8 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
     return (byte) value;
   }
 
-  private final Map<DexReference, AndroidApiLevel> lookupCache = new ConcurrentHashMap<>();
+  private final Map<DexReference, Optional<AndroidApiLevel>> lookupCache =
+      new ConcurrentHashMap<>();
   private final Map<DexString, Integer> constantPoolCache = new ConcurrentHashMap<>();
   private final InternalOptions options;
   private final DiagnosticsHandler diagnosticsHandler;
@@ -154,7 +155,8 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
           // Do not use computeIfAbsent since a return value of null implies the key should not be
           // inserted.
           lookupCache.put(
-              predefinedApiReference.getReference(), predefinedApiReference.getApiLevel());
+              predefinedApiReference.getReference(),
+              Optional.of(predefinedApiReference.getApiLevel()));
         });
     assert predefinedApiTypeLookup.stream()
         .allMatch(added -> added.getApiLevel().isEqualTo(lookupApiLevel(added.getReference())));
@@ -176,9 +178,7 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
   }
 
   private AndroidApiLevel lookupApiLevel(DexReference reference) {
-    // We use Android platform to track if an element is unknown since no occurrences of that api
-    // level exists in the database.
-    AndroidApiLevel result =
+    Optional<AndroidApiLevel> result =
         lookupCache.computeIfAbsent(
             reference,
             ref -> {
@@ -187,7 +187,7 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
                 getDataAccess(options, diagnosticsHandler);
               }
               if (dataAccess.isNoBacking()) {
-                return ANDROID_PLATFORM;
+                return Optional.empty();
               }
               byte[] uniqueDescriptorForReference;
               try {
@@ -201,15 +201,15 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
                 uniqueDescriptorForReference = getNonExistingDescriptor();
               }
               if (uniqueDescriptorForReference == getNonExistingDescriptor()) {
-                return ANDROID_PLATFORM;
+                return Optional.empty();
               } else {
                 byte apiLevelForReference =
                     dataAccess.getApiLevelForReference(uniqueDescriptorForReference, ref);
                 return (apiLevelForReference <= 0)
-                    ? ANDROID_PLATFORM
-                    : AndroidApiLevel.getAndroidApiLevel(apiLevelForReference);
+                    ? Optional.empty()
+                    : Optional.of(AndroidApiLevel.getAndroidApiLevel(apiLevelForReference));
               }
             });
-    return result == ANDROID_PLATFORM ? null : result;
+    return result.orElse(null);
   }
 }

@@ -3956,7 +3956,7 @@ public class Enqueuer {
 
     public void injectInterface(DexProgramClass clazz, DexClass newInterface) {
       Set<DexClass> newInterfaces =
-          injectedInterfaces.computeIfAbsent(clazz, ignored -> Sets.newConcurrentHashSet());
+          injectedInterfaces.computeIfAbsent(clazz, ignored -> SetUtils.newConcurrentHashSet());
       newInterfaces.add(newInterface);
     }
 

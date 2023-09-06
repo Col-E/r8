@@ -252,7 +252,7 @@ public class RecordProfileRewritingTest extends TestBase {
 
     // int hashCode()
     ClassSubject hashCodeHelperClassSubject =
-        inspector.clazz(SyntheticItemsTestUtils.syntheticRecordHelperClass(PERSON_REFERENCE, 0));
+        inspector.clazz(SyntheticItemsTestUtils.syntheticRecordHelperClass(PERSON_REFERENCE, 1));
     assertThat(hashCodeHelperClassSubject, notIf(isPresent(), canUseRecords));
 
     MethodSubject hashCodeHelperMethodSubject = hashCodeHelperClassSubject.uniqueMethod();
@@ -269,7 +269,7 @@ public class RecordProfileRewritingTest extends TestBase {
 
     // String toString()
     ClassSubject toStringHelperClassSubject =
-        inspector.clazz(SyntheticItemsTestUtils.syntheticRecordHelperClass(PERSON_REFERENCE, 1));
+        inspector.clazz(SyntheticItemsTestUtils.syntheticRecordHelperClass(PERSON_REFERENCE, 0));
     assertThat(toStringHelperClassSubject, notIf(isPresent(), canUseRecords));
 
     MethodSubject toStringHelperMethodSubject = toStringHelperClassSubject.uniqueMethod();

@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compilerapi;
 
-import static com.android.tools.r8.ToolHelper.R8LIB_JAR;
-import static com.android.tools.r8.ToolHelper.R8_JAR;
 import static com.android.tools.r8.ToolHelper.isTestingR8Lib;
 
 import com.android.tools.r8.ToolHelper;
@@ -113,7 +111,7 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
   // The API tests always link against the jar that the test runner is using.
   @Override
   public Path getTargetJar() {
-    return isTestingR8Lib() ? R8LIB_JAR : R8_JAR;
+    return ToolHelper.getR8MainPath();
   }
 
   // Some tests expectations can depend on the lib/nonlib and internal/external behavior.

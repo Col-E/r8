@@ -37,9 +37,9 @@ import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Set;
 import org.objectweb.asm.Opcodes;
@@ -57,7 +57,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
     final AndroidApiLevel supportedApiLevel;
     // TODO(b/237250957): Using ConcurrentHashMap.newKeySet() causes failures on:
     //  HelloWorldCompiledOnArtTest.testHelloCompiledWithX8Dex[Y, api:21, spec: JDK8, D8_L8DEBUG]
-    final Set<DexMethod> reported = Sets.newConcurrentHashSet();
+    final Set<DexMethod> reported = SetUtils.newConcurrentHashSet();
 
     InstructionMatcher(AppView<?> appView, String descriptor, AndroidApiLevel supportedApiLevel) {
       this.appView = appView;

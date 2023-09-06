@@ -249,7 +249,6 @@ public class StringOptimizer extends CodeRewriterPass<AppInfo> {
     }
     // Computed substring is not null, and thus propagate that information.
     affectedValues.narrowingWithAssumeRemoval(appView, code);
-    assert code.isConsistentSSA(appView);
     return hasChanged;
   }
 
@@ -411,7 +410,6 @@ public class StringOptimizer extends CodeRewriterPass<AppInfo> {
     // Computed name is not null or literally null (for canonical name of local/anonymous class).
     // In either way, that is narrower information, and thus propagate that.
     affectedValues.narrowingWithAssumeRemoval(appView, code);
-    assert code.isConsistentSSA(appView);
     return hasChanged;
   }
 
@@ -478,7 +476,6 @@ public class StringOptimizer extends CodeRewriterPass<AppInfo> {
     // Newly added "null" string is not null, and thus propagate that information.
     affectedValues.narrowingWithAssumeRemoval(appView, code);
     code.removeRedundantBlocks();
-    assert code.isConsistentSSA(appView);
     return hasChanged;
   }
 

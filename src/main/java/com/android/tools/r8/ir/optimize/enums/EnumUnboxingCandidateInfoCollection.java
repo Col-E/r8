@@ -18,7 +18,6 @@ import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -30,7 +29,7 @@ public class EnumUnboxingCandidateInfoCollection {
 
   private final Map<DexType, EnumUnboxingCandidateInfo> enumTypeToInfo = new ConcurrentHashMap<>();
   private final Map<DexType, DexType> subEnumToSuperEnumMap = new IdentityHashMap<>();
-  private final Set<DexMethod> prunedMethods = Sets.newConcurrentHashSet();
+  private final Set<DexMethod> prunedMethods = SetUtils.newConcurrentHashSet();
 
   public void addCandidate(
       AppView<AppInfoWithLiveness> appView,
@@ -167,7 +166,7 @@ public class EnumUnboxingCandidateInfoCollection {
 
     private final DexProgramClass enumClass;
     private final LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodDependencies;
-    private final Set<DexField> requiredInstanceFieldData = Sets.newConcurrentHashSet();
+    private final Set<DexField> requiredInstanceFieldData = SetUtils.newConcurrentHashSet();
 
     private Set<DexProgramClass> subclasses = null;
 

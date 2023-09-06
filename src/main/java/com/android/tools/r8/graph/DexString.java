@@ -43,6 +43,28 @@ public class DexString extends IndexedDexItem
     return (char) content[0];
   }
 
+  public boolean isEqualTo(String string) {
+    if (size != string.length()) {
+      return false;
+    }
+    int index = 0;
+    ThrowingCharIterator<UTFDataFormatException> iterator = iterator();
+    while (iterator.hasNext()) {
+      int c;
+      try {
+        c = iterator.nextChar();
+      } catch (UTFDataFormatException e) {
+        return false;
+      }
+      if (c != string.charAt(index)) {
+        return false;
+      }
+      index++;
+    }
+    assert index == size;
+    return true;
+  }
+
   @Override
   public DexString self() {
     return this;
@@ -75,6 +97,21 @@ public class DexString extends IndexedDexItem
 
   @Override
   public void acceptHashing(HashingVisitor visitor) {
+    visitor.visitDexString(this);
+  }
+
+  @Override
+  public LirConstantOrder getLirConstantOrder() {
+    return LirConstantOrder.STRING;
+  }
+
+  @Override
+  public int internalLirConstantAcceptCompareTo(LirConstant other, CompareToVisitor visitor) {
+    return acceptCompareTo((DexString) other, visitor);
+  }
+
+  @Override
+  public void internalLirConstantAcceptHashing(HashingVisitor visitor) {
     visitor.visitDexString(this);
   }
 
@@ -451,10 +488,32 @@ public class DexString extends IndexedDexItem
     // Copy bytes over to avoid decoding/encoding cost.
     // Each string ends with a 0 terminating byte, hence the +/- 1.
     // Maintain the [[ at the beginning for array dimensions.
+    assert prefix.startsWith("L") && rewrittenPrefix.startsWith("L");
+    if (prefix.equals(rewrittenPrefix)) {
+      return this;
+    }
+    // When concatinating two paths, we may end up adding a separator or removing a separator.
+    // 'L' -> 'Lfoo/bar', for a string 'Lbaz/Qux' the result should be 'Lfoo/bar' + '/' + 'baz/Qux'.
+    // 'Lfoo' -> 'L', for a string 'Lfoo/Qux' the result should be 'L' + Qux', thus we remove a '/'.
+    boolean insertSeparator =
+        prefix.size == 1 && !rewrittenPrefix.endsWith(factory.descriptorSeparator);
+    boolean removeSeparator =
+        rewrittenPrefix.size == 1 && !prefix.endsWith(factory.descriptorSeparator);
+    int sizeAdjustment = 0;
+    if (insertSeparator) {
+      sizeAdjustment += 1;
+    } else if (removeSeparator) {
+      sizeAdjustment -= 1;
+    }
     int arrayDim = getArrayDim();
-    int newSize = rewrittenPrefix.size + this.size - prefix.size;
+    // In the case that prefix is 'L' we also insert a separator '/' after the destination
+    int newSize = rewrittenPrefix.size + this.size - prefix.size + sizeAdjustment;
     byte[] newContent =
-        new byte[rewrittenPrefix.content.length + this.content.length - prefix.content.length];
+        new byte
+            [rewrittenPrefix.content.length
+                + this.content.length
+                - prefix.content.length
+                + sizeAdjustment];
     // Write array dim.
     for (int i = 0; i < arrayDim; i++) {
       newContent[i] = ARRAY_CHARACTER;
@@ -462,13 +521,18 @@ public class DexString extends IndexedDexItem
     // Write new prefix.
     System.arraycopy(
         rewrittenPrefix.content, 0, newContent, arrayDim, rewrittenPrefix.content.length - 1);
+    // Account for target being an empty string as to not start the descriptor with '/'.
+    int prefixIndex = prefix.content.length - 1;
+    int rewrittenIndex = rewrittenPrefix.content.length - 1;
+    if (removeSeparator) {
+      prefixIndex += 1;
+    } else if (insertSeparator) {
+      newContent[rewrittenIndex] = '/';
+      rewrittenIndex += 1;
+    }
     // Write existing name - old prefix.
     System.arraycopy(
-        this.content,
-        prefix.content.length - 1,
-        newContent,
-        rewrittenPrefix.content.length - 1,
-        this.content.length - prefix.content.length + 1);
+        this.content, prefixIndex, newContent, rewrittenIndex, this.content.length - prefixIndex);
     return factory.createString(newSize, newContent);
   }
 

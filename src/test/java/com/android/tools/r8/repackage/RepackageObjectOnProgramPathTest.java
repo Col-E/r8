@@ -40,7 +40,7 @@ public class RepackageObjectOnProgramPathTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addDontWarn("*")
         .addKeepClassRules(Object.class)
-        .allowDiagnosticWarningMessages()
+        .allowDiagnosticMessages()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A::foo");
   }

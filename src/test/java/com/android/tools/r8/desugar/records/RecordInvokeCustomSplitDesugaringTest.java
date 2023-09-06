@@ -5,11 +5,14 @@
 package com.android.tools.r8.desugar.records;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.errors.DuplicateTypeInProgramAndLibraryDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
@@ -83,17 +86,24 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
         .addKeepMainRule(MAIN_TYPE)
         .applyIf(
             parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U),
-            b -> b.allowDiagnosticWarningMessages())
+            b -> b.allowDiagnosticMessages())
         .compileWithExpectedDiagnostics(
             // Type com.android.tools.r8.RecordTag from desugared code will be converted to
             // java.lang.Record during reading causing duplicate java.lang.Record class.
             parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U)
                 ? diagnostics ->
-                    diagnostics.assertWarningsMatch(
-                        diagnosticMessage(
-                            containsString(
-                                "The following library types, prefixed by java., are present both"
-                                    + " as library and non library classes: java.lang.Record.")))
+                    diagnostics
+                        .assertWarningsMatch(
+                            diagnosticMessage(
+                                containsString(
+                                    "The following library types, prefixed by java., are present"
+                                        + " both as library and non library classes:"
+                                        + " java.lang.Record.")))
+                        .assertInfosMatch(
+                            allOf(
+                                diagnosticType(DuplicateTypeInProgramAndLibraryDiagnostic.class),
+                                diagnosticMessage(containsString("java.lang.Record"))))
+                        .assertNoErrors()
                 : diagnostics -> diagnostics.assertNoMessages())
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_R8);

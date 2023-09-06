@@ -36,6 +36,8 @@ public abstract class HashingVisitor {
     visitItemIterator(items.iterator(), S::acceptHashing);
   }
 
+  public abstract void visitJavaString(String string);
+
   public abstract void visitDexString(DexString string);
 
   public abstract void visitDexType(DexType type);

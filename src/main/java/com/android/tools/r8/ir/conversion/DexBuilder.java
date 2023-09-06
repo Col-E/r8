@@ -65,6 +65,7 @@ import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.TrivialGotosCollapser;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.lightir.ByteUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.google.common.collect.BiMap;
@@ -339,7 +340,7 @@ public class DexBuilder {
     }
 
     // Construct try-catch info.
-    TryInfo tryInfo = computeTryInfo();
+    TryInfo tryInfo = computeTryInfo(dexInstructions);
 
     // Return the dex code.
     DexCode code =
@@ -825,11 +826,13 @@ public class DexBuilder {
 
   // Helpers for computing the try items and handlers.
 
-  private TryInfo computeTryInfo() {
+  private TryInfo computeTryInfo(List<DexInstruction> dexInstructions) {
     // Canonical map of handlers.
     BiMap<CatchHandlers<BasicBlock>, Integer> canonicalHandlers = HashBiMap.create();
     // Compute the list of try items and their handlers.
     List<TryItem> tryItems = computeTryItems(canonicalHandlers);
+    // Split the try items if they overflow the range limit.
+    tryItems = splitOverflowingRanges(tryItems, dexInstructions);
     // Compute handler sets before dex items which depend on the handler index.
     Try[] tries = getDexTryItems(tryItems, canonicalHandlers);
     TryHandler[] handlers = getDexTryHandlers(canonicalHandlers.inverse());
@@ -914,6 +917,65 @@ public class DexBuilder {
     int lastIndex = tryItems.size() - 1;
     item.end = trimEnd(blocksWithHandlers.get(lastIndex));
     return coalescedTryItems;
+  }
+
+  private static int numberOfOverflowingRanges(List<TryItem> tryItems) {
+    int numberOfOverflows = 0;
+    for (TryItem tryItem : tryItems) {
+      int instructionCount = tryItem.end - tryItem.start;
+      while (instructionCount > ByteUtils.MAX_U2) {
+        ++numberOfOverflows;
+        instructionCount -= ByteUtils.MAX_U2;
+      }
+    }
+    return numberOfOverflows;
+  }
+
+  // Note: this algorithm should be aligned with JumboStringRewriter.rewriteSplitTryOffsets.
+  private List<TryItem> splitOverflowingRanges(
+      List<TryItem> tryItems, List<DexInstruction> dexInstructions) {
+    // The fast path is that there will not be any overflows.
+    int overflows = numberOfOverflowingRanges(tryItems);
+    if (overflows == 0) {
+      return tryItems;
+    }
+    // The overflow may not fall on an instruction header, so we add a single entry just in case.
+    // Multiple try items overflowing is unlikely so that just causes reallocating the backing.
+    int tentativeCapacity = tryItems.size() + overflows + 1;
+    ArrayList<TryItem> splitTryItems = new ArrayList<>(tentativeCapacity);
+    for (TryItem tryItem : tryItems) {
+      if (tryItem.end - tryItem.start <= ByteUtils.MAX_U2) {
+        splitTryItems.add(tryItem);
+        continue;
+      }
+      final CatchHandlers<BasicBlock> handlers = tryItem.handlers;
+      final int end = tryItem.end;
+      // The iteration is based on the start offset advancing on each split.
+      int start = tryItem.start;
+      while (end - start > ByteUtils.MAX_U2) {
+        // Find a new end that does not overflow the U2 limit on the delta.
+        // It must be on an instruction offset so scan backwards in the block to find one.
+        int maxOffset = start + ByteUtils.MAX_U2;
+        assert maxOffset < end;
+        int intermediateEnd = -1;
+        for (int i = dexInstructions.size() - 1; i >= 0; i--) {
+          DexInstruction instruction = dexInstructions.get(i);
+          if (instruction.getOffset() <= maxOffset) {
+            intermediateEnd = instruction.getOffset();
+            break;
+          }
+        }
+        if (intermediateEnd <= start) {
+          throw new Unreachable("Unexpected try-catch handler end point: " + intermediateEnd);
+        }
+        splitTryItems.add(new TryItem(handlers, start, intermediateEnd));
+        start = intermediateEnd;
+      }
+      assert start < end;
+      splitTryItems.add(new TryItem(handlers, start, end));
+    }
+    assert splitTryItems.size() >= tryItems.size() + overflows;
+    return splitTryItems;
   }
 
   private int trimEnd(BasicBlock block) {

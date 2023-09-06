@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ProgramPackage;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
@@ -202,7 +203,7 @@ public class RepackagingConstraintGraph {
   static class Node {
 
     private final DexDefinition definitionForDebugging;
-    private final Set<Node> neighbors = Sets.newConcurrentHashSet();
+    private final Set<Node> neighbors = SetUtils.newConcurrentHashSet();
 
     Node(DexDefinition definitionForDebugging) {
       this.definitionForDebugging = definitionForDebugging;

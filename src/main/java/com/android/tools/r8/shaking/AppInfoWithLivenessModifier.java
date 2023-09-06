@@ -8,14 +8,14 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
-import com.google.common.collect.Sets;
+import com.android.tools.r8.utils.SetUtils;
 import java.util.Set;
 
 /** Used to mutate AppInfoWithLiveness between waves. */
 public class AppInfoWithLivenessModifier {
 
-  private final Set<DexProgramClass> noLongerInstantiatedClasses = Sets.newConcurrentHashSet();
-  private final Set<DexField> noLongerWrittenFields = Sets.newConcurrentHashSet();
+  private final Set<DexProgramClass> noLongerInstantiatedClasses = SetUtils.newConcurrentHashSet();
+  private final Set<DexField> noLongerWrittenFields = SetUtils.newConcurrentHashSet();
 
   AppInfoWithLivenessModifier() {}
 

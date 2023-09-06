@@ -412,11 +412,6 @@ public abstract class Instruction
    */
   public abstract boolean identicalNonValueNonPositionParts(Instruction other);
 
-  public boolean identicalNonValueParts(Instruction other) {
-    assert getClass() == other.getClass();
-    return position.equals(other.position) && identicalNonValueNonPositionParts(other);
-  }
-
   private boolean identicalInputAfterRegisterAllocation(
       Value a,
       int aInstrNumber,
@@ -504,18 +499,29 @@ public abstract class Instruction
     return a.outType() == b.outType();
   }
 
+  protected boolean identicalNonValueParts(Instruction other, RegisterAllocator allocator) {
+    assert getClass() == other.getClass();
+    if (!identicalNonValueNonPositionParts(other)) {
+      return false;
+    }
+    return identicalPosition(other, allocator);
+  }
+
+  protected final boolean identicalPosition(Instruction other, RegisterAllocator allocator) {
+    // In debug mode or if the instruction can throw we must account for positions, in release mode
+    // we do want to share non-throwing instructions even if their positions differ.
+    if (instructionTypeCanThrow() || allocator.options().debug) {
+      return position.equals(other.position);
+    }
+    return true;
+  }
+
   public boolean identicalAfterRegisterAllocation(
       Instruction other, RegisterAllocator allocator, MethodConversionOptions conversionOptions) {
     if (other.getClass() != getClass()) {
       return false;
     }
-    // In debug mode or if the instruction can throw we must account for positions, in release mode
-    // we do want to share non-throwing instructions even if their positions differ.
-    if (instructionTypeCanThrow() || allocator.options().debug) {
-      if (!identicalNonValueParts(other)) {
-        return false;
-      }
-    } else if (!identicalNonValueNonPositionParts(other)) {
+    if (!identicalNonValueParts(other, allocator)) {
       return false;
     }
     if (isInvokeDirect() && !asInvokeDirect().sameConstructorReceiverValue(other.asInvoke())) {

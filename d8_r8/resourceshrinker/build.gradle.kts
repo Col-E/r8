@@ -25,6 +25,7 @@ fun jarDependencies() : FileCollection {
     .compileClasspath
     .filter({ "$it".contains("third_party")
               && "$it".contains("dependencies")
+              && !"$it".contains("errorprone")
     })
 }
 
@@ -54,8 +55,6 @@ tasks {
   }
 
   val depsJar by registering(Jar::class) {
-    println(header("Resource shrinker dependencies"))
-    jarDependencies().forEach({ println(it) })
     from(jarDependencies().map(::zipTree))
     exclude("**/*.proto")
     exclude("versions-offline/**")

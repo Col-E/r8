@@ -40,6 +40,11 @@ import com.android.tools.r8.lightir.LirCode.TryCatchTable;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -97,7 +102,8 @@ public class LirBuilder<V, EV> {
    * <p>The instruction encoding assumes the instruction operand payload size is u1, so the data
    * payload is stored in the constant pool instead.
    */
-  public static class FillArrayPayload extends InstructionPayload {
+  public static class FillArrayPayload extends InstructionPayload
+      implements StructuralItem<FillArrayPayload> {
     public final int element_width;
     public final long size;
     public final short[] data;
@@ -127,11 +133,45 @@ public class LirBuilder<V, EV> {
       result = 31 * result + Arrays.hashCode(data);
       return result;
     }
+
+    @Override
+    public FillArrayPayload self() {
+      return this;
+    }
+
+    @Override
+    public StructuralMapping<FillArrayPayload> getStructuralMapping() {
+      return FillArrayPayload::specify;
+    }
+
+    private static void specify(StructuralSpecification<FillArrayPayload, ?> spec) {
+      spec.withInt(s -> s.element_width).withLong(s -> s.size).withShortArray(s -> s.data);
+    }
+
+    @Override
+    public LirConstantOrder getLirConstantOrder() {
+      return LirConstantOrder.FILL_ARRAY;
+    }
+
+    @Override
+    public int internalLirConstantAcceptCompareTo(LirConstant other, CompareToVisitor visitor) {
+      return acceptCompareTo((FillArrayPayload) other, visitor);
+    }
+
+    @Override
+    public void internalLirConstantAcceptHashing(HashingVisitor visitor) {
+      acceptHashing(visitor);
+    }
   }
 
-  public static class IntSwitchPayload extends InstructionPayload {
+  public static class IntSwitchPayload extends InstructionPayload
+      implements StructuralItem<IntSwitchPayload> {
     public final int[] keys;
     public final int[] targets;
+
+    private static void specify(StructuralSpecification<IntSwitchPayload, ?> spec) {
+      spec.withIntArray(s -> s.keys).withIntArray(s -> s.targets);
+    }
 
     public IntSwitchPayload(int[] keys, int[] targets) {
       assert keys.length == targets.length;
@@ -156,9 +196,35 @@ public class LirBuilder<V, EV> {
       result = 31 * result + Arrays.hashCode(targets);
       return result;
     }
+
+    @Override
+    public IntSwitchPayload self() {
+      return this;
+    }
+
+    @Override
+    public StructuralMapping<IntSwitchPayload> getStructuralMapping() {
+      return IntSwitchPayload::specify;
+    }
+
+    @Override
+    public LirConstantOrder getLirConstantOrder() {
+      return LirConstantOrder.INT_SWITCH;
+    }
+
+    @Override
+    public int internalLirConstantAcceptCompareTo(LirConstant other, CompareToVisitor visitor) {
+      return acceptCompareTo((IntSwitchPayload) other, visitor);
+    }
+
+    @Override
+    public void internalLirConstantAcceptHashing(HashingVisitor visitor) {
+      acceptHashing(visitor);
+    }
   }
 
-  public static class StringSwitchPayload extends InstructionPayload {
+  public static class StringSwitchPayload extends InstructionPayload
+      implements StructuralItem<StringSwitchPayload> {
     public final int[] keys;
     public final int[] targets;
 
@@ -185,6 +251,35 @@ public class LirBuilder<V, EV> {
       result = 31 * result + Arrays.hashCode(targets);
       return result;
     }
+
+    private static void specify(StructuralSpecification<StringSwitchPayload, ?> spec) {
+      spec.withIntArray(s -> s.keys).withIntArray(s -> s.targets);
+    }
+
+    @Override
+    public StringSwitchPayload self() {
+      return this;
+    }
+
+    @Override
+    public StructuralMapping<StringSwitchPayload> getStructuralMapping() {
+      return StringSwitchPayload::specify;
+    }
+
+    @Override
+    public LirConstantOrder getLirConstantOrder() {
+      return LirConstantOrder.STRING_SWITCH;
+    }
+
+    @Override
+    public void internalLirConstantAcceptHashing(HashingVisitor visitor) {
+      acceptHashing(visitor);
+    }
+
+    @Override
+    public int internalLirConstantAcceptCompareTo(LirConstant other, CompareToVisitor visitor) {
+      return acceptCompareTo((StringSwitchPayload) other, visitor);
+    }
   }
 
   public static class NameComputationPayload extends InstructionPayload {
@@ -208,6 +303,19 @@ public class LirBuilder<V, EV> {
     public int hashCode() {
       return nameComputationInfo != null ? nameComputationInfo.hashCode() : 0;
     }
+
+    @Override
+    public LirConstantOrder getLirConstantOrder() {
+      return LirConstantOrder.NAME_COMPUTATION;
+    }
+
+    @Override
+    public int internalLirConstantAcceptCompareTo(LirConstant other, CompareToVisitor visitor) {
+      return 0;
+    }
+
+    @Override
+    public void internalLirConstantAcceptHashing(HashingVisitor visitor) {}
   }
 
   public static class RecordFieldValuesPayload extends InstructionPayload {
@@ -230,7 +338,22 @@ public class LirBuilder<V, EV> {
 
     @Override
     public int hashCode() {
-      return Arrays.hashCode(fields);
+        return Arrays.hashCode(fields);
+    }
+
+    @Override
+    public LirConstantOrder getLirConstantOrder() {
+      return LirConstantOrder.RECORD_FIELD_VALUES;
+    }
+
+    @Override
+    public int internalLirConstantAcceptCompareTo(LirConstant other, CompareToVisitor visitor) {
+      return visitor.visitItemArray(fields, ((RecordFieldValuesPayload) other).fields);
+    }
+
+    @Override
+    public void internalLirConstantAcceptHashing(HashingVisitor visitor) {
+      visitor.visitItemArray(fields);
     }
   }
 

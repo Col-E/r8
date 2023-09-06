@@ -159,6 +159,9 @@ public class DexDebugEventBuilder {
     for (Entry<DebugLocalInfo> entry : locals.int2ReferenceEntrySet()) {
       if (entry.getValue().signature == null) {
         emittedLocals.put(entry.getIntKey(), entry.getValue());
+      } else if (options.testing.emitDebugLocalStartBeforeDefaultEvent) {
+        events.add(new StartLocal(entry.getIntKey(), entry.getValue()));
+        emittedLocals.put(entry.getIntKey(), entry.getValue());
       }
     }
     lastKnownLocals = new Int2ReferenceOpenHashMap<>(emittedLocals);
@@ -258,9 +261,13 @@ public class DexDebugEventBuilder {
         nextPosition.getCallerPosition() != previousPosition.getCallerPosition()
             || nextPosition.getMethod() != previousPosition.getMethod();
     boolean isOutline = nextPosition.isOutline();
-    boolean isOutlineCallee =
-        nextPosition.getOutlineCallee() != null && !nextPosition.getOutlinePositions().isEmpty();
-    if (isNewPosition || isOutline || isOutlineCallee) {
+    boolean isOutlineCallerWithInfo =
+        nextPosition.isOutlineCaller()
+            && nextPosition.getOutlineCallee() != null
+            && !nextPosition.getOutlinePositions().isEmpty();
+    boolean isNoLongerOutlineCaller =
+        previousPosition.isOutlineCaller() && !nextPosition.isOutlineCaller();
+    if (isNewPosition || isOutline || isOutlineCallerWithInfo || isNoLongerOutlineCaller) {
       events.add(factory.createPositionFrame(nextPosition));
     }
     addDefaultEventWithAdvancePcIfNecessary(lineDelta, pcDelta, events, factory);

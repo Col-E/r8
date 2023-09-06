@@ -64,7 +64,7 @@ public class D8ApiBinaryCompatibilityTests extends TestBase {
     // It is important to place the api usage sample jar after the current classpath because we want
     // to find D8/R8 classes before the ones in the jar, otherwise renamed classes and fields cannot
     // be found.
-    String classPath = System.getProperty("java.class.path") + File.pathSeparator + jar.toString();
+    String classPath = System.getProperty("java.class.path") + File.pathSeparator + jar;
     List<String> command =
         ImmutableList.<String>builder()
             .addAll(

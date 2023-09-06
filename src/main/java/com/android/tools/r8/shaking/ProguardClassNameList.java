@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -19,7 +20,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 public abstract class ProguardClassNameList {
 
@@ -300,10 +300,7 @@ public abstract class ProguardClassNameList {
 
     @Override
     protected Iterable<ProguardWildcard> getWildcards() {
-      return classNames.stream()
-          .map(ProguardTypeMatcher::getWildcards)
-          .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
-          ::iterator;
+      return IterableUtils.flatMap(classNames, ProguardTypeMatcher::getWildcards);
     }
 
     @Override
@@ -396,10 +393,7 @@ public abstract class ProguardClassNameList {
 
     @Override
     protected Iterable<ProguardWildcard> getWildcards() {
-      return classNames.keySet().stream()
-          .map(ProguardTypeMatcher::getWildcards)
-          .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
-          ::iterator;
+      return IterableUtils.flatMap(classNames.keySet(), ProguardTypeMatcher::getWildcards);
     }
 
     @Override

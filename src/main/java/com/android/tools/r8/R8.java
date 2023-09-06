@@ -265,6 +265,7 @@ public class R8 {
       System.out.println("R8 is running with free memory:" + runtime.freeMemory());
       System.out.println("R8 is running with max memory:" + runtime.maxMemory());
     }
+    options.prepareForReportingLibraryAndProgramDuplicates();
     try {
       AppView<AppInfoWithClassHierarchy> appView;
       {
@@ -436,6 +437,8 @@ public class R8 {
 
       assert appView.appInfo().hasLiveness();
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+
+      options.reportLibraryAndProgramDuplicates(appViewWithLiveness);
 
       new CfOpenClosedInterfacesAnalysis(appViewWithLiveness).run(executorService);
 
@@ -710,14 +713,14 @@ public class R8 {
           appView.getArtProfileCollection().withoutMissingItems(appView));
       appView.setStartupProfile(appView.getStartupProfile().withoutMissingItems(appView));
 
-      // TODO(b/225838009): Support LIR in synthetic finalization (needs hashing and compareTo).
-      PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
-
       if (appView.appInfo().hasLiveness()) {
         SyntheticFinalization.finalizeWithLiveness(appView.withLiveness(), executorService, timing);
       } else {
         SyntheticFinalization.finalizeWithClassHierarchy(appView, executorService, timing);
       }
+
+      // TODO(b/225838009): Move further down.
+      PrimaryR8IRConverter.finalizeLirToOutputFormat(appView, timing, executorService);
 
       // Read any -applymapping input to allow for repackaging to not relocate the classes.
       timing.begin("read -applymapping file");

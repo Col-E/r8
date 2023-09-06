@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import static com.android.tools.r8.errors.StartupClassesOverflowDiagnostic.Factory.createStartupClassesOverflowDiagnostic;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.debuginfo.DebugRepresentation;
@@ -24,10 +26,8 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.lens.GraphLens;
-import com.android.tools.r8.graph.lens.InitClassLens;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.profile.startup.profile.StartupProfile;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticNaming;
@@ -42,6 +42,7 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -49,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -58,6 +60,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -628,12 +631,11 @@ public class VirtualFile {
 
   public static class VirtualFileIndexedItemCollection implements IndexedItemCollection {
 
-    private final GraphLens graphLens;
-    private final InitClassLens initClassLens;
-    private final NamingLens namingLens;
+    private final DexItemFactory factory;
+    private final Map<String, DexString> shortyCache = new HashMap<>();
 
     private final Set<DexProgramClass> classes = Sets.newIdentityHashSet();
-    private final Set<DexProto> protos = Sets.newIdentityHashSet();
+    private final Map<DexProto, DexString> protos = Maps.newIdentityHashMap();
     private final Set<DexType> types = Sets.newIdentityHashSet();
     private final Set<DexMethod> methods = Sets.newIdentityHashSet();
     private final Set<DexField> fields = Sets.newIdentityHashSet();
@@ -650,9 +652,7 @@ public class VirtualFile {
     public final Map<DexMethodHandle, ItemUseInfo> methodHandlesUse = new IdentityHashMap<>();
 
     public VirtualFileIndexedItemCollection(AppView<?> appView) {
-      this.graphLens = appView.graphLens();
-      this.initClassLens = appView.initClassLens();
-      this.namingLens = appView.getNamingLens();
+      this.factory = appView.dexItemFactory();
     }
 
     @Override
@@ -681,7 +681,11 @@ public class VirtualFile {
 
     @Override
     public boolean addProto(DexProto proto) {
-      return protos.add(proto);
+      return addProtoWithShorty(proto, protos, shortyCache, this::addString, factory);
+    }
+
+    public boolean addProtoWithoutShorty(DexProto proto) {
+      return addProtoWithShorty(proto, protos, shortyCache, emptyConsumer(), factory);
     }
 
     @Override
@@ -711,6 +715,22 @@ public class VirtualFile {
     Collection<DexString> getStrings() {
       return strings;
     }
+  }
+
+  private static boolean addProtoWithShorty(
+      DexProto proto,
+      Map<DexProto, DexString> protoToShorty,
+      Map<String, DexString> shortyCache,
+      Consumer<DexString> addShortyDexString,
+      DexItemFactory factory) {
+    if (protoToShorty.containsKey(proto)) {
+      return false;
+    }
+    String shortyString = proto.createShortyString();
+    DexString shorty = shortyCache.computeIfAbsent(shortyString, factory::createString);
+    addShortyDexString.accept(shorty);
+    protoToShorty.put(proto, shorty);
+    return true;
   }
 
   public static class IndexedItemTransaction implements IndexedItemCollection {
@@ -862,7 +882,7 @@ public class VirtualFile {
 
       @Override
       public boolean addProto(DexProto proto) {
-        collectUse(proto, transaction.protos, base.protos, protosUse);
+        collectUse(proto, transaction.protos.keySet(), base.protos.keySet(), protosUse);
         return true;
       }
 
@@ -955,7 +975,7 @@ public class VirtualFile {
     private final Set<DexField> fields = new LinkedHashSet<>();
     private final Set<DexMethod> methods = new LinkedHashSet<>();
     private final Set<DexType> types = new LinkedHashSet<>();
-    private final Set<DexProto> protos = new LinkedHashSet<>();
+    private final Map<DexProto, DexString> protos = new LinkedHashMap<>();
     private final Set<DexString> strings = new LinkedHashSet<>();
     private final Set<DexCallSite> callSites = new LinkedHashSet<>();
     private final Set<DexMethodHandle> methodHandles = new LinkedHashSet<>();
@@ -972,16 +992,16 @@ public class VirtualFile {
               : new EmptyIndexedItemUsedByClasses();
     }
 
-    private <T extends DexItem> boolean maybeInsert(T item, Set<T> set, Set<T> baseSet) {
-      return maybeInsert(item, set, baseSet, true);
+    private <T extends DexItem> boolean maybeInsert(T item, Predicate<T> adder, Set<T> baseSet) {
+      return maybeInsert(item, adder, baseSet, true);
     }
 
     private <T extends DexItem> boolean maybeInsert(
-        T item, Set<T> set, Set<T> baseSet, boolean requireCurrentClass) {
+        T item, Predicate<T> adder, Set<T> baseSet, boolean requireCurrentClass) {
       if (baseSet.contains(item)) {
         return false;
       }
-      boolean added = set.add(item);
+      boolean added = adder.test(item);
       assert !added || !requireCurrentClass || classes.contains(currentClass);
       return added;
     }
@@ -999,7 +1019,7 @@ public class VirtualFile {
     public boolean addClass(DexProgramClass dexProgramClass) {
       assert currentClass == null;
       currentClass = dexProgramClass;
-      return maybeInsert(dexProgramClass, classes, base.classes);
+      return maybeInsert(dexProgramClass, classes::add, base.classes);
     }
 
     public void addClassDone() {
@@ -1009,13 +1029,13 @@ public class VirtualFile {
     @Override
     public boolean addField(DexField field) {
       assert currentClass != null;
-      return maybeInsert(field, fields, base.fields);
+      return maybeInsert(field, fields::add, base.fields);
     }
 
     @Override
     public boolean addMethod(DexMethod method) {
       assert currentClass != null;
-      return maybeInsert(method, methods, base.methods);
+      return maybeInsert(method, methods::add, base.methods);
     }
 
     @Override
@@ -1024,32 +1044,35 @@ public class VirtualFile {
         // Only marker strings can be added outside a class context.
         assert string.startsWith("~~");
       }
-      return maybeInsert(string, strings, base.strings, false);
+      return maybeInsert(string, strings::add, base.strings, false);
     }
 
     @Override
     public boolean addProto(DexProto proto) {
       assert currentClass != null;
-      return maybeInsert(proto, protos, base.protos);
+      return maybeInsert(
+          proto,
+          p -> addProtoWithShorty(p, protos, base.shortyCache, this::addString, base.factory),
+          base.protos.keySet());
     }
 
     @Override
     public boolean addType(DexType type) {
       assert currentClass != null;
       assert SyntheticNaming.verifyNotInternalSynthetic(type);
-      return maybeInsert(type, types, base.types);
+      return maybeInsert(type, types::add, base.types);
     }
 
     @Override
     public boolean addCallSite(DexCallSite callSite) {
       assert currentClass != null;
-      return maybeInsert(callSite, callSites, base.callSites);
+      return maybeInsert(callSite, callSites::add, base.callSites);
     }
 
     @Override
     public boolean addMethodHandle(DexMethodHandle methodHandle) {
       assert currentClass != null;
-      return maybeInsert(methodHandle, methodHandles, base.methodHandles);
+      return maybeInsert(methodHandle, methodHandles::add, base.methodHandles);
     }
 
     int getNumberOfMethods() {
@@ -1076,7 +1099,8 @@ public class VirtualFile {
       commitItemsIn(classes, base::addClass);
       commitItemsIn(fields, base::addField);
       commitItemsIn(methods, base::addMethod);
-      commitItemsIn(protos, base::addProto);
+      // The shorty strings are maintained in the transaction strings, so don't add them twice.
+      commitItemsIn(protos.keySet(), base::addProtoWithoutShorty);
       commitItemsIn(types, base::addType);
       commitItemsIn(strings, base::addString);
       commitItemsIn(callSites, base::addCallSite);
@@ -1444,6 +1468,9 @@ public class VirtualFile {
             virtualFile.commitTransaction();
           }
         }
+
+        options.reporter.warning(
+            createStartupClassesOverflowDiagnostic(cycler.filesForDistribution.size()));
       }
 
       if (options.getStartupOptions().isMinimalStartupDexEnabled()) {

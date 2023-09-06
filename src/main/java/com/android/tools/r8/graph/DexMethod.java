@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.lightir.LirConstant;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
@@ -63,9 +64,22 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
   @Override
   public void acceptHashing(HashingVisitor visitor) {
-    visitor.visitDexType(holder);
-    visitor.visitDexString(name);
-    getReferencedTypes().forEach(visitor::visitDexType);
+    visitor.visitDexMethod(this);
+  }
+
+  @Override
+  public LirConstantOrder getLirConstantOrder() {
+    return LirConstantOrder.METHOD;
+  }
+
+  @Override
+  public int internalLirConstantAcceptCompareTo(LirConstant other, CompareToVisitor visitor) {
+    return acceptCompareTo((DexMethod) other, visitor);
+  }
+
+  @Override
+  public void internalLirConstantAcceptHashing(HashingVisitor visitor) {
+    acceptHashing(visitor);
   }
 
   public DexType getArgumentType(int argumentIndex, boolean isStatic) {

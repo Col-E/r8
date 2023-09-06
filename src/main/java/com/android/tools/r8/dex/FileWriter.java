@@ -518,7 +518,8 @@ public class FileWriter {
   }
 
   private void writeProtoItem(DexProto proto) {
-    dest.putInt(mapping.getOffsetFor(proto.shorty));
+    DexString shorty = mapping.getShorty(proto);
+    dest.putInt(mapping.getOffsetFor(shorty));
     dest.putInt(mapping.getOffsetFor(proto.returnType));
     dest.putInt(mixedSectionOffsets.getOffsetFor(proto.parameters));
   }

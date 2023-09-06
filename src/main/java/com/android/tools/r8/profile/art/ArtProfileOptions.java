@@ -6,8 +6,14 @@ package com.android.tools.r8.profile.art;
 
 import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyOrDefault;
 
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -19,10 +25,13 @@ public class ArtProfileOptions {
   private Collection<ArtProfileForRewriting> artProfilesForRewriting = Collections.emptyList();
   private boolean enableCompletenessCheckForTesting =
       parseSystemPropertyOrDefault(COMPLETENESS_PROPERTY_KEY, false);
+  private boolean enableNopCheckForTesting;
   private boolean hasReadArtProfileProviders = false;
   private boolean allowReadingEmptyArtProfileProvidersMultipleTimesForTesting = false;
 
   private final InternalOptions options;
+
+  private String nopCheckForTestingHashCode;
 
   public ArtProfileOptions(InternalOptions options) {
     this.options = options;
@@ -49,6 +58,10 @@ public class ArtProfileOptions {
         && !options.isDesugaredLibraryCompilation()
         && !options.getStartupOptions().isStartupCompletenessCheckForTestingEnabled()
         && !options.getStartupInstrumentationOptions().isStartupInstrumentationEnabled();
+  }
+
+  public boolean isNopCheckForTestingEnabled() {
+    return enableNopCheckForTesting;
   }
 
   public boolean isIncludingApiReferenceStubs() {
@@ -104,5 +117,36 @@ public class ArtProfileOptions {
       boolean enableCompletenessCheckForTesting) {
     this.enableCompletenessCheckForTesting = enableCompletenessCheckForTesting;
     return this;
+  }
+
+  public ArtProfileOptions setEnableNopCheckForTesting() {
+    this.enableNopCheckForTesting = true;
+    return this;
+  }
+
+  public boolean setNopCheckForTestingHashCode(AppInfo appInfo) {
+    if (nopCheckForTestingHashCode != null) {
+      String hashCode = computeNopCheckForTestingHashCode(appInfo);
+      assert hashCode.equals(nopCheckForTestingHashCode);
+    } else {
+      nopCheckForTestingHashCode = computeNopCheckForTestingHashCode(appInfo);
+    }
+    return true;
+  }
+
+  private static String computeNopCheckForTestingHashCode(AppInfo appInfo) {
+    Hasher hasher = Hashing.sha256().newHasher();
+    for (DexProgramClass clazz : appInfo.classesWithDeterministicOrder()) {
+      hasher.putString(clazz.getType().toDescriptorString(), StandardCharsets.UTF_8);
+      for (DexEncodedMethod method : clazz.methods()) {
+        hasher.putString(method.getReference().toSmaliString(), StandardCharsets.UTF_8);
+      }
+    }
+    return hasher.hash().toString();
+  }
+
+  public boolean verifyHasNopCheckForTestingHashCode() {
+    assert nopCheckForTestingHashCode != null;
+    return true;
   }
 }

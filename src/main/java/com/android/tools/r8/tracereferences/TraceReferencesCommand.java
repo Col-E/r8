@@ -402,7 +402,6 @@ public class TraceReferencesCommand {
   InternalOptions getInternalOptions() {
     InternalOptions options = new InternalOptions();
     options.loadAllClassDefinitions = true;
-    options.lookupLibraryBeforeProgram = true;
     TraceReferencesConsumer consumer = getConsumer();
     DumpOptions.Builder builder =
         DumpOptions.builder(Tool.TraceReferences)

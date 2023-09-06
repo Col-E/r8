@@ -15,7 +15,8 @@ import utils
 def run(tool, args, build=None, debug=True,
         profile=False, track_memory_file=None, extra_args=None,
         stderr=None, stdout=None, return_stdout=False, timeout=0, quiet=False,
-        cmd_prefix=None, jar=None, main=None, time_consumer=None):
+        cmd_prefix=None, jar=None, main=None, time_consumer=None,
+        worker_id=None):
   cmd = []
   if cmd_prefix:
     cmd.extend(cmd_prefix)
@@ -52,7 +53,7 @@ def run(tool, args, build=None, debug=True,
   if lib:
     cmd.extend(["--lib", lib])
   cmd.extend(args)
-  utils.PrintCmd(cmd, quiet=quiet)
+  utils.PrintCmd(cmd, quiet=quiet, worker_id=worker_id)
   start = time.time()
   if timeout > 0:
     kill = lambda process: process.kill()

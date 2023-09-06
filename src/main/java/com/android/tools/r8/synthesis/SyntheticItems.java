@@ -667,6 +667,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   private DexProgramClass internalEnsureFixedProgramClass(
       SyntheticKind kind,
       Consumer<SyntheticProgramClassBuilder> classConsumer,
+      Consumer<DexProgramClass> onReferencingContextConsumer,
       Consumer<DexProgramClass> onCreationConsumer,
       SynthesizingContext outerContext,
       AppView<?> appView) {
@@ -676,6 +677,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     // Fast path is that the synthetic is already present. If so it must be a program class.
     DexProgramClass clazz = internalLookupProgramClass(type, kind, appView);
     if (clazz != null) {
+      onReferencingContextConsumer.accept(clazz);
       return clazz;
     }
     // Slow path creates the class using the context to make it thread safe.
@@ -697,6 +699,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
               type,
               contextToType,
               appView);
+      onReferencingContextConsumer.accept(clazz);
       onCreationConsumer.accept(clazz);
       return clazz;
     }
@@ -806,8 +809,10 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       Consumer<DexProgramClass> onCreationConsumer) {
     SyntheticKind kind = kindSelector.select(naming);
     assert kind.isFixedSuffixSynthetic();
+    Consumer<DexProgramClass> onReferencingContextConsumer = ConsumerUtils.emptyConsumer();
     SynthesizingContext outerContext = internalGetOuterContext(context, appView);
-    return internalEnsureFixedProgramClass(kind, fn, onCreationConsumer, outerContext, appView);
+    return internalEnsureFixedProgramClass(
+        kind, fn, onCreationConsumer, onReferencingContextConsumer, outerContext, appView);
   }
 
   public ProgramMethod ensureFixedClassMethod(
@@ -1009,6 +1014,26 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> fn,
       Consumer<DexProgramClass> onCreationConsumer) {
+    return ensureGlobalClass(
+        diagnosticSupplier,
+        kindSelector,
+        globalType,
+        contexts,
+        appView,
+        fn,
+        onCreationConsumer,
+        ConsumerUtils.emptyConsumer());
+  }
+
+  public DexProgramClass ensureGlobalClass(
+      Supplier<MissingGlobalSyntheticsConsumerDiagnostic> diagnosticSupplier,
+      SyntheticKindSelector kindSelector,
+      DexType globalType,
+      Collection<? extends ProgramDefinition> contexts,
+      AppView<?> appView,
+      Consumer<SyntheticProgramClassBuilder> fn,
+      Consumer<DexProgramClass> onCreationConsumer,
+      Consumer<DexProgramClass> onReferencingContextConsumer) {
     SyntheticKind kind = kindSelector.select(naming);
     assert kind.isGlobal();
     assert !contexts.isEmpty();
@@ -1018,7 +1043,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     // A global type is its own context.
     SynthesizingContext outerContext = SynthesizingContext.fromType(globalType);
     DexProgramClass globalSynthetic =
-        internalEnsureFixedProgramClass(kind, fn, onCreationConsumer, outerContext, appView);
+        internalEnsureFixedProgramClass(
+            kind, fn, onReferencingContextConsumer, onCreationConsumer, outerContext, appView);
     Consumer<DexProgramClass> globalSyntheticCreatedCallback =
         appView.options().testing.globalSyntheticCreatedCallback;
     if (globalSyntheticCreatedCallback != null) {

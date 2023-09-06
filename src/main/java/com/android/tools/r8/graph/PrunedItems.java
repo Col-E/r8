@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Set;
@@ -216,7 +217,7 @@ public class PrunedItems {
 
     @Override
     <T> Set<T> newEmptySet() {
-      return Sets.newConcurrentHashSet();
+      return SetUtils.newConcurrentHashSet();
     }
 
     @Override

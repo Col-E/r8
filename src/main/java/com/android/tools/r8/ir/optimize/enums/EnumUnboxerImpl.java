@@ -99,6 +99,9 @@ import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.MissingObjectSt
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnboxedValueNonComparable;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnsupportedInstanceFieldValueForEnumInstanceReason;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason.UnsupportedLibraryInvokeReason;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
@@ -106,6 +109,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
@@ -149,7 +153,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
   // Map the enum candidates with their dependencies, i.e., the methods to reprocess for the given
   // enum if the optimization eventually decides to unbox it.
   private EnumUnboxingCandidateInfoCollection enumUnboxingCandidatesInfo;
-  private final Set<DexProgramClass> candidatesToRemoveInWave = Sets.newConcurrentHashSet();
+  private final Set<DexProgramClass> candidatesToRemoveInWave = SetUtils.newConcurrentHashSet();
   private final Map<DexType, EnumStaticFieldValues> staticFieldValuesMap =
       new ConcurrentHashMap<>();
 
@@ -797,6 +801,19 @@ public class EnumUnboxerImpl extends EnumUnboxer {
           public void fixup(
               DexEncodedMethod method, MutableMethodOptimizationInfo optimizationInfo) {
             optimizationInfo
+                .fixupArgumentInfos(
+                    method,
+                    new DefaultMethodOptimizationInfoFixer() {
+                      @Override
+                      public CallSiteOptimizationInfo fixupCallSiteOptimizationInfo(
+                          ConcreteCallSiteOptimizationInfo callSiteOptimizationInfo) {
+                        RewrittenPrototypeDescription prototypeChanges =
+                            graphLens.lookupPrototypeChangesForMethodDefinition(
+                                method.getReference(), codeLens);
+                        return callSiteOptimizationInfo.fixupAfterParametersChanged(
+                            prototypeChanges);
+                      }
+                    })
                 .fixupClassTypeReferences(appView, graphLens)
                 .fixupAbstractReturnValue(appView, graphLens, codeLens)
                 .fixupInstanceInitializerInfo(

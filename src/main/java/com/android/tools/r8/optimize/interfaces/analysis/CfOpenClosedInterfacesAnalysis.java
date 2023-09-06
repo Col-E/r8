@@ -39,7 +39,6 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.UnverifiableCfCodeDiagnostic;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -55,7 +54,7 @@ public class CfOpenClosedInterfacesAnalysis {
   private final CfAssignability assignability;
   private final InternalOptions options;
 
-  private final Set<DexClass> openInterfaces = Sets.newConcurrentHashSet();
+  private final Set<DexClass> openInterfaces = SetUtils.newConcurrentHashSet();
 
   private final ProgramMethodMap<UnverifiableCfCodeDiagnostic> unverifiableCodeDiagnostics =
       ProgramMethodMap.createConcurrent();

@@ -12,6 +12,7 @@ import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
 import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.Goto;
@@ -172,10 +173,27 @@ public class BridgeAnalyzer {
   private static boolean analyzeInvoke(InvokeMethodWithReceiver invoke) {
     // All of the forwarded arguments of the enclosing method must be in the same argument position.
     for (int argumentIndex = 0; argumentIndex < invoke.arguments().size(); argumentIndex++) {
-      Value argument = invoke.getArgument(argumentIndex);
-      if (argument.isArgument()
-          && argumentIndex != argument.getDefinition().asArgument().getIndex()) {
+      Value argument = invoke.getArgument(argumentIndex).getAliasedValue();
+      if (argument.isPhi()
+          || (argument.isArgument()
+              && argumentIndex != argument.getDefinition().asArgument().getIndex())) {
         return false;
+      } else {
+        // Validate that besides argument values only check-cast of argument values are allowed at
+        // their argument position.
+        assert argument.isArgument()
+            || (argument.getDefinition().isCheckCast()
+                && invoke
+                    .getArgument(argumentIndex)
+                    .getAliasedValue(AssumeAndCheckCastAliasedValueConfiguration.getInstance())
+                    .isArgument()
+                && invoke
+                        .getArgument(argumentIndex)
+                        .getAliasedValue(AssumeAndCheckCastAliasedValueConfiguration.getInstance())
+                        .getDefinition()
+                        .asArgument()
+                        .getIndex()
+                    == argumentIndex);
       }
     }
     return true;

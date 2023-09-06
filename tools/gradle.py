@@ -68,10 +68,12 @@ def EnsureGradle():
     get_gradle(True), GRADLE8_TGZ, GRADLE8_SHA1, 'Gradle binary')
 
 def EnsureJdk():
-  jdkRoot = jdk.GetJdkRoot()
-  jdkTgz = jdkRoot + '.tar.gz'
-  jdkSha1 = jdkTgz + '.sha1'
-  utils.EnsureDepFromGoogleCloudStorage(jdkRoot, jdkTgz, jdkSha1, 'JDK')
+  # Gradle in the new setup will use the jdks in the evaluation - fetch
+  # all beforehand.
+  for root in jdk.GetAllJdkDirs():
+    jdkTgz = root + '.tar.gz'
+    jdkSha1 = jdkTgz + '.sha1'
+    utils.EnsureDepFromGoogleCloudStorage(root, jdkTgz, jdkSha1, root)
 
 def EnsureDeps():
   EnsureGradle()
@@ -81,8 +83,10 @@ def RunGradleIn(
     gradleCmd, args, cwd, throw_on_failure=True, env=None, new_gradle=False):
   EnsureDeps()
   cmd = [gradleCmd]
-  args.append(
-    '-c=d8_r8/settings.gradle.kts' if new_gradle else '-b=build.gradle')
+  if new_gradle:
+    args.extend(['--offline', '-c=d8_r8/settings.gradle.kts'])
+  else:
+    args.append('-b=build.gradle')
   cmd.extend(args)
   utils.PrintCmd(cmd)
   with utils.ChangedWorkingDirectory(cwd):

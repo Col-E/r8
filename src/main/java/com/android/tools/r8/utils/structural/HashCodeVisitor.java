@@ -85,6 +85,11 @@ public class HashCodeVisitor<T> extends StructuralSpecification<T, HashCodeVisit
   }
 
   @Override
+  public HashCodeVisitor<T> withByteArray(Function<T, byte[]> getter) {
+    return amend(Arrays.hashCode(getter.apply(item)));
+  }
+
+  @Override
   public HashCodeVisitor<T> withShortArray(Function<T, short[]> getter) {
     return amend(Arrays.hashCode(getter.apply(item)));
   }

@@ -11,6 +11,8 @@ import com.android.tools.r8.dex.code.DexShrIntLit8;
 import com.android.tools.r8.dex.code.DexShrLong;
 import com.android.tools.r8.dex.code.DexShrLong2Addr;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 
 public class Shr extends LogicalBinop {
 
@@ -87,6 +89,29 @@ public class Shr extends LogicalBinop {
   @Override
   int foldIntegers(int left, int right) {
     return left >> right;
+  }
+
+  @Override
+  AbstractValue foldIntegers(AbstractValue left, AbstractValue right, AppView<?> appView) {
+    if (!right.isSingleNumberValue()) {
+      return AbstractValue.unknown();
+    }
+    int rightConst = right.asSingleNumberValue().getIntValue();
+    if (rightConst == 0) {
+      return left;
+    }
+    if (left.isSingleNumberValue()) {
+      int result = foldIntegers(left.asSingleNumberValue().getIntValue(), rightConst);
+      return appView.abstractValueFactory().createSingleNumberValue(result);
+    }
+    if (left.hasDefinitelySetAndUnsetBitsInformation()) {
+      return appView
+          .abstractValueFactory()
+          .createDefiniteBitsNumberValue(
+              foldIntegers(left.getDefinitelySetIntBits(), rightConst),
+              foldIntegers(left.getDefinitelyUnsetIntBits(), rightConst));
+    }
+    return AbstractValue.unknown();
   }
 
   @Override

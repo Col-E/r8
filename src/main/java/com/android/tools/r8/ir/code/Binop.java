@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -101,6 +102,10 @@ public abstract class Binop extends Instruction {
 
   int foldIntegers(int left, int right) {
     throw new Unreachable("Unsupported integer folding for " + this);
+  }
+
+  AbstractValue foldIntegers(AbstractValue left, AbstractValue right, AppView<?> appView) {
+    return AbstractValue.unknown();
   }
 
   long foldLongs(long left, long right) {

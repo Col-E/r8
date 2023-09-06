@@ -110,25 +110,12 @@ public class LazyLoadedDexApplication extends DexApplication {
   @Override
   public DexClass definitionFor(DexType type) {
     assert type.isClassType() : "Cannot lookup definition for type: " + type;
-    DexClass clazz = null;
-    if (options.lookupLibraryBeforeProgram) {
-      if (libraryClasses != null) {
-        clazz = libraryClasses.get(type);
-      }
-      if (clazz == null) {
-        clazz = programClasses.get(type);
-      }
-      if (clazz == null && classpathClasses != null) {
-        clazz = classpathClasses.get(type);
-      }
-    } else {
-      clazz = programClasses.get(type);
-      if (clazz == null && classpathClasses != null) {
-        clazz = classpathClasses.get(type);
-      }
-      if (clazz == null && libraryClasses != null) {
-        clazz = libraryClasses.get(type);
-      }
+    DexClass clazz = programClasses.get(type);
+    if (clazz == null && classpathClasses != null) {
+      clazz = classpathClasses.get(type);
+    }
+    if (clazz == null && libraryClasses != null) {
+      clazz = libraryClasses.get(type);
     }
     return clazz;
   }
@@ -139,6 +126,7 @@ public class LazyLoadedDexApplication extends DexApplication {
     return programClasses.get(type);
   }
 
+  @Override
   public DexLibraryClass libraryDefinitionFor(DexType type) {
     assert type.isClassType() : "Cannot lookup library definition for type: " + type;
     return libraryClasses.get(type);
@@ -219,30 +207,22 @@ public class LazyLoadedDexApplication extends DexApplication {
         classpathClasses =
             fillPrioritizedClasses(allClasspathClasses, programClasses::get, options);
       } else {
-        if (options.lookupLibraryBeforeProgram) {
-          libraryClasses = fillPrioritizedClasses(allLibraryClasses, type -> null, options);
-          programClasses = fillPrioritizedClasses(allProgramClasses, libraryClasses::get, options);
-          classpathClasses =
-              fillPrioritizedClasses(
-                  allClasspathClasses,
-                  type -> {
-                    DexLibraryClass clazz = libraryClasses.get(type);
-                    return clazz != null ? clazz : programClasses.get(type);
-                  },
-                  options);
-        } else {
-          programClasses = fillPrioritizedClasses(allProgramClasses, type -> null, options);
-          classpathClasses =
-              fillPrioritizedClasses(allClasspathClasses, programClasses::get, options);
-          libraryClasses =
-              fillPrioritizedClasses(
-                  allLibraryClasses,
-                  type -> {
-                    DexProgramClass clazz = programClasses.get(type);
-                    return clazz != null ? clazz : classpathClasses.get(type);
-                  },
-                  options);
-        }
+        programClasses = fillPrioritizedClasses(allProgramClasses, type -> null, options);
+        classpathClasses =
+            fillPrioritizedClasses(allClasspathClasses, programClasses::get, options);
+        libraryClasses =
+            fillPrioritizedClasses(
+                allLibraryClasses,
+                type -> {
+                  DexProgramClass clazz = programClasses.get(type);
+                  if (clazz != null) {
+                    options.recordLibraryAndProgramDuplicate(
+                        type, clazz, allLibraryClasses.get(type));
+                    return clazz;
+                  }
+                  return classpathClasses.get(type);
+                },
+                options);
       }
     }
 
@@ -299,9 +279,7 @@ public class LazyLoadedDexApplication extends DexApplication {
         "The following library types, prefixed by java.,"
             + " are present both as library and non library classes: "
             + joined
-            + ". "
-            + (options.lookupLibraryBeforeProgram ? "Non library" : "Library")
-            + " classes will be ignored.";
+            + ". Library classes will be ignored.";
     options.reporter.warning(message);
   }
 

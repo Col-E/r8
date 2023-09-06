@@ -12,6 +12,10 @@ public interface TypeAndLocalInfoSupplier {
 
   TypeElement getOutType();
 
+  static TypeAndLocalInfoSupplier create(TypeElement type) {
+    return create(type, null);
+  }
+
   static TypeAndLocalInfoSupplier create(TypeElement type, DebugLocalInfo local) {
     return new TypeAndLocalInfoSupplier() {
 

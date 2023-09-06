@@ -30,11 +30,11 @@ import com.android.tools.r8.utils.BiForEachable;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.TriConsumer;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
@@ -554,7 +554,7 @@ public class MemberRebindingAnalysis {
 
   private Set<DexField> computeNonReboundFieldReferences(ExecutorService executorService)
       throws ExecutionException {
-    Set<DexField> nonReboundFieldReferences = Sets.newConcurrentHashSet();
+    Set<DexField> nonReboundFieldReferences = SetUtils.newConcurrentHashSet();
     ThreadUtils.processItems(
         appView.appInfo()::forEachMethod,
         method -> {

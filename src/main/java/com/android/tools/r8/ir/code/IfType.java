@@ -13,6 +13,10 @@ public enum IfType {
   LT,
   NE;
 
+  public boolean isEqualsOrNotEquals() {
+    return this == EQ || this == NE;
+  }
+
   // Returns the comparison type if the operands are swapped.
   public IfType forSwappedOperands() {
     switch (this) {

@@ -82,7 +82,7 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
    * range of constant used by this kind of instruction. D8 knowns at build time that constant will
    * be encoded directly into the final Dex instruction.
    */
-  public void useDedicatedConstantForLitInstruction(IRCode code) {
+  private void useDedicatedConstantForLitInstruction(IRCode code) {
     if (!code.metadata().mayHaveArithmeticOrLogicalBinop()) {
       return;
     }
@@ -231,7 +231,7 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
     return true;
   }
 
-  public void shortenLiveRanges(IRCode code, ConstantCanonicalizer canonicalizer) {
+  private void shortenLiveRanges(IRCode code, ConstantCanonicalizer canonicalizer) {
     if (options.testing.disableShortenLiveRanges) {
       return;
     }
@@ -316,7 +316,6 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
     }
 
     code.removeRedundantBlocks();
-    assert code.isConsistentSSA(appView);
   }
 
   private InstructionListIterator insertInstructionWithShortenedLiveRange(

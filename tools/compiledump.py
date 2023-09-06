@@ -149,6 +149,11 @@ def make_parser():
     help='Run compilation in specified mode',
     choices=['debug', 'release'],
     default=None)
+  parser.add_argument(
+    '--new-gradle',
+    help='Use the new gradle build (defaults to old build)',
+    default=False,
+    action='store_true')
   return parser
 
 def error(msg):
@@ -243,13 +248,14 @@ def read_dump(dump, temp, override=False):
   if os.path.isdir(dump):
     return Dump(dump)
   dump_file = zipfile.ZipFile(os.path.abspath(dump), 'r')
-  with utils.ChangedWorkingDirectory(temp, quiet=True):
-    if override or not os.path.isfile('r8-version'):
-      dump_file.extractall()
-      if not os.path.isfile('r8-version'):
-        error("Did not extract into %s. Either the zip file is invalid or the "
-              "dump is missing files" % temp)
-    return Dump(temp)
+  r8_version_file = os.path.join(temp, 'r8-version')
+
+  if override or not os.path.isfile(r8_version_file):
+    dump_file.extractall(temp)
+    if not os.path.isfile(r8_version_file):
+      error("Did not extract into %s. Either the zip file is invalid or the "
+            "dump is missing files" % temp)
+  return Dump(temp)
 
 def determine_build_properties(args, dump):
   build_properties = {}
@@ -377,9 +383,15 @@ def determine_properties(build_properties):
         args.append('-D' + name + '=' + value)
   return args
 
-def download_distribution(version, nolib, temp):
+def download_distribution(version, args, temp):
+  nolib = args.nolib
   if version == 'main':
-    return utils.R8_JAR if nolib else utils.R8LIB_JAR
+    if args.new_gradle:
+      return "%s:%s" % (
+        "d8_r8/main/build/libs/deps.jar",
+        "d8_r8/main/build/libs/r8.jar")
+    else:
+      return utils.R8_JAR if nolib else utils.R8LIB_JAR
   if version == 'source':
     return '%s:%s' % (utils.BUILD_JAVA_MAIN_DIR, utils.ALL_DEPS_JAR)
   name = 'r8.jar' if nolib else 'r8lib.jar'
@@ -463,7 +475,7 @@ def compile_wrapper_with_javac(dist, temp, jdkhome, path):
 def is_hash(version):
   return len(version) == 40
 
-def run1(out, args, otherargs, jdkhome=None):
+def run1(out, args, otherargs, jdkhome=None, worker_id=None):
   jvmargs = []
   compilerargs = []
   for arg in otherargs:
@@ -491,7 +503,7 @@ def run1(out, args, otherargs, jdkhome=None):
     android_platform_build = determine_android_platform_build(args, build_properties)
     enable_missing_library_api_modeling = determine_enable_missing_library_api_modeling(args, build_properties)
     mode = determine_compilation_mode(args, build_properties)
-    jar = args.r8_jar if args.r8_jar else download_distribution(version, args.nolib, temp)
+    jar = args.r8_jar if args.r8_jar else download_distribution(version, args, temp)
     if ':' not in jar and not os.path.exists(jar):
       error("Distribution does not exist: " + jar)
     cmd = [jdk.GetJavaExecutable(jdkhome)]
@@ -584,7 +596,7 @@ def run1(out, args, otherargs, jdkhome=None):
     if args.threads:
       cmd.extend(['--threads', args.threads])
     cmd.extend(compilerargs)
-    utils.PrintCmd(cmd)
+    utils.PrintCmd(cmd, worker_id=worker_id)
     try:
       print(subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8'))
       return 0

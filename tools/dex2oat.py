@@ -75,6 +75,8 @@ def ParseOptions():
                     help='Version of dex2oat. (defaults to latest: ' + LATEST + ').',
                     choices=VERSIONS,
                     default=LATEST)
+  parser.add_option('--device',
+                    help='Run dex2oat on this device (this is passed as the -s SERIAL.')
   parser.add_option('--all',
                     help='Run dex2oat on all possible versions',
                     default=False,
@@ -93,21 +95,65 @@ def Main():
   if len(args) != 1:
     print("Can only take a single dex/zip/jar/apk file as input.")
     return 1
+  if (options.device):
+    return run_device_dex2oat(options, args)
+  else:
+    return run_host_dex2oat(options, args)
+
+def run_host_dex2oat(options, args):
   if options.all and options.output:
     print("Can't write output when running all versions.")
     return 1
   dexfile = args[0]
   oatfile = options.output
   versions = VERSIONS if options.all else [options.version]
-  verbose = [options.verbose] if options.verbose else []
-  if 'all' in verbose:
-    verbose = [x for x in VERBOSE_OPTIONS if x != 'all']
   for version in versions:
-    run(dexfile, oatfile, version, verbose)
+    run(options, dexfile, oatfile, version)
     print("")
   return 0
 
-def run(dexfile, oatfile=None, version=None, verbose=[]):
+def adb_cmd(serial, *args):
+  cmd = ['adb', '-s', serial]
+  cmd.extend(args)
+  return cmd
+
+def append_dex2oat_verbose_flags(options, cmd):
+  verbose = [options.verbose] if options.verbose else []
+  if 'all' in verbose:
+    verbose = [x for x in VERBOSE_OPTIONS if x != 'all']
+  for flag in verbose:
+    cmd += ['--runtime-arg', '-verbose:' + flag]
+  return cmd
+
+def run_device_dex2oat(options, args):
+  serial = options.device
+  dexfile = args[0]
+  device_dexfile = '/data/local/tmp/' + os.path.basename(dexfile)
+  device_oatfile = '/data/local/tmp/unused.oat'
+  cmd = adb_cmd(serial, 'shell', 'rm', '-f', device_dexfile, device_oatfile)
+  utils.PrintCmd(cmd)
+  subprocess.check_call(cmd)
+  cmd = adb_cmd(serial, 'push', dexfile, device_dexfile)
+  utils.PrintCmd(cmd)
+  subprocess.check_call(cmd)
+  cmd = adb_cmd(serial, 'logcat', '-c')
+  utils.PrintCmd(cmd)
+  subprocess.check_call(cmd)
+  cmd = adb_cmd(
+    serial,
+    'shell',
+     'dex2oat',
+     '--dex-file=' + device_dexfile,
+     '--oat-file=/data/local/tmp/unused.oat')
+  append_dex2oat_verbose_flags(options, cmd)
+  utils.PrintCmd(cmd)
+  subprocess.check_call(cmd)
+  cmd = adb_cmd(serial, 'logcat', '-d', '-s', 'dex2oat')
+  utils.PrintCmd(cmd)
+  subprocess.check_call(cmd)
+  return 0
+
+def run(options, dexfile, oatfile=None, version=None):
   if not version:
     version = LATEST
   # dex2oat accepts non-existent dex files, check here instead
@@ -128,8 +174,7 @@ def run(dexfile, oatfile=None, version=None, verbose=[]):
       '--oat-file=' + oatfile,
       '--instruction-set=' + arch,
     ]
-    for flag in verbose:
-      cmd += ['--runtime-arg', '-verbose:' + flag]
+    append_dex2oat_verbose_flags(options, cmd)
     if version in BOOT_IMAGE:
       cmd += ['--boot-image=' + BOOT_IMAGE[version]]
     env = {"LD_LIBRARY_PATH": os.path.join(base, 'lib')}

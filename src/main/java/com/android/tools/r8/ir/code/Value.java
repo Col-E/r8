@@ -719,7 +719,10 @@ public class Value implements Comparable<Value> {
 
   public boolean needsRegister() {
     assert needsRegister >= 0;
-    assert !hasUsersInfo() || (needsRegister > 0) == internalComputeNeedsRegister();
+    // This has quadratic behavior so don't check for large user sets.
+    assert !hasUsersInfo()
+        || numberOfAllUsers() > 100
+        || (needsRegister > 0) == internalComputeNeedsRegister();
     return needsRegister > 0;
   }
 

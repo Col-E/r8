@@ -30,23 +30,36 @@ import com.android.tools.r8.ir.code.Position.SourcePosition;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.lightir.LirConstant.LirConstantStructuralAcceptor;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.ComparatorUtils;
+import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
+import com.android.tools.r8.utils.structural.StructuralAcceptor;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
+public class LirCode<EV> extends Code
+    implements StructuralItem<LirCode<EV>>, Iterable<LirInstructionView> {
 
-  public abstract static class PositionEntry {
+  public abstract static class PositionEntry implements StructuralItem<PositionEntry> {
 
     private final int fromInstructionIndex;
 
@@ -59,6 +72,37 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
     }
 
     public abstract Position getPosition(DexMethod method);
+
+    abstract int getOrder();
+
+    abstract int internalAcceptCompareTo(PositionEntry other, CompareToVisitor visitor);
+
+    abstract void internalAcceptHashing(HashingVisitor visitor);
+
+    @Override
+    public final PositionEntry self() {
+      return this;
+    }
+
+    @Override
+    public final StructuralMapping<PositionEntry> getStructuralMapping() {
+      throw new Unreachable();
+    }
+
+    @Override
+    public final int acceptCompareTo(PositionEntry other, CompareToVisitor visitor) {
+      int diff = visitor.visitInt(getOrder(), other.getOrder());
+      if (diff != 0) {
+        return diff;
+      }
+      return internalAcceptCompareTo(other, visitor);
+    }
+
+    @Override
+    public final void acceptHashing(HashingVisitor visitor) {
+      visitor.visitInt(getOrder());
+      internalAcceptHashing(visitor);
+    }
   }
 
   public static class LinePositionEntry extends PositionEntry {
@@ -77,6 +121,21 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
     public Position getPosition(DexMethod method) {
       return SourcePosition.builder().setMethod(method).setLine(line).build();
     }
+
+    @Override
+    int getOrder() {
+      return 0;
+    }
+
+    @Override
+    int internalAcceptCompareTo(PositionEntry other, CompareToVisitor visitor) {
+      return visitor.visitInt(line, ((LinePositionEntry) other).line);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitInt(line);
+    }
   }
 
   public static class StructuredPositionEntry extends PositionEntry {
@@ -91,9 +150,24 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
     public Position getPosition(DexMethod method) {
       return position;
     }
+
+    @Override
+    int getOrder() {
+      return 1;
+    }
+
+    @Override
+    int internalAcceptCompareTo(PositionEntry other, CompareToVisitor visitor) {
+      return position.acceptCompareTo(((StructuredPositionEntry) other).position, visitor);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      position.acceptHashing(visitor);
+    }
   }
 
-  public static class TryCatchTable {
+  public static class TryCatchTable implements StructuralItem<TryCatchTable> {
     private final Int2ReferenceMap<CatchHandlers<Integer>> tryCatchHandlers;
 
     public TryCatchTable(Int2ReferenceMap<CatchHandlers<Integer>> tryCatchHandlers) {
@@ -109,9 +183,47 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
     public void forEachHandler(BiConsumer<Integer, CatchHandlers<Integer>> fn) {
       tryCatchHandlers.forEach(fn);
     }
+
+    @Override
+    public TryCatchTable self() {
+      return this;
+    }
+
+    @Override
+    public StructuralMapping<TryCatchTable> getStructuralMapping() {
+      return TryCatchTable::specify;
+    }
+
+    private static void specify(StructuralSpecification<TryCatchTable, ?> spec) {
+      spec.withInt2CustomItemMap(
+          s -> s.tryCatchHandlers,
+          new StructuralAcceptor<>() {
+            @Override
+            public int acceptCompareTo(
+                CatchHandlers<Integer> item1,
+                CatchHandlers<Integer> item2,
+                CompareToVisitor visitor) {
+              int diff = visitor.visitItemCollection(item1.getGuards(), item2.getGuards());
+              if (diff != 0) {
+                return diff;
+              }
+              return ComparatorUtils.compareLists(item1.getAllTargets(), item2.getAllTargets());
+            }
+
+            @Override
+            public void acceptHashing(CatchHandlers<Integer> item, HashingVisitor visitor) {
+              List<Integer> targets = item.getAllTargets();
+              for (int i = 0; i < targets.size(); i++) {
+                visitor.visitDexType(item.getGuard(i));
+                visitor.visitInt(targets.get(i));
+              }
+            }
+          });
+    }
   }
 
-  public static class DebugLocalInfoTable<EV> {
+  public static class DebugLocalInfoTable<EV> implements StructuralItem<DebugLocalInfoTable<EV>> {
+    // TODO(b/225838009): Once EV is removed use an int2ref map here.
     private final Map<EV, DebugLocalInfo> valueToLocalMap;
     private final Int2ReferenceMap<int[]> instructionToEndUseMap;
 
@@ -136,6 +248,71 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
 
     public void forEachLocalDefinition(BiConsumer<EV, DebugLocalInfo> fn) {
       valueToLocalMap.forEach(fn);
+    }
+
+    @Override
+    public DebugLocalInfoTable<EV> self() {
+      return this;
+    }
+
+    @Override
+    public StructuralMapping<DebugLocalInfoTable<EV>> getStructuralMapping() {
+      throw new Unreachable();
+    }
+
+    @Override
+    public int acceptCompareTo(DebugLocalInfoTable<EV> other, CompareToVisitor visitor) {
+      int size = valueToLocalMap.size();
+      int diff = Integer.compare(size, other.valueToLocalMap.size());
+      if (diff != 0) {
+        return diff;
+      }
+      if ((instructionToEndUseMap == null) != (other.instructionToEndUseMap == null)) {
+        return instructionToEndUseMap == null ? -1 : 1;
+      }
+      if (instructionToEndUseMap != null) {
+        assert other.instructionToEndUseMap != null;
+        diff =
+            ComparatorUtils.compareInt2ReferenceMap(
+                instructionToEndUseMap,
+                other.instructionToEndUseMap,
+                ComparatorUtils::compareIntArray);
+        if (diff != 0) {
+          return diff;
+        }
+      }
+      // We know EV is only instantiated with Integer so this is safe.
+      assert !(valueToLocalMap instanceof Int2ReferenceMap);
+      Int2ReferenceOpenHashMap<DebugLocalInfo> map1 = new Int2ReferenceOpenHashMap<>(size);
+      Int2ReferenceOpenHashMap<DebugLocalInfo> map2 = new Int2ReferenceOpenHashMap<>(size);
+      valueToLocalMap.forEach((k, v) -> map1.put((int) k, v));
+      other.valueToLocalMap.forEach((k, v) -> map2.put((int) k, v));
+      return ComparatorUtils.compareInt2ReferenceMap(
+          map1, map2, (i1, i2) -> i1.acceptCompareTo(i2, visitor));
+    }
+
+    @Override
+    public void acceptHashing(HashingVisitor visitor) {
+      visitor.visitInt(valueToLocalMap.size());
+      ArrayList<Integer> keys = new ArrayList<>(valueToLocalMap.size());
+      valueToLocalMap.forEach((k, v) -> keys.add((int) k));
+      keys.sort(Integer::compareTo);
+      for (int key : keys) {
+        visitor.visitInt(key);
+        valueToLocalMap.get(key).acceptHashing(visitor);
+      }
+      if (instructionToEndUseMap != null) {
+        // Instead of sorting the end map we just sum the keys and values which is commutative.
+        IntBox keySum = new IntBox();
+        IntBox valueSum = new IntBox();
+        instructionToEndUseMap.forEach(
+            (k, v) -> {
+              keySum.increment(k);
+              valueSum.increment(Arrays.hashCode(v));
+            });
+        visitor.visitInt(keySum.get());
+        visitor.visitInt(valueSum.get());
+      }
     }
   }
 
@@ -166,11 +343,25 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
   private final DebugLocalInfoTable<EV> debugLocalInfoTable;
 
   /** Table of metadata for each instruction (if present). */
-  private final Int2ReferenceMap<BytecodeInstructionMetadata> metadataMap;
+  private Int2ReferenceMap<BytecodeInstructionMetadata> metadataMap;
 
   public static <V, EV> LirBuilder<V, EV> builder(
       DexMethod method, LirEncodingStrategy<V, EV> strategy, InternalOptions options) {
     return new LirBuilder<>(method, strategy, options);
+  }
+
+  private static <EV> void specify(StructuralSpecification<LirCode<EV>, ?> spec) {
+    // strategyInfo is compiler meta-data (constant for a given compilation unit).
+    // useDexEstimationStrategy is compiler meta-data (constant for a given compilation unit).
+    spec.withItem(c -> c.irMetadata)
+        .withCustomItemArray(c -> c.constants, LirConstantStructuralAcceptor.getInstance())
+        .withItemArray(c -> c.positionTable)
+        .withInt(c -> c.argumentCount)
+        .withByteArray(c -> c.instructions)
+        .withInt(c -> c.instructionCount)
+        .withNullableItem(c -> c.tryCatchTable)
+        .withNullableItem(c -> c.debugLocalInfoTable)
+        .withAssert(c -> c.metadataMap == null);
   }
 
   /** Should be constructed using {@link LirBuilder}. */
@@ -204,6 +395,16 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
   public LirCode<Integer> asLirCode() {
     // TODO(b/225838009): Unchecked cast will be removed once the encoding strategy is definitive.
     return (LirCode<Integer>) this;
+  }
+
+  @Override
+  public LirCode<EV> self() {
+    return this;
+  }
+
+  @Override
+  public StructuralMapping<LirCode<EV>> getStructuralMapping() {
+    return LirCode::specify;
   }
 
   @Override
@@ -280,6 +481,11 @@ public class LirCode<EV> extends Code implements Iterable<LirInstructionView> {
   public BytecodeInstructionMetadata getMetadata(CfOrDexInstruction instruction) {
     // Bytecode metadata is recomputed when finalizing via IR.
     throw new Unreachable();
+  }
+
+  @Override
+  public void clearMetadata() {
+    metadataMap = null;
   }
 
   @Override

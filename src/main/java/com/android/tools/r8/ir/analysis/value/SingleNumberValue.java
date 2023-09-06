@@ -91,10 +91,12 @@ public class SingleNumberValue extends SingleConstValue
     return value != 0;
   }
 
+  @Override
   public int getDefinitelySetIntBits() {
     return getIntValue();
   }
 
+  @Override
   public int getDefinitelyUnsetIntBits() {
     return ~getDefinitelySetIntBits();
   }

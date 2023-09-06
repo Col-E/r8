@@ -50,8 +50,6 @@ BUILD_DEPENDENCIES = [
 
 TEST_DEPENDENCIES = [
   'junit:junit:{version}'.format(version = JUNIT_VERSION),
-  'com.android.support:support-v4:{version}'.format(version = ANDRDID_SUPPORT_VERSION),
-  'com.android.support.test.espresso:espresso-core:{version}'.format(version = ESPRESSO_VERSION),
   'com.android.tools.smali:smali:{version}'.format(version = SMALI_VERSION),
   'com.google.errorprone:error_prone_core:{version}'.format(version = ERROR_PRONE_VERSION),
   'org.javassist:javassist:{version}'.format(version = JAVASSIST_VERSION),
@@ -71,7 +69,7 @@ NEW_DEPENDENCIES = [
   'org.jetbrains.kotlin:kotlin-script-runtime:1.8.10',
   'org.jetbrains.kotlin:kotlin-tooling-core:1.8.10',
   'net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:3.0.1',
-
+  'com.google.errorprone:javac:9+181-r4173-1',
   # Resource shrinker
   'com.android.tools.build:aapt2-proto:{version}'.format(version = AAPT2_PROTO_VERSION),
   'com.android.tools.layoutlib:layoutlib-api:{version}'.format(version = STUDIO_SDK_VERSION),

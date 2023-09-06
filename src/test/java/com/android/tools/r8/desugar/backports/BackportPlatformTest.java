@@ -10,14 +10,13 @@ import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.PositionMatcher;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.desugar.backports.AbstractBackportTest.MiniAssert;
-import com.android.tools.r8.errors.BackportDiagnostic;
+import com.android.tools.r8.errors.IgnoredBackportMethodDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
@@ -65,23 +64,22 @@ public class BackportPlatformTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED);
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testPlatformR8() throws Exception {
     testForR8(parameters.getBackend())
         .apply(b -> b.getBuilder().setAndroidPlatformBuild(true))
-        .addOptionsModification(o -> o.disableBackportsWithErrorDiagnostics = true)
         .addProgramClasses(CLASSES)
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(MiniAssert.class)
         .setMinApi(parameters)
+        .allowDiagnosticWarningMessages()
         .compileWithExpectedDiagnostics(this::checkDiagnostics);
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testPlatformD8() throws Exception {
     testForD8(parameters.getBackend())
         .apply(b -> b.getBuilder().setAndroidPlatformBuild(true))
-        .addOptionsModification(o -> o.disableBackportsWithErrorDiagnostics = true)
         .addProgramClasses(CLASSES)
         .setMinApi(parameters)
         .compileWithExpectedDiagnostics(this::checkDiagnostics);
@@ -91,39 +89,41 @@ public class BackportPlatformTest extends TestBase {
   public void testPlatformDefinitionD8() throws Exception {
     testForD8(parameters.getBackend())
         .apply(b -> b.getBuilder().setAndroidPlatformBuild(true))
-        .addOptionsModification(o -> o.disableBackportsWithErrorDiagnostics = true)
         .addProgramClasses(CLASSES)
         .addProgramClassFileData(
             transformer(BooleanDefinition.class)
                 .setClassDescriptor("Ljava/lang/Boolean;")
                 .transform())
         .setMinApi(parameters)
+        .compile()
+        .assertNoMessages()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
-  public void testPlatformLevelD8() throws Exception {
+  public void testSupportedApiLevelD8() throws Exception {
     assertEquals(AndroidApiLevel.J, parameters.getApiLevel());
     testForD8(parameters.getBackend())
-        // Setting platform API will disable any error checking.
-        .setMinApi(AndroidApiLevel.ANDROID_PLATFORM)
+        // Setting an API the backport won't hit the backport trigger.
+        .setMinApi(AndroidApiLevel.K)
         .apply(b -> b.getBuilder().setAndroidPlatformBuild(true))
-        .addOptionsModification(o -> o.disableBackportsWithErrorDiagnostics = true)
         .addProgramClasses(CLASSES)
+        .compile()
+        .assertNoMessages()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
 
   private void checkDiagnostics(TestDiagnosticMessages diagnostics) {
     diagnostics
-        .assertAllErrorsMatch(
+        .assertAllWarningsMatch(
             allOf(
-                diagnosticType(BackportDiagnostic.class),
+                diagnosticType(IgnoredBackportMethodDiagnostic.class),
                 diagnosticMessage(
                     containsString("int java.lang.Boolean.compare(boolean, boolean)")),
                 diagnosticPosition(PositionMatcher.positionMethodName("testBooleanCompare"))))
-        .assertOnlyErrors();
+        .assertOnlyWarnings();
   }
 
   // Implementation of java.lang.Boolean.compare to test no error is triggered for

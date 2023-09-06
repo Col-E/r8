@@ -11,15 +11,6 @@ import statistics
 import sys
 import time
 
-try:
-  from perfetto.trace_processor import TraceProcessor
-except ImportError:
-  sys.exit(
-      'Unable to analyze perfetto trace without the perfetto library. '
-      'Install instructions:\n'
-      '    sudo apt install python3-pip\n'
-      '    pip3 install perfetto')
-
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import adb_utils
@@ -94,6 +85,13 @@ def setup_for_run(apk_or_apks, out_dir, options):
     adb_utils.install_apks(apk_or_apks['apks'], options.device_id)
 
   os.makedirs(out_dir, exist_ok=True)
+
+  # Grant notifications.
+  if options.grant_post_notification_permission:
+    adb_utils.grant(
+        options.app_id,
+        'android.permission.POST_NOTIFICATIONS',
+        options.device_id)
 
   # AOT compile.
   if options.aot:
@@ -215,7 +213,7 @@ def compute_time_to_fully_drawn_from_time_to_first_frame(logcat, options):
       fully_drawn_time = get_timestamp_from_logcat_message(line)
   assert displayed_time is not None
   assert fully_drawn_time is not None
-  assert fully_drawn_time > displayed_time
+  assert fully_drawn_time >= displayed_time
   return fully_drawn_time - displayed_time
 
 def get_timestamp_from_logcat_message(line):
@@ -283,6 +281,7 @@ def compute_startup_data(
   # Perfetto stats.
   perfetto_startup_data = {}
   if options.perfetto:
+    TraceProcessor = perfetto_utils.get_trace_processor()
     trace_processor = TraceProcessor(file_path=perfetto_trace_path)
 
     # Compute time to first frame according to the builtin android_startup
@@ -358,6 +357,11 @@ def parse_options(argv):
   result.add_argument('--fully-drawn-logcat-message',
                       help='Logcat message that indicates that the app is '
                            'fully drawn (regexp)')
+  result.add_argument('--grant-post-notification-permission',
+                      help='Grants the android.permission.POST_NOTIFICATIONS '
+                           'permission before launching the app',
+                      default=False,
+                      action='store_true')
   result.add_argument('--hot-startup',
                       help='Measure hot startup instead of cold startup',
                       default=False,

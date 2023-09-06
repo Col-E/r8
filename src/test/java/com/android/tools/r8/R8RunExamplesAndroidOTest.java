@@ -129,7 +129,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
         .withDexCheck(inspector -> checkLambdaCount(inspector, 10, "lambdadesugaring"))
-        .run();
+        .run(Paths.get(ToolHelper.THIRD_PARTY_DIR, "examplesAndroidOLegacy"));
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withOptionConsumer(o -> o.testing.enableLir())
@@ -137,7 +137,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
         .withDexCheck(inspector -> checkLambdaCount(inspector, 1, "lambdadesugaring"))
-        .run();
+        .run(Paths.get(ToolHelper.THIRD_PARTY_DIR, "examplesAndroidOLegacy"));
   }
 
   @Test
@@ -157,7 +157,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
                         "}"),
                     Origin.unknown()))
         .withDexCheck(inspector -> checkTestMultipleInterfacesCheckCastCount(inspector, 0))
-        .run();
+        .run(Paths.get(ToolHelper.THIRD_PARTY_DIR, "examplesAndroidOLegacy"));
   }
 
   @Test
@@ -169,7 +169,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
         .withDexCheck(inspector -> checkLambdaCount(inspector, 10, "lambdadesugaring"))
-        .run();
+        .run(Paths.get(ToolHelper.THIRD_PARTY_DIR, "examplesAndroidOLegacy"));
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(AndroidApiLevel.N)
@@ -177,7 +177,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
         .withDexCheck(inspector -> checkLambdaCount(inspector, 1, "lambdadesugaring"))
-        .run();
+        .run(Paths.get(ToolHelper.THIRD_PARTY_DIR, "examplesAndroidOLegacy"));
   }
 
   @Override
@@ -326,9 +326,9 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
       for (Consumer<R8Command.Builder> transformation : builderTransformations) {
         transformation.accept(builder);
       }
-
       builder.addLibraryFiles(ToolHelper.getAndroidJar(
           androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion.getLevel()));
+      visitFiles(getLegacyClassesRoot(inputFile, packageName), builder::addProgramFiles);
       R8Command command = builder.addProgramFiles(inputFile).build();
       ToolHelper.runR8(command, this::combinedOptionConsumer);
     }

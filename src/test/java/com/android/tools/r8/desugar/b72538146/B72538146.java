@@ -60,7 +60,7 @@ public class B72538146 extends TestBase {
     testForD8()
         .addProgramFiles(
             Paths.get(ToolHelper.TESTS_BUILD_DIR)
-                .resolve("examplesAndroidApi")
+                .resolve("examplesAndroidO")
                 .resolve("classes")
                 .resolve("classloader")
                 .resolve("Runner.class"))

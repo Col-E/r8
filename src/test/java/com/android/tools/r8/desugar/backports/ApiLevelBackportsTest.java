@@ -80,7 +80,7 @@ public class ApiLevelBackportsTest extends TestBase {
   public void warningForFutureNonPlatformBuild() throws Exception {
     testForD8()
         .addProgramClassFileData(transformTestMathMultiplyExactLongInt())
-        .setMinApi(AndroidApiLevel.LATEST.getLevel() + 1)
+        .setMinApi(AndroidApiLevel.UNKNOWN.getLevel())
         .compile()
         .assertOnlyWarnings()
         .assertWarningMessageThatMatches(containsString("is not supported by this compiler"))
@@ -99,7 +99,9 @@ public class ApiLevelBackportsTest extends TestBase {
   public void noWarningForPlatformBuild() throws Exception {
     testForD8()
         .addProgramClassFileData(transformTestMathMultiplyExactLongInt())
-        .setMinApi(AndroidApiLevel.ANDROID_PLATFORM)
+        .setMinApi(AndroidApiLevel.ANDROID_PLATFORM_CONSTANT)
+        .compile()
+        .assertNoMessages()
         .run(parameters.getRuntime(), TestMathMultiplyExactLongInt.class)
         .applyIf(
             parameters.getDexRuntimeVersion().isOlderThan(Version.V13_0_0),

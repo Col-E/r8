@@ -63,10 +63,7 @@ public class Relocator {
     AndroidApp app = command.getApp();
     InternalOptions options = command.getInternalOptions();
     ExceptionUtils.withCompilationHandler(
-        command.getReporter(),
-        () -> {
-          run(command, executor, app, options);
-        });
+        command.getReporter(), () -> run(command, executor, app, options));
   }
 
   private static void run(
@@ -82,12 +79,8 @@ public class Relocator {
           AppInfo.createInitialAppInfo(app, GlobalSyntheticsStrategy.forNonSynthesizing());
       AppView<?> appView = AppView.createForRelocator(appInfo);
       appView.setAppServices(AppServices.builder(appView).build());
-
-      SimplePackagesRewritingMapper packageRemapper = new SimplePackagesRewritingMapper(appView);
-      appView.setNamingLens(packageRemapper.compute(command.getMapping()));
-
+      appView.setNamingLens(command.getMapping().compute(appView));
       new GenericSignatureRewriter(appView).run(appInfo.classes(), executor);
-
       new CfApplicationWriter(appView, new Marker(Tool.Relocator)).write(command.getConsumer());
       options.printWarnings();
     } catch (ExecutionException e) {

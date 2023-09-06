@@ -50,6 +50,7 @@ import com.android.tools.r8.dex.code.DexDivIntLit8;
 import com.android.tools.r8.dex.code.DexDivLong;
 import com.android.tools.r8.dex.code.DexDivLong2Addr;
 import com.android.tools.r8.dex.code.DexFilledNewArray;
+import com.android.tools.r8.dex.code.DexFilledNewArrayRange;
 import com.android.tools.r8.dex.code.DexGoto;
 import com.android.tools.r8.dex.code.DexIfEq;
 import com.android.tools.r8.dex.code.DexIfEqz;
@@ -392,6 +393,11 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isPop() {
+    return false;
+  }
+
+  @Override
   public boolean isIfNez() {
     return instruction instanceof DexIfNez;
   }
@@ -636,7 +642,8 @@ public class DexInstructionSubject implements InstructionSubject {
 
   @Override
   public boolean isFilledNewArray() {
-    return instruction instanceof DexFilledNewArray;
+    return instruction instanceof DexFilledNewArray
+        || instruction instanceof DexFilledNewArrayRange;
   }
 
   @Override

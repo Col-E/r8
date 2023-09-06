@@ -27,7 +27,7 @@ public class RelocatorCommandLine {
     ExceptionUtils.withMainProgramHandler(() -> run(args));
   }
 
-  static void run(String[] args) throws CompilationFailedException {
+  public static void run(String[] args) throws CompilationFailedException {
     RelocatorCommand command =
         RelocatorCommand.Builder.parse(args, CommandLineOrigin.INSTANCE).build();
     if (command.isPrintHelp()) {

@@ -151,8 +151,10 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   public MutableMethodOptimizationInfo fixup(
-      AppView<AppInfoWithLiveness> appView, MethodOptimizationInfoFixer fixer) {
-    return fixupArgumentInfos(fixer)
+      AppView<AppInfoWithLiveness> appView,
+      DexEncodedMethod method,
+      MethodOptimizationInfoFixer fixer) {
+    return fixupArgumentInfos(method, fixer)
         .fixupBridgeInfo(fixer)
         .fixupClassInlinerMethodConstraint(appView, fixer)
         .fixupEnumUnboxerMethodClassification(fixer)
@@ -232,16 +234,22 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     return argumentInfos;
   }
 
-  public MutableMethodOptimizationInfo fixupArgumentInfos(MethodOptimizationInfoFixer fixer) {
+  public MutableMethodOptimizationInfo fixupArgumentInfos(
+      DexEncodedMethod method, MethodOptimizationInfoFixer fixer) {
     if (argumentInfos.isConcreteCallSiteOptimizationInfo()) {
-      argumentInfos =
-          fixer.fixupCallSiteOptimizationInfo(argumentInfos.asConcreteCallSiteOptimizationInfo());
+      return setArgumentInfos(
+          method,
+          fixer.fixupCallSiteOptimizationInfo(argumentInfos.asConcreteCallSiteOptimizationInfo()));
     }
     return this;
   }
 
-  void setArgumentInfos(CallSiteOptimizationInfo argumentInfos) {
+  MutableMethodOptimizationInfo setArgumentInfos(
+      // Method reference allows easily debugging when the optimization info for a given method
+      // changes.
+      @SuppressWarnings("unused") DexEncodedMethod method, CallSiteOptimizationInfo argumentInfos) {
     this.argumentInfos = argumentInfos;
+    return this;
   }
 
   @Override

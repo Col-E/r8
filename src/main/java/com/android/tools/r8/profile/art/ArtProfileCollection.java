@@ -36,6 +36,9 @@ public abstract class ArtProfileCollection {
     if (artProfileOptions.isCompletenessCheckForTestingEnabled()) {
       artProfiles.add(createCompleteArtProfile(appInfo));
     }
+    if (artProfileOptions.isNopCheckForTestingEnabled()) {
+      assert artProfileOptions.setNopCheckForTestingHashCode(appInfo);
+    }
     if (artProfiles.isEmpty()) {
       return empty();
     }

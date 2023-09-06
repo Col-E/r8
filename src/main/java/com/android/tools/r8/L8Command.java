@@ -337,6 +337,7 @@ public final class L8Command extends BaseCompilerCommand {
         return;
       }
       Reporter reporter = getReporter();
+      boolean isGeneratingClassFiles = getProgramConsumer() instanceof ClassFileConsumer;
       if (!hasDesugaredLibraryConfiguration()) {
         reporter.error("L8 requires a desugared library configuration");
       }
@@ -348,11 +349,22 @@ public final class L8Command extends BaseCompilerCommand {
       } else if (getMainDexListConsumer() != null) {
         reporter.error("L8 does not support generating a main dex list");
       }
-      if (isShrinking() && getProgramConsumer() instanceof ClassFileConsumer) {
-        reporter.error("L8 does not support shrinking when generating class files");
-      }
-      if (!isShrinking() && (proguardMapConsumer != null || partitionMapConsumer != null)) {
-        reporter.error("L8 does not support defining a map consumer when not shrinking");
+      if (isShrinking()) {
+        if (isGeneratingClassFiles) {
+          reporter.error("L8 does not support shrinking when generating class files");
+        }
+      } else {
+        if (proguardMapConsumer != null || partitionMapConsumer != null) {
+          reporter.error("L8 does not support defining a map consumer when not shrinking");
+        }
+        if (!getArtProfilesForRewriting().isEmpty()) {
+          if (isGeneratingClassFiles) {
+            reporter.error(
+                "L8 does not support rewriting of ART profiles when generating class files");
+          } else {
+            reporter.error("L8 does not impact ART profiles when generating DEX and not shrinking");
+          }
+        }
       }
       super.validate();
     }
@@ -389,9 +401,7 @@ public final class L8Command extends BaseCompilerCommand {
                 .setDexClassChecksumFilter(getDexClassChecksumFilter())
                 .setProgramConsumer(getProgramConsumer());
         for (ArtProfileForRewriting artProfileForRewriting : getArtProfilesForRewriting()) {
-          r8Builder.addArtProfileForRewriting(
-              artProfileForRewriting.getArtProfileProvider(),
-              artProfileForRewriting.getResidualArtProfileConsumer());
+          r8Builder.addArtProfileForRewriting(artProfileForRewriting);
         }
         for (ClassFileResourceProvider libraryResourceProvider :
             inputs.getLibraryResourceProviders()) {
@@ -426,12 +436,8 @@ public final class L8Command extends BaseCompilerCommand {
                 .setMode(getMode())
                 .setIncludeClassesChecksum(getIncludeClassesChecksum())
                 .setDexClassChecksumFilter(getDexClassChecksumFilter())
-                .setProgramConsumer(getProgramConsumer());
-        for (ArtProfileForRewriting artProfileForRewriting : getArtProfilesForRewriting()) {
-          d8Builder.addArtProfileForRewriting(
-              artProfileForRewriting.getArtProfileProvider(),
-              artProfileForRewriting.getResidualArtProfileConsumer());
-        }
+                .setProgramConsumer(getProgramConsumer())
+                .setEnableRewritingOfArtProfilesIsNopCheck();
         for (ClassFileResourceProvider libraryResourceProvider :
             inputs.getLibraryResourceProviders()) {
           d8Builder.addLibraryResourceProvider(libraryResourceProvider);

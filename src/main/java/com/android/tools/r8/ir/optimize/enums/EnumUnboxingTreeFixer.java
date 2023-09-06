@@ -664,6 +664,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     }
     if (superMethod == null || subimplementations.isEmpty()) {
       // No emulated dispatch is required, just move everything.
+      // If an abstract method with no implementors is found, effectively don't do anything.
       if (superMethod != null && !superMethod.getAccessFlags().isAbstract()) {
         assert superMethod.isProgramMethod();
         directMoveAndMap(localUtilityClass, localUtilityMethods, superMethod.asProgramMethod());
@@ -671,6 +672,13 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
       for (ProgramMethod override : subimplementations) {
         directMoveAndMap(localUtilityClass, localUtilityMethods, override);
       }
+      return;
+    }
+    if (superMethod.getDefinition().isAbstract() && subimplementations.size() == 1) {
+      // No emulated dispatch is required, just forward everything to the unique implementation.
+      ProgramMethod override = subimplementations.iterator().next();
+      DexMethod uniqueUtility = directMoveAndMap(localUtilityClass, localUtilityMethods, override);
+      lensBuilder.mapToDispatch(superMethod.getReference(), uniqueUtility);
       return;
     }
     // These methods require emulated dispatch.
@@ -736,7 +744,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     }
   }
 
-  private void directMoveAndMap(
+  private DexMethod directMoveAndMap(
       LocalEnumUnboxingUtilityClass localUtilityClass,
       Map<DexMethod, DexEncodedMethod> localUtilityMethods,
       ProgramMethod method) {
@@ -745,6 +753,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
         installLocalUtilityMethod(localUtilityClass, localUtilityMethods, method);
     assert utilityMethod != null;
     lensBuilder.moveAndMap(method.getReference(), utilityMethod, method.getDefinition().isStatic());
+    return utilityMethod;
   }
 
   public void recordEmulatedDispatch(DexMethod from, DexMethod move, DexMethod dispatch) {

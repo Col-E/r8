@@ -31,6 +31,7 @@ public class TrivialPhiSimplifier {
   }
 
   public static void ensureDirectStringNewToInit(AppView<?> appView, IRCode code) {
+    boolean changed = false;
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     for (Instruction instruction : code.instructions()) {
       if (instruction.isInvokeDirect()) {
@@ -46,10 +47,11 @@ public class TrivialPhiSimplifier {
                 "Failed to remove trivial phis between new-instance and <init>");
           }
           newInstance.markNoSpilling();
+          changed = true;
         }
       }
     }
-    assert code.isConsistentSSA(appView);
+    assert !changed || code.isConsistentSSA(appView);
   }
 
   private static NewInstance findNewInstance(Phi phi) {

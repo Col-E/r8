@@ -28,7 +28,7 @@ public class ResourceShrinkerIntegrationTest extends TestBase {
   }
 
   @Test
-  public void testResourceShrinkerClassAvailable() throws Exception {
+  public void testResourceShrinkerClassAvailable() {
     if (ToolHelper.isNewGradleSetup()) {
       assertTrue(
           ResourceTracing.getImpl().getClass() != ResourceTracing.NoOpResourceTracingImpl.class);

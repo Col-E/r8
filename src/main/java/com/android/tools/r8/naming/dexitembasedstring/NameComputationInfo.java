@@ -9,8 +9,17 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 
 public abstract class NameComputationInfo<T extends DexReference> {
+
+  enum Order {
+    CLASSNAME,
+    FIELDNAME,
+    RECORD_MATCH,
+    RECORD_MISMATCH
+  }
 
   public final DexString computeNameFor(
       DexReference reference,
@@ -38,6 +47,25 @@ public abstract class NameComputationInfo<T extends DexReference> {
 
   abstract DexString internalComputeNameFor(
       T reference, DexDefinitionSupplier definitions, NamingLens namingLens);
+
+  abstract Order getOrder();
+
+  public int acceptCompareTo(NameComputationInfo<?> other, CompareToVisitor visitor) {
+    int diff = visitor.visitInt(getOrder().ordinal(), other.getOrder().ordinal());
+    if (diff != 0) {
+      return diff;
+    }
+    return internalAcceptCompareTo(other, visitor);
+  }
+
+  public void acceptHashing(HashingVisitor visitor) {
+    visitor.visitInt(getOrder().ordinal());
+    internalAcceptHashing(visitor);
+  }
+
+  abstract int internalAcceptCompareTo(NameComputationInfo<?> other, CompareToVisitor visitor);
+
+  abstract void internalAcceptHashing(HashingVisitor visitor);
 
   public abstract boolean needsToComputeName();
 

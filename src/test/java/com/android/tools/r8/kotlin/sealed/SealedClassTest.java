@@ -46,7 +46,7 @@ public class SealedClassTest extends KotlinTestBase {
 
   private static Collection<Path> getKotlinSources() {
     try {
-      return getFilesInTestFolderRelativeToClass(SealedClassTest.class, "kt", ".kt");
+      return getFilesInTestFolderRelativeToClass(SealedClassTest.class, "kt", "Format.kt");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

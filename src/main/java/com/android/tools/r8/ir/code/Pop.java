@@ -13,7 +13,9 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.lightir.LirBuilder;
+import java.util.function.BiPredicate;
 
 public class Pop extends Instruction {
 
@@ -53,20 +55,38 @@ public class Pop extends Instruction {
   }
 
   @Override
+  protected boolean identicalNonValueParts(Instruction other, RegisterAllocator allocator) {
+    assert other.isPop();
+    if (!identicalPop(
+        other.asPop(),
+        (initClass, otherInitClass) ->
+            initClass.identicalNonValueParts(otherInitClass, allocator))) {
+      return false;
+    }
+    assert identicalNonValueNonPositionParts(other);
+    return identicalPosition(other, allocator);
+  }
+
+  @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     if (!other.isPop()) {
       return false;
     }
-    Pop pop = other.asPop();
+    return identicalPop(other.asPop(), InitClass::identicalNonValueNonPositionParts);
+  }
+
+  // Pops are identical except if immediately following an InitClass, in which case they are
+  // identical only if the corresponding InitClass are.
+  private boolean identicalPop(Pop other, BiPredicate<InitClass, InitClass> predicate) {
     if (getFirstOperand().isDefinedByInstructionSatisfying(Instruction::isInitClass)) {
       InitClass initClass = getFirstOperand().getDefinition().asInitClass();
-      if (!pop.getFirstOperand().isDefinedByInstructionSatisfying(Instruction::isInitClass)) {
+      if (!other.getFirstOperand().isDefinedByInstructionSatisfying(Instruction::isInitClass)) {
         return false;
       }
-      InitClass otherInitClass = pop.getFirstOperand().getDefinition().asInitClass();
-      return initClass.getClassValue() == otherInitClass.getClassValue();
+      InitClass otherInitClass = other.getFirstOperand().getDefinition().asInitClass();
+      return predicate.test(initClass, otherInitClass);
     }
-    return !pop.getFirstOperand().isDefinedByInstructionSatisfying(Instruction::isInitClass);
+    return !other.getFirstOperand().isDefinedByInstructionSatisfying(Instruction::isInitClass);
   }
 
   @Override

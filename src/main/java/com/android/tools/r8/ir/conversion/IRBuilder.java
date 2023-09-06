@@ -1488,8 +1488,7 @@ public class IRBuilder {
       registerIndex += ValueTypeConstraint.OBJECT.requiredRegisters();
     }
 
-    String shorty = callSite.methodProto.shorty.toString();
-
+    String shorty = callSite.methodProto.createShortyString();
     for (int i = 1; i < shorty.length(); i++) {
       ValueTypeConstraint constraint = ValueTypeConstraint.fromTypeDescriptorChar(shorty.charAt(i));
       arguments.add(readRegister(argumentRegisters[registerIndex], constraint));
@@ -1510,8 +1509,7 @@ public class IRBuilder {
       register += ValueTypeConstraint.OBJECT.requiredRegisters();
     }
 
-    String shorty = callSite.methodProto.shorty.toString();
-
+    String shorty = callSite.methodProto.createShortyString();
     for (int i = 1; i < shorty.length(); i++) {
       ValueTypeConstraint constraint = ValueTypeConstraint.fromTypeDescriptorChar(shorty.charAt(i));
       arguments.add(readRegister(register, constraint));
@@ -1546,16 +1544,15 @@ public class IRBuilder {
       arguments.add(readRegister(argumentRegisters[registerIndex], ValueTypeConstraint.OBJECT));
       registerIndex += ValueTypeConstraint.OBJECT.requiredRegisters();
     }
-    DexString methodShorty;
+    String shorty;
     if (type == InvokeType.POLYMORPHIC) {
-      // The call site signature for invoke polymorphic must be take from call site and not from
+      // The call site signature for invoke polymorphic must be taken from call site and not from
       // the called method.
-      methodShorty = callSiteProto.shorty;
+      shorty = callSiteProto.createShortyString();
     } else {
-      methodShorty = method.proto.shorty;
+      shorty = method.proto.createShortyString();
     }
-    String shorty = methodShorty.toString();
-    for (int i = 1; i < methodShorty.size; i++) {
+    for (int i = 1; i < shorty.length(); i++) {
       ValueTypeConstraint constraint = ValueTypeConstraint.fromTypeDescriptorChar(shorty.charAt(i));
       arguments.add(readRegister(argumentRegisters[registerIndex], constraint));
       registerIndex += constraint.requiredRegisters();
@@ -1609,16 +1606,15 @@ public class IRBuilder {
       arguments.add(readRegister(register, ValueTypeConstraint.OBJECT));
       register += ValueTypeConstraint.OBJECT.requiredRegisters();
     }
-    DexString methodShorty;
+    String shorty;
     if (type == InvokeType.POLYMORPHIC) {
-      // The call site signature for invoke polymorphic must be take from call site and not from
+      // The call site signature for invoke polymorphic must be taken from call site and not from
       // the called method.
-      methodShorty = callSiteProto.shorty;
+      shorty = callSiteProto.createShortyString();
     } else {
-      methodShorty = method.proto.shorty;
+      shorty = method.proto.createShortyString();
     }
-    String shorty = methodShorty.toString();
-    for (int i = 1; i < methodShorty.size; i++) {
+    for (int i = 1; i < shorty.length(); i++) {
       ValueTypeConstraint valueTypeConstraint =
           ValueTypeConstraint.fromTypeDescriptorChar(shorty.charAt(i));
       arguments.add(readRegister(register, valueTypeConstraint));

@@ -27,8 +27,12 @@ public class SetUtils {
     return false;
   }
 
+  public static <T> Set<T> newConcurrentHashSet() {
+    return ConcurrentHashMap.newKeySet();
+  }
+
   public static <T> Set<T> newConcurrentHashSet(int capacity) {
-    return Collections.newSetFromMap(new ConcurrentHashMap<>(capacity));
+    return ConcurrentHashMap.newKeySet(capacity);
   }
 
   public static <T> HashSet<T> newHashSet(T element) {

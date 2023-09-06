@@ -12,6 +12,7 @@ import java.lang.invoke.MethodType;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.ClassReader;
@@ -40,13 +41,16 @@ public class TestGenerator {
       false);
 
   public static void main(String[] args) throws IOException {
-    assert args.length == 1;
-    generateTests(Paths.get(args[0],
-        TestGenerator.class.getPackage().getName(),
-        StringConcat.class.getSimpleName() + ".class"));
+    assert args.length == 2;
+    String fileName = StringConcat.class.getSimpleName() + ".class";
+    Path inputFile = Paths.get(args[0], TestGenerator.class.getPackage().getName(), fileName);
+    Path outputFile = Paths.get(args[1], fileName);
+    generateTests(inputFile, outputFile);
   }
 
-  private static void generateTests(Path classNamePath) throws IOException {
+  private static void generateTests(Path classNamePath, Path outputClassNamePath)
+      throws IOException {
+    Files.createDirectories(outputClassNamePath.getParent());
     try (InputStream input = Files.newInputStream(classNamePath)) {
       ClassReader cr = new ClassReader(input);
       ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
@@ -221,7 +225,8 @@ public class TestGenerator {
               };
             }
           }, 0);
-      try (OutputStream output = Files.newOutputStream(classNamePath)) {
+      try (OutputStream output =
+          Files.newOutputStream(outputClassNamePath, StandardOpenOption.CREATE)) {
         output.write(cw.toByteArray());
       }
     }

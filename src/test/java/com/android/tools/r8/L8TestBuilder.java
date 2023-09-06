@@ -255,6 +255,13 @@ public class L8TestBuilder {
       // The rewriting confuses the generic signatures in some methods. Such signatures are never
       // used by tools (they use the non library desugared version) and are stripped when compiling
       // with R8 anyway.
+      if (info.getDiagnosticMessage()
+          .equals("Running R8 version " + Version.LABEL + " with assertions enabled.")) {
+        continue;
+      }
+      if (info.getDiagnosticMessage().startsWith("Dumped compilation inputs to:")) {
+        continue;
+      }
       if (info instanceof UnusedProguardKeepRuleDiagnostic) {
         // The default keep rules on desugared library may be unused. They should all be defined
         // with keepclassmembers or keep,allowshrinking.

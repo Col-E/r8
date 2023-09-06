@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.analysis.value;
 
+import static com.android.tools.r8.utils.BitUtils.ALL_BITS_SET_MASK;
+
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
@@ -25,7 +27,11 @@ public class AbstractValueFactory {
 
   public AbstractValue createDefiniteBitsNumberValue(
       int definitelySetBits, int definitelyUnsetBits) {
-    if (definitelySetBits != 0 && definitelyUnsetBits != 0) {
+    if (definitelySetBits != 0 || definitelyUnsetBits != 0) {
+      // If all bits are known, then create a single number value.
+      if ((definitelySetBits | definitelyUnsetBits) == ALL_BITS_SET_MASK) {
+        return createSingleNumberValue(definitelySetBits);
+      }
       return new DefiniteBitsNumberValue(definitelySetBits, definitelyUnsetBits);
     }
     return AbstractValue.unknown();

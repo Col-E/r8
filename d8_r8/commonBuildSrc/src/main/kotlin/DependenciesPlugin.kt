@@ -11,6 +11,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.SourceSet
@@ -23,14 +24,6 @@ import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 class DependenciesPlugin: Plugin<Project> {
 
   override fun apply(target: Project) {
-    val dependenciesPath = "file:" +
-      target.getRoot().resolve("third_party").resolve("dependencies").getAbsolutePath()
-    val dependenciesNewPath = "file:" +
-      target.getRoot().resolve("third_party").resolve("dependencies_new").getAbsolutePath()
-    val repositories = target.getRepositories()
-    repositories.maven { name = "LOCAL_MAVEN_REPO";  url = URI(dependenciesPath) }
-    repositories.maven { name = "LOCAL_MAVEN_REPO_NEW";  url = URI(dependenciesNewPath) }
-
     // Setup all test tasks to listen after system properties passed in by test.py.
     val testTask = target.tasks.findByName("test")
     if (testTask != null) {
@@ -124,6 +117,7 @@ fun Project.buildExampleJars(name : String) : Task {
     // The TEST_SOURCE_SET_NAME is the source set defined by writing java { sourcesets.test { ... }}
     .getByName(SourceSet.TEST_SOURCE_SET_NAME)
   val destinationDir = getRoot().resolveAll("build", "test", name)
+  val generateDir = getRoot().resolveAll("build", "generated", name)
   val classesOutput = destinationDir.resolve("classes")
   testSourceSet.java.destinationDirectory.set(classesOutput)
   testSourceSet.resources.destinationDirectory.set(destinationDir)
@@ -136,24 +130,35 @@ fun Project.buildExampleJars(name : String) : Task {
         arrayOf("compileTestJava", "debuginfo-all", "debuginfo-none").forEach { taskName ->
           if (!project.getTasksByName(taskName, false).isEmpty()) {
             var generationTask : Task? = null
-            val taskSpecificClassesOutput = getOutputName(classesOutput.toString(), taskName)
+            val compileOutput = getOutputName(classesOutput.toString(), taskName)
             if (exampleDir.resolve("TestGenerator.java").isFile) {
+              val generatedOutput = Paths.get(
+                getOutputName(generateDir.toString(), taskName), exampleDir.name).toString()
               generationTask = tasks.register<JavaExec>(
                 "generate-$name-${exampleDir.name}-$taskName") {
                 dependsOn(taskName)
                 mainClass.set("${exampleDir.name}.TestGenerator")
-                classpath = files(taskSpecificClassesOutput, testSourceSet.compileClasspath)
-                args(taskSpecificClassesOutput)
+                classpath = files(compileOutput, testSourceSet.compileClasspath)
+                args(compileOutput, generatedOutput)
+                outputs.dirs(generatedOutput)
               }.get()
             }
             jarTasks.add(tasks.register<Jar>("jar-$name-${exampleDir.name}-$taskName") {
               dependsOn(taskName)
-              if (generationTask != null) {
-                dependsOn(generationTask)
-              }
               archiveFileName.set("${getOutputName(exampleDir.name, taskName)}.jar")
               destinationDirectory.set(destinationDir)
-              from(taskSpecificClassesOutput) {
+              duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+              if (generationTask != null) {
+                // If a generation task exists, we first take the generated output and add to the
+                // current jar. Running with DuplicatesStrategy.EXCLUDE ensure that we do not
+                // overwrite with the non-generated file.
+                dependsOn(generationTask)
+                from(generationTask.outputs.files.singleFile.parentFile) {
+                  include("${exampleDir.name}/**/*.class")
+                  exclude("**/TestGenerator*")
+                }
+              }
+              from(compileOutput) {
                 include("${exampleDir.name}/**/*.class")
                 exclude("**/TestGenerator*")
               }
@@ -364,6 +369,10 @@ object ThirdPartyDeps {
     "ddmlib",
     Paths.get("third_party", "ddmlib").toFile(),
     Paths.get("third_party", "ddmlib.tar.gz.sha1").toFile())
+  val examplesAndroidOLegacy = ThirdPartyDependency(
+    "examplesAndroidOLegacy",
+    Paths.get("third_party", "examplesAndroidOLegacy").toFile(),
+    Paths.get("third_party", "examplesAndroidOLegacy.tar.gz.sha1").toFile())
   val desugarJdkLibs = ThirdPartyDependency(
     "desugar-jdk-libs",
     Paths.get("third_party", "openjdk", "desugar_jdk_libs").toFile(),
@@ -379,10 +388,10 @@ object ThirdPartyDeps {
     Paths.get("third_party", "framework").toFile(),
     Paths.get("third_party", "framework.tar.gz.sha1").toFile(),
     DependencyType.X20)
-  val iosched2019 = ThirdPartyDependency(
-    "iosched-2019",
-    Paths.get("third_party", "iosched_2019").toFile(),
-    Paths.get("third_party", "iosched_2019.tar.gz.sha1").toFile())
+  val gson = ThirdPartyDependency(
+    "gson",
+    Paths.get("third_party", "gson", "gson-2.10.1").toFile(),
+    Paths.get("third_party", "gson", "gson-2.10.1.tar.gz.sha1").toFile())
   val desugarJdkLibs11 = ThirdPartyDependency(
     "desugar-jdk-libs-11",
     Paths.get("third_party", "openjdk", "desugar_jdk_libs_11").toFile(),

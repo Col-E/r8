@@ -6,6 +6,8 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.lightir.LirConstant;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.Iterables;
@@ -15,23 +17,18 @@ import java.util.function.Consumer;
 public class DexProto extends IndexedDexItem
     implements NamingLensComparable<DexProto>, LirConstant {
 
-  public static final DexProto SENTINEL = new DexProto(null, null, null);
+  public static final DexProto SENTINEL = new DexProto(null, null);
 
-  public final DexString shorty;
   public final DexType returnType;
   public final DexTypeList parameters;
 
-  DexProto(DexString shorty, DexType returnType, DexTypeList parameters) {
-    this.shorty = shorty;
+  DexProto(DexType returnType, DexTypeList parameters) {
     this.returnType = returnType;
     this.parameters = parameters;
   }
 
   private static void specify(StructuralSpecification<DexProto, ?> spec) {
-    spec.withItem(DexProto::getReturnType)
-        .withItem(p -> p.parameters)
-        // TODO(b/172206529): Consider removing shorty.
-        .withItem(p1 -> p1.shorty);
+    spec.withItem(DexProto::getReturnType).withItem(p -> p.parameters);
   }
 
   @Override
@@ -48,16 +45,14 @@ public class DexProto extends IndexedDexItem
   public boolean computeEquals(Object other) {
     if (other instanceof DexProto) {
       DexProto o = (DexProto) other;
-      return shorty.equals(o.shorty)
-          && returnType.equals(o.returnType)
-          && parameters.equals(o.parameters);
+      return returnType.equals(o.returnType) && parameters.equals(o.parameters);
     }
     return false;
   }
 
   @Override
   public int computeHashCode() {
-    return shorty.hashCode() * 7 + returnType.hashCode() * 13 + parameters.hashCode() * 31;
+    return returnType.hashCode() * 7 + parameters.hashCode() * 13;
   }
 
   public DexType getReturnType() {
@@ -102,12 +97,11 @@ public class DexProto extends IndexedDexItem
 
   @Override
   public String toString() {
-    return "Proto " + shorty + " " + returnType + " " + parameters;
+    return "Proto " + returnType + " " + parameters;
   }
 
   public void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems) {
     if (indexedItems.addProto(this)) {
-      shorty.collectIndexedItems(indexedItems);
       returnType.collectIndexedItems(appView, indexedItems);
       parameters.collectIndexedItems(appView, indexedItems);
     }
@@ -136,5 +130,29 @@ public class DexProto extends IndexedDexItem
     builder.append(")");
     builder.append(lens.lookupDescriptor(returnType));
     return builder.toString();
+  }
+
+  public String createShortyString() {
+    StringBuilder shortyBuilder = new StringBuilder();
+    shortyBuilder.append(returnType.toShorty());
+    for (DexType argumentType : parameters.values) {
+      shortyBuilder.append(argumentType.toShorty());
+    }
+    return shortyBuilder.toString();
+  }
+
+  @Override
+  public LirConstantOrder getLirConstantOrder() {
+    return LirConstantOrder.PROTO;
+  }
+
+  @Override
+  public int internalLirConstantAcceptCompareTo(LirConstant other, CompareToVisitor visitor) {
+    return acceptCompareTo((DexProto) other, visitor);
+  }
+
+  @Override
+  public void internalLirConstantAcceptHashing(HashingVisitor visitor) {
+    acceptHashing(visitor);
   }
 }

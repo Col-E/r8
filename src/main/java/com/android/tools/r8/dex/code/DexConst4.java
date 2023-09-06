@@ -44,6 +44,16 @@ public class DexConst4 extends DexFormat11n implements SingleConstant {
   }
 
   @Override
+  public boolean isDexConst4() {
+    return true;
+  }
+
+  @Override
+  public DexConst4 asDexConst4() {
+    return this;
+  }
+
+  @Override
   public String toString(RetracerForCodePrinting retracer) {
     return formatString(
         "v" + A + ", " + StringUtils.hexString(decodedValue(), 1) + " (" + decodedValue() + ")");

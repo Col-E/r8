@@ -223,6 +223,10 @@ public class TestBase {
     return testForD8(temp, backend);
   }
 
+  public RelocatorTestBuilder testForRelocator(boolean external) {
+    return RelocatorTestBuilder.create(new TestState(temp), external);
+  }
+
   public JvmTestBuilder testForJvm(TestParameters parameters) {
     parameters.assertCfRuntime();
     parameters.assertIsRepresentativeApiLevelForRuntime();

@@ -9,6 +9,8 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 
 public class FieldNameComputationInfo extends NameComputationInfo<DexField> {
 
@@ -26,6 +28,22 @@ public class FieldNameComputationInfo extends NameComputationInfo<DexField> {
       DexField field, DexDefinitionSupplier definitions, NamingLens namingLens) {
     // Should be dead since needsToComputeName() returns false.
     throw new Unreachable();
+  }
+
+  @Override
+  Order getOrder() {
+    return Order.FIELDNAME;
+  }
+
+  @Override
+  int internalAcceptCompareTo(NameComputationInfo<?> other, CompareToVisitor visitor) {
+    assert this == other;
+    return 0;
+  }
+
+  @Override
+  void internalAcceptHashing(HashingVisitor visitor) {
+    // Nothing to hash.
   }
 
   @Override

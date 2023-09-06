@@ -20,6 +20,11 @@ public interface ProgramDefinition
   }
 
   @Override
+  default DexProgramClass asClass() {
+    return null;
+  }
+
+  @Override
   default ProgramField asField() {
     return null;
   }

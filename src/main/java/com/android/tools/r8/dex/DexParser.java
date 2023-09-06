@@ -1384,13 +1384,12 @@ public class DexParser<T extends DexClass> {
     }
     int offset = dexSection.offset + (Constants.TYPE_PROTO_ID_ITEM_SIZE * index);
     dexReader.position(offset);
-    int shortyIndex = dexReader.getUint();
+    int unusedShortyIndex = dexReader.getUint();
     int returnTypeIndex = dexReader.getUint();
     int parametersOffsetIndex = dexReader.getUint();
-    DexString shorty = indexedItems.getString(shortyIndex);
     DexType returnType = indexedItems.getType(returnTypeIndex);
     DexTypeList parameters = typeListAt(parametersOffsetIndex);
-    return dexItemFactory.createProto(returnType, parameters, shorty);
+    return dexItemFactory.createProto(returnType, parameters);
   }
 
   private DexMethod methodAt(int index) {

@@ -4,17 +4,15 @@
 
 package com.android.tools.r8.code.invokedynamic;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assume.assumeTrue;
+import static org.hamcrest.CoreMatchers.anyOf;
 
-import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.UnsupportedInvokeCustomDiagnostic;
+import com.android.tools.r8.errors.UnsupportedInvokePolymorphicMethodHandleDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,23 +32,21 @@ public class CompileGuavaWithUnrepresentableRewritingTest extends TestBase {
   }
 
   @Test
-  public void testD8DexNoDesugaring() {
-    assumeTrue(ToolHelper.isTestingR8Lib());
-    assertThrows(
-        CompilationFailedException.class,
-        () -> {
-          testForD8(Backend.DEX)
-              // DEPS contains all R8 dependencies, including guava, which extends the surface
-              // of UnrepresentableRewriting.
-              .addProgramFiles(ToolHelper.DEPS)
-              .setMinApi(AndroidApiLevel.B)
-              .disableDesugaring()
-              .compileWithExpectedDiagnostics(
-                  diagnostics ->
-                      diagnostics
-                          .assertAllWarningsMatch(
-                              diagnosticType(UnsupportedInvokeCustomDiagnostic.class))
-                          .assertErrorThatMatches(diagnosticType(DexFileOverflowDiagnostic.class)));
-        });
+  public void testD8DexNoDesugaring() throws Exception {
+    testForD8(Backend.DEX)
+        .addProgramFiles(ToolHelper.GUAVA_JRE)
+        .setMinApi(AndroidApiLevel.N)
+        .disableDesugaring()
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics
+                    .assertHasWarnings()
+                    .assertAllWarningsMatch(
+                        anyOf(
+                            DiagnosticsMatcher.diagnosticType(
+                                UnsupportedInvokeCustomDiagnostic.class),
+                            DiagnosticsMatcher.diagnosticType(
+                                UnsupportedInvokePolymorphicMethodHandleDiagnostic.class)))
+                    .assertNoErrors());
   }
 }

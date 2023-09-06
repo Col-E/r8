@@ -5,8 +5,6 @@ package com.android.tools.r8.internal;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.core.AnyOf.anyOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.D8TestCompileResult;
@@ -18,10 +16,8 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Set;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,42 +50,6 @@ public class GMSCoreV10Test extends GMSCoreCompilationTestBase {
             .sanitize();
     sanitizedLibrary = librarySanitizer.getSanitizedLibrary();
     sanitizedProguardConfiguration = librarySanitizer.getSanitizedProguardConfiguration();
-  }
-
-  @Test
-  public void testR8Determinism() throws Exception {
-    Set<String> idsRoundOne = Sets.newConcurrentHashSet();
-    R8TestCompileResult compileResult =
-        compileWithR8(
-            builder ->
-                builder.addOptionsModification(
-                    options -> {
-                      options.testing.processingContextsConsumer =
-                          id -> assertTrue(idsRoundOne.add(id));
-                    }));
-
-    compileResult.runDex2Oat(parameters.getRuntime()).assertNoVerificationErrors();
-
-    Set<String> idsRoundTwo = Sets.newConcurrentHashSet();
-    R8TestCompileResult otherCompileResult =
-        compileWithR8(
-            builder ->
-                builder.addOptionsModification(
-                    options -> {
-                      options.testing.processingContextsConsumer =
-                          id -> assertTrue(idsRoundTwo.add(id));
-                    }));
-
-    uploadJarsToCloudStorageIfTestFails(
-        (ignored1, ignored2) -> {
-          // Verify that the result of the two compilations was the same.
-          assertEquals(idsRoundOne, idsRoundTwo);
-          assertIdenticalApplications(compileResult.getApp(), otherCompileResult.getApp());
-          assertEquals(compileResult.getProguardMap(), otherCompileResult.getProguardMap());
-          return true;
-        },
-        compileResult.writeToZip(),
-        otherCompileResult.writeToZip());
   }
 
   @Test

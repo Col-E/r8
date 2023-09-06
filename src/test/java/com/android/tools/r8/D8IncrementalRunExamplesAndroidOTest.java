@@ -27,13 +27,13 @@ import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -118,8 +118,10 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     private Path makeRelative(Path testJarFile, Path classFile) {
       Path regularParent =
           testJarFile.getParent().resolve(Paths.get("classes"));
-      Path legacyParent = regularParent.resolve(Paths.get("..",
-          regularParent.getFileName().toString() + "Legacy", "classes"));
+      Path legacyParent =
+          regularParent.resolve(
+              Paths.get(
+                  ToolHelper.THIRD_PARTY_DIR, regularParent.getFileName().toString() + "Legacy"));
 
       if (classFile.startsWith(regularParent)) {
         return regularParent.relativize(classFile);
@@ -129,13 +131,22 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
     }
 
     private List<String> collectClassFiles(Path testJarFile) {
-      List<String> result = new ArrayList<>();
+      Map<String, String> result = new HashMap<>();
       // Collect Java 8 classes.
-      collectClassFiles(getClassesRoot(testJarFile), result);
+      visitFiles(
+          getClassesRoot(testJarFile),
+          path -> result.put(path.toFile().getName(), path.toString()));
+      // Collect generated classes, overwrite non-generated files.
+      visitFiles(
+          getGeneratedRoot(testJarFile),
+          path -> result.put(path.toFile().getName(), path.toString()));
       // Collect legacy classes.
-      collectClassFiles(getLegacyClassesRoot(testJarFile), result);
-      Collections.sort(result);
-      return result;
+      visitFiles(
+          getLegacyClassesRoot(testJarFile, packageName),
+          path -> result.put(path.toFile().getName(), path.toString()));
+      List<String> files = new ArrayList<>(result.values());
+      Collections.sort(files);
+      return files;
     }
 
     Path getClassesRoot(Path testJarFile) {
@@ -143,27 +154,10 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       return parent.resolve(Paths.get("classes", packageName));
     }
 
-    Path getLegacyClassesRoot(Path testJarFile) {
-      Path parent = testJarFile.getParent();
-      Path legacyPath = Paths.get("..",
-          parent.getFileName().toString() + "Legacy", "classes", packageName);
-      return parent.resolve(legacyPath);
-    }
-
-    private void collectClassFiles(Path dir, List<String> result) {
-      if (Files.exists(dir)) {
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
-          for (Path entry: stream) {
-            if (Files.isDirectory(entry)) {
-              collectClassFiles(entry, result);
-            } else {
-              result.add(entry.toString());
-            }
-          }
-        } catch (IOException x) {
-          throw new AssertionError(x);
-        }
-      }
+    Path getGeneratedRoot(Path testJarFile) {
+      String sourceSet = testJarFile.getParent().toFile().getName();
+      Path parent = testJarFile.getParent().getParent().getParent();
+      return parent.resolve(Paths.get("generated", sourceSet, packageName));
     }
 
     AndroidApp compileClassFilesInIntermediate(

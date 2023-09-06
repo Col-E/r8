@@ -573,6 +573,11 @@ public class DexProgramClass extends DexClass
   }
 
   @Override
+  public DexProgramClass asClass() {
+    return this;
+  }
+
+  @Override
   public DexProgramClass asProgramClass() {
     return this;
   }

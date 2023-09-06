@@ -243,7 +243,8 @@ public final class ClassInliner {
       new TrivialCheckCastAndInstanceOfRemover(appView)
           .run(code, methodProcessor, methodProcessingContext, Timing.empty());
       // If a method was inlined we may be able to prune additional branches.
-      new BranchSimplifier(appView).run(code, Timing.empty());
+      new BranchSimplifier(appView)
+          .run(code, methodProcessor, methodProcessingContext, Timing.empty());
       // If a method was inlined we may see more trivial computation/conversion of String.
       new StringOptimizer(appView).run(code, Timing.empty());
     }

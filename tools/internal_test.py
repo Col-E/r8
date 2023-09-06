@@ -39,8 +39,6 @@ import utils
 import run_on_app
 
 import chrome_data
-import iosched_data
-import r8_data
 import youtube_data
 
 # How often the bot/tester should check state
@@ -60,7 +58,7 @@ STDOUT = 'stdout'
 EXITCODE = 'exitcode'
 TIMED_OUT = 'timed_out'
 
-BENCHMARK_APPS = [chrome_data, iosched_data, r8_data, youtube_data]
+BENCHMARK_APPS = [chrome_data, youtube_data]
 
 DEPENDENT_PYTHON_FILES = [gradle, utils, run_on_app]
 
@@ -119,13 +117,11 @@ TEST_COMMANDS = [
     ['tools/test.py', '--only_internal', '--slow_tests',
      '--java_max_memory_size=8G'],
     # Ensure that all internal apps compile.
-    ['tools/run_on_app.py', '--run-all', '--out=out'],
-    # Find min xmx for selected benchmark apps
-    ['tools/gradle.py', 'r8lib'],
+    ['tools/run_on_app.py', '--run-all', '--out=out', '--workers', '4'],
 ]
 
 # Command timeout, in seconds.
-RUN_TIMEOUT = 3600 * 6
+RUN_TIMEOUT = 3600 * 7
 BOT_RUN_TIMEOUT = RUN_TIMEOUT * len(TEST_COMMANDS)
 
 def log(str):
@@ -147,26 +143,6 @@ def ParseOptions():
        help='Post result to GCS, implied by --continuous',
        default=False, action='store_true')
   return result.parse_args()
-
-def get_file_contents():
-  contents = []
-  with open(sys.argv[0], 'r') as us:
-    contents.append(us.read())
-  for deps in BENCHMARK_APPS + DEPENDENT_PYTHON_FILES:
-    with open(deps.__file__, 'r') as us:
-      contents.append(us.read())
-  return contents
-
-def restart_if_new_version(original_contents):
-  new_contents = get_file_contents()
-  log('Lengths %s %s' % (
-      [len(data) for data in original_contents],
-      [len(data) for data in new_contents]))
-  log('is main %s ' % utils.is_main())
-  # Restart if the script got updated.
-  if new_contents != original_contents:
-    log('Restarting tools/internal_test.py, content changed')
-    os.execv(sys.argv[0], sys.argv)
 
 def ensure_git_clean():
   # Ensure clean git repo.
@@ -291,10 +267,7 @@ def run_bot():
     return 1
 
 def run_continuously():
-  # If this script changes, we will restart ourselves
-  own_content = get_file_contents()
   while True:
-    restart_if_new_version(own_content)
     print_magic_file_state()
     if get_magic_file_exists(READY_FOR_TESTING):
       git_hash = get_magic_file_content(READY_FOR_TESTING)
@@ -305,10 +278,6 @@ def run_continuously():
         put_magic_file(TESTING_COMPLETE, git_hash)
         delete_magic_file(READY_FOR_TESTING)
         continue
-      # If the script changed, we need to restart now to get correct commands
-      # Note that we have not removed the READY_FOR_TESTING yet, so if we
-      # execv we will pick up the same version.
-      restart_if_new_version(own_content)
       # Sanity check, if this does not succeed stop.
       if checked_out != git_hash:
         log('Inconsistent state: %s %s' % (git_hash, checked_out))
@@ -316,7 +285,7 @@ def run_continuously():
       put_magic_file(TESTING, git_hash)
       delete_magic_file(READY_FOR_TESTING)
       log('Running with hash: %s' % git_hash)
-      exitcode = run_once(archive=True)
+      exitcode = run_external()
       log('Running finished with exit code %s' % exitcode)
       # If the bot timed out or something else triggered the bot to fail, don't
       # put up the result (it will not be displayed anywhere, and we can't
@@ -327,6 +296,9 @@ def run_continuously():
         # delete) - this is unlikely and we ignore it (restart if it happens).
         delete_magic_file(TESTING)
     time.sleep(PULL_DELAY)
+
+def run_external():
+ return subprocess.call([sys.executable, "tools/internal_test.py", "--archive"])
 
 def handle_output(archive, stderr, stdout, exitcode, timed_out, cmd):
   if archive:
@@ -387,7 +359,7 @@ def run_once(archive):
   log('Running once with hash %s' % git_hash)
   env = os.environ.copy()
   # Bot does not have a lot of memory.
-  env['R8_GRADLE_CORES_PER_FORK'] = '8'
+  env['R8_GRADLE_CORES_PER_FORK'] = '5'
   failed = any([execute(cmd, archive, env) for cmd in TEST_COMMANDS])
   # Gradle daemon occasionally leaks memory, stop it.
   gradle.RunGradle(['--stop'])

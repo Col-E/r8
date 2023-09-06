@@ -29,6 +29,7 @@ import com.android.tools.r8.dex.code.DexIfNez;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.dex.code.DexNop;
 import com.android.tools.r8.dex.code.DexSwitchPayload;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
@@ -41,6 +42,7 @@ import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.lightir.ByteUtils;
 import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -200,10 +202,54 @@ public class JumboStringRewriter {
     for (int i = 0; i < code.tries.length; i++) {
       Try theTry = code.tries[i];
       TryTargets targets = tryTargets.get(theTry);
-      result[i] = new Try(targets.getStartOffset(), targets.getStartToEndDelta(), -1);
+      int startToEndDelta = targets.getStartToEndDelta();
+      if (startToEndDelta > ByteUtils.MAX_U2) {
+        return rewriteSplitTryOffsets(code);
+      }
+      result[i] = new Try(targets.getStartOffset(), startToEndDelta, -1);
       result[i].handlerIndex = theTry.handlerIndex;
     }
     return result;
+  }
+
+  // Note: this algorithm should be aligned with DexBuilder.splitOverflowingRanges.
+  private Try[] rewriteSplitTryOffsets(DexCode code) {
+    // It is unlikely we have 10 overflows (unlikely we have any to begin with).
+    int tentativeCapacity = code.tries.length + 10;
+    List<Try> result = new ArrayList<>(tentativeCapacity);
+    for (Try theTry : code.tries) {
+      TryTargets targets = tryTargets.get(theTry);
+      int startToEndDelta = targets.getStartToEndDelta();
+      int start = targets.getStartOffset();
+      while (startToEndDelta > ByteUtils.MAX_U2) {
+        // Find instruction offset under limit.
+        int maxOffset = start + ByteUtils.MAX_U2;
+        int intermediateEnd = -1;
+        for (int i = code.instructions.length - 1; i >= 0; i--) {
+          DexInstruction instruction = code.instructions[i];
+          // Note that the instructions have been expanded, so getOffset is the rewritten offset.
+          if (instruction.getOffset() <= maxOffset) {
+            intermediateEnd = instruction.getOffset();
+            break;
+          }
+        }
+        if (intermediateEnd <= start) {
+          throw new Unreachable("Unexpected try-catch handler end point: " + intermediateEnd);
+        }
+        int intermediateDelta = intermediateEnd - start;
+        Try splitTry = new Try(start, intermediateDelta, -1);
+        splitTry.handlerIndex = theTry.handlerIndex;
+        result.add(splitTry);
+        start = intermediateEnd;
+        startToEndDelta -= intermediateDelta;
+      }
+      assert startToEndDelta > 0;
+      Try rewrittenTry = new Try(start, startToEndDelta, -1);
+      rewrittenTry.handlerIndex = theTry.handlerIndex;
+      result.add(rewrittenTry);
+    }
+    assert result.size() > code.tries.length;
+    return result.toArray(Try.EMPTY_ARRAY);
   }
 
   private TryHandler[] rewriteHandlerOffsets() {

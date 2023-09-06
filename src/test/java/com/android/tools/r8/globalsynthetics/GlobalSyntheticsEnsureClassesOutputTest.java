@@ -16,9 +16,9 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
-import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
@@ -78,7 +78,7 @@ public class GlobalSyntheticsEnsureClassesOutputTest extends TestBase {
 
   @Test
   public void testClassFileListOutput() throws Exception {
-    Set<String> generatedGlobalSynthetics = Sets.newConcurrentHashSet();
+    Set<String> generatedGlobalSynthetics = SetUtils.newConcurrentHashSet();
     Path output = temp.newFolder().toPath().resolve("output.zip");
     runGlobalSyntheticsGenerator(
         GlobalSyntheticsGeneratorCommand.builder()

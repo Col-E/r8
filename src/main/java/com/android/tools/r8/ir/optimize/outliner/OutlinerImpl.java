@@ -1288,7 +1288,7 @@ public class OutlinerImpl extends Outliner {
           }
         }
         assert lastInstruction != null;
-        assert outlineMethod.proto.shorty.toString().length() - 1 == in.size();
+        assert outlineMethod.proto.createShortyString().length() - 1 == in.size();
         if (returnValue != null && !returnValue.isUsed()) {
           returnValue = null;
         }

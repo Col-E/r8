@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.conversion.passes;
 
+import static com.android.tools.r8.utils.BitUtils.ALL_BITS_SET_MASK;
+
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
@@ -33,8 +35,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
 public class BinopRewriter extends CodeRewriterPass<AppInfo> {
-
-  private static final int ALL_BITS_SET = -1;
 
   public BinopRewriter(AppView<?> appView) {
     super(appView);
@@ -120,7 +120,7 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
     // The following two can be improved if we handle ZeroDivide.
     DIV(null, 1, null, null, false),
     REM(null, null, null, null, false),
-    AND(ALL_BITS_SET, ALL_BITS_SET, 0, 0, true) {
+    AND(ALL_BITS_SET_MASK, ALL_BITS_SET_MASK, 0, 0, true) {
       @Override
       Binop instantiate(NumericType numericType, Value dest, Value left, Value right) {
         return And.create(numericType, dest, left, right);
@@ -136,7 +136,7 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
         return left & right;
       }
     },
-    OR(0, 0, ALL_BITS_SET, ALL_BITS_SET, true) {
+    OR(0, 0, ALL_BITS_SET_MASK, ALL_BITS_SET_MASK, true) {
       @Override
       Binop instantiate(NumericType numericType, Value dest, Value left, Value right) {
         return Or.create(numericType, dest, left, right);

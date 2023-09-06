@@ -53,7 +53,6 @@ public class ClassExtendsInterfaceNamingTest extends TestBase {
         .addProgramFiles(classFiles)
         .addTestingAnnotationsAsProgramClasses()
         .enableAssertions(false)
-        .useR8WithRelocatedDeps()
         .setMinApi(parameters)
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(Interface.class)

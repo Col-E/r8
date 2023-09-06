@@ -5,10 +5,12 @@
 package com.android.tools.r8.shaking.assumevalues;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8;
@@ -348,6 +350,36 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
           this::compatCodeNotPresent,
           ImmutableList.of(rule),
           SynthesizedRule.PRESENT);
+    }
+  }
+
+  @Test
+  public void testUnknownApiLevelRule() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    List<ProguardConfigurationRule> rules =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(TestClass.class)
+            .addKeepMainRule(TestClass.class)
+            .setMinApi(AndroidApiLevel.ANDROID_PLATFORM_CONSTANT)
+            .compile()
+            .getSyntheticProguardRules();
+    for (ProguardConfigurationRule rule : rules) {
+      String ruleText = rule.toString();
+      if (ruleText.contains("SDK_INT")) {
+        assertThat(
+            ruleText,
+            containsString(
+                "return " + AndroidApiLevel.UNKNOWN.getLevel() + ".." + Integer.MAX_VALUE));
+        return;
+      }
+    }
+    fail("Expected to find rule for SDK_INT value range");
+  }
+
+  static class TestClass {
+
+    public static void main(String[] args) {
+      System.out.println("Hello!");
     }
   }
 }

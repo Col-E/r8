@@ -152,7 +152,7 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
                       graphLens.getPrototypeChanges(method.getReference());
                   MethodOptimizationInfoFixer fixer =
                       prototypeChanges.createMethodOptimizationInfoFixer();
-                  optimizationInfo.fixup(appView, fixer);
+                  optimizationInfo.fixup(appView, method, fixer);
                 }
               }
             });

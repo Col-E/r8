@@ -123,303 +123,6 @@ public final class VarHandleDesugaringMethods {
                 .setAccessFlags(FieldAccessFlags.createPublicFinalSynthetic())
                 .disableAndroidApiLevelCheck()
                 .build()));
-    DexMethod compareAndSet =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.booleanType, factory.objectType, factory.objectType, factory.objectType),
-            factory.createString("compareAndSet"));
-    DexMethod getArrayInBox =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.objectType,
-                factory.objectType,
-                factory.intType,
-                factory.createType(factory.createString("Ljava/lang/Class;"))),
-            factory.createString("get"));
-    DexMethod getUnsafeField =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.createType(factory.createString("Ljava/lang/reflect/Field;"))),
-            factory.createString("getUnsafeField"));
-    DexMethod boxIntIfPossible =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.objectType,
-                factory.intType,
-                factory.createType(factory.createString("Ljava/lang/Class;"))),
-            factory.createString("boxIntIfPossible"));
-    DexMethod desugarWrongMethodTypeException =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.createType(factory.createString("Ljava/lang/RuntimeException;"))),
-            factory.createString("desugarWrongMethodTypeException"));
-    DexMethod setArrayLong =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.voidType,
-                factory.createType(factory.createString("[J")),
-                factory.intType,
-                factory.longType),
-            factory.createString("set"));
-    DexMethod setVolatileArray =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.voidType, factory.objectType, factory.intType, factory.objectType),
-            factory.createString("setVolatile"));
-    DexMethod getInt =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.intType, factory.objectType),
-            factory.createString("get"));
-    DexMethod setVolatileLong =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.voidType, factory.objectType, factory.longType),
-            factory.createString("setVolatile"));
-    DexMethod getLong =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.longType, factory.objectType),
-            factory.createString("get"));
-    DexMethod setVolatileInt =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.voidType, factory.objectType, factory.intType),
-            factory.createString("setVolatile"));
-    DexMethod getVolatileLong =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.longType, factory.objectType),
-            factory.createString("getVolatile"));
-    DexMethod get =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.objectType, factory.objectType),
-            factory.createString("get"));
-    DexMethod getVolatileInBox =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.objectType,
-                factory.objectType,
-                factory.createType(factory.createString("Ljava/lang/Class;"))),
-            factory.createString("getVolatile"));
-    DexMethod compareAndSetArrayInt =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.booleanType,
-                factory.createType(factory.createString("[I")),
-                factory.intType,
-                factory.intType,
-                factory.intType),
-            factory.createString("compareAndSet"));
-    DexMethod setInt =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.voidType, factory.objectType, factory.intType),
-            factory.createString("set"));
-    DexMethod weakCompareAndSet =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.booleanType, factory.objectType, factory.objectType, factory.objectType),
-            factory.createString("weakCompareAndSet"));
-    DexMethod arrayRequiringNativeSupport =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.createType(factory.createString("Ljava/lang/String;"))),
-            factory.createString("arrayRequiringNativeSupport"));
-    DexMethod boxLongIfPossible =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.objectType,
-                factory.longType,
-                factory.createType(factory.createString("Ljava/lang/Class;"))),
-            factory.createString("boxLongIfPossible"));
-    DexMethod toLongIfPossible =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.longType, factory.objectType, factory.booleanType),
-            factory.createString("toLongIfPossible"));
-    DexMethod set =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.voidType, factory.objectType, factory.objectType),
-            factory.createString("set"));
-    DexMethod getArrayInt =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.intType, factory.createType(factory.createString("[I")), factory.intType),
-            factory.createString("get"));
-    DexMethod weakCompareAndSetArray =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.booleanType,
-                factory.objectType,
-                factory.intType,
-                factory.objectType,
-                factory.objectType),
-            factory.createString("weakCompareAndSet"));
-    DexMethod setArray =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.voidType, factory.objectType, factory.intType, factory.objectType),
-            factory.createString("set"));
-    DexMethod compareAndSetInt =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.booleanType, factory.objectType, factory.intType, factory.intType),
-            factory.createString("compareAndSet"));
-    DexMethod weakCompareAndSetLong =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.booleanType, factory.objectType, factory.longType, factory.longType),
-            factory.createString("weakCompareAndSet"));
-    DexMethod getVolatileArrayInBox =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.objectType,
-                factory.objectType,
-                factory.intType,
-                factory.createType(factory.createString("Ljava/lang/Class;"))),
-            factory.createString("getVolatile"));
-    DexMethod getVolatileArrayLong =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.longType, factory.createType(factory.createString("[J")), factory.intType),
-            factory.createString("getVolatile"));
-    DexMethod getVolatileArrayInt =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.intType, factory.createType(factory.createString("[I")), factory.intType),
-            factory.createString("getVolatile"));
-    DexMethod toIntIfPossible =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.intType, factory.objectType, factory.booleanType),
-            factory.createString("toIntIfPossible"));
-    DexMethod setReleaseLong =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.voidType, factory.objectType, factory.longType),
-            factory.createString("setRelease"));
-    DexMethod setVolatileArrayInt =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.voidType,
-                factory.createType(factory.createString("[I")),
-                factory.intType,
-                factory.intType),
-            factory.createString("setVolatile"));
-    DexMethod setArrayInt =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.voidType,
-                factory.createType(factory.createString("[I")),
-                factory.intType,
-                factory.intType),
-            factory.createString("set"));
-    DexMethod setLong =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.voidType, factory.objectType, factory.longType),
-            factory.createString("set"));
-    DexMethod getArrayLong =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.longType, factory.createType(factory.createString("[J")), factory.intType),
-            factory.createString("get"));
-    DexMethod getVolatileInt =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.intType, factory.objectType),
-            factory.createString("getVolatile"));
-    DexMethod compareAndSetArrayLong =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.booleanType,
-                factory.createType(factory.createString("[J")),
-                factory.intType,
-                factory.longType,
-                factory.longType),
-            factory.createString("compareAndSet"));
-    DexMethod getInBox =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.objectType,
-                factory.objectType,
-                factory.createType(factory.createString("Ljava/lang/Class;"))),
-            factory.createString("get"));
-    DexMethod setReleaseInt =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.voidType, factory.objectType, factory.intType),
-            factory.createString("setRelease"));
-    DexMethod getVolatileArray =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.objectType, factory.objectType, factory.intType),
-            factory.createString("getVolatile"));
-    DexMethod setReleaseArray =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.voidType, factory.objectType, factory.intType, factory.objectType),
-            factory.createString("setRelease"));
-    DexMethod setRelease =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.voidType, factory.objectType, factory.objectType),
-            factory.createString("setRelease"));
-    DexMethod setReleaseArrayLong =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.voidType,
-                factory.createType(factory.createString("[J")),
-                factory.intType,
-                factory.longType),
-            factory.createString("setRelease"));
-    DexMethod setVolatileArrayLong =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.voidType,
-                factory.createType(factory.createString("[J")),
-                factory.intType,
-                factory.longType),
-            factory.createString("setVolatile"));
-    DexMethod setReleaseArrayInt =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.voidType,
-                factory.createType(factory.createString("[I")),
-                factory.intType,
-                factory.intType),
-            factory.createString("setRelease"));
     DexMethod constructor_1 =
         factory.createMethod(
             builder.getType(),
@@ -435,48 +138,33 @@ public final class VarHandleDesugaringMethods {
                 factory.createType(factory.createString("Ljava/lang/String;")),
                 factory.createType(factory.createString("Ljava/lang/Class;"))),
             factory.createString("<init>"));
-    DexMethod getVolatile =
+    DexMethod arrayRequiringNativeSupport =
         factory.createMethod(
             builder.getType(),
-            factory.createProto(factory.objectType, factory.objectType),
-            factory.createString("getVolatile"));
-    DexMethod weakCompareAndSetArrayLong =
+            factory.createProto(factory.createType(factory.createString("Ljava/lang/String;"))),
+            factory.createString("arrayRequiringNativeSupport"));
+    DexMethod boxIntIfPossible =
         factory.createMethod(
             builder.getType(),
             factory.createProto(
-                factory.booleanType,
-                factory.createType(factory.createString("[J")),
+                factory.objectType,
                 factory.intType,
+                factory.createType(factory.createString("Ljava/lang/Class;"))),
+            factory.createString("boxIntIfPossible"));
+    DexMethod boxLongIfPossible =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.objectType,
                 factory.longType,
-                factory.longType),
-            factory.createString("weakCompareAndSet"));
-    DexMethod setVolatile =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.voidType, factory.objectType, factory.objectType),
-            factory.createString("setVolatile"));
-    DexMethod weakCompareAndSetArrayInt =
+                factory.createType(factory.createString("Ljava/lang/Class;"))),
+            factory.createString("boxLongIfPossible"));
+    DexMethod compareAndSet =
         factory.createMethod(
             builder.getType(),
             factory.createProto(
-                factory.booleanType,
-                factory.createType(factory.createString("[I")),
-                factory.intType,
-                factory.intType,
-                factory.intType),
-            factory.createString("weakCompareAndSet"));
-    DexMethod compareAndSetLong =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.booleanType, factory.objectType, factory.longType, factory.longType),
+                factory.booleanType, factory.objectType, factory.objectType, factory.objectType),
             factory.createString("compareAndSet"));
-    DexMethod weakCompareAndSetInt =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(
-                factory.booleanType, factory.objectType, factory.intType, factory.intType),
-            factory.createString("weakCompareAndSet"));
     DexMethod compareAndSetArray =
         factory.createMethod(
             builder.getType(),
@@ -487,11 +175,323 @@ public final class VarHandleDesugaringMethods {
                 factory.objectType,
                 factory.objectType),
             factory.createString("compareAndSet"));
+    DexMethod compareAndSetArrayInt =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.booleanType,
+                factory.createType(factory.createString("[I")),
+                factory.intType,
+                factory.intType,
+                factory.intType),
+            factory.createString("compareAndSet"));
+    DexMethod compareAndSetArrayLong =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.booleanType,
+                factory.createType(factory.createString("[J")),
+                factory.intType,
+                factory.longType,
+                factory.longType),
+            factory.createString("compareAndSet"));
+    DexMethod compareAndSetInt =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.booleanType, factory.objectType, factory.intType, factory.intType),
+            factory.createString("compareAndSet"));
+    DexMethod compareAndSetLong =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.booleanType, factory.objectType, factory.longType, factory.longType),
+            factory.createString("compareAndSet"));
+    DexMethod desugarWrongMethodTypeException =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.createType(factory.createString("Ljava/lang/RuntimeException;"))),
+            factory.createString("desugarWrongMethodTypeException"));
+    DexMethod get =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.objectType, factory.objectType),
+            factory.createString("get"));
     DexMethod getArray =
         factory.createMethod(
             builder.getType(),
             factory.createProto(factory.objectType, factory.objectType, factory.intType),
             factory.createString("get"));
+    DexMethod getArrayInBox =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.objectType,
+                factory.objectType,
+                factory.intType,
+                factory.createType(factory.createString("Ljava/lang/Class;"))),
+            factory.createString("get"));
+    DexMethod getArrayInt =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.intType, factory.createType(factory.createString("[I")), factory.intType),
+            factory.createString("get"));
+    DexMethod getArrayLong =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.longType, factory.createType(factory.createString("[J")), factory.intType),
+            factory.createString("get"));
+    DexMethod getInBox =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.objectType,
+                factory.objectType,
+                factory.createType(factory.createString("Ljava/lang/Class;"))),
+            factory.createString("get"));
+    DexMethod getInt =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.intType, factory.objectType),
+            factory.createString("get"));
+    DexMethod getLong =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.longType, factory.objectType),
+            factory.createString("get"));
+    DexMethod getUnsafeField =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.createType(factory.createString("Ljava/lang/reflect/Field;"))),
+            factory.createString("getUnsafeField"));
+    DexMethod getVolatile =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.objectType, factory.objectType),
+            factory.createString("getVolatile"));
+    DexMethod getVolatileArray =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.objectType, factory.objectType, factory.intType),
+            factory.createString("getVolatile"));
+    DexMethod getVolatileArrayInBox =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.objectType,
+                factory.objectType,
+                factory.intType,
+                factory.createType(factory.createString("Ljava/lang/Class;"))),
+            factory.createString("getVolatile"));
+    DexMethod getVolatileArrayInt =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.intType, factory.createType(factory.createString("[I")), factory.intType),
+            factory.createString("getVolatile"));
+    DexMethod getVolatileArrayLong =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.longType, factory.createType(factory.createString("[J")), factory.intType),
+            factory.createString("getVolatile"));
+    DexMethod getVolatileInBox =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.objectType,
+                factory.objectType,
+                factory.createType(factory.createString("Ljava/lang/Class;"))),
+            factory.createString("getVolatile"));
+    DexMethod getVolatileInt =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.intType, factory.objectType),
+            factory.createString("getVolatile"));
+    DexMethod getVolatileLong =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.longType, factory.objectType),
+            factory.createString("getVolatile"));
+    DexMethod set =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.voidType, factory.objectType, factory.objectType),
+            factory.createString("set"));
+    DexMethod setArray =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.voidType, factory.objectType, factory.intType, factory.objectType),
+            factory.createString("set"));
+    DexMethod setArrayInt =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.voidType,
+                factory.createType(factory.createString("[I")),
+                factory.intType,
+                factory.intType),
+            factory.createString("set"));
+    DexMethod setArrayLong =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.voidType,
+                factory.createType(factory.createString("[J")),
+                factory.intType,
+                factory.longType),
+            factory.createString("set"));
+    DexMethod setInt =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.voidType, factory.objectType, factory.intType),
+            factory.createString("set"));
+    DexMethod setLong =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.voidType, factory.objectType, factory.longType),
+            factory.createString("set"));
+    DexMethod setRelease =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.voidType, factory.objectType, factory.objectType),
+            factory.createString("setRelease"));
+    DexMethod setReleaseArray =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.voidType, factory.objectType, factory.intType, factory.objectType),
+            factory.createString("setRelease"));
+    DexMethod setReleaseArrayInt =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.voidType,
+                factory.createType(factory.createString("[I")),
+                factory.intType,
+                factory.intType),
+            factory.createString("setRelease"));
+    DexMethod setReleaseArrayLong =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.voidType,
+                factory.createType(factory.createString("[J")),
+                factory.intType,
+                factory.longType),
+            factory.createString("setRelease"));
+    DexMethod setReleaseInt =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.voidType, factory.objectType, factory.intType),
+            factory.createString("setRelease"));
+    DexMethod setReleaseLong =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.voidType, factory.objectType, factory.longType),
+            factory.createString("setRelease"));
+    DexMethod setVolatile =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.voidType, factory.objectType, factory.objectType),
+            factory.createString("setVolatile"));
+    DexMethod setVolatileArray =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.voidType, factory.objectType, factory.intType, factory.objectType),
+            factory.createString("setVolatile"));
+    DexMethod setVolatileArrayInt =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.voidType,
+                factory.createType(factory.createString("[I")),
+                factory.intType,
+                factory.intType),
+            factory.createString("setVolatile"));
+    DexMethod setVolatileArrayLong =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.voidType,
+                factory.createType(factory.createString("[J")),
+                factory.intType,
+                factory.longType),
+            factory.createString("setVolatile"));
+    DexMethod setVolatileInt =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.voidType, factory.objectType, factory.intType),
+            factory.createString("setVolatile"));
+    DexMethod setVolatileLong =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.voidType, factory.objectType, factory.longType),
+            factory.createString("setVolatile"));
+    DexMethod toIntIfPossible =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.intType, factory.objectType, factory.booleanType),
+            factory.createString("toIntIfPossible"));
+    DexMethod toLongIfPossible =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.longType, factory.objectType, factory.booleanType),
+            factory.createString("toLongIfPossible"));
+    DexMethod weakCompareAndSet =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.booleanType, factory.objectType, factory.objectType, factory.objectType),
+            factory.createString("weakCompareAndSet"));
+    DexMethod weakCompareAndSetArray =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.booleanType,
+                factory.objectType,
+                factory.intType,
+                factory.objectType,
+                factory.objectType),
+            factory.createString("weakCompareAndSet"));
+    DexMethod weakCompareAndSetArrayInt =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.booleanType,
+                factory.createType(factory.createString("[I")),
+                factory.intType,
+                factory.intType,
+                factory.intType),
+            factory.createString("weakCompareAndSet"));
+    DexMethod weakCompareAndSetArrayLong =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.booleanType,
+                factory.createType(factory.createString("[J")),
+                factory.intType,
+                factory.longType,
+                factory.longType),
+            factory.createString("weakCompareAndSet"));
+    DexMethod weakCompareAndSetInt =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.booleanType, factory.objectType, factory.intType, factory.intType),
+            factory.createString("weakCompareAndSet"));
+    DexMethod weakCompareAndSetLong =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(
+                factory.booleanType, factory.objectType, factory.longType, factory.longType),
+            factory.createString("weakCompareAndSet"));
     builder.setDirectMethods(
         ImmutableList.of(
             DexEncodedMethod.syntheticBuilder()
@@ -513,27 +513,13 @@ public final class VarHandleDesugaringMethods {
     builder.setVirtualMethods(
         ImmutableList.of(
             DexEncodedMethod.syntheticBuilder()
-                .setMethod(compareAndSet)
+                .setMethod(arrayRequiringNativeSupport)
                 .setAccessFlags(
                     MethodAccessFlags.fromSharedAccessFlags(
                         Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_compareAndSet(factory, compareAndSet))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(getArrayInBox)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_getArrayInBox(factory, getArrayInBox))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(getUnsafeField)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_getUnsafeField(factory, getUnsafeField))
+                .setCode(
+                    DesugarVarHandle_arrayRequiringNativeSupport(
+                        factory, arrayRequiringNativeSupport))
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
@@ -542,6 +528,62 @@ public final class VarHandleDesugaringMethods {
                     MethodAccessFlags.fromSharedAccessFlags(
                         Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
                 .setCode(DesugarVarHandle_boxIntIfPossible(factory, boxIntIfPossible))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(boxLongIfPossible)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_boxLongIfPossible(factory, boxLongIfPossible))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(compareAndSet)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_compareAndSet(factory, compareAndSet))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(compareAndSetArray)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_compareAndSetArray(factory, compareAndSetArray))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(compareAndSetArrayInt)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_compareAndSetArrayInt(factory, compareAndSetArrayInt))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(compareAndSetArrayLong)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_compareAndSetArrayLong(factory, compareAndSetArrayLong))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(compareAndSetInt)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_compareAndSetInt(factory, compareAndSetInt))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(compareAndSetLong)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_compareAndSetLong(factory, compareAndSetLong))
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
@@ -555,62 +597,6 @@ public final class VarHandleDesugaringMethods {
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
-                .setMethod(setArrayLong)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setArrayLong(factory, setArrayLong))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(setVolatileArray)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setVolatileArray(factory, setVolatileArray))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(getInt)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_getInt(factory, getInt))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(setVolatileLong)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setVolatileLong(factory, setVolatileLong))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(getLong)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_getLong(factory, getLong))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(setVolatileInt)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setVolatileInt(factory, setVolatileInt))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(getVolatileLong)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_getVolatileLong(factory, getVolatileLong))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
                 .setMethod(get)
                 .setAccessFlags(
                     MethodAccessFlags.fromSharedAccessFlags(
@@ -619,69 +605,19 @@ public final class VarHandleDesugaringMethods {
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
-                .setMethod(getVolatileInBox)
+                .setMethod(getArray)
                 .setAccessFlags(
                     MethodAccessFlags.fromSharedAccessFlags(
                         Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_getVolatileInBox(factory, getVolatileInBox))
+                .setCode(DesugarVarHandle_getArray(factory, getArray))
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
-                .setMethod(compareAndSetArrayInt)
+                .setMethod(getArrayInBox)
                 .setAccessFlags(
                     MethodAccessFlags.fromSharedAccessFlags(
                         Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_compareAndSetArrayInt(factory, compareAndSetArrayInt))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(setInt)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setInt(factory, setInt))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(weakCompareAndSet)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_weakCompareAndSet(factory, weakCompareAndSet))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(arrayRequiringNativeSupport)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(
-                    DesugarVarHandle_arrayRequiringNativeSupport(
-                        factory, arrayRequiringNativeSupport))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(boxLongIfPossible)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_boxLongIfPossible(factory, boxLongIfPossible))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(toLongIfPossible)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_toLongIfPossible(factory, toLongIfPossible))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(set)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_set(factory, set))
+                .setCode(DesugarVarHandle_getArrayInBox(factory, getArrayInBox))
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
@@ -693,123 +629,11 @@ public final class VarHandleDesugaringMethods {
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
-                .setMethod(weakCompareAndSetArray)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_weakCompareAndSetArray(factory, weakCompareAndSetArray))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(setArray)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setArray(factory, setArray))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(compareAndSetInt)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_compareAndSetInt(factory, compareAndSetInt))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(weakCompareAndSetLong)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_weakCompareAndSetLong(factory, weakCompareAndSetLong))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(getVolatileArrayInBox)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_getVolatileArrayInBox(factory, getVolatileArrayInBox))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(getVolatileArrayLong)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_getVolatileArrayLong(factory, getVolatileArrayLong))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(getVolatileArrayInt)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_getVolatileArrayInt(factory, getVolatileArrayInt))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(toIntIfPossible)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_toIntIfPossible(factory, toIntIfPossible))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(setReleaseLong)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setReleaseLong(factory, setReleaseLong))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(setVolatileArrayInt)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setVolatileArrayInt(factory, setVolatileArrayInt))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(setArrayInt)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setArrayInt(factory, setArrayInt))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(setLong)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setLong(factory, setLong))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
                 .setMethod(getArrayLong)
                 .setAccessFlags(
                     MethodAccessFlags.fromSharedAccessFlags(
                         Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
                 .setCode(DesugarVarHandle_getArrayLong(factory, getArrayLong))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(getVolatileInt)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_getVolatileInt(factory, getVolatileInt))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(compareAndSetArrayLong)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_compareAndSetArrayLong(factory, compareAndSetArrayLong))
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
@@ -821,11 +645,35 @@ public final class VarHandleDesugaringMethods {
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
-                .setMethod(setReleaseInt)
+                .setMethod(getInt)
                 .setAccessFlags(
                     MethodAccessFlags.fromSharedAccessFlags(
                         Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setReleaseInt(factory, setReleaseInt))
+                .setCode(DesugarVarHandle_getInt(factory, getInt))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(getLong)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_getLong(factory, getLong))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(getUnsafeField)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_getUnsafeField(factory, getUnsafeField))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(getVolatile)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_getVolatile(factory, getVolatile))
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
@@ -837,11 +685,99 @@ public final class VarHandleDesugaringMethods {
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
-                .setMethod(setReleaseArray)
+                .setMethod(getVolatileArrayInBox)
                 .setAccessFlags(
                     MethodAccessFlags.fromSharedAccessFlags(
                         Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setReleaseArray(factory, setReleaseArray))
+                .setCode(DesugarVarHandle_getVolatileArrayInBox(factory, getVolatileArrayInBox))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(getVolatileArrayInt)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_getVolatileArrayInt(factory, getVolatileArrayInt))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(getVolatileArrayLong)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_getVolatileArrayLong(factory, getVolatileArrayLong))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(getVolatileInBox)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_getVolatileInBox(factory, getVolatileInBox))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(getVolatileInt)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_getVolatileInt(factory, getVolatileInt))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(getVolatileLong)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_getVolatileLong(factory, getVolatileLong))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(set)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_set(factory, set))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(setArray)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_setArray(factory, setArray))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(setArrayInt)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_setArrayInt(factory, setArrayInt))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(setArrayLong)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_setArrayLong(factory, setArrayLong))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(setInt)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_setInt(factory, setInt))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(setLong)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_setLong(factory, setLong))
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
@@ -853,19 +789,11 @@ public final class VarHandleDesugaringMethods {
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
-                .setMethod(setReleaseArrayLong)
+                .setMethod(setReleaseArray)
                 .setAccessFlags(
                     MethodAccessFlags.fromSharedAccessFlags(
                         Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setReleaseArrayLong(factory, setReleaseArrayLong))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(setVolatileArrayLong)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setVolatileArrayLong(factory, setVolatileArrayLong))
+                .setCode(DesugarVarHandle_setReleaseArray(factory, setReleaseArray))
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
@@ -877,11 +805,116 @@ public final class VarHandleDesugaringMethods {
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
-                .setMethod(getVolatile)
+                .setMethod(setReleaseArrayLong)
                 .setAccessFlags(
                     MethodAccessFlags.fromSharedAccessFlags(
                         Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_getVolatile(factory, getVolatile))
+                .setCode(DesugarVarHandle_setReleaseArrayLong(factory, setReleaseArrayLong))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(setReleaseInt)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_setReleaseInt(factory, setReleaseInt))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(setReleaseLong)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_setReleaseLong(factory, setReleaseLong))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(setVolatile)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_setVolatile(factory, setVolatile))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(setVolatileArray)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_setVolatileArray(factory, setVolatileArray))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(setVolatileArrayInt)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_setVolatileArrayInt(factory, setVolatileArrayInt))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(setVolatileArrayLong)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_setVolatileArrayLong(factory, setVolatileArrayLong))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(setVolatileInt)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_setVolatileInt(factory, setVolatileInt))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(setVolatileLong)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_setVolatileLong(factory, setVolatileLong))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(toIntIfPossible)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_toIntIfPossible(factory, toIntIfPossible))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(toLongIfPossible)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_toLongIfPossible(factory, toLongIfPossible))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(weakCompareAndSet)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_weakCompareAndSet(factory, weakCompareAndSet))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(weakCompareAndSetArray)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(DesugarVarHandle_weakCompareAndSetArray(factory, weakCompareAndSetArray))
+                .disableAndroidApiLevelCheck()
+                .build(),
+            DexEncodedMethod.syntheticBuilder()
+                .setMethod(weakCompareAndSetArrayInt)
+                .setAccessFlags(
+                    MethodAccessFlags.fromSharedAccessFlags(
+                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+                .setCode(
+                    DesugarVarHandle_weakCompareAndSetArrayInt(factory, weakCompareAndSetArrayInt))
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
@@ -895,31 +928,6 @@ public final class VarHandleDesugaringMethods {
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
-                .setMethod(setVolatile)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_setVolatile(factory, setVolatile))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(weakCompareAndSetArrayInt)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(
-                    DesugarVarHandle_weakCompareAndSetArrayInt(factory, weakCompareAndSetArrayInt))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(compareAndSetLong)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_compareAndSetLong(factory, compareAndSetLong))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
                 .setMethod(weakCompareAndSetInt)
                 .setAccessFlags(
                     MethodAccessFlags.fromSharedAccessFlags(
@@ -928,19 +936,11 @@ public final class VarHandleDesugaringMethods {
                 .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedMethod.syntheticBuilder()
-                .setMethod(compareAndSetArray)
+                .setMethod(weakCompareAndSetLong)
                 .setAccessFlags(
                     MethodAccessFlags.fromSharedAccessFlags(
                         Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_compareAndSetArray(factory, compareAndSetArray))
-                .disableAndroidApiLevelCheck()
-                .build(),
-            DexEncodedMethod.syntheticBuilder()
-                .setMethod(getArray)
-                .setAccessFlags(
-                    MethodAccessFlags.fromSharedAccessFlags(
-                        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
-                .setCode(DesugarVarHandle_getArray(factory, getArray))
+                .setCode(DesugarVarHandle_weakCompareAndSetLong(factory, weakCompareAndSetLong))
                 .disableAndroidApiLevelCheck()
                 .build()));
   }
@@ -948,6 +948,11 @@ public final class VarHandleDesugaringMethods {
   public static void generateDesugarMethodHandlesLookupClass(
       SyntheticProgramClassBuilder builder, DexItemFactory factory) {
     builder.setInstanceFields(ImmutableList.of());
+    DexMethod constructor_0 =
+        factory.createMethod(
+            builder.getType(),
+            factory.createProto(factory.voidType),
+            factory.createString("<init>"));
     DexMethod findVarHandle =
         factory.createMethod(
             builder.getType(),
@@ -964,11 +969,6 @@ public final class VarHandleDesugaringMethods {
                 factory.createType(factory.createString("Ljava/lang/invoke/MethodHandles$Lookup;")),
                 factory.createType(factory.createString("Ljava/lang/Class;"))),
             factory.createString("toPrivateLookupIn"));
-    DexMethod constructor_0 =
-        factory.createMethod(
-            builder.getType(),
-            factory.createProto(factory.voidType),
-            factory.createString("<init>"));
     builder.setDirectMethods(
         ImmutableList.of(
             DexEncodedMethod.syntheticBuilder()

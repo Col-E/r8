@@ -38,8 +38,7 @@ def parse_options(argv):
                       help='Destination of resulting apk',
                       required=True)
   result.add_argument('--profile',
-                      help='Path to the startup profile',
-                      required=True)
+                      help='Path to the startup profile')
   options, args = result.parse_known_args(argv)
   return options, args
 
@@ -74,9 +73,10 @@ def main(argv):
         '--min-api',
         str(max(apk_utils.get_min_api(options.apk), LOWEST_SUPPORTED_MIN_API)),
         '--output', dex,
-        '--startup-profile', options.profile,
         '--no-desugaring',
         '--release']
+    if options.profile:
+      d8_args.extend(['--startup-profile', options.profile])
     dex_to_relayout, desugared_library_dex = get_dex_to_relayout(options, temp)
     d8_args.extend(dex_to_relayout)
     toolhelper.run(

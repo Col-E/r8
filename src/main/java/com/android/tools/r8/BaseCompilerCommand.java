@@ -745,8 +745,12 @@ public abstract class BaseCompilerCommand extends BaseCommand {
      */
     public B addArtProfileForRewriting(
         ArtProfileProvider artProfileProvider, ArtProfileConsumer residualArtProfileProvider) {
-      artProfilesForRewriting.add(
+      return addArtProfileForRewriting(
           new ArtProfileForRewriting(artProfileProvider, residualArtProfileProvider));
+    }
+
+    B addArtProfileForRewriting(ArtProfileForRewriting artProfileForRewriting) {
+      artProfilesForRewriting.add(artProfileForRewriting);
       return self();
     }
 
@@ -838,7 +842,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
         reporter.error(builder.toString());
       }
       if (getMinApiLevel() > AndroidApiLevel.LATEST.getLevel()) {
-        if (getMinApiLevel() != AndroidApiLevel.ANDROID_PLATFORM.getLevel()) {
+        if (getMinApiLevel() != AndroidApiLevel.ANDROID_PLATFORM_CONSTANT) {
           reporter.warning(
               "An API level of "
                   + getMinApiLevel()

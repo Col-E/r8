@@ -7,6 +7,7 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.utils.ChainableStringConsumer;
+import com.android.tools.r8.utils.StringUtils;
 
 /***
  * Default implementation of a MapConsumer that wraps around a string consumer for streamed string
@@ -29,6 +30,7 @@ public class ProguardMapStringConsumer implements MapConsumer, ChainableStringCo
       ClassNameMapper classNameMapper) {
     this.diagnosticsHandler = diagnosticsHandler;
     accept(markerInfo.serializeToString());
+    accept(StringUtils.unixLines(classNameMapper.getPreamble()));
     classNameMapper.write(this);
   }
 

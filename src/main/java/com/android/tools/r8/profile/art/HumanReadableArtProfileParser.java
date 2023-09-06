@@ -15,6 +15,8 @@ import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.MethodReferenceUtils;
 import com.android.tools.r8.utils.Reporter;
+import it.unimi.dsi.fastutil.chars.CharArraySet;
+import it.unimi.dsi.fastutil.chars.CharSet;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -89,17 +91,28 @@ public class HumanReadableArtProfileParser {
     try {
       ArtProfileMethodRuleInfoImpl.Builder methodRuleInfoBuilder =
           ArtProfileMethodRuleInfoImpl.builder();
-      rule = parseFlag(rule, 'H', methodRuleInfoBuilder::setIsHot);
-      rule = parseFlag(rule, 'S', methodRuleInfoBuilder::setIsStartup);
-      rule = parseFlag(rule, 'P', methodRuleInfoBuilder::setIsPostStartup);
+      rule = parseFlags(rule, methodRuleInfoBuilder);
       return parseClassOrMethodRule(rule, methodRuleInfoBuilder.build());
     } catch (Throwable t) {
       return false;
     }
   }
 
-  private static String parseFlag(String rule, char c, Action action) {
-    if (!rule.isEmpty() && rule.charAt(0) == c) {
+  private static String parseFlags(
+      String rule, ArtProfileMethodRuleInfoImpl.Builder methodRuleInfoBuilder) {
+    CharSet seenFlags = new CharArraySet(3);
+    String previousRule;
+    do {
+      previousRule = rule;
+      rule = parseFlagIfNotSeen(rule, 'H', methodRuleInfoBuilder::setIsHot, seenFlags);
+      rule = parseFlagIfNotSeen(rule, 'S', methodRuleInfoBuilder::setIsStartup, seenFlags);
+      rule = parseFlagIfNotSeen(rule, 'P', methodRuleInfoBuilder::setIsPostStartup, seenFlags);
+    } while (!rule.equals(previousRule));
+    return rule;
+  }
+
+  private static String parseFlagIfNotSeen(String rule, char c, Action action, CharSet seenFlags) {
+    if (!rule.isEmpty() && rule.charAt(0) == c && seenFlags.add(c)) {
       action.execute();
       return rule.substring(1);
     }

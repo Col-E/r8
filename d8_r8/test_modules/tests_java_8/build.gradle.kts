@@ -15,8 +15,11 @@ val root = getRoot()
 
 java {
   sourceSets.test.configure {
-    java.srcDir(root.resolveAll("src", "test", "java"))
+    java {
+      srcDir(root.resolveAll("src", "test", "java"))
+    }
   }
+
   // We are using a new JDK to compile to an older language version, which is not directly
   // compatible with java toolchains.
   sourceCompatibility = JavaVersion.VERSION_1_8
@@ -27,11 +30,14 @@ java {
 // incompatible java class file version. By depending on the jar we circumvent that.
 val keepAnnoJarTask = projectTask("keepanno", "jar")
 val keepAnnoCompileTask = projectTask("keepanno", "compileJava")
+val mainCompileTask = projectTask("main", "compileJava")
+val mainDepsJarTask = projectTask("main", "depsJar")
 
 dependencies {
   implementation(keepAnnoJarTask.outputs.files)
   implementation(projectTask("main", "jar").outputs.files)
   implementation(projectTask("resourceshrinker", "jar").outputs.files)
+  implementation(projectTask("resourceshrinker", "depsJar").outputs.files)
   implementation(Deps.asm)
   implementation(Deps.asmCommons)
   implementation(Deps.asmUtil)
@@ -69,7 +75,8 @@ val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
     ThirdPartyDeps.desugarJdkLibs,
     ThirdPartyDeps.desugarJdkLibsLegacy,
     ThirdPartyDeps.desugarJdkLibs11,
-    ThirdPartyDeps.iosched2019,
+    ThirdPartyDeps.examplesAndroidOLegacy,
+    ThirdPartyDeps.gson,
     ThirdPartyDeps.jacoco,
     ThirdPartyDeps.java8Runtime,
     ThirdPartyDeps.jdk11Test,
@@ -139,27 +146,15 @@ tasks {
     dependsOn(gradle.includedBuild("resourceshrinker").task(":jar"))
     dependsOn(gradle.includedBuild("main").task(":jar"))
     dependsOn(thirdPartyCompileDependenciesTask)
-    options.setFork(true)
-    options.forkOptions.memoryMaximumSize = "3g"
-    options.forkOptions.jvmArgs = listOf(
-      "-Xss256m",
-      // Set the bootclass path so compilation is consistent with 1.8 target compatibility.
-      "-Xbootclasspath/a:third_party/openjdk/openjdk-rt-1.8/rt.jar")
   }
 
   withType<KotlinCompile> {
-    dependsOn(gradle.includedBuild("keepanno").task(":jar"))
-    dependsOn(gradle.includedBuild("main").task(":jar"))
-    dependsOn(thirdPartyCompileDependenciesTask)
-    kotlinOptions {
-      // We are using a new JDK to compile to an older language version, which is not directly
-      // compatible with java toolchains.
-      jvmTarget = "1.8"
-    }
+    enabled = false
   }
 
   withType<Test> {
     environment.put("USE_NEW_GRADLE_SETUP", "true")
+    dependsOn(mainDepsJarTask)
     dependsOn(thirdPartyRuntimeDependenciesTask)
     if (!project.hasProperty("no_internal")) {
       dependsOn(thirdPartyRuntimeInternalDependenciesTask)
@@ -169,19 +164,47 @@ tasks {
     // This path is set when compiling examples jar task in DependenciesPlugin.
     environment.put("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR",
                     getRoot().resolveAll("build", "test", "examplesJava11", "classes"))
+    // TODO(b/270105162): This should change if running with r8lib.
+    environment.put(
+      "R8_RUNTIME_PATH",
+      mainCompileTask.outputs.files.getAsPath().split(File.pathSeparator)[0] +
+        File.pathSeparator + mainDepsJarTask.outputs.files.singleFile)
+    // TODO(b/270105162): This should change if running with retrace lib/r8lib.
+    environment.put(
+      "RETRACE_RUNTIME_PATH",
+      mainCompileTask.outputs.files.getAsPath().split(File.pathSeparator)[0] +
+        File.pathSeparator + mainDepsJarTask.outputs.files.singleFile)
+    environment.put("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
+
+    // TODO(b/291198792): Remove this exclusion when desugared library runs correctly.
+    exclude("com/android/tools/r8/desugar/desugaredlibrary/**")
+    exclude("com/android/tools/r8/desugar/InvokeSuperToRewrittenDefaultMethodTest**")
+    exclude("com/android/tools/r8/desugar/InvokeSuperToEmulatedDefaultMethodTest**")
+    exclude("com/android/tools/r8/desugar/backports/ThreadLocalBackportWithDesugaredLibraryTest**")
+    exclude("com/android/tools/r8/L8CommandTest**")
+    exclude("com/android/tools/r8/MarkersTest**")
+    exclude("com/android/tools/r8/apimodel/ApiModelDesugaredLibraryReferenceTest**")
+    exclude("com/android/tools/r8/apimodel/ApiModelNoDesugaredLibraryReferenceTest**")
+    exclude("com/android/tools/r8/benchmarks/desugaredlib/**")
+    exclude("com/android/tools/r8/classmerging/vertical/ForceInlineConstructorWithRetargetedLibMemberTest**")
+    exclude("com/android/tools/r8/classmerging/vertical/ForceInlineConstructorWithRetargetedLibMemberTest**")
+    exclude("com/android/tools/r8/ir/optimize/inliner/InlineMethodWithRetargetedLibMemberTest**")
+    exclude("com/android/tools/r8/profile/art/DesugaredLibraryArtProfileRewritingTest**")
+    exclude("com/android/tools/r8/profile/art/dump/DumpArtProfileProvidersTest**")
   }
 
   val testJar by registering(Jar::class) {
     from(sourceSets.test.get().output)
+    // TODO(b/296486206): Seems like IntelliJ has a problem depending on test source sets. Renaming
+    //  this from the default name (tests_java_8.jar) will allow IntelliJ to find the resources in
+    //  the jar and not show red underlines. However, navigation to base classes will not work.
+    archiveFileName.set("not_named_tests_java_8.jar")
   }
 
   val depsJar by registering(Jar::class) {
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
+    dependsOn(gradle.includedBuild("resourceshrinker").task(":jar"))
     dependsOn(thirdPartyCompileDependenciesTask)
-    doFirst {
-      println(header("Test Java 8 dependencies"))
-    }
-    testDependencies().forEach({ println(it) })
     from(testDependencies().map(::zipTree))
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveFileName.set("deps.jar")

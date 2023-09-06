@@ -248,6 +248,10 @@ def get_screen_off_timeout(device_id=None):
   screen_off_timeout = int(stdout)
   return screen_off_timeout
 
+def grant(app_id, permission, device_id=None):
+  cmd = create_adb_cmd('shell pm grant %s %s' % (app_id, permission), device_id)
+  subprocess.check_call(cmd)
+
 def install(apk, device_id=None):
   print('Installing %s' % apk)
   cmd = create_adb_cmd('install %s' % apk, device_id)

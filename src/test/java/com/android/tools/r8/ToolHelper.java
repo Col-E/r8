@@ -147,6 +147,24 @@ public class ToolHelper {
     }
   }
 
+  public static Path getR8MainPath() {
+    // TODO(b/270105162): This changes when new gradle setup is default.
+    if (ToolHelper.isNewGradleSetup()) {
+      return Paths.get(System.getenv("R8_RUNTIME_PATH"));
+    } else {
+      return isTestingR8Lib() ? R8LIB_JAR : R8_JAR_OLD;
+    }
+  }
+
+  public static Path getRetracePath() {
+    // TODO(b/270105162): This changes when new gradle setup is default.
+    if (ToolHelper.isNewGradleSetup()) {
+      return Paths.get(System.getenv("RETRACE_RUNTIME_PATH"));
+    } else {
+      return isTestingR8Lib() ? ToolHelper.R8_RETRACE_JAR : ToolHelper.R8_JAR_OLD;
+    }
+  }
+
   public static final Path CHECKED_IN_R8_17_WITH_DEPS =
       Paths.get(THIRD_PARTY_DIR).resolve("r8").resolve("r8_with_deps_17.jar");
 
@@ -155,7 +173,8 @@ public class ToolHelper {
   public static final String ASM_JAR = BUILD_DIR + "deps/asm-9.5.jar";
   public static final String ASM_UTIL_JAR = BUILD_DIR + "deps/asm-util-9.5.jar";
 
-  public static final Path API_SAMPLE_JAR = Paths.get("tests", "r8_api_usage_sample.jar");
+  public static final Path API_SAMPLE_JAR =
+      Paths.get(getProjectRoot(), "tests", "r8_api_usage_sample.jar");
 
   public static final String LINE_SEPARATOR = StringUtils.LINE_SEPARATOR;
   public static final String CLASSPATH_SEPARATOR = File.pathSeparator;
@@ -196,18 +215,13 @@ public class ToolHelper {
       Paths.get(ToolHelper.THIRD_PARTY_DIR, "gson", "gson-2.10.1", "gson.pro");
   public static final Path GUAVA_JRE =
       Paths.get(THIRD_PARTY_DIR, "guava", "guava-32.1.2-jre", "guava-32.1.2-jre.jar");
-  public static final Path GUAVA_ANDROID =
-      Paths.get(THIRD_PARTY_DIR, "guava", "guava-32.1.2-android", "guava-32.1.2-android.jar");
   public static final String PROGUARD_SETTINGS_FOR_INTERNAL_APPS =
       THIRD_PARTY_DIR + "proguardsettings/";
 
   public static final Path RETRACE_MAPS_DIR = Paths.get(THIRD_PARTY_DIR, "r8mappings");
 
-  public static final Path R8_JAR = Paths.get(LIBS_DIR, "r8.jar");
-  public static final Path R8_WITH_DEPS_JAR = Paths.get(LIBS_DIR, "r8_with_deps.jar");
-  public static final Path R8_WITH_RELOCATED_DEPS_JAR =
-      Paths.get(LIBS_DIR, "r8_with_relocated_deps.jar");
-  public static final Path R8_WITH_DEPS_17_JAR = Paths.get(LIBS_DIR, "r8_with_deps_17.jar");
+  // TODO(b/270105162): These should be removed when finished transitioning.
+  public static final Path R8_JAR_OLD = Paths.get(LIBS_DIR, "r8.jar");
   public static final Path R8_WITH_RELOCATED_DEPS_17_JAR =
       Paths.get(LIBS_DIR, "r8_with_relocated_deps_17.jar");
   public static final Path R8LIB_JAR = Paths.get(LIBS_DIR, "r8lib.jar");
@@ -215,8 +229,23 @@ public class ToolHelper {
   public static final Path R8LIB_EXCLUDE_DEPS_JAR = Paths.get(LIBS_DIR, "r8lib-exclude-deps.jar");
   public static final Path R8LIB_EXCLUDE_DEPS_MAP =
       Paths.get(LIBS_DIR, "r8lib-exclude-deps.jar.map");
-  public static final Path DEPS = Paths.get(LIBS_DIR, "deps_all.jar");
   public static final Path R8_RETRACE_JAR = Paths.get(LIBS_DIR, "r8retrace.jar");
+
+  public static Path getDeps() {
+    if (isNewGradleSetup()) {
+      return Paths.get(System.getenv("R8_DEPS"));
+    } else {
+      return Paths.get(LIBS_DIR, "deps_all.jar");
+    }
+  }
+
+  public static Path getR8WithRelocatedDeps() {
+    if (isNewGradleSetup()) {
+      return Paths.get(System.getenv("R8_WITH_RELOCATED_DEPS"));
+    } else {
+      return Paths.get(LIBS_DIR, "r8_with_relocated_deps.jar");
+    }
+  }
 
   public static final String DESUGARED_LIB_RELEASES_DIR =
       OPEN_JDK_DIR + "desugar_jdk_libs_releases/";
@@ -1115,7 +1144,6 @@ public class ToolHelper {
       case J_MR1:
       case J_MR2:
       case K_WATCH:
-      case ANDROID_PLATFORM:
         return false;
       default:
         return true;
@@ -1708,25 +1736,12 @@ public class ToolHelper {
     return runProcess(builder);
   }
 
-  public static ProcessResult forkD8(Path dir, String... args)
-      throws IOException, InterruptedException {
+  public static ProcessResult forkD8(Path dir, String... args) throws IOException {
     return forkJava(dir, D8.class, args);
   }
 
-  public static ProcessResult forkR8(Path dir, String... args)
-      throws IOException, InterruptedException {
+  public static ProcessResult forkR8(Path dir, String... args) throws IOException {
     return forkJava(dir, R8.class, args);
-  }
-
-  public static ProcessResult forkR8WithJavaOptions(
-      Path dir, List<String> javaOptions, String... args) throws IOException {
-    String r8Jar = R8_JAR.toAbsolutePath().toString();
-    return forkJavaWithJarAndJavaOptions(dir, javaOptions, r8Jar, Arrays.asList(args));
-  }
-
-  public static ProcessResult forkR8Jar(Path dir, String... args) throws IOException {
-    String r8Jar = R8_JAR.toAbsolutePath().toString();
-    return forkJavaWithJar(dir, r8Jar, Arrays.asList(args));
   }
 
   public static ProcessResult forkGenerateMainDexList(Path dir, List<String> args1, String... args2)
@@ -1734,11 +1749,6 @@ public class ToolHelper {
     List<String> args = new ArrayList<>();
     args.addAll(args1);
     args.addAll(Arrays.asList(args2));
-    return forkJava(dir, GenerateMainDexList.class, args);
-  }
-
-  public static ProcessResult forkGenerateMainDexList(Path dir, String... args)
-      throws IOException, InterruptedException {
     return forkJava(dir, GenerateMainDexList.class, args);
   }
 

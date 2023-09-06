@@ -37,15 +37,16 @@ public class AbstractEnumMergingTest extends EnumUnboxingTestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepRules(enumKeepRules.getKeepRules())
-        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
+        .addEnumUnboxingInspector(
+            inspector -> inspector.assertUnboxed(MyEnum2Cases.class, MyEnum1Case.class))
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("336", "74", "96", "44");
+        .assertSuccessWithOutputLines("336", "74", "96", "44", "336", "56");
   }
 
-  enum MyEnum {
+  enum MyEnum2Cases {
     A(8) {
       @NeverInline
       @Override
@@ -62,7 +63,24 @@ public class AbstractEnumMergingTest extends EnumUnboxingTestBase {
     };
     final long num;
 
-    MyEnum(long num) {
+    MyEnum2Cases(long num) {
+      this.num = num;
+    }
+
+    public abstract long operate(long another);
+  }
+
+  enum MyEnum1Case {
+    A(8) {
+      @NeverInline
+      @Override
+      public long operate(long another) {
+        return num * another;
+      }
+    };
+    final long num;
+
+    MyEnum1Case(long num) {
       this.num = num;
     }
 
@@ -72,15 +90,23 @@ public class AbstractEnumMergingTest extends EnumUnboxingTestBase {
   static class Main {
 
     public static void main(String[] args) {
-      System.out.println(MyEnum.A.operate(42));
-      System.out.println(MyEnum.B.operate(42));
-      System.out.println(indirect(MyEnum.A));
-      System.out.println(indirect(MyEnum.B));
+      System.out.println(MyEnum2Cases.A.operate(42));
+      System.out.println(MyEnum2Cases.B.operate(42));
+      System.out.println(indirect(MyEnum2Cases.A));
+      System.out.println(indirect(MyEnum2Cases.B));
+
+      System.out.println(MyEnum1Case.A.operate(42));
+      System.out.println(indirect(MyEnum1Case.A));
     }
 
     @NeverInline
-    public static long indirect(MyEnum e) {
+    public static long indirect(MyEnum2Cases e) {
       return e.operate(12);
+    }
+
+    @NeverInline
+    public static long indirect(MyEnum1Case e) {
+      return e.operate(7);
     }
   }
 }

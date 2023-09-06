@@ -15,10 +15,10 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
 import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.utils.MapUtils;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -253,7 +253,7 @@ public abstract class ClassConverter {
 
   static class LibraryDesugaredClassConverter extends ClassConverter {
 
-    private final Set<DexType> alreadyLibraryDesugared = Sets.newConcurrentHashSet();
+    private final Set<DexType> alreadyLibraryDesugared = SetUtils.newConcurrentHashSet();
 
     LibraryDesugaredClassConverter(
         AppView<?> appView,

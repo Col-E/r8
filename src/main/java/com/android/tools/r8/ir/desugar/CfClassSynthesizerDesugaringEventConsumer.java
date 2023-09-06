@@ -16,7 +16,7 @@ import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer.Rec
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringEventConsumer;
 import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.profile.rewriting.ProfileRewritingCfClassSynthesizerDesugaringEventConsumer;
-import com.google.common.collect.Sets;
+import com.android.tools.r8.utils.SetUtils;
 import java.util.Set;
 
 public abstract class CfClassSynthesizerDesugaringEventConsumer
@@ -50,7 +50,7 @@ public abstract class CfClassSynthesizerDesugaringEventConsumer
   private static class D8R8CfClassSynthesizerDesugaringEventConsumer
       extends CfClassSynthesizerDesugaringEventConsumer {
 
-    private final Set<DexProgramClass> synthesizedClasses = Sets.newConcurrentHashSet();
+    private final Set<DexProgramClass> synthesizedClasses = SetUtils.newConcurrentHashSet();
 
     @Override
     public void acceptProgramEmulatedInterface(DexProgramClass clazz) {

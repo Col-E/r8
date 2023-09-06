@@ -169,9 +169,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
     DexProgramClass methodHolder = method.getHolder();
     DexMethod methodReference = method.getReference();
     DexEncodedMethod methodDefinition = method.getDefinition();
-    DexProto newProto =
-        factory.createProto(
-            covariantReturnType, methodReference.proto.parameters, methodReference.proto.shorty);
+    DexProto newProto = factory.createProto(covariantReturnType, methodReference.proto.parameters);
     MethodAccessFlags newAccessFlags = methodDefinition.accessFlags.copy();
     newAccessFlags.setBridge();
     newAccessFlags.setSynthetic();
