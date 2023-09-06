@@ -169,25 +169,6 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
               ? new CfReturnVoid()
               : new CfReturn(ValueType.fromDexType(method.getReturnType())));
     }
-
-    public static class CfCodeWithLens extends CfCode {
-      private GraphLens codeLens;
-
-      public void setCodeLens(GraphLens codeLens) {
-        this.codeLens = codeLens;
-      }
-
-      public CfCodeWithLens(
-          DexType originalHolder, int maxStack, int maxLocals, List<CfInstruction> instructions) {
-        super(originalHolder, maxStack, maxLocals, instructions);
-      }
-
-      @Override
-      public GraphLens getCodeLens(AppView<?> appView) {
-        assert codeLens != null;
-        return codeLens;
-      }
-    }
   }
 
   public static class EnumUnboxingInstanceFieldCfCodeProvider extends EnumUnboxingCfCodeProvider {
@@ -320,6 +301,26 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
               false));
       instructions.add(new CfThrow());
       return standardCfCodeFromInstructions(instructions);
+    }
+  }
+
+  public static class CfCodeWithLens extends CfCode {
+
+    private GraphLens codeLens;
+
+    public void setCodeLens(GraphLens codeLens) {
+      this.codeLens = codeLens;
+    }
+
+    public CfCodeWithLens(
+        DexType originalHolder, int maxStack, int maxLocals, List<CfInstruction> instructions) {
+      super(originalHolder, maxStack, maxLocals, instructions);
+    }
+
+    @Override
+    public GraphLens getCodeLens(AppView<?> appView) {
+      assert codeLens != null;
+      return codeLens;
     }
   }
 }

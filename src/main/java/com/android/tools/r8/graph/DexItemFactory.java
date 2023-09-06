@@ -327,6 +327,8 @@ public class DexItemFactory {
       createString("Ljava/lang/IllegalAccessError;");
   public final DexString illegalArgumentExceptionDescriptor =
       createString("Ljava/lang/IllegalArgumentException;");
+  public final DexString abstractMethodErrorDescriptor =
+      createString("Ljava/lang/AbstractMethodError;");
   public final DexString icceDescriptor = createString("Ljava/lang/IncompatibleClassChangeError;");
   public final DexString exceptionInInitializerErrorDescriptor =
       createString("Ljava/lang/ExceptionInInitializerError;");
@@ -573,6 +575,8 @@ public class DexItemFactory {
       createStaticallyKnownType(illegalAccessErrorDescriptor);
   public final DexType illegalArgumentExceptionType =
       createStaticallyKnownType(illegalArgumentExceptionDescriptor);
+  public final DexType abstractMethodErrorType =
+      createStaticallyKnownType(abstractMethodErrorDescriptor);
   public final DexType icceType = createStaticallyKnownType(icceDescriptor);
   public final DexType exceptionInInitializerErrorType =
       createStaticallyKnownType(exceptionInInitializerErrorDescriptor);
