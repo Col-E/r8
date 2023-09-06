@@ -6,6 +6,7 @@
 !third_party/nest/*.sha1
 !third_party/proguard/*.sha1
 !third_party/youtube/*sha1
+third_party/
 #*#
 *.dex
 *.iml
