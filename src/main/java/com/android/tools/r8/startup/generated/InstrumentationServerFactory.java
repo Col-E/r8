@@ -53,21 +53,19 @@ public final class InstrumentationServerFactory {
         Collections.emptyList(),
         ClassSignature.noSignature(),
         DexAnnotationSet.empty(),
-        createStaticFields(dexItemFactory),
-        createInstanceFields(dexItemFactory),
+        createStaticFields(),
+        createInstanceFields(),
         MethodCollectionFactory.fromMethods(
             createDirectMethods(dexItemFactory), createVirtualMethods(dexItemFactory)),
         dexItemFactory.getSkipNameValidationForTesting(),
         DexProgramClass::invalidChecksumRequest);
   }
 
-  @SuppressWarnings("UnusedVariable")
-  private static DexEncodedField[] createInstanceFields(DexItemFactory dexItemFactory) {
+  private static DexEncodedField[] createInstanceFields() {
     return new DexEncodedField[] {};
   }
 
-  @SuppressWarnings("UnusedVariable")
-  private static DexEncodedField[] createStaticFields(DexItemFactory dexItemFactory) {
+  private static DexEncodedField[] createStaticFields() {
     return new DexEncodedField[] {};
   }
 

@@ -131,9 +131,17 @@ public abstract class CfClassGenerator extends CodeGenerationBase {
 
     builder.startLine().append(imports.getDexAnnotationSet()).appendLine(".empty(),");
 
-    builder.startLine().appendLine("createStaticFields(dexItemFactory),");
+    if (clazz.hasStaticFields()) {
+      builder.startLine().appendLine("createStaticFields(dexItemFactory),");
+    } else {
+      builder.startLine().appendLine("createStaticFields(),");
+    }
 
-    builder.startLine().appendLine("createInstanceFields(dexItemFactory),");
+    if (clazz.hasInstanceFields()) {
+      builder.startLine().appendLine("createInstanceFields(dexItemFactory),");
+    } else {
+      builder.startLine().appendLine("createInstanceFields(),");
+    }
 
     builder
         .startLine()
@@ -158,10 +166,11 @@ public abstract class CfClassGenerator extends CodeGenerationBase {
         .append(imports.getDexEncodedField())
         .append("[] ")
         .append(methodName)
-        .append("(")
-        .append(imports.getDexItemFactory())
-        .append(" dexItemFactory) ")
-        .appendOpeningBrace();
+        .append("(");
+    if (!fields.isEmpty()) {
+      builder.append(imports.getDexItemFactory()).append(" dexItemFactory");
+    }
+    builder.append(")").appendOpeningBrace();
 
     builder
         .startLine()
