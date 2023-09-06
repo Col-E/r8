@@ -36,7 +36,7 @@ BUILD_JAVA_MAIN_DIR = os.path.join(BUILD, 'classes', 'java', 'main')
 BUILD_TEST_DIR = os.path.join(BUILD, 'classes', 'test')
 LIBS = os.path.join(BUILD, 'libs')
 CUSTOM_CONVERSION_DIR = os.path.join(
-    THIRD_PARTY, 'openjdk', 'desugar_jdk_libs', 'custom_conversion')
+    THIRD_PARTY, 'openjdk', 'custom_conversion')
 GENERATED_LICENSE_DIR = os.path.join(BUILD, 'generatedLicense')
 SRC_ROOT = os.path.join(REPO_ROOT, 'src', 'main', 'java')
 TEST_ROOT = os.path.join(REPO_ROOT, 'src', 'test', 'java')
