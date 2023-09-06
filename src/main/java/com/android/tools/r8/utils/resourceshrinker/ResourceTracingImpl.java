@@ -34,6 +34,12 @@ public class ResourceTracingImpl implements ResourceTracing {
   public void setProvider(AndroidResourceProvider provider) {
     this.provider = provider;
 
+    // Fork(Coley): Commenting this out because the resource-shinker module
+    //  expands the number of dependencies we pull in, beyond what I'd like.
+    //  It also has random bits of kotlin which means for just a few files we
+    //  then need the kotlin runtime as a dependency. Yuck.
+    //  Hopefully upstream addresses this in some capacity.
+    /*
     R8ResourceShrinkerState r8ResourceShrinkerState = new R8ResourceShrinkerState();
     try {
       for (AndroidResourceInput androidResource : provider.getAndroidResources()) {
@@ -44,6 +50,7 @@ public class ResourceTracingImpl implements ResourceTracing {
     } catch (ResourceException e) {
       throw new CompilationError("Failed reading the resource table inputs", e);
     }
+     */
   }
 
   @Override
