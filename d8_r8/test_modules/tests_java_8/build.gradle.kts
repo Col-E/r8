@@ -35,7 +35,8 @@ val mainDepsJarTask = projectTask("main", "depsJar")
 
 dependencies {
   implementation(keepAnnoJarTask.outputs.files)
-  implementation(projectTask("main", "jar").outputs.files)
+  implementation(mainCompileTask.outputs.files)
+  implementation(projectTask("main", "processResources").outputs.files)
   implementation(projectTask("resourceshrinker", "compileJava").outputs.files)
   implementation(projectTask("resourceshrinker", "compileKotlin").outputs.files)
   implementation(projectTask("resourceshrinker", "depsJar").outputs.files)
