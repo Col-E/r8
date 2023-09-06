@@ -160,6 +160,8 @@ public abstract class DexApplication implements DexDefinitionSupplier, Copyable<
 
   public abstract DexProgramClass programDefinitionFor(DexType type);
 
+  public abstract DexLibraryClass libraryDefinitionFor(DexType type);
+
   @Override
   public abstract String toString();
 
