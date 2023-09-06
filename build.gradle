@@ -29,9 +29,8 @@ ext {
     asmVersion = '9.5'  // When updating update tools/asmifier.py, build.src and Toolhelper as well.
     javassistVersion = '3.29.2-GA'
     espressoVersion = '3.0.0'
-    fastutilVersion = '8.5.11'
-    guavaVersion = '32.0.0-jre'
-    joptSimpleVersion = '4.6'
+    fastutilVersion = '8.5.12'
+    guavaVersion = '32.1.2-jre'
     gsonVersion = '2.10.1'
     junitVersion = '4.13-beta-2'
     mockitoVersion = '2.10.0'
