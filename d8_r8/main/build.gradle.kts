@@ -178,50 +178,11 @@ tasks.withType<JavaCompile> {
   options.compilerArgs.add("1000")
 
   // Non-default / Experimental checks - explicitly enforced.
-  options.errorprone.error("ReferenceEquality")
   options.errorprone.error("RemoveUnusedImports")
   options.errorprone.error("InconsistentOverloads")
   options.errorprone.error("MissingDefault")
   options.errorprone.error("MultipleTopLevelClasses")
   options.errorprone.error("NarrowingCompoundAssignment")
-
-  // TODO(b/270510095): These should likely be fixed/suppressed and become hard failures.
-  options.errorprone.disable("UnusedVariable")
-  options.errorprone.disable("EqualsUnsafeCast")
-  options.errorprone.disable("TypeParameterUnusedInFormals")
-  options.errorprone.disable("ImmutableEnumChecker")
-  options.errorprone.disable("BadImport")
-  options.errorprone.disable("ComplexBooleanConstant")
-  options.errorprone.disable("HidingField")
-  options.errorprone.disable("StreamResourceLeak")
-  options.errorprone.disable("CatchAndPrintStackTrace")
-  options.errorprone.disable("NonCanonicalType")
-  options.errorprone.disable("UnusedNestedClass")
-  options.errorprone.disable("AmbiguousMethodReference")
-  options.errorprone.disable("InvalidParam")
-  options.errorprone.disable("CharacterGetNumericValue")
-  options.errorprone.disable("ModifyCollectionInEnhancedForLoop")
-  options.errorprone.disable("EmptyCatch")
-  options.errorprone.disable("ArgumentSelectionDefectChecker")
-  options.errorprone.disable("ImmutableAnnotationChecker")
-  options.errorprone.disable("ObjectToString")
-  options.errorprone.disable("DoNotClaimAnnotations")
-  options.errorprone.disable("AnnotateFormatMethod")
-
-  // TODO(b/270537614): Remove finalize uses.
-  options.errorprone.disable("Finalize")
-
-  // The following warnings could/should be active but are hit by R8 now so silence them.
-  options.errorprone.disable("EqualsGetClass")
-  options.errorprone.disable("MixedMutabilityReturnType")
-  options.errorprone.disable("UnnecessaryParentheses")
-  options.errorprone.disable("DoNotCallSuggester")
-  options.errorprone.disable("InlineMeSuggester")
-  options.errorprone.disable("MutablePublicArray")
-  options.errorprone.disable("DefaultCharset")
-  options.errorprone.disable("InconsistentCapitalization")
-  options.errorprone.disable("InlineFormatString")
-  options.errorprone.disable("MissingImplementsComparable")
 
   // Warnings that cause unwanted edits (e.g., inability to write informative asserts).
   options.errorprone.disable("AlreadyChecked")

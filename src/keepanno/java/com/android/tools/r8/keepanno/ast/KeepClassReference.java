@@ -62,6 +62,7 @@ public abstract class KeepClassReference {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object o) {
       if (this == o) {
         return true;
@@ -103,6 +104,7 @@ public abstract class KeepClassReference {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object o) {
       if (this == o) {
         return true;

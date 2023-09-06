@@ -408,6 +408,7 @@ public class CfApplicationWriter {
     return debugExtensions.asDexValueString().getValue().toString();
   }
 
+  @SuppressWarnings("BadImport")
   private ImmutableMap<DexString, DexValue> getAnnotationDefaults(DexAnnotationSet annotations) {
     DexValue value =
         getSystemAnnotationValue(annotations, application.dexItemFactory.annotationDefault);
@@ -687,6 +688,7 @@ public class CfApplicationWriter {
     return writer.toString();
   }
 
+  @SuppressWarnings("DefaultCharset")
   private static void verifyCf(byte[] result) {
     ClassReader reader = new ClassReader(result);
     PrintWriter pw = new PrintWriter(System.out);

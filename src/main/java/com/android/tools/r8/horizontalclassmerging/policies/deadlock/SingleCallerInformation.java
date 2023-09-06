@@ -93,11 +93,13 @@ public class SingleCallerInformation {
 
     private class InvokeExtractor extends UseRegistry<ProgramMethod> {
 
-      private final AppView<? extends AppInfoWithClassHierarchy> appView;
+      private final AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierachy;
 
-      InvokeExtractor(AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
-        super(appView, context);
-        this.appView = appView;
+      InvokeExtractor(
+          AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierachy,
+          ProgramMethod context) {
+        super(appViewWithClassHierachy, context);
+        this.appViewWithClassHierachy = appViewWithClassHierachy;
       }
 
       @SuppressWarnings("ReferenceEquality")
@@ -120,7 +122,7 @@ public class SingleCallerInformation {
       }
 
       private void triggerClassInitializerIfNotAlreadyTriggeredInContext(DexType type) {
-        DexProgramClass clazz = type.asProgramClass(appView);
+        DexProgramClass clazz = type.asProgramClass(appViewWithClassHierachy);
         if (clazz != null) {
           triggerClassInitializerIfNotAlreadyTriggeredInContext(clazz);
         }
@@ -133,11 +135,11 @@ public class SingleCallerInformation {
       }
 
       private boolean isClassAlreadyInitializedInCurrentContext(DexProgramClass clazz) {
-        return appView.appInfo().isSubtype(getContext().getHolder(), clazz);
+        return appViewWithClassHierachy.appInfo().isSubtype(getContext().getHolder(), clazz);
       }
 
       private void triggerClassInitializer(DexType type) {
-        DexProgramClass clazz = type.asProgramClass(appView);
+        DexProgramClass clazz = type.asProgramClass(appViewWithClassHierachy);
         if (clazz != null) {
           triggerClassInitializer(clazz);
         }
@@ -180,7 +182,7 @@ public class SingleCallerInformation {
 
       @Override
       public void registerInitClass(DexType type) {
-        DexType rewrittenType = appView.graphLens().lookupType(type);
+        DexType rewrittenType = appViewWithClassHierachy.graphLens().lookupType(type);
         triggerClassInitializerIfNotAlreadyTriggeredInContext(rewrittenType);
       }
 
@@ -197,8 +199,12 @@ public class SingleCallerInformation {
       @Override
       public void registerInvokeDirect(DexMethod method) {
         DexMethod rewrittenMethod =
-            appView.graphLens().lookupInvokeDirect(method, getContext()).getReference();
-        DexProgramClass holder = rewrittenMethod.getHolderType().asProgramClass(appView);
+            appViewWithClassHierachy
+                .graphLens()
+                .lookupInvokeDirect(method, getContext())
+                .getReference();
+        DexProgramClass holder =
+            rewrittenMethod.getHolderType().asProgramClass(appViewWithClassHierachy);
         ProgramMethod target = rewrittenMethod.lookupOnProgramClass(holder);
         if (target != null) {
           recordDispatchTarget(target);
@@ -214,9 +220,12 @@ public class SingleCallerInformation {
       @Override
       public void registerInvokeStatic(DexMethod method) {
         DexMethod rewrittenMethod =
-            appView.graphLens().lookupInvokeDirect(method, getContext()).getReference();
+            appViewWithClassHierachy
+                .graphLens()
+                .lookupInvokeDirect(method, getContext())
+                .getReference();
         ProgramMethod target =
-            appView
+            appViewWithClassHierachy
                 .appInfo()
                 .unsafeResolveMethodDueToDexFormatLegacy(rewrittenMethod)
                 .getResolvedProgramMethod();
@@ -240,19 +249,19 @@ public class SingleCallerInformation {
 
       @Override
       public void registerNewInstance(DexType type) {
-        DexType rewrittenType = appView.graphLens().lookupType(type);
+        DexType rewrittenType = appViewWithClassHierachy.graphLens().lookupType(type);
         triggerClassInitializerIfNotAlreadyTriggeredInContext(rewrittenType);
       }
 
       @Override
       public void registerStaticFieldRead(DexField field) {
-        DexField rewrittenField = appView.graphLens().lookupField(field);
+        DexField rewrittenField = appViewWithClassHierachy.graphLens().lookupField(field);
         triggerClassInitializerIfNotAlreadyTriggeredInContext(rewrittenField.getHolderType());
       }
 
       @Override
       public void registerStaticFieldWrite(DexField field) {
-        DexField rewrittenField = appView.graphLens().lookupField(field);
+        DexField rewrittenField = appViewWithClassHierachy.graphLens().lookupField(field);
         triggerClassInitializerIfNotAlreadyTriggeredInContext(rewrittenField.getHolderType());
       }
 

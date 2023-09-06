@@ -129,6 +129,7 @@ class NonEmptyParameterUsagePerContext extends ParameterUsagePerContext {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object obj) {
     if (obj == null || obj.getClass() != getClass()) {
       return false;

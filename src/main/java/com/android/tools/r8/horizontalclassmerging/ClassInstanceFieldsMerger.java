@@ -138,6 +138,8 @@ public interface ClassInstanceFieldsMerger {
 
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
     private final MergeGroup group;
+
+    @SuppressWarnings("BadImport")
     private final Builder lensBuilder;
 
     private DexEncodedField classIdField;

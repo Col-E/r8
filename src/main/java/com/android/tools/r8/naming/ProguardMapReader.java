@@ -825,6 +825,7 @@ public class ProguardMapReader implements AutoCloseable {
     return nonCardinalRangeCache.get(from, to);
   }
 
+  @SuppressWarnings("CharacterGetNumericValue")
   private int parseNumber() {
     int result = 0;
     if (!isSimpleDigit(peekChar(0))) {

@@ -19,11 +19,9 @@ import java.util.Set;
 
 public class ByteMethodOptimizer extends StatelessLibraryMethodModelCollection {
 
-  private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
 
   ByteMethodOptimizer(AppView<?> appView) {
-    this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
   }
 

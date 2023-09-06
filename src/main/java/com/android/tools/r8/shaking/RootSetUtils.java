@@ -1519,6 +1519,7 @@ public class RootSetUtils {
       }
     }
 
+    @SuppressWarnings("UnusedVariable")
     private void evaluateKeepRule(
         ProgramDefinition item,
         ProguardKeepRule context,

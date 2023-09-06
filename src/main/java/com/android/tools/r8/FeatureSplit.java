@@ -89,6 +89,8 @@ public class FeatureSplit {
   public static class Builder {
     private ProgramConsumer programConsumer;
     private final List<ProgramResourceProvider> programResourceProviders = new ArrayList<>();
+
+    @SuppressWarnings("UnusedVariable")
     private final DiagnosticsHandler handler;
 
     private Builder(DiagnosticsHandler handler) {

@@ -88,7 +88,7 @@ public class DumpOptions {
       Backend backend,
       Tool tool,
       CompilationMode compilationMode,
-      int minAPI,
+      int minApi,
       DesugaredLibrarySpecification desugaredLibrarySpecification,
       boolean optimizeMultidexForLinearAlloc,
       int threadCount,
@@ -111,7 +111,7 @@ public class DumpOptions {
     this.backend = backend;
     this.tool = tool;
     this.compilationMode = compilationMode;
-    this.minApi = minAPI;
+    this.minApi = minApi;
     this.desugaredLibrarySpecification = desugaredLibrarySpecification;
     this.optimizeMultidexForLinearAlloc = optimizeMultidexForLinearAlloc;
     this.threadCount = threadCount;
@@ -387,8 +387,8 @@ public class DumpOptions {
       return this;
     }
 
-    public Builder setMinApi(int minAPI) {
-      this.minApi = minAPI;
+    public Builder setMinApi(int minApi) {
+      this.minApi = minApi;
       return this;
     }
 

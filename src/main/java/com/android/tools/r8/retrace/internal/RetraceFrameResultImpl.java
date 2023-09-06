@@ -34,7 +34,9 @@ import java.util.stream.Stream;
 
 class RetraceFrameResultImpl implements RetraceFrameResult {
 
+  @SuppressWarnings("UnusedVariable")
   private final RetraceClassResultImpl classResult;
+
   private final MethodDefinition methodDefinition;
   private final List<RetraceFrameResultData> mappedRanges;
   private final RetracerImpl retracer;
@@ -347,6 +349,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     }
 
     @Override
+    @SuppressWarnings("ObjectToString")
     public void forEachRewritten(Consumer<RetracedSingleFrame> consumer) {
       RetraceStackTraceContextImpl contextImpl = retraceFrameResult.context;
       RetraceStackTraceCurrentEvaluationInformation currentFrameInformation =
@@ -393,6 +396,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     }
 
     @Override
+    @SuppressWarnings("MixedMutabilityReturnType")
     public List<RetracedMethodReferenceImpl> getOuterFrames() {
       if (mappedRanges == null) {
         return Collections.emptyList();

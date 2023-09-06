@@ -1899,6 +1899,7 @@ public class KeepEdgeReader implements Opcodes {
 
   private static class MethodAccessVisitor extends MemberAccessVisitor {
 
+    @SuppressWarnings("HidingField")
     KeepMethodAccessPattern.Builder builder;
 
     public MethodAccessVisitor(
@@ -1945,6 +1946,7 @@ public class KeepEdgeReader implements Opcodes {
 
   private static class FieldAccessVisitor extends MemberAccessVisitor {
 
+    @SuppressWarnings("HidingField")
     KeepFieldAccessPattern.Builder builder;
 
     public FieldAccessVisitor(

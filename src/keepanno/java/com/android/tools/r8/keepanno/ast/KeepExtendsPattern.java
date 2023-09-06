@@ -53,6 +53,7 @@ public abstract class KeepExtendsPattern {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object o) {
       if (this == o) {
         return true;

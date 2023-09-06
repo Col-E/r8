@@ -33,6 +33,7 @@ public class VDexParser {
     return dexFiles;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private void parseDexFiles() {
     vDexReader.position(VDEX_NUMBER_OF_DEX_FILES_OFFSET);
     int numberOfDexFiles = vDexReader.getUint();

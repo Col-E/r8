@@ -12,6 +12,7 @@ public class NoFieldTypeStrengtheningRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "nofieldtypestrengthening";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<NoFieldTypeStrengtheningRule, Builder> {
 

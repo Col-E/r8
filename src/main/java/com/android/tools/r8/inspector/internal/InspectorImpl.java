@@ -15,6 +15,7 @@ import java.util.function.Consumer;
 public class InspectorImpl implements Inspector {
 
   // This wrapping appears odd, but allows hooking in inspections on the impl type from tests.
+  @SuppressWarnings("MixedMutabilityReturnType")
   public static List<Consumer<InspectorImpl>> wrapInspections(
       Collection<Consumer<Inspector>> inspections) {
     if (inspections == null || inspections.isEmpty()) {

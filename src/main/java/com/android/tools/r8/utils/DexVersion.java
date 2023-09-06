@@ -25,13 +25,17 @@ public enum DexVersion implements Ordered<DexVersion> {
       return this == CONTAINER_DEX;
     }
 
+    @SuppressWarnings("ImmutableEnumChecker")
     public int getHeaderSize() {
       return isContainer() ? Constants.TYPE_HEADER_ITEM_SIZE_V41 : Constants.TYPE_HEADER_ITEM_SIZE;
     }
   }
 
   private final int dexVersion;
+
+  @SuppressWarnings("ImmutableEnumChecker")
   private final byte[] dexVersionBytes;
+
   private final Layout layout;
 
   DexVersion(int dexVersion, byte[] dexVersionBytes, Layout layout) {

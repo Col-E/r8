@@ -51,6 +51,7 @@ public class PrimaryD8L8IRConverter extends IRConverter {
     this.timing = timing;
   }
 
+  @SuppressWarnings("BadImport")
   public void convert(AppView<AppInfo> appView, ExecutorService executorService)
       throws ExecutionException {
     LambdaDeserializationMethodRemover.run(appView);
@@ -343,6 +344,7 @@ public class PrimaryD8L8IRConverter extends IRConverter {
     programAdditions.apply(executorService);
   }
 
+  @SuppressWarnings("BadImport")
   private void processCovariantReturnTypeAnnotations(
       Builder<?> builder, ProfileCollectionAdditions profileCollectionAdditions) {
     if (covariantReturnTypeAnnotationTransformer != null) {
@@ -370,6 +372,7 @@ public class PrimaryD8L8IRConverter extends IRConverter {
                 methodProcessingContext));
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Timing rewriteNonDesugaredCodeInternal(
       ProgramMethod method,
       CfInstructionDesugaringEventConsumer desugaringEventConsumer,

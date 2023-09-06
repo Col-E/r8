@@ -179,6 +179,7 @@ public class KeepRuleExtractor {
     }
   }
 
+  @SuppressWarnings("UnnecessaryParentheses")
   private static List<PgRule> doSplit(KeepEdge edge) {
     List<PgRule> rules = new ArrayList<>();
 

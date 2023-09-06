@@ -91,7 +91,8 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
     if (field == references.getDefaultInstanceField(getContextHolder())) {
       return true;
     }
-    DexProgramClass holder = asProgramClassOrNull(appView.definitionFor(field.getHolderType()));
+    DexProgramClass holder =
+        asProgramClassOrNull(appViewWithClassHierarchy.definitionFor(field.getHolderType()));
     return holder != null
         && holder.getInterfaces().contains(references.enumVerifierType)
         && field == references.getEnumVerifierInstanceField(holder);

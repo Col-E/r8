@@ -367,6 +367,7 @@ public class StringUtils {
     }
   }
 
+  @SuppressWarnings("DefaultCharset")
   public static String computeMD5Hash(String name) {
     byte[] digest = null;
     try {

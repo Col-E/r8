@@ -94,7 +94,7 @@ public class InitializedNonNullReferenceFrameTypeWithoutInterfaces
   }
 
   @Override
-  @SuppressWarnings("ReferenceEquality")
+  @SuppressWarnings({"EqualsGetClass", "ReferenceEquality"})
   public boolean equals(Object obj) {
     if (this == obj) {
       return true;

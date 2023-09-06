@@ -677,6 +677,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return generatedMethods;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Collection<DexEncodedMethod> synthesizeHashCodeAndEquals(
       DexProgramClass wrapper, DexEncodedField wrapperField) {
     return ImmutableList.of(
@@ -765,6 +766,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
                 clazz, methods, eventConsumer, processingContext));
   }
 
+  @SuppressWarnings("UnusedVariable")
   private DexClass getWrapperContext(DexClass context, WrapperKind kind) {
     // A different context can be specified here, so that the wrapper is prefixed by a different
     // class than the context.

@@ -48,7 +48,9 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   private final KotlinDeclarationContainerInfo declarationContainerInfo;
   private final List<KotlinTypeParameterInfo> typeParameters;
   private final List<KotlinTypeInfo> superTypes;
+
   private final List<KotlinTypeReference> sealedSubClasses;
+
   private final List<KotlinTypeReference> nestedClasses;
   private final List<String> enumEntries;
   private final KotlinVersionRequirementInfo versionRequirements;
@@ -223,9 +225,9 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   }
 
   private static List<KotlinTypeReference> getSealedSubClasses(
-      List<String> sealedSubclasses, DexItemFactory factory) {
+      List<String> sealedSubClasses, DexItemFactory factory) {
     ImmutableList.Builder<KotlinTypeReference> sealedTypes = ImmutableList.builder();
-    for (String sealedSubClass : sealedSubclasses) {
+    for (String sealedSubClass : sealedSubClasses) {
       String binaryName =
           sealedSubClass.replace(
               DescriptorUtils.JAVA_PACKAGE_SEPARATOR, DescriptorUtils.INNER_CLASS_SEPARATOR);

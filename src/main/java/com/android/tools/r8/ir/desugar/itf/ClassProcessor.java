@@ -586,6 +586,7 @@ final class ClassProcessor {
     return MethodSignatures.create(defaultMethods);
   }
 
+  @SuppressWarnings("UnusedVariable")
   // Computes the set of signatures of that may need forwarding methods on classes that derive
   // from a library class.
   private SignaturesInfo computeLibraryClassInfo(DexLibraryClass clazz, SignaturesInfo signatures) {
@@ -792,6 +793,7 @@ final class ClassProcessor {
     return false;
   }
 
+  @SuppressWarnings("BadImport")
   private boolean overridesAbstractNonLibraryInterfaceMethod(
       DexClass clazz, DexMethod dexMethod, EmulatedInterfaceInfo emulatedInterfaceInfo) {
     List<Entry<DexClass, DexEncodedMethod>> abstractInterfaceMethods =
@@ -806,6 +808,7 @@ final class ClassProcessor {
     return false;
   }
 
+  @SuppressWarnings("BadImport")
   private void resolveForwardingMethods(
       DexClass clazz,
       ClassInfo superInfo,
@@ -823,6 +826,7 @@ final class ClassProcessor {
 
   // Looks up a method signature from the point of 'clazz', if it can dispatch to a default method
   // the 'addForward' call-back is called with the target of the forward.
+  @SuppressWarnings("BadImport")
   private void resolveForwardForSignature(
       DexClass clazz,
       ClassInfo superInfo,

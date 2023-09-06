@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.Set;
 import org.objectweb.asm.Opcodes;
 
+@SuppressWarnings("UnusedVariable")
 // I convert library calls with desugared parameters/return values so they can work normally.
 // In the JSON of the desugared library, one can specify conversions between desugared and
 // non-desugared types. If no conversion is specified, D8/R8 simply generate wrapper classes around

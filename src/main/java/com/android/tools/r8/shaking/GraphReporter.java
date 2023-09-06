@@ -478,6 +478,7 @@ public class GraphReporter {
         });
   }
 
+  @SuppressWarnings("BadImport")
   MethodGraphNode getMethodGraphNode(DexMethod context) {
     return methodNodes.computeIfAbsent(
         context,

@@ -381,6 +381,7 @@ public class ClassMerger {
       this.mode = mode;
     }
 
+    @SuppressWarnings("MixedMutabilityReturnType")
     private List<VirtualMethodMerger> createVirtualMethodMergers() {
       if (!appView.hasClassHierarchy()) {
         assert getVirtualMethodMergerBuilders().isEmpty();

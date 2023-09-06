@@ -2726,6 +2726,7 @@ public class IRBuilder {
   }
 
   @Override
+  @SuppressWarnings("UnnecessaryParentheses")
   public String toString() {
     StringBuilder builder = new StringBuilder();
     builder.append(("blocks:\n"));

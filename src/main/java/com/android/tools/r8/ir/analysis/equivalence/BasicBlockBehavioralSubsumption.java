@@ -36,12 +36,10 @@ import java.util.function.Predicate;
 public class BasicBlockBehavioralSubsumption {
 
   private final AppView<?> appView;
-  private final IRCode code;
   private final ProgramMethod context;
 
   public BasicBlockBehavioralSubsumption(AppView<?> appView, IRCode code) {
     this.appView = appView;
-    this.code = code;
     this.context = code.context();
   }
 

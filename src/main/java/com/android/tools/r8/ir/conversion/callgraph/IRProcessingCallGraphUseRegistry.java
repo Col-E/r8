@@ -45,7 +45,7 @@ public class IRProcessingCallGraphUseRegistry<N extends NodeBase<N>> extends Inv
 
   protected void addClassInitializerTarget(DexType type) {
     assert type.isClassType();
-    DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
+    DexProgramClass clazz = asProgramClassOrNull(appViewWithLiveness.definitionFor(type));
     if (clazz != null) {
       addClassInitializerTarget(clazz);
     }
@@ -60,13 +60,15 @@ public class IRProcessingCallGraphUseRegistry<N extends NodeBase<N>> extends Inv
   }
 
   private void processFieldRead(DexField reference) {
-    DexField rewrittenReference = appView.graphLens().lookupField(reference, getCodeLens());
+    DexField rewrittenReference =
+        appViewWithLiveness.graphLens().lookupField(reference, getCodeLens());
     if (!rewrittenReference.getHolderType().isClassType()) {
       return;
     }
 
-    ProgramField field = appView.appInfo().resolveField(rewrittenReference).getSingleProgramField();
-    if (field == null || appView.appInfo().isPinned(field)) {
+    ProgramField field =
+        appViewWithLiveness.appInfo().resolveField(rewrittenReference).getSingleProgramField();
+    if (field == null || appViewWithLiveness.appInfo().isPinned(field)) {
       return;
     }
 
@@ -84,13 +86,15 @@ public class IRProcessingCallGraphUseRegistry<N extends NodeBase<N>> extends Inv
   }
 
   private void processFieldWrite(DexField reference) {
-    DexField rewrittenReference = appView.graphLens().lookupField(reference, getCodeLens());
+    DexField rewrittenReference =
+        appViewWithLiveness.graphLens().lookupField(reference, getCodeLens());
     if (!rewrittenReference.getHolderType().isClassType()) {
       return;
     }
 
-    ProgramField field = appView.appInfo().resolveField(rewrittenReference).getSingleProgramField();
-    if (field == null || appView.appInfo().isPinned(field)) {
+    ProgramField field =
+        appViewWithLiveness.appInfo().resolveField(rewrittenReference).getSingleProgramField();
+    if (field == null || appViewWithLiveness.appInfo().isPinned(field)) {
       return;
     }
 
@@ -101,14 +105,14 @@ public class IRProcessingCallGraphUseRegistry<N extends NodeBase<N>> extends Inv
   }
 
   private void processInitClass(DexType type) {
-    DexType rewrittenType = appView.graphLens().lookupType(type);
+    DexType rewrittenType = appViewWithLiveness.graphLens().lookupType(type);
     if (rewrittenType.isIntType()) {
       // Type was unboxed; init-class instruction will be removed by enum unboxer.
-      assert appView.hasUnboxedEnums();
-      assert appView.unboxedEnums().isUnboxedEnum(type);
+      assert appViewWithLiveness.hasUnboxedEnums();
+      assert appViewWithLiveness.unboxedEnums().isUnboxedEnum(type);
       return;
     }
-    DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(rewrittenType));
+    DexProgramClass clazz = asProgramClassOrNull(appViewWithLiveness.definitionFor(rewrittenType));
     if (clazz == null) {
       assert false;
       return;

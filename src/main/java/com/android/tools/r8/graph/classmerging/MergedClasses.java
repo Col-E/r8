@@ -5,7 +5,6 @@
 package com.android.tools.r8.graph.classmerging;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Set;
@@ -20,24 +19,4 @@ public interface MergedClasses {
   boolean isMergeTarget(DexType type);
 
   boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView);
-
-  /**
-   * Determine if the class has been merged by the merged classes object. If the merged classes is
-   * null then return false.
-   */
-  static boolean hasBeenMergedIntoDifferentType(
-      MergedClasses mergedClasses, DexProgramClass clazz) {
-    return hasBeenMergedIntoDifferentType(mergedClasses, clazz.getType());
-  }
-
-  /**
-   * Determine if the class has been merged by the merged classes object. If the merged classes is
-   * null then return false.
-   */
-  static boolean hasBeenMergedIntoDifferentType(MergedClasses mergedClasses, DexType type) {
-    if (mergedClasses != null) {
-      return mergedClasses.hasBeenMergedIntoDifferentType(type);
-    }
-    return false;
-  }
 }

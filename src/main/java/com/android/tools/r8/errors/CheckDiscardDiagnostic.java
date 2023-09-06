@@ -23,6 +23,7 @@ public class CheckDiscardDiagnostic implements Diagnostic {
   public static class Builder {
     private ImmutableList.Builder<String> messagesBuilder = ImmutableList.builder();
 
+    @SuppressWarnings("DefaultCharset")
     public Builder addFailedItems(
         List<ProgramDefinition> failed,
         GraphReporter graphReporter,

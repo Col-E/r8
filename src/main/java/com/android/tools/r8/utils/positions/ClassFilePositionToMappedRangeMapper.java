@@ -96,6 +96,7 @@ public class ClassFilePositionToMappedRangeMapper implements PositionToMappedRan
     return mappedPositions;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private List<MappedPosition> getPcEncodedPositions(
       ProgramMethod method, PositionRemapper positionRemapper) {
     List<MappedPosition> mappedPositions = new ArrayList<>();

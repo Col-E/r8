@@ -254,6 +254,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object o) {
       if (this == o) {
         return true;
@@ -272,6 +273,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
       return mappedRanges.hashCode();
     }
 
+    @SuppressWarnings("MixedMutabilityReturnType")
     public List<MappedRangesOfName> partitionOnMethodSignature() {
       if (mappedRanges.size() <= 1) {
         return Collections.singletonList(this);

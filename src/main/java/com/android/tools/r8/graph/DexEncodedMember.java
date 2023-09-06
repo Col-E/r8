@@ -112,6 +112,7 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public final boolean equals(Object other) {
     if (other == this) {
       return true;

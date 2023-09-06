@@ -253,6 +253,7 @@ public class DynamicTypeWithUpperBound extends DynamicType {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object other) {
     if (other == null || getClass() != other.getClass()) {
       return false;

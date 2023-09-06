@@ -361,6 +361,7 @@ public class ProfileRewritingCfInstructionDesugaringEventConsumer
   }
 
   @Override
+  @SuppressWarnings("ArgumentSelectionDefectChecker")
   public void acceptUtilityToStringIfNotNullMethod(ProgramMethod method, ProgramMethod context) {
     additionsCollection.addMethodAndHolderIfContextIsInProfile(context, method);
     parent.acceptUtilityToStringIfNotNullMethod(method, context);

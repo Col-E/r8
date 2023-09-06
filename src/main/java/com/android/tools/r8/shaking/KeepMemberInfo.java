@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.shaking.KeepInfo.Builder;
 
 /** Immutable keep requirements for a member. */
+@SuppressWarnings("BadImport")
 public abstract class KeepMemberInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>>
     extends KeepInfo<B, K> {
 
@@ -14,6 +15,7 @@ public abstract class KeepMemberInfo<B extends Builder<B, K>, K extends KeepInfo
     super(builder);
   }
 
+  @SuppressWarnings("BadImport")
   public boolean isKotlinMetadataRemovalAllowed(
       DexProgramClass holder, GlobalKeepInfoConfiguration configuration) {
     // Checking the holder for missing kotlin information relies on the holder being processed

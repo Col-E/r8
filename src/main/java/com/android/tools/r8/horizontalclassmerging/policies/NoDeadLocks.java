@@ -26,8 +26,8 @@ public class NoDeadLocks extends MultiClassPolicy {
   }
 
   // TODO(b/270398965): Replace LinkedList.
-  @SuppressWarnings("JdkObsolete")
   @Override
+  @SuppressWarnings({"JdkObsolete", "MixedMutabilityReturnType"})
   public Collection<MergeGroup> apply(MergeGroup group) {
     // Gather all synchronized classes.
     Collection<MergeGroup> synchronizedGroups = new LinkedList<>();

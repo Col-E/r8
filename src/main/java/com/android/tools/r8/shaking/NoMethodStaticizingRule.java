@@ -12,6 +12,7 @@ public class NoMethodStaticizingRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "nomethodstaticizing";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<NoMethodStaticizingRule, Builder> {
 

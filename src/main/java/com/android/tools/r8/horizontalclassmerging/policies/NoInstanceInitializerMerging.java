@@ -71,6 +71,7 @@ public class NoInstanceInitializerMerging
   }
 
   @Override
+  @SuppressWarnings("MixedMutabilityReturnType")
   public Map<DexProgramClass, Set<DexMethod>> preprocess(
       Collection<MergeGroup> groups, ExecutorService executorService) {
     if (!appView.options().canHaveNonReboundConstructorInvoke()) {
@@ -116,6 +117,7 @@ public class NoInstanceInitializerMerging
   }
 
   @Override
+  @SuppressWarnings("MixedMutabilityReturnType")
   public Collection<MergeGroup> apply(
       MergeGroup group, Map<DexProgramClass, Set<DexMethod>> absentInstanceInitializers) {
     assert !group.hasTarget();

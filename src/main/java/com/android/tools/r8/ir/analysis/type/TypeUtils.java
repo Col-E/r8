@@ -46,6 +46,7 @@ public class TypeUtils {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object obj) {
       if (this == obj) {
         return true;

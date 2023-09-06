@@ -66,11 +66,13 @@ public class EmptyEnumUnboxer extends EnumUnboxer {
   }
 
   @Override
+  @SuppressWarnings("BadImport")
   public void rewriteWithLens() {
     // Intentionally empty.
   }
 
   @Override
+  @SuppressWarnings("BadImport")
   public void unboxEnums(
       AppView<AppInfoWithLiveness> appView,
       IRConverter converter,

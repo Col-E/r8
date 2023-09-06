@@ -118,6 +118,7 @@ public class JdkClassFileProvider implements ClassFileResourceProvider, Closeabl
     collectDescriptors(jrtFs);
   }
 
+  @SuppressWarnings("StreamResourceLeak")
   private void collectDescriptors(FileSystem jrtFs) throws IOException {
     this.jrtFs = jrtFs;
     Files.walk(jrtFs.getPath("/modules"))
@@ -159,6 +160,7 @@ public class JdkClassFileProvider implements ClassFileResourceProvider, Closeabl
   }
 
   @Override
+  @SuppressWarnings("Finalize")
   protected void finalize() throws Throwable {
     close();
     super.finalize();

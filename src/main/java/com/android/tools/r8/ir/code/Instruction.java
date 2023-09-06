@@ -518,6 +518,7 @@ public abstract class Instruction
     return true;
   }
 
+  @SuppressWarnings("UnusedVariable")
   public boolean identicalAfterRegisterAllocation(
       Instruction other, RegisterAllocator allocator, MethodConversionOptions conversionOptions) {
     if (other.getClass() != getClass()) {

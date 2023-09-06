@@ -43,13 +43,11 @@ public abstract class NonIdentityGraphLens extends GraphLens {
     previousLens = newPreviousLens;
   }
 
-  @SuppressWarnings("unchecked")
-  public final <T extends com.android.tools.r8.graph.lens.NonIdentityGraphLens> T find(
-      Predicate<com.android.tools.r8.graph.lens.NonIdentityGraphLens> predicate) {
+  @SuppressWarnings({"TypeParameterUnusedInFormals", "unchecked"})
+  public final <T extends NonIdentityGraphLens> T find(Predicate<NonIdentityGraphLens> predicate) {
     GraphLens current = this;
     while (current.isNonIdentityLens()) {
-      com.android.tools.r8.graph.lens.NonIdentityGraphLens nonIdentityGraphLens =
-          current.asNonIdentityLens();
+      NonIdentityGraphLens nonIdentityGraphLens = current.asNonIdentityLens();
       if (predicate.test(nonIdentityGraphLens)) {
         return (T) nonIdentityGraphLens;
       }
@@ -58,16 +56,17 @@ public abstract class NonIdentityGraphLens extends GraphLens {
     return null;
   }
 
-  @SuppressWarnings("unchecked")
-  public final <T extends com.android.tools.r8.graph.lens.NonIdentityGraphLens> T findPrevious(
-      Predicate<com.android.tools.r8.graph.lens.NonIdentityGraphLens> predicate) {
+  @SuppressWarnings({"TypeParameterUnusedInFormals", "unchecked"})
+  public final <T extends NonIdentityGraphLens> T findPrevious(
+      Predicate<NonIdentityGraphLens> predicate) {
     GraphLens previous = getPrevious();
     return previous.isNonIdentityLens() ? previous.asNonIdentityLens().find(predicate) : null;
   }
 
-  public final <T extends com.android.tools.r8.graph.lens.NonIdentityGraphLens> T findPreviousUntil(
-      Predicate<com.android.tools.r8.graph.lens.NonIdentityGraphLens> predicate,
-      Predicate<com.android.tools.r8.graph.lens.NonIdentityGraphLens> stoppingCriterion) {
+  @SuppressWarnings({"TypeParameterUnusedInFormals", "unchecked"})
+  public final <T extends NonIdentityGraphLens> T findPreviousUntil(
+      Predicate<NonIdentityGraphLens> predicate,
+      Predicate<NonIdentityGraphLens> stoppingCriterion) {
     T found = findPrevious(predicate.or(stoppingCriterion));
     return (found == null || stoppingCriterion.test(found)) ? null : found;
   }
@@ -201,7 +200,7 @@ public abstract class NonIdentityGraphLens extends GraphLens {
   }
 
   @Override
-  public final com.android.tools.r8.graph.lens.NonIdentityGraphLens asNonIdentityLens() {
+  public final NonIdentityGraphLens asNonIdentityLens() {
     return this;
   }
 }

@@ -73,6 +73,7 @@ public class StackTraceRegularExpressionParser
     return proxyBuilder.build();
   }
 
+  @SuppressWarnings("UnnecessaryParentheses")
   private int registerGroups(
       String regularExpression,
       StringBuilder refinedRegularExpression,

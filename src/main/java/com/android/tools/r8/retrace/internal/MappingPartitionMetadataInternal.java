@@ -46,6 +46,7 @@ public interface MappingPartitionMetadataInternal extends MappingPartitionMetada
     return MetadataAdditionalInfo.create(null, null);
   }
 
+  @SuppressWarnings("MutablePublicArray")
   // Magic byte put into the metadata
   byte[] MAGIC = new byte[] {(byte) 0xAA, (byte) 0xA8};
 
@@ -116,6 +117,7 @@ public interface MappingPartitionMetadataInternal extends MappingPartitionMetada
       }
     }
 
+    @SuppressWarnings("DefaultCharset")
     public static ObfuscatedTypeNameAsKeyMetadata deserialize(CompatByteBuffer buffer) {
       byte[] array = buffer.array();
       MapVersion mapVersion = MapVersion.fromName(new String(array, 2, array.length - 2));

@@ -52,7 +52,9 @@ public abstract class DexClass extends DexDefinition
   public final Origin origin;
   public final DexType type;
   public final ClassAccessFlags accessFlags;
+
   public DexType superType;
+
   public DexTypeList interfaces;
   public DexString sourceFile;
 
@@ -821,10 +823,10 @@ public abstract class DexClass extends DexDefinition
       BiPredicate<? super DexType, ? super DexClass> predicate,
       BiConsumer<? super DexType, ? super DexClass> consumer) {
     forEachImmediateSupertype(
-        supertype -> {
-          DexClass superclass = definitions.definitionFor(supertype);
-          if (predicate.test(supertype, superclass)) {
-            consumer.accept(supertype, superclass);
+        superType -> {
+          DexClass superclass = definitions.definitionFor(superType);
+          if (predicate.test(superType, superclass)) {
+            consumer.accept(superType, superclass);
           }
         });
   }

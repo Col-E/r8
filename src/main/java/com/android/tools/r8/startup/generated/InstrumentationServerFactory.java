@@ -61,10 +61,12 @@ public final class InstrumentationServerFactory {
         DexProgramClass::invalidChecksumRequest);
   }
 
+  @SuppressWarnings("UnusedVariable")
   private static DexEncodedField[] createInstanceFields(DexItemFactory dexItemFactory) {
     return new DexEncodedField[] {};
   }
 
+  @SuppressWarnings("UnusedVariable")
   private static DexEncodedField[] createStaticFields(DexItemFactory dexItemFactory) {
     return new DexEncodedField[] {};
   }

@@ -642,6 +642,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     }
 
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     public B addSpecialLibraryConfiguration(String configuration) {
       return addDesugaredLibraryConfiguration(configuration);
     }

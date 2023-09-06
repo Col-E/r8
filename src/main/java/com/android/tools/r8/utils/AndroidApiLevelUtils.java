@@ -155,7 +155,7 @@ public class AndroidApiLevelUtils {
     return apiLevel.isLessThanOrEqualTo(apiLevelOfOriginal).isTrue();
   }
 
-  @SuppressWarnings("ReferenceEquality")
+  @SuppressWarnings({"MixedMutabilityReturnType", "ReferenceEquality"})
   public static boolean isApiSafeForTypeStrengthening(
       DexType newType, DexType oldType, AppView<? extends AppInfoWithClassHierarchy> appView) {
     // Type strengthening only applies to reference types.
@@ -279,6 +279,7 @@ public class AndroidApiLevelUtils {
         .getValue();
   }
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   private static Set<DexClass> findAllFirstLibraryInterfacesOrProgramClassWithDefinition(
       AppInfoWithClassHierarchy appInfo, DexClass originalClass, DexMember<?, ?> reference) {
     Set<DexClass> interfaces = Sets.newLinkedHashSet();

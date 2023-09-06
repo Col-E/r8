@@ -194,7 +194,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
   }
 
   @Override
-  @SuppressWarnings("ReferenceEquality")
+  @SuppressWarnings({"BadImport", "ReferenceEquality"})
   public TypeElement fixupClassTypeReferences(
       AppView<? extends AppInfoWithClassHierarchy> ignore,
       Function<DexType, DexType> mapping,
@@ -478,6 +478,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
     return objectType;
   }
 
+  @SuppressWarnings("BadImport")
   public static InterfaceCollection computeLeastUpperBoundOfInterfaces(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       InterfaceCollection s1,

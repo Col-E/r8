@@ -371,6 +371,7 @@ public class ConcreteCfFrameState extends CfFrameState {
     return error(message.toString());
   }
 
+  @SuppressWarnings("BadImport")
   public CfFrameState join(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ConcreteCfFrameState state,
@@ -385,6 +386,7 @@ public class ConcreteCfFrameState extends CfFrameState {
     return new ConcreteCfFrameState(frame.getMutableLocals(), frame.getMutableStack(), stackHeight);
   }
 
+  @SuppressWarnings("BadImport")
   private void joinLocals(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       Int2ObjectSortedMap<FrameType> locals,
@@ -618,6 +620,7 @@ public class ConcreteCfFrameState extends CfFrameState {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object o) {
     if (this == o) {
       return true;

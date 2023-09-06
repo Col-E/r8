@@ -803,6 +803,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
    *
    * <p>This method is thread safe and will synchronize based on the context of the fixed synthetic.
    */
+  @SuppressWarnings("ArgumentSelectionDefectChecker")
   public DexProgramClass ensureFixedClass(
       SyntheticKindSelector kindSelector,
       DexClass context,
@@ -1193,8 +1194,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   Result computeFinalSynthetics(AppView<?> appView, Timing timing) {
     assert !hasPendingSyntheticClasses();
-    return new SyntheticFinalization(appView.options(), this, committed)
-        .computeFinalSynthetics(appView, timing);
+    return new SyntheticFinalization(this, committed).computeFinalSynthetics(appView, timing);
   }
 
   @SuppressWarnings("ReferenceEquality")

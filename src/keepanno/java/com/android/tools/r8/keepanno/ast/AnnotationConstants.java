@@ -97,7 +97,10 @@ public final class AnnotationConstants {
   public static final class CheckOptimizedOut {
     public static final Class<com.android.tools.r8.keepanno.annotations.CheckOptimizedOut> CLASS =
         com.android.tools.r8.keepanno.annotations.CheckOptimizedOut.class;
+
+    @SuppressWarnings("MutablePublicArray")
     public static final String DESCRIPTOR = getDescriptor(CLASS);
+
     public static final String description = "description";
   }
 
@@ -134,6 +137,8 @@ public final class AnnotationConstants {
 
     public static final String methodNameDefaultValue = "";
     public static final String methodReturnTypeDefaultValue = "";
+
+    @SuppressWarnings("MutablePublicArray")
     public static final String[] methodParametersDefaultValue = new String[] {""};
 
     public static final String fieldNameDefaultValue = "";

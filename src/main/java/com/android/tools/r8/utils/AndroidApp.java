@@ -137,6 +137,7 @@ public class AndroidApp {
   }
 
   @Override
+  @SuppressWarnings("CatchAndPrintStackTrace")
   public String toString() {
     StringBuilder builder = new StringBuilder();
     try {
@@ -482,6 +483,7 @@ public class AndroidApp {
     return programResourcesMainDescriptor.get(resource);
   }
 
+  @SuppressWarnings("DefaultCharset")
   public void dump(Path output, DumpOptions dumpOptions, InternalOptions options) {
     int nextDexIndex = 0;
     OpenOption[] openOptions =
@@ -542,7 +544,7 @@ public class AndroidApp {
             ZipEntry.DEFLATED);
       }
       if (dumpOptions.hasArtProfileProviders()) {
-        dumpArtProfileProviders(dumpOptions.getArtProfileProviders(), options, out);
+        dumpArtProfileProviders(dumpOptions.getArtProfileProviders(), out);
       }
       if (dumpOptions.hasStartupProfileProviders()) {
         dumpStartupProfileProviders(dumpOptions.getStartupProfileProviders(), options, out);
@@ -568,6 +570,7 @@ public class AndroidApp {
     return nextDexIndex;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private int dumpClasspathResources(int nextDexIndex, ZipOutputStream out)
       throws IOException, ResourceException {
     nextDexIndex =
@@ -576,11 +579,9 @@ public class AndroidApp {
     return nextDexIndex;
   }
 
+  @SuppressWarnings("DefaultCharset")
   private void dumpArtProfileProviders(
-      Collection<ArtProfileProvider> artProfileProviders,
-      InternalOptions options,
-      ZipOutputStream out)
-      throws IOException {
+      Collection<ArtProfileProvider> artProfileProviders, ZipOutputStream out) throws IOException {
     int artProfileProviderIndex = 1;
     for (ArtProfileProvider artProfileProvider : artProfileProviders) {
       String artProfileFileName = "art-profile-" + artProfileProviderIndex + ".txt";
@@ -593,6 +594,7 @@ public class AndroidApp {
     }
   }
 
+  @SuppressWarnings("DefaultCharset")
   private void dumpStartupProfileProviders(
       Collection<StartupProfileProvider> startupProfileProviders,
       InternalOptions options,

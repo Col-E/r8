@@ -9,8 +9,9 @@ import java.util.List;
 
 public class ProguardCheckDiscardRule extends ProguardConfigurationRule {
 
-  public static class Builder extends
-      ProguardConfigurationRule.Builder<ProguardCheckDiscardRule, Builder> {
+  @SuppressWarnings("NonCanonicalType")
+  public static class Builder
+      extends ProguardConfigurationRule.Builder<ProguardCheckDiscardRule, Builder> {
 
     private Builder() {
       super();

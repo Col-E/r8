@@ -224,6 +224,7 @@ public class NonEmptyParameterUsages extends ParameterUsages {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object other) {
     if (other == null || getClass() != other.getClass()) {
       return false;

@@ -61,12 +61,10 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
   private final DesugaredLibraryDisableDesugarer disableDesugarer;
-  private final AndroidApiLevelCompute apiLevelCompute;
 
   NonEmptyCfInstructionDesugaringCollection(
       AppView<?> appView, AndroidApiLevelCompute apiLevelCompute) {
     this.appView = appView;
-    this.apiLevelCompute = apiLevelCompute;
     AlwaysThrowingInstructionDesugaring alwaysThrowingInstructionDesugaring =
         appView.enableWholeProgramOptimizations()
             ? new AlwaysThrowingInstructionDesugaring(appView.withClassHierarchy())

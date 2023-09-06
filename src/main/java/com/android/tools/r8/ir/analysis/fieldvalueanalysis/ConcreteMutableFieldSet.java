@@ -130,6 +130,7 @@ public class ConcreteMutableFieldSet extends AbstractFieldSet implements KnownFi
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object other) {
     if (other == null) {
       return false;

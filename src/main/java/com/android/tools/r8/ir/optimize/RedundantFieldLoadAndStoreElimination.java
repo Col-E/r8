@@ -154,6 +154,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object other) {
       if (this == other) {
         return true;
@@ -186,6 +187,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object other) {
       if (this == other) {
         return true;

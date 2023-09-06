@@ -100,6 +100,7 @@ public class ZipUtils {
     }
   }
 
+  @SuppressWarnings("UnnecessaryParentheses")
   public static Path map(
       Path zipFilePath, Path mappedFilePath, BiFunction<ZipEntry, byte[], byte[]> map)
       throws IOException {
@@ -112,6 +113,7 @@ public class ZipUtils {
     return builder.build();
   }
 
+  @SuppressWarnings("UnnecessaryParentheses")
   public static Path filter(Path zipFilePath, Path filteredFilePath, Predicate<ZipEntry> predicate)
       throws IOException {
     ZipBuilder builder = ZipBuilder.builder(filteredFilePath);
@@ -131,6 +133,7 @@ public class ZipUtils {
     }
   }
 
+  @SuppressWarnings("StreamResourceLeak")
   public static void zip(Path zipFile, Path inputDirectory) throws IOException {
     List<Path> files =
         Files.walk(inputDirectory)

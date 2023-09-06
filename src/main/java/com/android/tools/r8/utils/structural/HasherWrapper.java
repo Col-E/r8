@@ -27,6 +27,7 @@ public interface HasherWrapper {
 
   String hashCodeAsString();
 
+  @SuppressWarnings("TypeParameterUnusedInFormals")
   <T> T hash();
 
   static HasherWrapper sha256Hasher() {
@@ -75,8 +76,8 @@ public interface HasherWrapper {
       hasher.putBytes(content);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
+    @SuppressWarnings({"TypeParameterUnusedInFormals", "unchecked"})
     public <T> T hash() {
       return (T) hasher.hash();
     }

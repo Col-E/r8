@@ -20,11 +20,9 @@ import com.google.common.collect.ImmutableList;
  */
 public class BufferCovariantReturnTypeRewriter implements CfInstructionDesugaring {
 
-  private final AppView<?> appView;
   private final DexItemFactory factory;
 
   public BufferCovariantReturnTypeRewriter(AppView<?> appView) {
-    this.appView = appView;
     this.factory = appView.dexItemFactory();
   }
 

@@ -368,6 +368,7 @@ public class LirBuilder<V, EV> {
     return oldIndex != null ? oldIndex : nextIndex;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private int constantIndexSize(LirConstant item) {
     return 4;
   }

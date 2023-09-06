@@ -145,8 +145,11 @@ public class IteratorUtils {
     }
   }
 
-  /** @deprecated Use {@link #removeIf(InstructionListIterator, Predicate)} instead. */
+  /**
+   * @deprecated Use {@link #removeIf(InstructionListIterator, Predicate)} instead.
+   */
   @Deprecated
+  @SuppressWarnings("DoNotCallSuggester")
   public static void removeIf(InstructionIterator iterator, Predicate<Instruction> predicate) {
     throw new Unimplemented();
   }

@@ -164,8 +164,11 @@ public class Repackaging {
   private static class RepackagingTreeFixer extends TreeFixerBase {
 
     private final BiMap<DexType, DexType> mappings;
+
+    @SuppressWarnings("BadImport")
     private final Builder lensBuilder;
 
+    @SuppressWarnings("BadImport")
     public RepackagingTreeFixer(
         AppView<AppInfoWithLiveness> appView,
         BiMap<DexType, DexType> mappings,

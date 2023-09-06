@@ -9,6 +9,7 @@ import java.util.List;
 
 public class ProguardWhyAreYouKeepingRule extends ProguardConfigurationRule {
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<ProguardWhyAreYouKeepingRule, Builder> {
 

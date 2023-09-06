@@ -334,6 +334,7 @@ public class BasicBlock {
     return false;
   }
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   public List<BasicBlock> getNormalSuccessors() {
     if (!hasCatchHandlers()) {
       return successors;

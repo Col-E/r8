@@ -73,6 +73,7 @@ public abstract class BoxBase<T> {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object object) {
     if (object == null || getClass() != object.getClass()) {
       return false;

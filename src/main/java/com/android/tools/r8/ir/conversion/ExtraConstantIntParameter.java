@@ -36,6 +36,7 @@ public class ExtraConstantIntParameter extends ExtraParameter {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object obj) {
     if (obj == null || getClass() != obj.getClass()) {
       return false;

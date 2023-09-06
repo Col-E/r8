@@ -395,7 +395,7 @@ public abstract class KeepInfoCollection {
       return newFieldInfo;
     }
 
-    @SuppressWarnings("ReferenceEquality")
+    @SuppressWarnings({"ReferenceEquality", "UnusedVariable"})
     private Map<DexMethod, KeepMethodInfo> rewriteMethodInfo(
         NonIdentityGraphLens lens, InternalOptions options, Timing timing) {
       timing.begin("Rewrite method info");

@@ -12,6 +12,7 @@ public class NoAccessModificationRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "noaccessmodification";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<NoAccessModificationRule, Builder> {
 

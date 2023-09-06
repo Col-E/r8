@@ -61,11 +61,12 @@ public class KeepEdgeProcessor extends AbstractProcessor {
   }
 
   @Override
+  @SuppressWarnings("DoNotClaimAnnotations")
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     Map<String, List<KeepEdge>> collectedEdges = new HashMap<>();
     for (TypeElement annotation : annotations) {
       for (Element element : roundEnv.getElementsAnnotatedWith(annotation)) {
-        KeepEdge edge = processKeepEdge(element, roundEnv);
+        KeepEdge edge = processKeepEdge(element);
         if (edge != null) {
           TypeElement enclosingType = getEnclosingTypeElement(element);
           String enclosingTypeName = enclosingType.getQualifiedName().toString();
@@ -106,7 +107,8 @@ public class KeepEdgeProcessor extends AbstractProcessor {
     return classWriter.toByteArray();
   }
 
-  private KeepEdge processKeepEdge(Element element, RoundEnvironment roundEnv) {
+  @SuppressWarnings("BadImport")
+  private KeepEdge processKeepEdge(Element element) {
     AnnotationMirror mirror = getAnnotationMirror(element, AnnotationConstants.Edge.CLASS);
     if (mirror == null) {
       return null;
@@ -117,6 +119,7 @@ public class KeepEdgeProcessor extends AbstractProcessor {
     return edgeBuilder.build();
   }
 
+  @SuppressWarnings("BadImport")
   private void processPreconditions(Builder edgeBuilder, AnnotationMirror mirror) {
     AnnotationValue preconditions = getAnnotationValue(mirror, Edge.preconditions);
     if (preconditions == null) {
@@ -133,6 +136,7 @@ public class KeepEdgeProcessor extends AbstractProcessor {
     edgeBuilder.setPreconditions(preconditionsBuilder.build());
   }
 
+  @SuppressWarnings("BadImport")
   private void processConsequences(Builder edgeBuilder, AnnotationMirror mirror) {
     AnnotationValue consequences = getAnnotationValue(mirror, Edge.consequences);
     if (consequences == null) {

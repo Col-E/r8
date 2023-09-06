@@ -39,6 +39,7 @@ public class AssertionConfigurationWithDefault {
     return allAssertionHandlers;
   }
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   private List<MethodReference> computeAllAssertionHandlers() {
     assert !defaultConfiguration.isAssertionHandler();
     if (assertionsConfigurations.isEmpty()) {

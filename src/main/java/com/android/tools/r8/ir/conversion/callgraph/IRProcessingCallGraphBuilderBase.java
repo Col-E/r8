@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.conversion.callgraph;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.conversion.callgraph.CycleEliminator.CycleEliminationResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
@@ -34,14 +33,13 @@ abstract class IRProcessingCallGraphBuilderBase extends CallGraphBuilderBase<Nod
     // Sort the nodes for deterministic cycle elimination.
     Set<Node> nodesWithDeterministicOrder = Sets.newTreeSet(nodes.values());
     CycleEliminator cycleEliminator = new CycleEliminator();
-    CycleEliminationResult cycleEliminationResult =
-        cycleEliminator.breakCycles(nodesWithDeterministicOrder);
+    cycleEliminator.breakCycles(nodesWithDeterministicOrder);
     timing.end();
     timing.end();
     assert cycleEliminator.breakCycles(nodesWithDeterministicOrder).numberOfRemovedCallEdges()
         == 0; // The cycles should be gone.
 
-    return new CallGraph(nodes, cycleEliminationResult);
+    return new CallGraph(nodes);
   }
 
   @Override

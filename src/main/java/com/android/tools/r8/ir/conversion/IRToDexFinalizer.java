@@ -59,6 +59,7 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
     assert code.isConsistentSSA(appView);
   }
 
+  @SuppressWarnings("UnusedVariable")
   private RegisterAllocator performRegisterAllocation(
       IRCode code, DexEncodedMethod method, Timing timing) {
     // Always perform dead code elimination before register allocation. The register allocator

@@ -311,17 +311,15 @@ public class LazyCfCode extends Code {
   }
 
   protected BiFunction<String, String, LazyCfCode> createCodeLocator(ReparseContext context) {
-    return new DefaultCodeLocator(context, application);
+    return new DefaultCodeLocator(context);
   }
 
   private static class DefaultCodeLocator implements BiFunction<String, String, LazyCfCode> {
     private final ReparseContext context;
-    private final JarApplicationReader application;
     private int methodIndex = 0;
 
-    private DefaultCodeLocator(ReparseContext context, JarApplicationReader application) {
+    private DefaultCodeLocator(ReparseContext context) {
       this.context = context;
-      this.application = application;
     }
 
     @Override

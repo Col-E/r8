@@ -179,6 +179,7 @@ public class NoDefaultInterfaceMethodCollisions
   }
 
   /** Returns the set of program classes that must be considered during preprocessing. */
+  @SuppressWarnings("UnusedVariable")
   private Collection<DexProgramClass> computeClassesOfInterest(SubtypingInfo subtypingInfo) {
     // TODO(b/173990042): Limit result to the set of classes that are in the same as one of
     //  the interfaces that is subject to merging.

@@ -18,11 +18,9 @@ import java.util.List;
 
 public class CodeRewriterPassCollection {
 
-  private final AppView<?> appView;
   private final List<CodeRewriterPass<?>> passes;
 
-  public CodeRewriterPassCollection(AppView<?> appView, List<CodeRewriterPass<?>> passes) {
-    this.appView = appView;
+  public CodeRewriterPassCollection(List<CodeRewriterPass<?>> passes) {
     this.passes = passes;
   }
 
@@ -43,7 +41,7 @@ public class CodeRewriterPassCollection {
     passes.add(new RedundantConstNumberRemover(appView));
     passes.add(new RedundantFieldLoadAndStoreElimination(appView));
     passes.add(new BinopRewriter(appView));
-    return new CodeRewriterPassCollection(appView, passes);
+    return new CodeRewriterPassCollection(passes);
   }
 
   public void run(

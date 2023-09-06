@@ -80,6 +80,7 @@ public class FieldAccessorBuilder {
     return this;
   }
 
+  @SuppressWarnings("BadImport")
   public CfCode build() {
     assert validate();
     int maxStack = 0;

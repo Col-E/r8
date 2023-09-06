@@ -284,6 +284,7 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
 
   private static class HTMLBuilder extends StringBuilderWithIndent {
 
+    @SuppressWarnings("HidingField")
     private String indent = "";
 
     private void increaseIndent() {

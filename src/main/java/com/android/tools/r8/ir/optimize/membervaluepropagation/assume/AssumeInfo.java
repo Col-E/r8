@@ -137,6 +137,7 @@ public class AssumeInfo {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object other) {
     if (this == other) {
       return true;

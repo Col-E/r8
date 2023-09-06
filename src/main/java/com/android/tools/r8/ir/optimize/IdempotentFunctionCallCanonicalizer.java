@@ -32,20 +32,15 @@ import java.util.Map;
  *
  * <p>For example,
  *
- *   v1 <- const4 0x0
- *   ...
- *   vx <- invoke-static { v1 } Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;
- *   ...
- *   vy <- invoke-static { v1 } Ljava/lang/Boolean;->valueOf(Z);Ljava/lang/Boolean;
- *   ...
- *   vz <- invoke-static { v1 } Ljava/lang/Boolean;->valueOf(Z);Ljava/lang/Boolean;
- *   ...
+ * <p>v1 <- const4 0x0 ... vx <- invoke-static { v1 }
+ * Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean; ... vy <- invoke-static { v1 }
+ * Ljava/lang/Boolean;->valueOf(Z);Ljava/lang/Boolean; ... vz <- invoke-static { v1 }
+ * Ljava/lang/Boolean;->valueOf(Z);Ljava/lang/Boolean; ...
  *
- * ~>
+ * <p>~>
  *
- *   v1 <- const4 0x0
- *   v2 <- invoke-static { v1 } Ljava/lang/Boolean;->valueOf(Z);Ljava/lang/Boolean;
- *   // Update users of vx, vy, and vz.
+ * <p>v1 <- const4 0x0 @SuppressWarnings("UnusedVariable") v2 <- invoke-static { v1 }
+ * Ljava/lang/Boolean;->valueOf(Z);Ljava/lang/Boolean; // Update users of vx, vy, and vz.
  */
 public class IdempotentFunctionCallCanonicalizer {
 
@@ -54,9 +49,6 @@ public class IdempotentFunctionCallCanonicalizer {
 
   private final AppView<?> appView;
   private final DexItemFactory factory;
-
-  private int numberOfLibraryCallCanonicalization = 0;
-  private int numberOfProgramCallCanonicalization = 0;
 
   public IdempotentFunctionCallCanonicalizer(AppView<?> appView) {
     this.appView = appView;

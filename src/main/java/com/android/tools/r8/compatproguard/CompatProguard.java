@@ -85,6 +85,7 @@ public class CompatProguard {
     }
 
     public static CompatProguardOptions parse(String[] args) {
+      @SuppressWarnings("UnusedVariable")
       DiagnosticsHandler handler = new DiagnosticsHandler() {};
       String output = null;
       CompilationMode mode = null;
@@ -99,10 +100,6 @@ public class CompatProguard {
       String depsFileOutput = null;
       // Flags to disable experimental features.
       boolean disableVerticalClassMerging = false;
-      // These flags are currently ignored.
-      boolean minimalMainDex = false;
-      boolean coreLibrary = false;
-      boolean noLocals = false;
 
       ImmutableList.Builder<String> builder = ImmutableList.builder();
       if (args.length > 0) {
@@ -144,12 +141,10 @@ public class CompatProguard {
               depsFileOutput = args[++i];
             } else if (arg.equals("--no-vertical-class-merging")) {
               disableVerticalClassMerging = true;
-            } else if (arg.equals("--minimal-main-dex")) {
-              minimalMainDex = true;
-            } else if (arg.equals("--core-library")) {
-              coreLibrary = true;
-            } else if (arg.equals("--no-locals")) {
-              noLocals = true;
+            } else if (arg.equals("--core-library")
+                || arg.equals("--minimal-main-dex")
+                || arg.equals("--no-locals")) {
+              // Ignore.
             } else if (arg.equals("-outjars")) {
               throw new CompilationError(
                   "Proguard argument -outjar is not supported. Use R8 compatible --output flag");

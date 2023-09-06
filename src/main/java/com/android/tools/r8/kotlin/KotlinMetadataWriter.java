@@ -48,7 +48,7 @@ public class KotlinMetadataWriter {
 
   static final String INDENT = "  ";
 
-  @SuppressWarnings("ReferenceEquality")
+  @SuppressWarnings({"EmptyCatch", "ReferenceEquality"})
   public static void writeKotlinMetadataAnnotation(
       String prefix, DexAnnotation annotation, PrintStream ps, Kotlin kotlin) {
     assert annotation.annotation.type == kotlin.factory.kotlinMetadataType;

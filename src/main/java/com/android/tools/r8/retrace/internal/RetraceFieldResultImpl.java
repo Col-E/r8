@@ -18,7 +18,9 @@ import java.util.stream.Stream;
 
 public class RetraceFieldResultImpl implements RetraceFieldResult {
 
+  @SuppressWarnings("UnusedVariable")
   private final RetraceClassResultImpl classResult;
+
   private final List<Pair<RetraceClassElementImpl, List<MemberNaming>>> memberNamings;
   private final FieldDefinition fieldDefinition;
   private final RetracerImpl retracer;

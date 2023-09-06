@@ -385,6 +385,7 @@ public abstract class EnqueuerWorklist {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object obj) {
       if (this == obj) {
         return true;
@@ -415,6 +416,7 @@ public abstract class EnqueuerWorklist {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object obj) {
       if (this == obj) {
         return true;
@@ -445,6 +447,7 @@ public abstract class EnqueuerWorklist {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object obj) {
       if (this == obj) {
         return true;
@@ -475,6 +478,7 @@ public abstract class EnqueuerWorklist {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object obj) {
       if (this == obj) {
         return true;
@@ -500,6 +504,7 @@ public abstract class EnqueuerWorklist {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object obj) {
       if (this == obj) {
         return true;

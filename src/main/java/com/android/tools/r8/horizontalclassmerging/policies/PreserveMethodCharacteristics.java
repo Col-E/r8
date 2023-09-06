@@ -74,7 +74,7 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
     }
 
     @Override
-    @SuppressWarnings("ReferenceEquality")
+    @SuppressWarnings({"EqualsGetClass", "ReferenceEquality"})
     public boolean equals(Object obj) {
       if (obj == null) {
         return false;

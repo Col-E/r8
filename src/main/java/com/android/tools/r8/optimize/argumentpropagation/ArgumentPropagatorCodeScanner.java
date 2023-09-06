@@ -275,6 +275,7 @@ public class ArgumentPropagatorCodeScanner {
     return result;
   }
 
+  @SuppressWarnings("UnusedVariable")
   // TODO(b/190154391): Add a strategy that widens the dynamic receiver type to allow easily
   //  experimenting with the performance/size trade-off between precise/imprecise handling of
   //  dynamic dispatch.
@@ -294,8 +295,7 @@ public class ArgumentPropagatorCodeScanner {
 
     ProgramMethod singleTarget = invoke.lookupSingleProgramTarget(appView, context);
     DynamicTypeWithUpperBound bounds =
-        computeBoundsForPolymorphicMethodState(
-            invoke, resolvedMethod, singleTarget, context, dynamicReceiverType);
+        computeBoundsForPolymorphicMethodState(resolvedMethod, singleTarget, dynamicReceiverType);
     MethodState existingMethodStateForBounds =
         existingMethodState.isPolymorphic()
             ? existingMethodState.asPolymorphic().getMethodStateForBounds(bounds)
@@ -324,10 +324,8 @@ public class ArgumentPropagatorCodeScanner {
   }
 
   private DynamicTypeWithUpperBound computeBoundsForPolymorphicMethodState(
-      InvokeMethodWithReceiver invoke,
       ProgramMethod resolvedMethod,
       ProgramMethod singleTarget,
-      ProgramMethod context,
       DynamicTypeWithUpperBound dynamicReceiverType) {
     DynamicTypeWithUpperBound bounds =
         singleTarget != null
@@ -375,6 +373,7 @@ public class ArgumentPropagatorCodeScanner {
             : null);
   }
 
+  @SuppressWarnings("UnusedVariable")
   private ConcreteMonomorphicMethodStateOrUnknown computeMonomorphicMethodState(
       InvokeMethod invoke,
       ProgramMethod resolvedMethod,
@@ -394,7 +393,6 @@ public class ArgumentPropagatorCodeScanner {
       assert dynamicReceiverType != null;
       parameterStates.add(
           computeParameterStateForReceiver(
-              invoke.asInvokeMethodWithReceiver(),
               resolvedMethod,
               dynamicReceiverType,
               existingMethodState,
@@ -424,7 +422,6 @@ public class ArgumentPropagatorCodeScanner {
   // TODO(b/190154391): Consider validating the above hypothesis by using
   //  computeParameterStateForNonReceiver() for receivers.
   private ParameterState computeParameterStateForReceiver(
-      InvokeMethodWithReceiver invoke,
       ProgramMethod resolvedMethod,
       DynamicType dynamicReceiverType,
       ConcreteMonomorphicMethodStateOrBottom existingMethodState,
@@ -448,6 +445,7 @@ public class ArgumentPropagatorCodeScanner {
         : new ConcreteReceiverParameterState(dynamicReceiverType);
   }
 
+  @SuppressWarnings("UnusedVariable")
   private ParameterState computeParameterStateForNonReceiver(
       InvokeMethod invoke,
       int argumentIndex,
@@ -547,6 +545,7 @@ public class ArgumentPropagatorCodeScanner {
         && !isMonomorphicVirtualMethod(getRepresentative(invoke, resolvedMethod));
   }
 
+  @SuppressWarnings("UnusedVariable")
   private void scan(InvokeCustom invoke, ProgramMethod context) {
     // If the bootstrap method is program declared it will be called. The call is with runtime
     // provided arguments so ensure that the argument information is unknown.

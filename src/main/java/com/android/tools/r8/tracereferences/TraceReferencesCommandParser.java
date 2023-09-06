@@ -137,6 +137,7 @@ class TraceReferencesCommandParser {
     }
   }
 
+  @SuppressWarnings("DefaultCharset")
   private TraceReferencesCommand.Builder parse(
       String[] args, Origin origin, TraceReferencesCommand.Builder builder) {
     String[] expandedArgs = FlagFile.expandFlagFiles(args, builder::error);

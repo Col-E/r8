@@ -215,6 +215,7 @@ public class EscapeAnalysis {
     return trackedValues.contains(value);
   }
 
+  @SuppressWarnings("UnusedVariable")
   private static Value getPropagatedSubject(Value src, Instruction instr) {
     if (instr.isArrayPut()) {
       return instr.asArrayPut().array();

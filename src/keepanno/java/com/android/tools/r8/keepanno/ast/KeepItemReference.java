@@ -52,6 +52,7 @@ public abstract class KeepItemReference {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object o) {
       if (this == o) {
         return true;
@@ -93,6 +94,7 @@ public abstract class KeepItemReference {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object o) {
       if (this == o) {
         return true;

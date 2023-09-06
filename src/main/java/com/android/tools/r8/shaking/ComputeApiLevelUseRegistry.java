@@ -22,7 +22,6 @@ import java.util.ListIterator;
 
 public class ComputeApiLevelUseRegistry extends UseRegistry<ProgramMethod> {
 
-  protected final AppView<?> appView;
   private final AppInfoWithClassHierarchy appInfoWithClassHierarchy;
   private final AndroidApiLevelCompute apiLevelCompute;
   private final boolean isEnabled;
@@ -31,7 +30,6 @@ public class ComputeApiLevelUseRegistry extends UseRegistry<ProgramMethod> {
   public ComputeApiLevelUseRegistry(
       AppView<?> appView, ProgramMethod context, AndroidApiLevelCompute apiLevelCompute) {
     super(appView, context);
-    this.appView = appView;
     this.appInfoWithClassHierarchy = appView.appInfoForDesugaring();
     this.apiLevelCompute = apiLevelCompute;
     isEnabled = apiLevelCompute.isEnabled();
@@ -172,6 +170,7 @@ public class ComputeApiLevelUseRegistry extends UseRegistry<ProgramMethod> {
     }
   }
 
+  @SuppressWarnings("HidingField")
   public ComputedApiLevel getMaxApiReferenceLevel() {
     return maxApiReferenceLevel;
   }

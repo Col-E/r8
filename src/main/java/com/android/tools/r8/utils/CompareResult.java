@@ -11,7 +11,7 @@ public enum CompareResult {
   EQUAL(0),
   GREATER_THAN(1);
 
-  private int comparisonResult;
+  private final int comparisonResult;
 
   CompareResult(int comparisonResult) {
     this.comparisonResult = comparisonResult;

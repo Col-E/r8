@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexItemFactory.EnumMembers;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
-import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.optimize.info.LibraryOptimizationInfoInitializerFeedback;
 import com.android.tools.r8.ir.optimize.info.field.EmptyInstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
@@ -25,7 +24,6 @@ import java.util.Set;
 
 public class LibraryOptimizationInfoInitializer {
 
-  private final AbstractValueFactory abstractValueFactory;
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
 
@@ -34,7 +32,6 @@ public class LibraryOptimizationInfoInitializer {
   private final Set<DexType> modeledLibraryTypes = Sets.newIdentityHashSet();
 
   LibraryOptimizationInfoInitializer(AppView<?> appView) {
-    this.abstractValueFactory = appView.abstractValueFactory();
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
   }

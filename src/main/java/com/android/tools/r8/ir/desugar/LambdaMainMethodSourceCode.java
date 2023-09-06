@@ -171,7 +171,7 @@ final class LambdaMainMethodSourceCode {
     }
   }
 
-  @SuppressWarnings("ReferenceEquality")
+  @SuppressWarnings({"BadImport", "ReferenceEquality"})
   public static CfCode build(
       LambdaClass lambda, DexMethod mainMethod, DesugarInvoke desugarInvoke) {
     DexItemFactory factory = lambda.appView.dexItemFactory();
@@ -335,6 +335,7 @@ final class LambdaMainMethodSourceCode {
 
   // Adds necessary casts and transformations to adjust the value
   // returned by impl-method to expected return type of the method.
+  @SuppressWarnings("BadImport")
   private static int prepareReturnValue(
       DexType erasedType,
       DexType enforcedType,
@@ -355,6 +356,7 @@ final class LambdaMainMethodSourceCode {
   // be converted to enforced parameter type (`enforcedType`), which,
   // in its turn, may need to be adjusted to the parameter type of
   // the impl-method (`expectedType`).
+  @SuppressWarnings("BadImport")
   private static int prepareParameterValue(
       DexType erasedType,
       DexType enforcedType,
@@ -365,7 +367,7 @@ final class LambdaMainMethodSourceCode {
     return adjustType(enforcedType, expectedType, false, instructions, factory);
   }
 
-  @SuppressWarnings("ReferenceEquality")
+  @SuppressWarnings({"BadImport", "ReferenceEquality"})
   private static void enforceParameterType(
       DexType paramType,
       DexType enforcedType,
@@ -380,7 +382,7 @@ final class LambdaMainMethodSourceCode {
     }
   }
 
-  @SuppressWarnings("ReferenceEquality")
+  @SuppressWarnings({"BadImport", "ReferenceEquality"})
   private static int adjustType(
       DexType fromType,
       DexType toType,
@@ -402,7 +404,7 @@ final class LambdaMainMethodSourceCode {
             ValueType.fromDexType(toType).requiredRegisters()));
   }
 
-  @SuppressWarnings("ReferenceEquality")
+  @SuppressWarnings({"BadImport", "ReferenceEquality"})
   private static void internalAdjustType(
       DexType fromType,
       DexType toType,
@@ -480,7 +482,7 @@ final class LambdaMainMethodSourceCode {
         + fromType.toSourceString() + " to " + toType);
   }
 
-  @SuppressWarnings("ReferenceEquality")
+  @SuppressWarnings({"BadImport", "ReferenceEquality"})
   private static void addPrimitiveWideningConversion(
       DexType fromType, DexType toType, Builder<CfInstruction> instructions) {
     assert fromType.isPrimitiveType() && toType.isPrimitiveType();
@@ -542,18 +544,16 @@ final class LambdaMainMethodSourceCode {
         "converted to " + toType.toSourceString() + " via primitive widening conversion.");
   }
 
+  @SuppressWarnings("BadImport")
   private static void addPrimitiveUnboxing(
-      DexType boxType,
-      Builder<CfInstruction> instructions,
-      DexItemFactory factory) {
+      DexType boxType, Builder<CfInstruction> instructions, DexItemFactory factory) {
     DexMethod method = factory.getUnboxPrimitiveMethod(boxType);
     instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, method, false));
   }
 
+  @SuppressWarnings("BadImport")
   private static void addPrimitiveBoxing(
-      DexType boxType,
-      Builder<CfInstruction> instructions,
-      DexItemFactory factory) {
+      DexType boxType, Builder<CfInstruction> instructions, DexItemFactory factory) {
     DexMethod method = factory.getBoxPrimitiveMethod(boxType);
     instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, method, false));
   }

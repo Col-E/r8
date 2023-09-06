@@ -926,7 +926,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
                     method.isNonPrivateVirtualMethod(), OptionalBool.FALSE));
   }
 
-  @SuppressWarnings("ReferenceEquality")
+  @SuppressWarnings({"BadImport", "ReferenceEquality"})
   private DexEncodedField fixupEncodedField(DexEncodedField encodedField) {
     DexField field = encodedField.getReference();
     DexType newType = fixupType(field.type);

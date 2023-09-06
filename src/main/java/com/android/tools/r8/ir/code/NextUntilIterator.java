@@ -14,7 +14,7 @@ public interface NextUntilIterator<T> extends Iterator<T> {
    * @returns the item that matched the predicate or {@code null} if all items fail the predicate
    *     test
    */
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"TypeParameterUnusedInFormals", "unchecked"})
   default <S extends T> S nextUntil(Predicate<T> predicate) {
     while (hasNext()) {
       T item = next();

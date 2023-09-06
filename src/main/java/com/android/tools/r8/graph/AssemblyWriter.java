@@ -20,7 +20,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
-import com.android.tools.r8.utils.Timing;
 import java.io.BufferedReader;
 import java.io.PrintStream;
 import java.io.StringReader;
@@ -35,7 +34,6 @@ public class AssemblyWriter extends DexByteCodeWriter {
   private final boolean writeCode;
   private final AppInfo appInfo;
   private final Kotlin kotlin;
-  private final Timing timing = new Timing("AssemblyWriter");
   private final CompilationContext compilationContext;
   private final RetracerForCodePrinting retracer;
 

@@ -30,6 +30,7 @@ public abstract class DexReference extends IndexedDexItem implements LirConstant
       BiConsumer<DexMethod, T> methodConsumer,
       T arg);
 
+  @SuppressWarnings("MissingImplementsComparable")
   public static <R extends DexReference, T> T applyPair(
       R one,
       R other,
@@ -48,6 +49,7 @@ public abstract class DexReference extends IndexedDexItem implements LirConstant
 
   public abstract void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems);
 
+  @SuppressWarnings("MissingImplementsComparable")
   public abstract int compareTo(DexReference other);
 
   public abstract DexType getContextType();

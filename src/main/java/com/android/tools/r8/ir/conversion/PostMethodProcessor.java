@@ -165,6 +165,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
     }
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Deque<ProgramMethodSet> createWaves(CallGraph callGraph) {
     Deque<ProgramMethodSet> waves = new ArrayDeque<>();
     int waveCount = 1;

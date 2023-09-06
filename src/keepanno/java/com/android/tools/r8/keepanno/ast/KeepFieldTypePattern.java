@@ -42,6 +42,7 @@ public abstract class KeepFieldTypePattern {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object o) {
       if (this == o) {
         return true;

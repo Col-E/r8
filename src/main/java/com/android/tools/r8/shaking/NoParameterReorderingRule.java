@@ -12,6 +12,7 @@ public class NoParameterReorderingRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "noparameterreordering";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<NoParameterReorderingRule, Builder> {
 

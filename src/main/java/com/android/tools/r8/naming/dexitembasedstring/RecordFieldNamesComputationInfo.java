@@ -191,6 +191,7 @@ public abstract class RecordFieldNamesComputationInfo extends NameComputationInf
     return new MissMatchingRecordFieldNamesComputationInfo(fieldNamesSplit, fields);
   }
 
+  @SuppressWarnings("UnnecessaryParentheses")
   private static boolean fieldsMatchNames(String[] fieldNames, DexField[] fields) {
     for (int i = 0; i < fieldNames.length; i++) {
       if (!(fields[i].name.toString().equals(fieldNames[i]))) {

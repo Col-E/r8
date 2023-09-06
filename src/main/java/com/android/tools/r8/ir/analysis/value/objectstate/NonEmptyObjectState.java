@@ -54,6 +54,7 @@ public class NonEmptyObjectState extends ObjectState {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) {
       return false;

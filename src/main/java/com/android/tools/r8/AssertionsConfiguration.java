@@ -175,6 +175,7 @@ public class AssertionsConfiguration {
     }
 
     /** Build and return the {@link AssertionsConfiguration}. */
+    @SuppressWarnings("InlineMeSuggester")
     public AssertionsConfiguration build() {
       if (transformation == null && assertionHandler == null) {
         reporter.error(
@@ -222,6 +223,7 @@ public class AssertionsConfiguration {
      * @deprecated As of version 3.3, replaced by {@link #compileTimeEnableAllAssertions(Builder)}
      */
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     public static AssertionsConfiguration enableAllAssertions(
         AssertionsConfiguration.Builder builder) {
       return compileTimeEnableAllAssertions(builder);

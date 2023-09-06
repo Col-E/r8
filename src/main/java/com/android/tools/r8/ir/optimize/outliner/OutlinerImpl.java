@@ -204,6 +204,7 @@ public class OutlinerImpl extends Outliner {
       return type.ordinal();
     }
 
+    @SuppressWarnings("MissingImplementsComparable")
     public int compareTo(OutlineInstruction other) {
       return type.compareTo(other.type);
     }
@@ -727,7 +728,7 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
-    @SuppressWarnings("ReferenceEquality")
+    @SuppressWarnings({"ReferenceEquality", "UnnecessaryParentheses"})
     public String toString() {
       // The printing of the code for an outline maps the value numbers to the arguments numbers.
       int outRegisterNumber = argumentTypes.size();
@@ -770,6 +771,7 @@ public class OutlinerImpl extends Outliner {
     }
   }
 
+  @SuppressWarnings("UnusedVariable")
   // Spot the outline opportunities in a basic block.
   // This is the superclass for both collection candidates and actually replacing code.
   // TODO(sgjesse): Collect more information in the candidate collection and reuse that for

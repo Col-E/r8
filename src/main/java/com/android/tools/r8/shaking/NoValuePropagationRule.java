@@ -11,6 +11,7 @@ public class NoValuePropagationRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "neverpropagatevalue";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<NoValuePropagationRule, Builder> {
 

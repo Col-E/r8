@@ -36,6 +36,7 @@ public class TextRange implements Position {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object o) {
     if (o == this) {
       return true;

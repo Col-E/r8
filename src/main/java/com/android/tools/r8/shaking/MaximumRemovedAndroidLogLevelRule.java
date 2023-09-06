@@ -20,6 +20,7 @@ public class MaximumRemovedAndroidLogLevelRule extends ProguardConfigurationRule
   public static final int ERROR = 6;
   public static final int ASSERT = 7;
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<MaximumRemovedAndroidLogLevelRule, Builder> {
 

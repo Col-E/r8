@@ -11,6 +11,7 @@ public class NoUnusedInterfaceRemovalRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "nounusedinterfaceremoval";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<NoUnusedInterfaceRemovalRule, Builder> {
 

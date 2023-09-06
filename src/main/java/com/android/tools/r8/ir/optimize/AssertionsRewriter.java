@@ -579,6 +579,7 @@ public class AssertionsRewriter {
         : null;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Throw dominatedBlocksHasSingleThrow(BasicBlock block, List<BasicBlock> dominatedBlocks) {
     Throw theThrow = null;
     for (BasicBlock current : dominatedBlocks) {

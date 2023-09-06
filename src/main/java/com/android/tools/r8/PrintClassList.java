@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
 
 public class PrintClassList {
 
+  @SuppressWarnings("BadImport")
   public static void main(String[] args) throws IOException {
     List<String> dexFiles = Arrays.asList(args);
     Builder builder = AndroidApp.builder();

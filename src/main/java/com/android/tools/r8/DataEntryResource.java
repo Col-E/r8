@@ -22,10 +22,12 @@ public interface DataEntryResource extends DataResource {
   /** Get the bytes of the data entry resource. */
   InputStream getByteStream() throws ResourceException;
 
+  @SuppressWarnings("DefaultCharset")
   static DataEntryResource fromBytes(byte[] bytes, String name, Origin origin) {
     return new ByteDataEntryResource(bytes, name, origin);
   }
 
+  @SuppressWarnings("DefaultCharset")
   static DataEntryResource fromString(String name, Origin origin, String... lines) {
     StringBuilder sb = new StringBuilder();
     for (String line : lines) {

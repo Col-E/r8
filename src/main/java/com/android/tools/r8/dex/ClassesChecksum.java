@@ -53,6 +53,7 @@ public class ClassesChecksum {
     return "" + PREFIX_CHAR0 + PREFIX_CHAR1 + PREFIX_CHAR2 + sortedJson;
   }
 
+  @SuppressWarnings("EmptyCatch")
   // Try to parse the string as a marker and append its content if successful.
   public void tryParseAndAppend(DexString dexString) {
     if (dexString.size > 2

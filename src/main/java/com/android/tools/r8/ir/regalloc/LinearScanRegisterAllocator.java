@@ -1630,6 +1630,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return false;
   }
 
+  @SuppressWarnings("BadImport")
   private boolean allocateSingleInterval(LiveIntervals unhandledInterval, ArgumentReuseMode mode) {
     int registerConstraint = unhandledInterval.getRegisterLimit();
     assert registerConstraint <= Constants.U16BIT_MAX;
@@ -2056,6 +2057,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return candidate;
   }
 
+  @SuppressWarnings("BadImport")
   private void allocateBlockedRegister(LiveIntervals unhandledInterval) {
     int registerConstraint = unhandledInterval.getRegisterLimit();
     if (registerConstraint < Constants.U16BIT_MAX) {

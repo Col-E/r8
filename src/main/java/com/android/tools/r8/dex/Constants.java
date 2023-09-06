@@ -7,10 +7,14 @@ import com.android.tools.r8.cf.CfVersion;
 
 public class Constants {
 
+  @SuppressWarnings("MutablePublicArray")
   public static final byte[] DEX_FILE_MAGIC_PREFIX = {'d', 'e', 'x', '\n'};
+
   public static final byte DEX_FILE_MAGIC_SUFFIX = '\0';
 
+  @SuppressWarnings("MutablePublicArray")
   public static final byte[] VDEX_FILE_MAGIC_PREFIX = {'v', 'd', 'e', 'x'};
+
   public static final int VDEX_FILE_VERSION_LENGTH = 4;
 
   /** Supported vdex file versions */

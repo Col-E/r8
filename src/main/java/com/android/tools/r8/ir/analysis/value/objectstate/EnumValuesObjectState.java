@@ -106,6 +106,7 @@ public class EnumValuesObjectState extends ObjectState {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object o) {
     if (getClass() != o.getClass()) {
       return false;

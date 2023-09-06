@@ -9,6 +9,7 @@ import java.util.List;
 
 public class ProguardIdentifierNameStringRule extends ProguardConfigurationRule {
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<ProguardIdentifierNameStringRule, Builder> {
     private Builder() {

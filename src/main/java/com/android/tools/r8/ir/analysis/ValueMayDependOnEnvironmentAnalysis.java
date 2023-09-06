@@ -156,10 +156,8 @@ public class ValueMayDependOnEnvironmentAnalysis {
     return addConstantValueToValueGraph(value)
         || addArrayValueToValueGraph(
             value, node, graph, consumedInstructions, mutableValues, worklist)
-        || addInvokeVirtualValueToValueGraph(
-            value, node, graph, consumedInstructions, mutableValues, worklist)
-        || addLogicalBinopValueToValueGraph(
-            value, node, graph, consumedInstructions, mutableValues, worklist)
+        || addInvokeVirtualValueToValueGraph(value)
+        || addLogicalBinopValueToValueGraph(value, node, graph, worklist)
         || addNewInstanceValueToValueGraph(
             value, node, graph, consumedInstructions, mutableValues, worklist);
   }
@@ -185,6 +183,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
     return false;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private boolean addArrayValueToValueGraph(
       Value value,
       Node node,
@@ -252,13 +251,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
   }
 
   @SuppressWarnings("ReferenceEquality")
-  private boolean addInvokeVirtualValueToValueGraph(
-      Value value,
-      Node node,
-      ValueGraph graph,
-      Set<Instruction> consumedInstructions,
-      Set<Value> mutableValues,
-      WorkList<Value> worklist) {
+  private boolean addInvokeVirtualValueToValueGraph(Value value) {
     if (!value.isDefinedByInstructionSatisfying(Instruction::isInvokeVirtual)) {
       return false;
     }
@@ -286,8 +279,6 @@ public class ValueMayDependOnEnvironmentAnalysis {
       Value value,
       Node node,
       ValueGraph graph,
-      Set<Instruction> consumedInstructions,
-      Set<Value> mutableValues,
       WorkList<Value> worklist) {
     if (!value.isDefinedByInstructionSatisfying(Instruction::isLogicalBinop)) {
       return false;

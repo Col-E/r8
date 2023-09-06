@@ -61,6 +61,7 @@ public class ExactDynamicType extends DynamicTypeWithUpperBound {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object other) {
     if (other == null || getClass() != other.getClass()) {
       return false;

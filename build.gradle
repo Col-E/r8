@@ -623,7 +623,7 @@ if (!project.hasProperty('without_error_prone') &&
         !org.gradle.internal.jvm.Jvm.current().javaVersion.java8) {
     compileJava {
 
-        // Enable error prone for D8/R8 main sources
+        // Enable error prone for D8/R8 main sources.
         options.errorprone.enabled = true
 
         // Make all warnings errors. Warnings that we have chosen not to fix (or suppress) are
@@ -635,51 +635,11 @@ if (!project.hasProperty('without_error_prone') &&
         options.compilerArgs << "1000"
 
         // Non-default / Experimental checks - explicitly enforced.
-        options.errorprone.check('ReferenceEquality', CheckSeverity.ERROR)
         options.errorprone.check('RemoveUnusedImports', CheckSeverity.ERROR)
         options.errorprone.check('InconsistentOverloads', CheckSeverity.ERROR)
         options.errorprone.check('MissingDefault', CheckSeverity.ERROR)
         options.errorprone.check('MultipleTopLevelClasses', CheckSeverity.ERROR)
         options.errorprone.check('NarrowingCompoundAssignment', CheckSeverity.ERROR)
-
-        // TODO(b/270510095): These should likely be fixed/suppressed and become hard failures.
-        options.errorprone.check('UnusedVariable', CheckSeverity.OFF)
-        options.errorprone.check('EqualsUnsafeCast', CheckSeverity.OFF)
-        options.errorprone.check('TypeParameterUnusedInFormals', CheckSeverity.OFF)
-        options.errorprone.check('ImmutableEnumChecker', CheckSeverity.OFF)
-        options.errorprone.check('BadImport', CheckSeverity.OFF)
-        options.errorprone.check('ComplexBooleanConstant', CheckSeverity.OFF)
-        options.errorprone.check('StreamToIterable', CheckSeverity.OFF)
-        options.errorprone.check('HidingField', CheckSeverity.OFF)
-        options.errorprone.check('StreamResourceLeak', CheckSeverity.OFF)
-        options.errorprone.check('CatchAndPrintStackTrace', CheckSeverity.OFF)
-        options.errorprone.check('NonCanonicalType', CheckSeverity.OFF)
-        options.errorprone.check('UnusedNestedClass', CheckSeverity.OFF)
-        options.errorprone.check('AmbiguousMethodReference', CheckSeverity.OFF)
-        options.errorprone.check('InvalidParam', CheckSeverity.OFF)
-        options.errorprone.check('CharacterGetNumericValue', CheckSeverity.OFF)
-        options.errorprone.check('ModifyCollectionInEnhancedForLoop', CheckSeverity.OFF)
-        options.errorprone.check('EmptyCatch', CheckSeverity.OFF)
-        options.errorprone.check('ArgumentSelectionDefectChecker', CheckSeverity.OFF)
-        options.errorprone.check('ImmutableAnnotationChecker', CheckSeverity.OFF)
-        options.errorprone.check('ObjectToString', CheckSeverity.OFF)
-        options.errorprone.check('DoNotClaimAnnotations', CheckSeverity.OFF)
-        options.errorprone.check('AnnotateFormatMethod', CheckSeverity.OFF)
-
-        // TODO(b/270537614): Remove finalize uses.
-        options.errorprone.check('Finalize', CheckSeverity.OFF)
-
-        // The following warnings could/should be active but are hit by R8 now so silence them.
-        options.errorprone.check('EqualsGetClass', CheckSeverity.OFF)
-        options.errorprone.check('MixedMutabilityReturnType', CheckSeverity.OFF)
-        options.errorprone.check('UnnecessaryParentheses', CheckSeverity.OFF)
-        options.errorprone.check('DoNotCallSuggester', CheckSeverity.OFF)
-        options.errorprone.check('InlineMeSuggester', CheckSeverity.OFF)
-        options.errorprone.check('MutablePublicArray', CheckSeverity.OFF)
-        options.errorprone.check('DefaultCharset', CheckSeverity.OFF)
-        options.errorprone.check('InconsistentCapitalization', CheckSeverity.OFF)
-        options.errorprone.check('InlineFormatString', CheckSeverity.OFF)
-        options.errorprone.check('MissingImplementsComparable', CheckSeverity.OFF)
 
         // Warnings that cause unwanted edits (e.g., inability to write informative asserts).
         options.errorprone.check('AlreadyChecked', CheckSeverity.OFF)

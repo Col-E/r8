@@ -1159,8 +1159,6 @@ public class JarClassFileReader<T extends DexClass> {
 
   private static class CreateRecordComponentVisitor extends RecordComponentVisitor {
     private final CreateDexClassVisitor<?> parent;
-    private final String name;
-    private final String descriptor;
     private final DexField field;
     private final FieldTypeSignature componentSignature;
 
@@ -1169,8 +1167,6 @@ public class JarClassFileReader<T extends DexClass> {
       super(ASM_VERSION);
       this.field = parent.application.getField(parent.type, name, descriptor);
       this.parent = parent;
-      this.name = name;
-      this.descriptor = descriptor;
       this.componentSignature =
           parent.application.options.parseSignatureAttribute()
               ? GenericSignature.parseFieldTypeSignature(

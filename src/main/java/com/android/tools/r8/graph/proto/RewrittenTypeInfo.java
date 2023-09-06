@@ -109,7 +109,7 @@ public class RewrittenTypeInfo extends ArgumentInfo {
   }
 
   @Override
-  @SuppressWarnings("ReferenceEquality")
+  @SuppressWarnings({"EqualsGetClass", "ReferenceEquality"})
   public boolean equals(Object obj) {
     if (obj == null || getClass() != obj.getClass()) {
       return false;

@@ -376,7 +376,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   /** Collect all interfaces that this type directly or indirectly implements. */
-  @SuppressWarnings("ReferenceEquality")
+  @SuppressWarnings({"BadImport", "ReferenceEquality"})
   public InterfaceCollection implementedInterfaces(DexType type) {
     assert type.isClassType();
     DexClass clazz = definitionFor(type);

@@ -139,7 +139,9 @@ public class CfSourceCode implements SourceCode {
 
   private static class LocalVariableList {
 
+    @SuppressWarnings("UnusedVariable")
     public static final LocalVariableList EMPTY = new LocalVariableList(0, 0, emptyMap());
+
     public final int startOffset;
     public final int endOffset;
     public final Int2ReferenceMap<DebugLocalInfo> locals;

@@ -20,6 +20,7 @@ import java.util.function.Predicate;
 
 public abstract class ProguardMapReaderWithFiltering implements LineReader {
 
+  @SuppressWarnings("DefaultCharset")
   private static final byte[] SOURCE_FILE_BYTES = "sourceFile".getBytes();
 
   public enum LineParserNode {

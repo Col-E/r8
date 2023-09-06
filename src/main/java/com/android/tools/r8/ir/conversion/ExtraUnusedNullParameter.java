@@ -23,6 +23,7 @@ public class ExtraUnusedNullParameter extends ExtraParameter {
     this.type = type;
   }
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   public static List<ExtraUnusedNullParameter> computeExtraUnusedNullParameters(
       DexMethod from, DexMethod to) {
     int numberOfExtraNullParameters = to.getArity() - from.getArity();
@@ -57,6 +58,7 @@ public class ExtraUnusedNullParameter extends ExtraParameter {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object obj) {
     return obj != null && getClass() == obj.getClass();
   }

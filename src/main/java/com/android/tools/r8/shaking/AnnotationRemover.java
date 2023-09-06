@@ -318,6 +318,7 @@ public class AnnotationRemover {
     return annotationsToRetain.contains(annotation);
   }
 
+  @SuppressWarnings("UnusedVariable")
   private boolean shouldRetainAnnotationDefaultAnnotationOnAnnotationClass(
       DexAnnotation annotation) {
     // We currently always retain the @AnnotationDefault annotations for annotation classes. In full

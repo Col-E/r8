@@ -544,6 +544,7 @@ public class DexCode extends Code
   }
 
   @Override
+  @SuppressWarnings("UnusedVariable")
   public IRCode buildInliningIR(
       ProgramMethod context,
       ProgramMethod method,
@@ -567,15 +568,15 @@ public class DexCode extends Code
 
   @Override
   public void registerCodeReferences(ProgramMethod method, UseRegistry registry) {
-    internalRegisterCodeReferences(method, registry);
+    internalRegisterCodeReferences(registry);
   }
 
   @Override
   public void registerCodeReferencesForDesugaring(ClasspathMethod method, UseRegistry registry) {
-    internalRegisterCodeReferences(method, registry);
+    internalRegisterCodeReferences(registry);
   }
 
-  private void internalRegisterCodeReferences(DexClassAndMethod method, UseRegistry registry) {
+  private void internalRegisterCodeReferences(UseRegistry<?> registry) {
     assert registry.getTraversalContinuation().shouldContinue();
     for (DexInstruction insn : instructions) {
       insn.registerUse(registry);

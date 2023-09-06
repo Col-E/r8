@@ -206,7 +206,7 @@ public class Inliner {
     SUBCLASS(16), // Inlineable into methods with holders from a subclass in a different package.
     ALWAYS(32); // No restrictions for inlining this.
 
-    int value;
+    final int value;
 
     Constraint(int value) {
       this.value = value;

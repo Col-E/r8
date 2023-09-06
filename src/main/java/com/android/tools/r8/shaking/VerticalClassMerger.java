@@ -287,6 +287,7 @@ public class VerticalClassMerger {
     }
   }
 
+  @SuppressWarnings("UnusedVariable")
   private void markTypeAsPinned(DexType type, AbortReason reason) {
     DexType baseType = type.toBaseType(appView.dexItemFactory());
     if (!baseType.isClassType() || appInfo.isPinnedWithDefinitionLookup(baseType)) {
@@ -1986,6 +1987,7 @@ public class VerticalClassMerger {
     }
 
     @Override
+    @SuppressWarnings("HidingField")
     public boolean isContextFreeForMethods(GraphLens codeLens) {
       return true;
     }
@@ -1995,12 +1997,13 @@ public class VerticalClassMerger {
   // same package as [source].
   public static class IllegalAccessDetector extends UseRegistryWithResult<Boolean, ProgramMethod> {
 
-    private final AppView<? extends AppInfoWithClassHierarchy> appView;
+    private final AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy;
 
     public IllegalAccessDetector(
-        AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
-      super(appView, context, false);
-      this.appView = appView;
+        AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy,
+        ProgramMethod context) {
+      super(appViewWithClassHierarchy, context, false);
+      this.appViewWithClassHierarchy = appViewWithClassHierarchy;
     }
 
     protected boolean checkFoundPackagePrivateAccess() {
@@ -2018,7 +2021,7 @@ public class VerticalClassMerger {
     }
 
     private boolean checkFieldReference(DexField field) {
-      return checkRewrittenFieldReference(appView.graphLens().lookupField(field));
+      return checkRewrittenFieldReference(appViewWithClassHierarchy.graphLens().lookupField(field));
     }
 
     private boolean checkRewrittenFieldReference(DexField field) {
@@ -2028,7 +2031,8 @@ public class VerticalClassMerger {
         if (checkRewrittenTypeReference(fieldHolder)) {
           return checkFoundPackagePrivateAccess();
         }
-        DexClassAndField resolvedField = appView.appInfo().resolveField(field).getResolutionPair();
+        DexClassAndField resolvedField =
+            appViewWithClassHierarchy.appInfo().resolveField(field).getResolutionPair();
         if (resolvedField == null) {
           return setFoundPackagePrivateAccess();
         }
@@ -2049,15 +2053,20 @@ public class VerticalClassMerger {
 
     private boolean checkRewrittenMethodReference(
         DexMethod rewrittenMethod, OptionalBool isInterface) {
-      DexType baseType = rewrittenMethod.getHolderType().toBaseType(appView.dexItemFactory());
+      DexType baseType =
+          rewrittenMethod.getHolderType().toBaseType(appViewWithClassHierarchy.dexItemFactory());
       if (baseType.isClassType() && baseType.isSamePackage(getContext().getHolderType())) {
         if (checkTypeReference(rewrittenMethod.getHolderType())) {
           return checkFoundPackagePrivateAccess();
         }
         MethodResolutionResult resolutionResult =
             isInterface.isUnknown()
-                ? appView.appInfo().unsafeResolveMethodDueToDexFormat(rewrittenMethod)
-                : appView.appInfo().resolveMethod(rewrittenMethod, isInterface.isTrue());
+                ? appViewWithClassHierarchy
+                    .appInfo()
+                    .unsafeResolveMethodDueToDexFormat(rewrittenMethod)
+                : appViewWithClassHierarchy
+                    .appInfo()
+                    .resolveMethod(rewrittenMethod, isInterface.isTrue());
         if (!resolutionResult.isSingleResolution()) {
           return setFoundPackagePrivateAccess();
         }
@@ -2072,7 +2081,7 @@ public class VerticalClassMerger {
     }
 
     private boolean checkTypeReference(DexType type) {
-      return internalCheckTypeReference(type, appView.graphLens());
+      return internalCheckTypeReference(type, appViewWithClassHierarchy.graphLens());
     }
 
     private boolean checkRewrittenTypeReference(DexType type) {
@@ -2080,9 +2089,10 @@ public class VerticalClassMerger {
     }
 
     private boolean internalCheckTypeReference(DexType type, GraphLens graphLens) {
-      DexType baseType = graphLens.lookupType(type.toBaseType(appView.dexItemFactory()));
+      DexType baseType =
+          graphLens.lookupType(type.toBaseType(appViewWithClassHierarchy.dexItemFactory()));
       if (baseType.isClassType() && baseType.isSamePackage(getContext().getHolderType())) {
-        DexClass clazz = appView.definitionFor(baseType);
+        DexClass clazz = appViewWithClassHierarchy.definitionFor(baseType);
         if (clazz == null || !clazz.isPublic()) {
           return setFoundPackagePrivateAccess();
         }
@@ -2092,11 +2102,12 @@ public class VerticalClassMerger {
 
     @Override
     public void registerInitClass(DexType clazz) {
-      if (appView.initClassLens().isFinal()) {
+      if (appViewWithClassHierarchy.initClassLens().isFinal()) {
         // The InitClass lens is always rewritten up until the most recent graph lens, so first map
         // the class type to the most recent graph lens.
-        DexType rewrittenType = appView.graphLens().lookupType(clazz);
-        DexField initClassField = appView.initClassLens().getInitClassField(rewrittenType);
+        DexType rewrittenType = appViewWithClassHierarchy.graphLens().lookupType(clazz);
+        DexField initClassField =
+            appViewWithClassHierarchy.initClassLens().getInitClassField(rewrittenType);
         checkRewrittenFieldReference(initClassField);
       } else {
         checkTypeReference(clazz);
@@ -2105,31 +2116,36 @@ public class VerticalClassMerger {
 
     @Override
     public void registerInvokeVirtual(DexMethod method) {
-      MethodLookupResult lookup = appView.graphLens().lookupInvokeVirtual(method, getContext());
+      MethodLookupResult lookup =
+          appViewWithClassHierarchy.graphLens().lookupInvokeVirtual(method, getContext());
       checkRewrittenMethodReference(lookup.getReference(), OptionalBool.FALSE);
     }
 
     @Override
     public void registerInvokeDirect(DexMethod method) {
-      MethodLookupResult lookup = appView.graphLens().lookupInvokeDirect(method, getContext());
+      MethodLookupResult lookup =
+          appViewWithClassHierarchy.graphLens().lookupInvokeDirect(method, getContext());
       checkRewrittenMethodReference(lookup.getReference(), OptionalBool.UNKNOWN);
     }
 
     @Override
     public void registerInvokeStatic(DexMethod method) {
-      MethodLookupResult lookup = appView.graphLens().lookupInvokeStatic(method, getContext());
+      MethodLookupResult lookup =
+          appViewWithClassHierarchy.graphLens().lookupInvokeStatic(method, getContext());
       checkRewrittenMethodReference(lookup.getReference(), OptionalBool.UNKNOWN);
     }
 
     @Override
     public void registerInvokeInterface(DexMethod method) {
-      MethodLookupResult lookup = appView.graphLens().lookupInvokeInterface(method, getContext());
+      MethodLookupResult lookup =
+          appViewWithClassHierarchy.graphLens().lookupInvokeInterface(method, getContext());
       checkRewrittenMethodReference(lookup.getReference(), OptionalBool.TRUE);
     }
 
     @Override
     public void registerInvokeSuper(DexMethod method) {
-      MethodLookupResult lookup = appView.graphLens().lookupInvokeSuper(method, getContext());
+      MethodLookupResult lookup =
+          appViewWithClassHierarchy.graphLens().lookupInvokeSuper(method, getContext());
       checkRewrittenMethodReference(lookup.getReference(), OptionalBool.UNKNOWN);
     }
 

@@ -11,6 +11,7 @@ public class WhyAreYouNotInliningRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "whyareyounotinlining";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<WhyAreYouNotInliningRule, Builder> {
 

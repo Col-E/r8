@@ -117,6 +117,7 @@ public class NonEmptyParameterUsage extends ParameterUsage {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object obj) {
     if (obj == this) {
       return true;

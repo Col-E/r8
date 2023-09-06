@@ -98,6 +98,7 @@ public class PrimaryMethodProcessor extends MethodProcessorWithWave {
     return callSiteInformation;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Deque<ProgramMethodSet> createWaves(AppView<?> appView, CallGraph callGraph) {
     InternalOptions options = appView.options();
     Deque<ProgramMethodSet> waves = new ArrayDeque<>();

@@ -15,6 +15,7 @@ public class ProguardPackageMatcher {
     return matchPackageNameImpl(pattern, 0, packageName, 0);
   }
 
+  @SuppressWarnings("UnnecessaryParentheses")
   private static boolean matchPackageNameImpl(
       String pattern, int patternIndex, String name, int nameIndex) {
     for (int i = patternIndex; i < pattern.length(); i++) {

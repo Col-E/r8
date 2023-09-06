@@ -68,7 +68,7 @@ public final class InvokeCustom extends Invoke {
   }
 
   @Override
-  @SuppressWarnings("ReferenceEquality")
+  @SuppressWarnings({"BadImport", "ReferenceEquality"})
   public TypeElement evaluate(AppView<?> appView) {
     TypeElement returnType = super.evaluate(appView);
     if (!appView.appInfo().hasLiveness()) {

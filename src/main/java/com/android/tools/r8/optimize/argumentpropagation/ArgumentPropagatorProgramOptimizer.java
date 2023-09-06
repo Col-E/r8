@@ -158,7 +158,7 @@ public class ArgumentPropagatorProgramOptimizer {
     }
 
     @Override
-    @SuppressWarnings("ReferenceEquality")
+    @SuppressWarnings({"EqualsGetClass", "ReferenceEquality"})
     public boolean equals(Object obj) {
       if (obj == null || getClass() != obj.getClass()) {
         return false;
@@ -187,6 +187,7 @@ public class ArgumentPropagatorProgramOptimizer {
         ConcurrentNonProgramMethodsCollection.createVirtualMethodsCollection(appView);
   }
 
+  @SuppressWarnings("BadImport")
   public ArgumentPropagatorGraphLens run(
       List<Set<DexProgramClass>> stronglyConnectedProgramComponents,
       Consumer<DexProgramClass> affectedClassConsumer,

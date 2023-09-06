@@ -17,6 +17,7 @@ public class InlineRule extends ProguardConfigurationRule {
     NEVER_SINGLE_CALLER
   }
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder extends ProguardConfigurationRule.Builder<InlineRule, Builder> {
 
     private Builder() {

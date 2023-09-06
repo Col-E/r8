@@ -871,6 +871,7 @@ public class DexProgramClass extends DexClass
         };
   }
 
+  @SuppressWarnings("DoNotCallSuggester")
   public static long invalidChecksumRequest(DexProgramClass clazz) {
     throw new CompilationError(
         clazz + " has no checksum information while checksum encoding is requested", clazz.origin);

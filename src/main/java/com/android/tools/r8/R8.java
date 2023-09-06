@@ -244,6 +244,7 @@ public class R8 {
     return appView.appInfo().app().asDirect();
   }
 
+  @SuppressWarnings("DefaultCharset")
   private void run(AndroidApp inputApp, ExecutorService executorService) throws IOException {
     assert options.programConsumer != null;
     if (options.quiet) {
@@ -969,7 +970,7 @@ public class R8 {
     return true;
   }
 
-  @SuppressWarnings("ReferenceEquality")
+  @SuppressWarnings({"ComplexBooleanConstant", "ReferenceEquality"})
   private static boolean verifyOriginalMethodInPosition(
       Code code, DexMethod originalMethod, ProgramMethod context) {
     code.forEachPosition(

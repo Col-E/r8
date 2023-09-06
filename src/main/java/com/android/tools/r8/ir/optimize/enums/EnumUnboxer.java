@@ -28,6 +28,7 @@ public abstract class EnumUnboxer {
     return appView.options().enableEnumUnboxing ? new EnumUnboxerImpl(appView) : empty();
   }
 
+  @SuppressWarnings("BadImport")
   public static EmptyEnumUnboxer empty() {
     return EmptyEnumUnboxer.get();
   }
@@ -48,6 +49,7 @@ public abstract class EnumUnboxer {
 
   public abstract void rewriteWithLens();
 
+  @SuppressWarnings("BadImport")
   public abstract void unboxEnums(
       AppView<AppInfoWithLiveness> appView,
       IRConverter converter,

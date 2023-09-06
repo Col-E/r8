@@ -664,6 +664,7 @@ public class DexBuilder {
     add(branch, new IfInfo(branch));
   }
 
+  @SuppressWarnings("UnnecessaryParentheses")
   public void addMove(Move move) {
     add(move, new MoveInfo(move));
   }
@@ -680,6 +681,7 @@ public class DexBuilder {
         || (instruction.isGoto() && instruction.asGoto().getTarget() == nextBlock);
   }
 
+  @SuppressWarnings("UnnecessaryParentheses")
   private static boolean isNonMaterializingConstNumber(
       com.android.tools.r8.ir.code.Instruction instruction) {
     return instruction.isConstNumber()

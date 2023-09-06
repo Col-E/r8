@@ -108,6 +108,7 @@ public class NumberFromSetValue extends NonConstantNumberValue {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object o) {
     if (o == null || o.getClass() != getClass()) {
       return false;

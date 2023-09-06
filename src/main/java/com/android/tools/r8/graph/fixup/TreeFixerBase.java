@@ -39,7 +39,6 @@ public abstract class TreeFixerBase {
   private final DexItemFactory dexItemFactory;
 
   private final Map<DexType, DexProgramClass> programClassCache = new IdentityHashMap<>();
-  private final Map<DexType, DexProgramClass> synthesizedFromClasses = new IdentityHashMap<>();
   private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
 
   public TreeFixerBase(AppView<?> appView) {
