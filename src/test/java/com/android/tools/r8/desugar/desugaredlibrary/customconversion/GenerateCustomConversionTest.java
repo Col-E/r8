@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
 import java.util.zip.ZipFile;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -44,6 +45,8 @@ public class GenerateCustomConversionTest extends TestBase {
 
   @Test
   public void testCustomConversionIsUpToDate() throws IOException {
+    Assume.assumeFalse("JDK8 not present on windows", ToolHelper.isWindows());
+
     // Regenerate the files in a temp directory.
     Path customConversionDir = temp.newFolder("custom_conversion").toPath();
     Files.createDirectories(customConversionDir);
