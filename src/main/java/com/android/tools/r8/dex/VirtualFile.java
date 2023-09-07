@@ -1467,7 +1467,8 @@ public class VirtualFile {
         virtualFile.abortTransaction();
 
         // If the above failed, then apply the selected multi startup dex distribution strategy.
-        MultiStartupDexDistributor distributor = MultiStartupDexDistributor.get(options);
+        MultiStartupDexDistributor distributor =
+            MultiStartupDexDistributor.get(options, startupProfile);
         distributor.distribute(classPartioning.getStartupClasses(), this, virtualFile, cycler);
 
         options.reporter.warning(
