@@ -47,6 +47,7 @@ public class GenerateCustomConversion {
     String newFileName = version.getFileName();
     Path convertedJar = outputDirectory.resolve(newFileName);
     internalConvert(jar, convertedJar);
+    assert Files.exists(convertedJar) : "Custom conversion generation did not generate anything.";
   }
 
   private void internalConvert(Path jar, Path convertedJar) throws IOException {
@@ -62,33 +63,36 @@ public class GenerateCustomConversion {
   private void convert(
       Path desugaredLibraryFiles, ZipOutputStream out, CustomConversionVersion legacy)
       throws IOException {
+    boolean fileGotWritten = false;
     try (ZipFile zipFile = new ZipFile(desugaredLibraryFiles.toFile(), StandardCharsets.UTF_8)) {
       final Enumeration<? extends ZipEntry> entries = zipFile.entries();
       while (entries.hasMoreElements()) {
         ZipEntry entry = entries.nextElement();
         try (InputStream entryStream = zipFile.getInputStream(entry)) {
-          handleFile(entry, entryStream, out, legacy);
+          fileGotWritten |= handleFile(entry, entryStream, out, legacy);
         }
       }
     }
+    assert fileGotWritten : "No files were written when converting custom conversions.";
   }
 
-  private void handleFile(
+  private boolean handleFile(
       ZipEntry entry, InputStream input, ZipOutputStream out, CustomConversionVersion legacy)
       throws IOException {
     if (!entry.getName().endsWith(".class")) {
-      return;
+      return false;
     }
     if (legacy == CustomConversionVersion.LEGACY
         && (entry.getName().contains("java/nio/file")
             || entry.getName().contains("ApiFlips")
             || entry.getName().contains("java/adapter"))) {
-      return;
+      return false;
     }
     final byte[] bytes = ByteStreams.toByteArray(input);
     input.close();
     final byte[] rewrittenBytes = transformInvoke(bytes);
     writeToZipStream(out, entry.getName(), rewrittenBytes, ZipEntry.STORED);
+    return true;
   }
 
   public static void writeToZipStream(

@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary.customconversion;
 
 import static com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.getAllFilesWithSuffixInDirectory;
+import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static org.junit.Assert.assertTrue;
 
@@ -20,7 +21,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Enumeration;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.junit.Assume;
 import org.junit.Test;
@@ -97,14 +100,28 @@ public class GenerateCustomConversionTest extends TestBase {
         .addSourceFiles(sourceFiles)
         .setOutputPath(output)
         .compile();
-    try (ZipFile file = new ZipFile(output.toFile())) {
-      assert file.size() > 0;
-    }
+    assert verifyRawOutput(output);
 
     // Asm rewrite the jar.
     GenerateCustomConversion.generateJars(output, destinationDir);
 
     folder.delete();
+  }
+
+  private static boolean verifyRawOutput(Path output) throws IOException {
+    // The output should exist, with a non zero size, and there should be at least one class file.
+    assert Files.exists(output);
+    try (ZipFile zipFile = new ZipFile(output.toFile())) {
+      assert zipFile.size() > 0;
+      Enumeration<? extends ZipEntry> entries = zipFile.entries();
+      while (entries.hasMoreElements()) {
+        ZipEntry entry = entries.nextElement();
+        if (entry.getName().endsWith(CLASS_EXTENSION)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   public static void main(String[] args) throws IOException {
