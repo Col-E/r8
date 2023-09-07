@@ -400,8 +400,7 @@ public class RecordDesugaring
     ArrayList<CfInstruction> instructions = new ArrayList<>();
     instructions.add(new CfInvoke(Opcodes.INVOKESPECIAL, getFieldsAsObjects, false));
     instructions.add(new CfConstClass(recordInvokeDynamic.getRecordType(), true));
-    if (appView.options().testing.enableRecordModeling
-        && appView.enableWholeProgramOptimizations()) {
+    if (appView.enableWholeProgramOptimizations()) {
       instructions.add(
           new CfDexItemBasedConstString(
               recordInvokeDynamic.getRecordType(),

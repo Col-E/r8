@@ -36,9 +36,7 @@ public class RecordFieldValuesRewriter {
   private final IRConverter irConverter;
 
   public static RecordFieldValuesRewriter create(AppView<AppInfoWithLiveness> appView) {
-    if (appView.enableWholeProgramOptimizations()
-        && appView.options().isGeneratingDex()
-        && appView.options().testing.enableRecordModeling) {
+    if (appView.enableWholeProgramOptimizations() && appView.options().isGeneratingDex()) {
       return new RecordFieldValuesRewriter(appView);
     }
     return null;

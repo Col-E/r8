@@ -193,8 +193,7 @@ public class DefaultEnqueuerUseRegistry extends ComputeApiLevelUseRegistry {
   @Override
   public void registerCallSite(DexCallSite callSite) {
     super.registerCallSiteExceptBootstrapArgs(callSite);
-    if (isInvokeDynamicOnRecord(callSite, appViewWithClassHierarchy, getContext())
-        && appViewWithClassHierarchy.options().testing.enableRecordModeling) {
+    if (isInvokeDynamicOnRecord(callSite, appViewWithClassHierarchy, getContext())) {
       registerRecordCallSiteBootstrapArgs(callSite);
     } else {
       super.registerCallSiteBootstrapArgs(callSite, 0, callSite.bootstrapArgs.size());

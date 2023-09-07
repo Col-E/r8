@@ -2410,10 +2410,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean testEnableTestAssertions = false;
     public boolean keepMetadataInR8IfNotRewritten = true;
 
-    // If set, pruned record fields are not used in hashCode/equals/toString and toString prints
-    // minified field names instead of original field names.
-    public boolean enableRecordModeling = true;
-
     // Flag to allow processing of resources in D8. A data resource consumer still needs to be
     // specified.
     public boolean enableD8ResourcesPassThrough = false;

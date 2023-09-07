@@ -76,7 +76,6 @@ public abstract class RecordCfCodeProvider {
       // 1 : the array to return
       // 2+: spills
       return appView.enableWholeProgramOptimizations()
-              && appView.options().testing.enableRecordModeling
           ? generateCfCodeWithRecordModeling()
           : generateCfCodeWithArray();
     }

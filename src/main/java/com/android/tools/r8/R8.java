@@ -770,7 +770,6 @@ public class R8 {
       appView.appInfo().notifyMinifierFinished();
 
       if (!options.isMinifying()
-          && appView.options().testing.enableRecordModeling
           && appView.appInfo().app().getFlags().hasReadRecordReferenceFromProgramClass()) {
         new Minifier(appView.withLiveness())
             .replaceDexItemBasedConstString(executorService, timing);

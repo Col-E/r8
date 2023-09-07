@@ -31,9 +31,7 @@ public class RecordCfToCfRewriter {
   private final AppView<?> appView;
 
   public static RecordCfToCfRewriter create(AppView<?> appView) {
-    if (appView.enableWholeProgramOptimizations()
-        && appView.options().isGeneratingClassFiles()
-        && appView.options().testing.enableRecordModeling) {
+    if (appView.enableWholeProgramOptimizations() && appView.options().isGeneratingClassFiles()) {
       return new RecordCfToCfRewriter(appView);
     }
     return null;
