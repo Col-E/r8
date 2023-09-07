@@ -147,6 +147,7 @@ tasks {
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
     dependsOn(gradle.includedBuild("resourceshrinker").task(":jar"))
     dependsOn(gradle.includedBuild("main").task(":compileJava"))
+    dependsOn(gradle.includedBuild("main").task(":processResources"))
     dependsOn(thirdPartyCompileDependenciesTask)
   }
 
