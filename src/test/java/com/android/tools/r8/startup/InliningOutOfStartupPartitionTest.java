@@ -52,7 +52,8 @@ public class InliningOutOfStartupPartitionTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .allowDiagnosticInfoMessages()
+        .allowDiagnosticInfoMessages(
+            parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevelWithNativeMultiDexSupport()))
         .apply(testBuilder -> StartupTestingUtils.addStartupProfile(testBuilder, startupItems))
         .setMinApi(parameters)
         .compile()
@@ -72,9 +73,16 @@ public class InliningOutOfStartupPartitionTest extends TestBase {
                   isPresent());
             })
         .inspectDiagnosticMessages(
-            diagnostics ->
+            diagnostics -> {
+              if (parameters
+                  .getApiLevel()
+                  .isGreaterThanOrEqualTo(apiLevelWithNativeMultiDexSupport())) {
                 diagnostics.assertInfosMatch(
-                    diagnosticType(StartupClassesNonStartupFractionDiagnostic.class)))
+                    diagnosticType(StartupClassesNonStartupFractionDiagnostic.class));
+              } else {
+                diagnostics.assertNoMessages();
+              }
+            })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello, world!");
   }
