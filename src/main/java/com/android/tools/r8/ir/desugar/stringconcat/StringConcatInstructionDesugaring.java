@@ -93,6 +93,7 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,
@@ -128,6 +129,7 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,

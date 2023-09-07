@@ -433,6 +433,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context1,
                   methodProcessingContext,
@@ -482,6 +483,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context12,
                 methodProcessingContext,
@@ -528,6 +530,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context1,
                 methodProcessingContext,
@@ -576,6 +579,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context1,
                   methodProcessingContext,
@@ -616,6 +620,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
             .setDesugarRewrite(
                 (freshLocalProvider,
                     localStackAllocator,
+                    desugaringInfo,
                     eventConsumer,
                     context12,
                     methodProcessingContext,
@@ -736,6 +741,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
             .setDesugarRewrite(
                 (freshLocalProvider,
                     localStackAllocator,
+                    desugaringInfo,
                     eventConsumer,
                     context1,
                     methodProcessingContext,
@@ -759,6 +765,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
             .setDesugarRewrite(
                 (freshLocalProvider,
                     localStackAllocator,
+                    desugaringInfo,
                     eventConsumer,
                     context12,
                     methodProcessingContext,
@@ -823,6 +830,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
               .setDesugarRewrite(
                   (freshLocalProvider,
                       localStackAllocator,
+                      desugaringInfo,
                       eventConsumer,
                       context13,
                       methodProcessingContext,
@@ -850,6 +858,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context14,
                 methodProcessingContext,

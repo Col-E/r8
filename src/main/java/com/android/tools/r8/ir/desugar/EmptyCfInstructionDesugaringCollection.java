@@ -55,6 +55,7 @@ public class EmptyCfInstructionDesugaringCollection extends CfInstructionDesugar
       CfInstruction instruction,
       FreshLocalProvider freshLocalProvider,
       LocalStackAllocator localStackAllocator,
+      CfDesugaringInfo desugaringInfo,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext) {

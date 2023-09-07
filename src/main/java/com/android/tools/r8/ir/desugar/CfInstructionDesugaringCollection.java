@@ -63,6 +63,7 @@ public abstract class CfInstructionDesugaringCollection {
       CfInstruction instruction,
       FreshLocalProvider freshLocalProvider,
       LocalStackAllocator localStackAllocator,
+      CfDesugaringInfo desugaringInfo,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext);

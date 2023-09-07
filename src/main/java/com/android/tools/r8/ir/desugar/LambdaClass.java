@@ -84,7 +84,8 @@ public final class LambdaClass {
       LambdaInstructionDesugaring desugaring,
       ProgramMethod accessedFrom,
       LambdaDescriptor descriptor,
-      DesugarInvoke desugarInvoke) {
+      DesugarInvoke desugarInvoke,
+      boolean useFactoryMethodForConstruction) {
     assert desugaring != null;
     assert descriptor != null;
     this.type = builder.getType();
@@ -109,7 +110,8 @@ public final class LambdaClass {
             ? factory.createField(type, type, factory.lambdaInstanceFieldName)
             : null;
     this.factoryMethod =
-        appView.options().testing.alwaysGenerateLambdaFactoryMethods
+        useFactoryMethodForConstruction
+                || appView.options().testing.alwaysGenerateLambdaFactoryMethods
             ? factory.createMethod(
                 type,
                 factory.createProto(type, descriptor.captures.values),

@@ -109,6 +109,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,
@@ -135,6 +136,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context1,
                 methodProcessingContext,

@@ -50,6 +50,7 @@ public class BufferCovariantReturnTypeRewriter implements CfInstructionDesugarin
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,

@@ -35,6 +35,7 @@ public class DesugarDescription {
   public Collection<CfInstruction> desugarInstruction(
       FreshLocalProvider freshLocalProvider,
       LocalStackAllocator localStackAllocator,
+      CfDesugaringInfo desugaringInfo,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext,
@@ -62,6 +63,7 @@ public class DesugarDescription {
     Collection<CfInstruction> desugarInstruction(
         FreshLocalProvider freshLocalProvider,
         LocalStackAllocator localStackAllocator,
+        CfDesugaringInfo desugaringInfo,
         CfInstructionDesugaringEventConsumer eventConsumer,
         ProgramMethod context,
         MethodProcessingContext methodProcessingContext,
@@ -141,6 +143,7 @@ public class DesugarDescription {
         public Collection<CfInstruction> desugarInstruction(
             FreshLocalProvider freshLocalProvider,
             LocalStackAllocator localStackAllocator,
+            CfDesugaringInfo desugaringInfo,
             CfInstructionDesugaringEventConsumer eventConsumer,
             ProgramMethod context,
             MethodProcessingContext methodProcessingContext,
@@ -151,6 +154,7 @@ public class DesugarDescription {
               : desugarRewrite.desugarInstruction(
                   freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context,
                   methodProcessingContext,

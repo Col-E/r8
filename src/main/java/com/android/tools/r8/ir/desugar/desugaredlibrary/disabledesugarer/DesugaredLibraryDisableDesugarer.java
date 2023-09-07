@@ -51,6 +51,7 @@ public class DesugaredLibraryDisableDesugarer implements CfInstructionDesugaring
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,

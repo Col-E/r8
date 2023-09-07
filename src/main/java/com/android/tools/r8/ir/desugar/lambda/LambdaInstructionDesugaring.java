@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.desugar.CfDesugaringInfo;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.DesugarDescription;
@@ -79,6 +80,7 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,
@@ -88,6 +90,7 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
                     instruction.asInvokeDynamic(),
                     freshLocalProvider,
                     localStackAllocator,
+                    desugaringInfo,
                     eventConsumer,
                     context,
                     methodProcessingContext,
@@ -96,6 +99,7 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
                             invoke,
                             localProvider,
                             stackAllocator,
+                            desugaringInfo,
                             eventConsumer,
                             context,
                             methodProcessingContext)))
@@ -113,12 +117,18 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
       CfInvokeDynamic invoke,
       FreshLocalProvider freshLocalProvider,
       LocalStackAllocator localStackAllocator,
+      CfDesugaringInfo desugaringInfo,
       LambdaDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext,
       DesugarInvoke desugarInvoke) {
     LambdaClass lambdaClass =
-        createLambdaClass(invoke, context, methodProcessingContext, desugarInvoke);
+        createLambdaClass(
+            invoke,
+            context,
+            methodProcessingContext,
+            desugarInvoke,
+            !desugaringInfo.canIncreaseBytecodeSize());
     if (lambdaClass == null) {
       return null;
     }
@@ -161,7 +171,8 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
       CfInvokeDynamic invoke,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext,
-      DesugarInvoke desugarInvoke) {
+      DesugarInvoke desugarInvoke,
+      boolean useFactoryMethodForConstruction) {
     LambdaDescriptor descriptor =
         LambdaDescriptor.tryInfer(
             invoke.getCallSite(), appView, appView.appInfoForDesugaring(), context);
@@ -180,7 +191,13 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
                 builder ->
                     box.set(
                         new LambdaClass(
-                            builder, appView, this, context, descriptor, desugarInvoke)));
+                            builder,
+                            appView,
+                            this,
+                            context,
+                            descriptor,
+                            desugarInvoke,
+                            useFactoryMethodForConstruction)));
     // Immediately set the actual program class on the lambda.
     LambdaClass lambdaClass = box.get();
     lambdaClass.setClass(clazz);

@@ -326,6 +326,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,
@@ -352,6 +353,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,
@@ -378,6 +380,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,
@@ -405,6 +408,7 @@ public class VarHandleDesugaring implements CfInstructionDesugaring, CfClassSynt
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,

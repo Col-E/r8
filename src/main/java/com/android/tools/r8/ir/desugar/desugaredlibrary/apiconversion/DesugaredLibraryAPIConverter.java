@@ -98,6 +98,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 theContext,
                 methodProcessingContext,

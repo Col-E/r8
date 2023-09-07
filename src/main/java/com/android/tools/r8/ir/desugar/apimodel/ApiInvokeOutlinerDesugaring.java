@@ -76,6 +76,7 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context1,
                 methodProcessingContext,

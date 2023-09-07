@@ -3,10 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.lambdas;
 
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -63,44 +59,7 @@ public class LambdasInHugeMethod extends TestBase implements Opcodes {
 
   @Test
   public void testDesugaring() throws Exception {
-    // Cf to cf desugaring fails generating too large method in class file.
-    if (parameters.isCfRuntime()) {
-      assertThrows(
-          CompilationFailedException.class,
-          () ->
-              testForDesugaring(
-                      parameters,
-                      (options) -> {
-                        /* no options change */
-                      },
-                      configuration -> configuration == DesugarTestConfiguration.D8_CF)
-                  .addProgramClasses(MyConsumer.class, MyTriConsumer.class)
-                  .addProgramClassFileData(generateTestClass())
-                  .run(parameters.getRuntime(), TestClass.class));
-    } else {
-      assertThrows(
-          CompilationFailedException.class,
-          () ->
-              testForDesugaring(
-                      parameters,
-                      (options) -> {
-                        /* no options change */
-                      },
-                      configuration -> configuration == DesugarTestConfiguration.D8_CF_D8_DEX)
-                  .addProgramClasses(MyConsumer.class, MyTriConsumer.class)
-                  .addProgramClassFileData(generateTestClass())
-                  .run(parameters.getRuntime(), TestClass.class));
-    }
-
-    // Desugaring directly to DEX works with large methods.
-    testForDesugaring(
-            parameters,
-            (options) -> {
-              /* no options change */
-            },
-            configuration ->
-                configuration != DesugarTestConfiguration.D8_CF
-                    && configuration != DesugarTestConfiguration.D8_CF_D8_DEX)
+    testForDesugaring(parameters)
         .addProgramClasses(MyConsumer.class, MyTriConsumer.class)
         .addProgramClassFileData(generateTestClass())
         .run(parameters.getRuntime(), TestClass.class)

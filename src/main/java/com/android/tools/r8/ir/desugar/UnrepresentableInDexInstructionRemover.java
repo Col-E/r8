@@ -167,6 +167,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context,
                   methodProcessingContext,
@@ -220,6 +221,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context,
                   methodProcessingContext,
@@ -269,6 +271,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context,
                   methodProcessingContext,
@@ -312,6 +315,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context,
                   methodProcessingContext,
@@ -356,6 +360,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context,
                   methodProcessingContext,

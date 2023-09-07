@@ -172,7 +172,9 @@ public class ProfileRewritingCfInstructionDesugaringEventConsumer
   @Override
   public void acceptLambdaClass(LambdaClass lambdaClass, ProgramMethod context) {
     addLambdaClassAndInstanceInitializersIfSynthesizingContextIsInProfile(lambdaClass, context);
+    addLambdaFactoryMethodIfSynthesizingContextIsInProfile(lambdaClass, context);
     addLambdaVirtualMethodsIfLambdaImplementationIsInProfile(lambdaClass, context);
+
     parent.acceptLambdaClass(lambdaClass, context);
   }
 
@@ -191,6 +193,16 @@ public class ProfileRewritingCfInstructionDesugaringEventConsumer
             lambdaProgramClass.forEachProgramStaticMethod(additionsBuilder::addRule);
           }
         });
+  }
+
+  @SuppressWarnings("ReferenceEquality")
+  private void addLambdaFactoryMethodIfSynthesizingContextIsInProfile(
+      LambdaClass lambdaClass, ProgramMethod context) {
+    if (lambdaClass.hasFactoryMethod()) {
+      additionsCollection.applyIfContextIsInProfile(
+          context,
+          additionsBuilder -> additionsBuilder.addMethodRule(lambdaClass.getFactoryMethod()));
+    }
   }
 
   @SuppressWarnings("ReferenceEquality")

@@ -72,6 +72,7 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,
@@ -95,6 +96,7 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
             .setDesugarRewrite(
                 (freshLocalProvider,
                     localStackAllocator,
+                    desugaringInfo,
                     eventConsumer,
                     context,
                     methodProcessingContext,
