@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.google.common.base.Predicates.alwaysFalse;
 
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DefaultInstanceInitializerCode;
 import com.android.tools.r8.graph.DexClass;
@@ -362,10 +363,12 @@ public class TreePruner {
         reachableMethods.add(method);
       } else if (options.configurationDebugging) {
         // Keep the method but rewrite its body, if it has one.
-        reachableMethods.add(
-            method.shouldNotHaveCode() && !method.hasCode()
-                ? method
-                : method.toMethodThatLogsError(appView));
+        if (method.shouldNotHaveCode() && !method.hasCode()) {
+          method.setApiLevelForDefinition(ComputedApiLevel.unknown());
+          reachableMethods.add(method);
+        } else {
+          reachableMethods.add(method.toMethodThatLogsError(appView));
+        }
         methodsToKeepForConfigurationDebugging.add(method.getReference());
       } else if (appInfo.isTargetedMethod(method.getReference())) {
         // If the method is already abstract, and doesn't have code, let it be.

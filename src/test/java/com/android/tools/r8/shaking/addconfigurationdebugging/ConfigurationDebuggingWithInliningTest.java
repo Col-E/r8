@@ -5,9 +5,7 @@
 package com.android.tools.r8.shaking.addconfigurationdebugging;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -31,20 +29,26 @@ public class ConfigurationDebuggingWithInliningTest extends TestBase {
 
   @Test
   public void testForR8() throws Exception {
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForR8(parameters.getBackend())
-                .addProgramClasses(Main.class, Bar.class)
-                .addKeepRules("-addconfigurationdebugging")
-                .addKeepMainRule(Main.class)
-                .setMinApi(parameters)
-                .enableInliningAnnotations()
-                // TODO(b/298965633): We should not fail.
-                .compileWithExpectedDiagnostics(
-                    diagnostics ->
-                        diagnostics.assertErrorMessageThatMatches(
-                            containsString("Cannot compute relationship for not set"))));
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Main.class, Bar.class)
+        .addKeepRules("-addconfigurationdebugging")
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters)
+        .enableInliningAnnotations()
+        .compile()
+        .run(parameters.getRuntime(), Main.class)
+        // AddConfigurationDebugging will insert a call to android.util.log.
+        .applyIf(
+            parameters.isDexRuntime(),
+            result ->
+                result
+                    .assertFailureWithErrorThatThrows(NoClassDefFoundError.class)
+                    .assertFailureWithErrorThatMatches(containsString("Landroid/util/Log;")))
+        .applyIf(
+            parameters.isCfRuntime(),
+            result ->
+                result.assertFailureWithErrorThatMatches(
+                    containsString("Missing method in " + typeName(Bar.class))));
   }
 
   public static class Main {

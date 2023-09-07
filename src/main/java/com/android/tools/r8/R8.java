@@ -867,8 +867,7 @@ public class R8 {
 
   private static boolean allReferencesAssignedApiLevel(
       AppView<? extends AppInfoWithClassHierarchy> appView) {
-    if (!appView.options().apiModelingOptions().isCheckAllApiReferencesAreSet()
-        || appView.options().configurationDebugging) {
+    if (!appView.options().apiModelingOptions().isCheckAllApiReferencesAreSet()) {
       return true;
     }
     // This will assert false if we find anything in the library which is not modeled.

@@ -1004,7 +1004,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
                     : toDexCodeThatLogsError(appView.dexItemFactory()))
             .setIsLibraryMethodOverrideIf(
                 belongsToVirtualPool() && !isLibraryMethodOverride().isUnknown(),
-                isLibraryMethodOverride());
+                isLibraryMethodOverride())
+            .setApiLevelForCode(appView.computedMinApiLevel())
+            .setApiLevelForDefinition(ComputedApiLevel.unknown());
     setObsolete();
     return builder.build();
   }
