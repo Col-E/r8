@@ -19,6 +19,7 @@ import archive_desugar_jdk_libs
 import download_kotlin_dev
 import gradle
 import notify
+import test_state
 import utils
 
 if utils.is_python3():
@@ -376,11 +377,7 @@ def Main():
 
   if testing_state:
     if options.new_gradle:
-      # In the new build the test state directory must be passed explictitly.
-      # TODO(b/297316723): Simplify this and just support a single flag: --testing-state <path>
-      if not testing_state_path:
-        testing_state_path = "%s/test-state/%s" % (utils.BUILD, utils.get_HEAD_branch())
-      gradle_args.append('-Ptesting-state=%s' % testing_state_path)
+      test_state.set_up_test_state(gradle_args, testing_state_path)
     else:
       gradle_args.append('-Ptesting-state')
 
@@ -502,7 +499,6 @@ def Main():
       return archive_and_return(return_code, options)
 
   return 0
-
 
 def archive_and_return(return_code, options):
   if return_code != 0:

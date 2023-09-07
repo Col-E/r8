@@ -74,10 +74,6 @@ class TestConfigurationHelper {
         test.maxHeapSize = "4G"
       }
 
-      if (project.hasProperty("testing-state")) {
-        TestingState.setUpTestingState(test)
-      }
-
       if (project.hasProperty("one_line_per_test")
         || project.hasProperty("update_test_timestamp")) {
         test.addTestListener(object : TestListener {

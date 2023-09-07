@@ -155,6 +155,8 @@ tasks {
   }
 
   withType<Test> {
+    TestingState.setUpTestingState(this)
+
     environment.put("USE_NEW_GRADLE_SETUP", "true")
     dependsOn(mainDepsJarTask)
     dependsOn(thirdPartyRuntimeDependenciesTask)

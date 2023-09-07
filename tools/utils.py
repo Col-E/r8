@@ -362,6 +362,9 @@ def get_HEAD_branch():
 def get_HEAD_sha1():
   return get_HEAD_sha1_for_checkout(REPO_ROOT)
 
+def get_HEAD_diff_stat():
+  return subprocess.check_output(['git', 'diff', '--stat']).decode('utf-8')
+
 def get_HEAD_sha1_for_checkout(checkout):
   cmd = ['git', 'rev-parse', 'HEAD']
   PrintCmd(cmd)

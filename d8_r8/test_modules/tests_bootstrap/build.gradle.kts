@@ -55,6 +55,8 @@ tasks {
   }
 
   withType<Test> {
+    TestingState.setUpTestingState(this)
+
     environment.put("USE_NEW_GRADLE_SETUP", "true")
     dependsOn(mainR8RelocatedTask)
     environment.put("R8_WITH_RELOCATED_DEPS", mainR8RelocatedTask.outputs.files.getSingleFile())
