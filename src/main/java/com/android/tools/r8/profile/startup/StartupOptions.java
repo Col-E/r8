@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.profile.startup;
 
-import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault;
+import static com.android.tools.r8.utils.SystemPropertyUtils.getSystemPropertyOrDefault;
+import static com.android.tools.r8.utils.SystemPropertyUtils.parseSystemPropertyOrDefault;
 
 import com.android.tools.r8.startup.StartupProfileProvider;
 import com.android.tools.r8.utils.SystemPropertyUtils;
@@ -20,8 +21,7 @@ public class StartupOptions {
    * (non-startup) classes will be placed in classes2.dex, ..., classesN.dex.
    */
   private boolean enableMinimalStartupDex =
-      parseSystemPropertyForDevelopmentOrDefault(
-          "com.android.tools.r8.startup.minimalstartupdex", true);
+      parseSystemPropertyOrDefault("com.android.tools.r8.startup.minimalstartupdex", true);
 
   /**
    * When enabled, optimizations crossing the startup/non-startup boundary will be allowed.
@@ -30,8 +30,7 @@ public class StartupOptions {
    * result of optimizations such as inlining and class merging.
    */
   private boolean enableStartupBoundaryOptimizations =
-      parseSystemPropertyForDevelopmentOrDefault(
-          "com.android.tools.r8.startup.boundaryoptimizations", false);
+      parseSystemPropertyOrDefault("com.android.tools.r8.startup.boundaryoptimizations", false);
 
   /**
    * When enabled, each method that is not classified as a startup method at the end of compilation
@@ -41,15 +40,17 @@ public class StartupOptions {
    * rewrites the startup list in presence of optimizations).
    */
   private boolean enableStartupCompletenessCheckForTesting =
-      parseSystemPropertyForDevelopmentOrDefault(
-          "com.android.tools.r8.startup.completenesscheck", false);
+      parseSystemPropertyOrDefault("com.android.tools.r8.startup.completenesscheck", false);
 
   /**
    * When enabled, the layout of the primary dex file will be generated using the startup list,
    * using {@link com.android.tools.r8.dex.StartupMixedSectionLayoutStrategy}.
    */
   private boolean enableStartupLayoutOptimizations =
-      parseSystemPropertyForDevelopmentOrDefault("com.android.tools.r8.startup.layout", true);
+      parseSystemPropertyOrDefault("com.android.tools.r8.startup.layout", true);
+
+  private String multiStartupDexDistributionStrategyName =
+      getSystemPropertyOrDefault("com.android.tools.r8.startup.multistartupdexdistribution", null);
 
   private Collection<StartupProfileProvider> startupProfileProviders;
 
@@ -99,6 +100,10 @@ public class StartupOptions {
       boolean enableStartupCompletenessCheckForTesting) {
     this.enableStartupCompletenessCheckForTesting = enableStartupCompletenessCheckForTesting;
     return this;
+  }
+
+  public String getMultiStartupDexDistributionStrategyName() {
+    return multiStartupDexDistributionStrategyName;
   }
 
   public boolean hasStartupProfileProviders() {

@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.profile.startup.distribution.MultiStartupDexDistributor;
 import com.android.tools.r8.profile.startup.profile.StartupProfile;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticNaming;
@@ -249,7 +250,7 @@ public class VirtualFile {
             timing);
   }
 
-  void addClass(DexProgramClass clazz) {
+  public void addClass(DexProgramClass clazz) {
     transaction.addClassAndDependencies(clazz);
   }
 
@@ -258,7 +259,7 @@ public class VirtualFile {
         || (transaction.getNumberOfFields() > maxEntries);
   }
 
-  boolean isFull() {
+  public boolean isFull() {
     return isFull(MAX_ENTRIES);
   }
 
@@ -1172,15 +1173,15 @@ public class VirtualFile {
   /**
    * Helper class to cycle through the set of virtual files.
    *
-   * Iteration starts at the first file and iterates through all files.
+   * <p>Iteration starts at the first file and iterates through all files.
    *
-   * When {@link VirtualFileCycler#restart()} is called iteration of all files is restarted at the
-   * current file.
+   * <p>When {@link VirtualFileCycler#restart()} is called iteration of all files is restarted at
+   * the current file.
    *
-   * If the fill strategy indicate that the main dex file should be minimal, then the main dex file
-   * will not be part of the iteration.
+   * <p>If the fill strategy indicate that the main dex file should be minimal, then the main dex
+   * file will not be part of the iteration.
    */
-  static class VirtualFileCycler {
+  public static class VirtualFileCycler {
 
     private final List<VirtualFile> files;
     private final List<VirtualFile> filesForDistribution;
@@ -1262,7 +1263,7 @@ public class VirtualFile {
       activeFiles = Iterators.limit(allFilesCyclic, filesForDistribution.size());
     }
 
-    VirtualFile addFile() {
+    public VirtualFile addFile() {
       VirtualFile newFile = internalAddFile();
       reset();
       return newFile;
@@ -1466,19 +1467,9 @@ public class VirtualFile {
       } else {
         virtualFile.abortTransaction();
 
-        // If the above failed, then add the startup classes one by one.
-        for (DexProgramClass startupClass : classPartioning.getStartupClasses()) {
-          virtualFile.addClass(startupClass);
-          if (hasSpaceForTransaction(virtualFile, options)) {
-            virtualFile.commitTransaction();
-          } else {
-            virtualFile.abortTransaction();
-            virtualFile = cycler.addFile();
-            virtualFile.addClass(startupClass);
-            assert hasSpaceForTransaction(virtualFile, options);
-            virtualFile.commitTransaction();
-          }
-        }
+        // If the above failed, then apply the selected multi startup dex distribution strategy.
+        MultiStartupDexDistributor distributor = MultiStartupDexDistributor.get(options);
+        distributor.distribute(classPartioning.getStartupClasses(), cycler, virtualFile);
 
         options.reporter.warning(
             createStartupClassesOverflowDiagnostic(cycler.filesForDistribution.size()));

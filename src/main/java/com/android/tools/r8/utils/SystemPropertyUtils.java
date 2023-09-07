@@ -22,6 +22,10 @@ public class SystemPropertyUtils {
     }
   }
 
+  public static String getSystemPropertyOrDefault(String propertyName, String defaultValue) {
+    return System.getProperty(propertyName, defaultValue);
+  }
+
   public static String getSystemPropertyForDevelopment(String propertyName) {
     return Version.isDevelopmentVersion() ? System.getProperty(propertyName) : null;
   }
