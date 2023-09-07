@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import static com.android.tools.r8.errors.StartupClassesNonStartupFractionDiagnostic.Factory.createStartupClassesNonStartupFractionDiagnostic;
 import static com.android.tools.r8.errors.StartupClassesOverflowDiagnostic.Factory.createStartupClassesOverflowDiagnostic;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
@@ -1397,6 +1398,7 @@ public class VirtualFile {
     private final DexItemFactory dexItemFactory;
     private final InternalOptions options;
     private final VirtualFileCycler cycler;
+    private final StartupProfile startupProfile;
 
     PackageSplitPopulator(
         List<VirtualFile> files,
@@ -1412,6 +1414,7 @@ public class VirtualFile {
       this.dexItemFactory = appView.dexItemFactory();
       this.options = appView.options();
       this.cycler = new VirtualFileCycler(files, filesForDistribution, appView, nextFileId);
+      this.startupProfile = startupProfile;
     }
 
     static boolean coveredByPrefix(String originalName, String currentPrefix) {
@@ -1473,6 +1476,10 @@ public class VirtualFile {
         options.reporter.warning(
             createStartupClassesOverflowDiagnostic(cycler.filesForDistribution.size()));
       }
+
+      options.reporter.info(
+          createStartupClassesNonStartupFractionDiagnostic(
+              classPartioning.getStartupClasses(), startupProfile));
 
       if (options.getStartupOptions().isMinimalStartupDexEnabled()) {
         cycler.clearFilesForDistribution();

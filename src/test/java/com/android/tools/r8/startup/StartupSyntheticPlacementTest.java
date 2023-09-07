@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.startup;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.startup.utils.StartupTestingMatchers.isEqualToClassDataLayout;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
@@ -17,6 +18,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.errors.StartupClassesNonStartupFractionDiagnostic;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.references.ClassReference;
@@ -51,11 +53,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class StartupSyntheticPlacementTest extends TestBase {
-
-  private enum Compiler {
-    D8,
-    R8
-  }
 
   @Parameter(0)
   public TestParameters parameters;
@@ -160,12 +157,17 @@ public class StartupSyntheticPlacementTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(A.class, B.class, C.class)
+        .allowDiagnosticMessages()
         .apply(
             testBuilder ->
                 configureStartupOptions(
                     testBuilder, instrumentationCompileResult.inspector(), startupList))
         .setMinApi(parameters)
         .compile()
+        .inspectDiagnosticMessages(
+            diagnostics ->
+                diagnostics.assertInfosMatch(
+                    diagnosticType(StartupClassesNonStartupFractionDiagnostic.class)))
         .inspectMultiDex(this::inspectPrimaryDex, this::inspectSecondaryDex)
         .apply(this::checkCompleteness)
         .run(parameters.getRuntime(), Main.class, Boolean.toString(useLambda))

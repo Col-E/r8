@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.errors.StartupClassesNonStartupFractionDiagnostic;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
@@ -82,9 +85,14 @@ public class HorizontalClassMergingWithStartupClassesTest extends TestBase {
                 return Origin.unknown();
               }
             })
+        .allowDiagnosticInfoMessages()
         .enableInliningAnnotations()
         .setMinApi(parameters)
         .compile()
+        .inspectDiagnosticMessages(
+            diagnostics ->
+                diagnostics.assertInfosMatch(
+                    diagnosticType(StartupClassesNonStartupFractionDiagnostic.class)))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("StartupA", "StartupB");
   }

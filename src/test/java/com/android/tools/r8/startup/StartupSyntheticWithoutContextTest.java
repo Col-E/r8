@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.startup;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.startup.utils.StartupTestingMatchers.isEqualToClassDataLayout;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -14,6 +15,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.errors.StartupClassesNonStartupFractionDiagnostic;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
@@ -92,9 +94,14 @@ public class StartupSyntheticWithoutContextTest extends TestBase {
                   .getTestingOptions()
                   .setMixedSectionLayoutStrategyInspector(getMixedSectionLayoutInspector());
             })
+        .allowDiagnosticInfoMessages()
         .apply(testBuilder -> StartupTestingUtils.addStartupProfile(testBuilder, startupList))
         .setMinApi(parameters)
         .compile()
+        .inspectDiagnosticMessages(
+            diagnostics ->
+                diagnostics.assertInfosMatch(
+                    diagnosticType(StartupClassesNonStartupFractionDiagnostic.class)))
         .inspectMultiDex(this::inspectPrimaryDex, this::inspectSecondaryDex)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(getExpectedOutput());

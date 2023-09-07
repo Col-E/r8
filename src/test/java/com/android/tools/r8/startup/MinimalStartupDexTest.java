@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.startup;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -12,6 +13,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.errors.StartupClassesNonStartupFractionDiagnostic;
 import com.android.tools.r8.startup.profile.ExternalStartupItem;
 import com.android.tools.r8.startup.utils.StartupTestingUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -66,10 +68,15 @@ public class MinimalStartupDexTest extends TestBase {
                     .getStartupOptions()
                     .setEnableMinimalStartupDex(true)
                     .setEnableStartupCompletenessCheckForTesting())
+        .allowDiagnosticInfoMessages()
         .enableInliningAnnotations()
         .apply(testBuilder -> StartupTestingUtils.addStartupProfile(testBuilder, startupList))
         .setMinApi(parameters)
         .compile()
+        .inspectDiagnosticMessages(
+            diagnostics ->
+                diagnostics.assertInfosMatch(
+                    diagnosticType(StartupClassesNonStartupFractionDiagnostic.class)))
         .inspectMultiDex(
             primaryDexInspector -> {
               // Main should be in the primary dex.
