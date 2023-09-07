@@ -936,7 +936,7 @@ public class Lir2IRConverter {
       for (int i = 0; i < operands.size(); i++) {
         values.add(getValue(operands.get(i)));
       }
-      phi.addOperands(values);
+      phi.addOperands(values, false);
     }
 
     @Override
