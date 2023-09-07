@@ -57,14 +57,26 @@ public class ForceInlineAfterVerticalClassMergingStartupTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addVerticallyMergedClassesInspector(
             inspector -> inspector.assertMergedIntoSubtype(A.class))
-        .allowDiagnosticInfoMessages()
+        .allowDiagnosticInfoMessages(
+            parameters.isDexRuntime()
+                && parameters
+                    .getApiLevel()
+                    .isGreaterThanOrEqualTo(apiLevelWithNativeMultiDexSupport()))
         .apply(testBuilder -> StartupTestingUtils.addStartupProfile(testBuilder, startupProfile))
         .setMinApi(parameters)
         .compile()
         .inspectDiagnosticMessages(
-            diagnostics ->
+            diagnostics -> {
+              if (parameters.isDexRuntime()
+                  && parameters
+                      .getApiLevel()
+                      .isGreaterThanOrEqualTo(apiLevelWithNativeMultiDexSupport())) {
                 diagnostics.assertInfosMatch(
-                    diagnosticType(StartupClassesNonStartupFractionDiagnostic.class)))
+                    diagnosticType(StartupClassesNonStartupFractionDiagnostic.class));
+              } else {
+                diagnostics.assertNoMessages();
+              }
+            })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("B");
   }

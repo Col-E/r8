@@ -42,8 +42,8 @@ public class HorizontalClassMergingWithStartupClassesTest extends TestBase {
 
   private List<Class<?>> getStartupClasses() {
     return includeStartupClasses
-        ? Collections.emptyList()
-        : ImmutableList.of(StartupA.class, StartupB.class);
+        ? ImmutableList.of(StartupA.class, StartupB.class)
+        : Collections.emptyList();
   }
 
   @Test
@@ -85,14 +85,28 @@ public class HorizontalClassMergingWithStartupClassesTest extends TestBase {
                 return Origin.unknown();
               }
             })
-        .allowDiagnosticInfoMessages()
+        .allowDiagnosticInfoMessages(
+            includeStartupClasses
+                && parameters.isDexRuntime()
+                && parameters
+                    .getApiLevel()
+                    .isGreaterThanOrEqualTo(apiLevelWithNativeMultiDexSupport()))
         .enableInliningAnnotations()
         .setMinApi(parameters)
         .compile()
         .inspectDiagnosticMessages(
-            diagnostics ->
+            diagnostics -> {
+              if (includeStartupClasses
+                  && parameters.isDexRuntime()
+                  && parameters
+                      .getApiLevel()
+                      .isGreaterThanOrEqualTo(apiLevelWithNativeMultiDexSupport())) {
                 diagnostics.assertInfosMatch(
-                    diagnosticType(StartupClassesNonStartupFractionDiagnostic.class)))
+                    diagnosticType(StartupClassesNonStartupFractionDiagnostic.class));
+              } else {
+                diagnostics.assertNoMessages();
+              }
+            })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("StartupA", "StartupB");
   }
