@@ -36,6 +36,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -1267,6 +1268,11 @@ public class VirtualFile {
       return newFile;
     }
 
+    void addFileForDistribution(VirtualFile file) {
+      filesForDistribution.add(file);
+      reset();
+    }
+
     private VirtualFile internalAddFile() {
       VirtualFile newFile = new VirtualFile(nextFileId.getAndIncrement(), appView, featureSplit);
       files.add(newFile);
@@ -1454,7 +1460,8 @@ public class VirtualFile {
         virtualFile.addClass(startupClass);
       }
 
-      if (hasSpaceForTransaction(virtualFile, options)) {
+      boolean isSingleStartupDexFile = hasSpaceForTransaction(virtualFile, options);
+      if (isSingleStartupDexFile) {
         virtualFile.commitTransaction();
       } else {
         virtualFile.abortTransaction();
@@ -1482,7 +1489,14 @@ public class VirtualFile {
               classPartioning.getStartupClasses(), startupProfile));
 
       if (options.getStartupOptions().isMinimalStartupDexEnabled()) {
+        // Minimal startup dex only applies to the case where there is a single startup DEX file.
+        // When there are multiple startup DEX files, we allow filling up the last startup DEX file
+        // with non-startup classes.
+        VirtualFile lastFileForDistribution = ListUtils.last(cycler.filesForDistribution);
         cycler.clearFilesForDistribution();
+        if (!isSingleStartupDexFile) {
+          cycler.addFileForDistribution(lastFileForDistribution);
+        }
       } else {
         cycler.restart();
       }
