@@ -5,6 +5,7 @@
 package com.android.tools.r8.profile.startup.distribution;
 
 import com.android.tools.r8.dex.VirtualFile;
+import com.android.tools.r8.dex.VirtualFile.PackageSplitPopulator;
 import com.android.tools.r8.dex.VirtualFile.VirtualFileCycler;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -14,7 +15,10 @@ import java.util.List;
 public abstract class MultiStartupDexDistributor {
 
   public abstract void distribute(
-      List<DexProgramClass> classes, VirtualFileCycler cycler, VirtualFile virtualFile);
+      List<DexProgramClass> classes,
+      PackageSplitPopulator packageSplitPopulator,
+      VirtualFile virtualFile,
+      VirtualFileCycler virtualFileCycler);
 
   boolean hasSpaceForTransaction(VirtualFile virtualFile) {
     return !virtualFile.isFull();
@@ -37,7 +41,7 @@ public abstract class MultiStartupDexDistributor {
       case "classByNumberOfStartupMethodsMinusNumberOfNonStartupMethods":
         throw new Unimplemented();
       case "packageByName":
-        throw new Unimplemented();
+        return new PackageByNameMultiStartupDexDistributor();
       case "packageByNumberOfStartupMethods":
         throw new Unimplemented();
       default:
@@ -50,7 +54,10 @@ public abstract class MultiStartupDexDistributor {
 
     @Override
     public void distribute(
-        List<DexProgramClass> classes, VirtualFileCycler cycler, VirtualFile virtualFile) {
+        List<DexProgramClass> classes,
+        PackageSplitPopulator packageSplitPopulator,
+        VirtualFile virtualFile,
+        VirtualFileCycler virtualFileCycler) {
       // Add the (already sorted) startup classes one by one.
       for (DexProgramClass startupClass : classes) {
         virtualFile.addClass(startupClass);
@@ -58,12 +65,25 @@ public abstract class MultiStartupDexDistributor {
           virtualFile.commitTransaction();
         } else {
           virtualFile.abortTransaction();
-          virtualFile = cycler.addFile();
+          virtualFile = virtualFileCycler.addFile();
           virtualFile.addClass(startupClass);
           assert hasSpaceForTransaction(virtualFile);
           virtualFile.commitTransaction();
         }
       }
+    }
+  }
+
+  private static class PackageByNameMultiStartupDexDistributor extends MultiStartupDexDistributor {
+
+    @Override
+    public void distribute(
+        List<DexProgramClass> classes,
+        PackageSplitPopulator packageSplitPopulator,
+        VirtualFile virtualFile,
+        VirtualFileCycler virtualFileCycler) {
+      virtualFileCycler.restart();
+      packageSplitPopulator.distributeClasses(classes);
     }
   }
 }

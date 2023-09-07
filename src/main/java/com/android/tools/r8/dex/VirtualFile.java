@@ -1259,7 +1259,7 @@ public class VirtualFile {
     }
 
     // Start a new iteration over all files, starting at the current one.
-    void restart() {
+    public void restart() {
       activeFiles = Iterators.limit(allFilesCyclic, filesForDistribution.size());
     }
 
@@ -1299,7 +1299,7 @@ public class VirtualFile {
    * <p>The populator cycles through the files until all classes have been successfully placed and
    * adds new files to the passed in map if it can't fit in the existing files.
    */
-  private static class PackageSplitPopulator {
+  public static class PackageSplitPopulator {
 
     static class PackageSplitClassPartioning {
 
@@ -1442,8 +1442,7 @@ public class VirtualFile {
 
     public void run() {
       addStartupClasses();
-      List<DexProgramClass> nonPackageClasses = addNonStartupClasses();
-      addNonPackageClasses(cycler, nonPackageClasses);
+      distributeClasses(classPartioning.getNonStartupClasses());
     }
 
     private void addStartupClasses() {
@@ -1469,7 +1468,7 @@ public class VirtualFile {
 
         // If the above failed, then apply the selected multi startup dex distribution strategy.
         MultiStartupDexDistributor distributor = MultiStartupDexDistributor.get(options);
-        distributor.distribute(classPartioning.getStartupClasses(), cycler, virtualFile);
+        distributor.distribute(classPartioning.getStartupClasses(), this, virtualFile, cycler);
 
         options.reporter.warning(
             createStartupClassesOverflowDiagnostic(cycler.filesForDistribution.size()));
@@ -1493,14 +1492,18 @@ public class VirtualFile {
       }
     }
 
+    public void distributeClasses(List<DexProgramClass> classes) {
+      List<DexProgramClass> nonPackageClasses = addPackageClasses(classes);
+      addNonPackageClasses(cycler, nonPackageClasses);
+    }
+
     @SuppressWarnings("ReferenceEquality")
-    private List<DexProgramClass> addNonStartupClasses() {
+    private List<DexProgramClass> addPackageClasses(List<DexProgramClass> classes) {
       int prefixLength = MINIMUM_PREFIX_LENGTH;
       int transactionStartIndex = 0;
       String currentPrefix = null;
       Object2IntMap<String> packageAssignments = new Object2IntOpenHashMap<>();
       VirtualFile current = cycler.ensureFile().next();
-      List<DexProgramClass> classes = classPartioning.getNonStartupClasses();
       List<DexProgramClass> nonPackageClasses = new ArrayList<>();
       for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
         DexProgramClass clazz = classes.get(classIndex);
