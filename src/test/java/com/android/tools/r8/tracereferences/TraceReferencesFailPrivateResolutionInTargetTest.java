@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.tracereferences;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
@@ -12,8 +12,11 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
@@ -22,7 +25,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class TraceReferencesFailedResolutionInSourceTest extends TestBase {
+public class TraceReferencesFailPrivateResolutionInTargetTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -31,7 +34,7 @@ public class TraceReferencesFailedResolutionInSourceTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public TraceReferencesFailedResolutionInSourceTest(TestParameters parameters) {
+  public TraceReferencesFailPrivateResolutionInTargetTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -57,15 +60,15 @@ public class TraceReferencesFailedResolutionInSourceTest extends TestBase {
     Path targetJar =
         ZipBuilder.builder(dir.resolve("target.jar"))
             .addFilesRelative(
-                ToolHelper.getClassPathForTests(), ToolHelper.getClassFileForTestClass(I.class))
+                ToolHelper.getClassPathForTests(),
+                ToolHelper.getClassFileForTestClass(I.class),
+                ToolHelper.getClassFileForTestClass(A.class),
+                ToolHelper.getClassFileForTestClass(B.class))
             .build();
     Path sourceJar =
         ZipBuilder.builder(dir.resolve("source.jar"))
             .addFilesRelative(
-                ToolHelper.getClassPathForTests(),
-                ToolHelper.getClassFileForTestClass(A.class),
-                ToolHelper.getClassFileForTestClass(B.class),
-                ToolHelper.getClassFileForTestClass(Main.class))
+                ToolHelper.getClassPathForTests(), ToolHelper.getClassFileForTestClass(Main.class))
             .build();
     SeenReferencesConsumer consumer = new SeenReferencesConsumer();
     TraceReferences.run(
@@ -75,7 +78,12 @@ public class TraceReferencesFailedResolutionInSourceTest extends TestBase {
             .addTargetFiles(targetJar)
             .setConsumer(consumer)
             .build());
-    assertTrue(consumer.seenMethods.isEmpty());
+    ImmutableSet<MethodReference> expectedSet =
+        ImmutableSet.of(
+            Reference.method(Reference.classFromClass(A.class), "f", Collections.emptyList(), null),
+            Reference.method(
+                Reference.classFromClass(B.class), "<init>", Collections.emptyList(), null));
+    assertEquals(expectedSet, consumer.seenMethods);
   }
 
   public interface I {
