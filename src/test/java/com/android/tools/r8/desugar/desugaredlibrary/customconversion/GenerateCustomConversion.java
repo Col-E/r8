@@ -44,8 +44,7 @@ public class GenerateCustomConversion {
   }
 
   private void convert(Path jar, Path outputDirectory) throws IOException {
-    String newFileName = version.getFileName();
-    Path convertedJar = outputDirectory.resolve(newFileName);
+    Path convertedJar = outputDirectory.resolve(version.getFileName());
     internalConvert(jar, convertedJar);
     assert Files.exists(convertedJar) : "Custom conversion generation did not generate anything.";
   }

@@ -52,8 +52,7 @@ public class GenerateCustomConversionTest extends TestBase {
 
     // Regenerate the files in a temp directory.
     Path customConversionDir = temp.newFolder("custom_conversion").toPath();
-    Files.createDirectories(customConversionDir);
-    generateCustomConversions(customConversionDir);
+    generateCustomConversions(temp, customConversionDir);
 
     for (CustomConversionVersion version : CustomConversionVersion.values()) {
       // Assert the file is generated.
@@ -76,7 +75,11 @@ public class GenerateCustomConversionTest extends TestBase {
     }
   }
 
-  private static void generateCustomConversions(Path destinationDir) throws IOException {
+  private static void generateCustomConversions(TemporaryFolder temp, Path destinationDir)
+      throws IOException {
+    temp.create();
+    Files.createDirectories(destinationDir);
+
     // Get the sources for the custom conversions.
     Path customConversionDir = Paths.get(ToolHelper.LIBRARY_DESUGAR_SOURCE_DIR, "java");
     Path[] sourceFiles =
@@ -86,26 +89,24 @@ public class GenerateCustomConversionTest extends TestBase {
     assert classpath.length > 0;
 
     // Generate the raw jar.
-    TemporaryFolder folder =
-        new TemporaryFolder(ToolHelper.isLinux() ? null : Paths.get("build", "tmp").toFile());
-    folder.create();
-    Path compiledClasspath = folder.newFolder().toPath().resolve("classpath.jar");
-    JavaCompilerTool.create(TestRuntime.getCheckedInJdk8(), folder)
+    Path compiledClasspath = destinationDir.resolve("classpath.jar");
+    JavaCompilerTool.create(TestRuntime.getCheckedInJdk8(), temp)
         .addSourceFiles(classpath)
         .setOutputPath(compiledClasspath)
         .compile();
-    Path output = folder.newFolder().toPath().resolve("raw.jar");
-    JavaCompilerTool.create(TestRuntime.getCheckedInJdk8(), folder)
+    Path raw = destinationDir.resolve("raw.jar");
+    JavaCompilerTool.create(TestRuntime.getCheckedInJdk8(), temp)
         .addClasspathFiles(compiledClasspath)
         .addSourceFiles(sourceFiles)
-        .setOutputPath(output)
+        .setOutputPath(raw)
         .compile();
-    assert verifyRawOutput(output);
+    assert verifyRawOutput(raw);
 
     // Asm rewrite the jar.
-    GenerateCustomConversion.generateJars(output, destinationDir);
+    GenerateCustomConversion.generateJars(raw, destinationDir);
 
-    folder.delete();
+    // No need to keep the raw jar.
+    Files.delete(raw);
   }
 
   private static boolean verifyRawOutput(Path output) throws IOException {
@@ -125,6 +126,7 @@ public class GenerateCustomConversionTest extends TestBase {
   }
 
   public static void main(String[] args) throws IOException {
-    generateCustomConversions(Paths.get(ToolHelper.CUSTOM_CONVERSION_DIR));
+    generateCustomConversions(
+        ToolHelper.getTemporaryFolderForTest(), Paths.get(ToolHelper.CUSTOM_CONVERSION_DIR));
   }
 }
