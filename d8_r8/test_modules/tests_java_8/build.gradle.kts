@@ -132,11 +132,13 @@ fun testDependencies() : FileCollection {
     .test
     .get()
     .compileClasspath
-    .filter({"$it".contains("keepanno") ||
-             "$it".contains("resoourceshrinker") ||
-            ("$it".contains("third_party")
+    .filter {
+      "$it".contains("keepanno")
+        || "$it".contains("resourceshrinker")
+        || ("$it".contains("third_party")
               && !"$it".contains("errorprone")
-              && !"$it".contains("gradle"))})
+              && !"$it".contains("third_party/gradle"))
+    }
 }
 
 tasks {

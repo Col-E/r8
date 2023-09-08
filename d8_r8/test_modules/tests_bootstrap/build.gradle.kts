@@ -25,10 +25,11 @@ java {
   targetCompatibility = JavaVersion.VERSION_1_8
 }
 
-val testJar = projectTask("tests_java_8", "testJar")
+val testsJava8Jar = projectTask("tests_java_8", "testJar")
+val mainR8RelocatedTask = projectTask("main", "r8WithRelocatedDeps")
 
 dependencies {
-  implementation(files(testJar.outputs.files.getSingleFile()))
+  implementation(files(testsJava8Jar.outputs.files.getSingleFile()))
   implementation(projectTask("main", "jar").outputs.files)
   implementation(Deps.asm)
   implementation(Deps.asmCommons)
@@ -40,11 +41,21 @@ dependencies {
   implementation(Deps.fastUtil)
 }
 
-val mainR8RelocatedTask = projectTask("main", "r8WithRelocatedDeps")
+fun testDependencies() : FileCollection {
+  return sourceSets
+    .test
+    .get()
+    .compileClasspath
+    .filter {
+      "$it".contains("third_party")
+        && !"$it".contains("errorprone")
+        && !"$it".contains("third_party/gradle")
+    }
+}
 
 tasks {
   withType<JavaCompile> {
-    dependsOn(testJar)
+    dependsOn(testsJava8Jar)
     dependsOn(gradle.includedBuild("main").task(":jar"))
   }
 
@@ -64,5 +75,17 @@ tasks {
 
     // TODO(b/291198792): Remove this exclusion when desugared library runs correctly.
     exclude("com/android/tools/r8/bootstrap/HelloWorldCompiledOnArtTest**")
+  }
+
+  val testJar by registering(Jar::class) {
+    from(sourceSets.test.get().output)
+    // TODO(b/296486206): Seems like IntelliJ has a problem depending on test source sets.
+    archiveFileName.set("not_named_tests_bootstrap.jar")
+  }
+
+  val depsJar by registering(Jar::class) {
+    from(testDependencies().map(::zipTree))
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveFileName.set("deps.jar")
   }
 }

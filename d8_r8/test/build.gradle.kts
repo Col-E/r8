@@ -22,7 +22,8 @@ dependencies { }
 
 val r8WithRelocatedDepsTask = projectTask("main", "r8WithRelocatedDeps")
 val java8TestJarTask = projectTask("tests_java_8", "testJar")
-val java8DepsJarTask = projectTask("tests_java_8", "depsJar")
+val java8TestsDepsJarTask = projectTask("tests_java_8", "depsJar")
+val bootstrapTestsDepsJarTask = projectTask("tests_bootstrap", "depsJar")
 
 tasks {
   withType<JavaCompile> {
@@ -46,10 +47,13 @@ tasks {
   }
 
   val allDepsJar by registering(Jar::class) {
-    dependsOn(java8DepsJarTask)
-    from(java8DepsJarTask.outputs.getFiles().map(::zipTree))
+    dependsOn(java8TestsDepsJarTask)
+    dependsOn(bootstrapTestsDepsJarTask)
+    from(java8TestsDepsJarTask.outputs.getFiles().map(::zipTree))
+    from(bootstrapTestsDepsJarTask.outputs.getFiles().map(::zipTree))
     exclude("META-INF/*.kotlin_module")
     exclude("**/*.kotlin_metadata")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveFileName.set("all-deps.jar")
   }
 
@@ -69,7 +73,7 @@ tasks {
              "--output",
              "$output",
              "--map",
-             "kotlinx.metadata->com.android.tools.r8.jetbrains.kotlinx.metadata"))
+             "kotlinx.metadata.**->com.android.tools.r8.jetbrains.kotlinx.metadata"))
   }
 
   withType<Test> {
