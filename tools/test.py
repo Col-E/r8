@@ -19,7 +19,7 @@ import archive_desugar_jdk_libs
 import download_kotlin_dev
 import gradle
 import notify
-import test_state
+import testing_state
 import utils
 
 if utils.is_python3():
@@ -183,17 +183,13 @@ def ParseOptions():
       help='Print the execution time of the slowest tests..',
       default=False, action='store_true')
   result.add_option(
-      '--testing-state-name',
-      help='Set an explict name for the testing state '
-          '(used in conjunction with --with/reset-testing-state).')
+      '--testing-state-dir',
+      help='Explicitly set the testing state directory '
+           '(defaults to build/test-state/<git-branch>).')
   result.add_option(
-      '--with-testing-state',
-      help='Run/resume tests using testing state.',
-      default=False, action='store_true')
-  result.add_option(
-      '--reset-testing-state',
-      help='Clean the testing state and rerun tests (implies --with-testing-state).',
-      default=False, action='store_true')
+      '--rerun',
+      help='Rerun tests (implicitly enables testing state).',
+      choices=testing_state.CHOICES)
   result.add_option(
       '--stacktrace',
       help='Pass --stacktrace to the gradle run',
@@ -275,9 +271,6 @@ def Main():
       print('Desugared library for test in ' + desugar_jdk_libs)
 
   gradle_args = []
-
-  testing_state = False
-  testing_state_path = None
 
   if options.stacktrace or utils.is_bot():
     gradle_args.append('--stacktrace')
@@ -366,20 +359,10 @@ def Main():
     gradle_args.append('-Pdesugar_jdk_libs=' + desugar_jdk_libs)
   if options.no_arttests:
     gradle_args.append('-Pno_arttests=true')
-  if options.reset_testing_state:
-    testing_state = True
-    gradle_args.append('-Preset-testing-state')
-  elif options.with_testing_state:
-    testing_state = True
-  if options.testing_state_name:
-    gradle_args.append('-Ptesting-state-name=' + options.testing_state_name)
-    testing_state_path = "%s/test-state/%s" % (utils.BUILD, options.testing_state_name)
 
-  if testing_state:
-    if options.new_gradle:
-      test_state.set_up_test_state(gradle_args, testing_state_path)
-    else:
-      gradle_args.append('-Ptesting-state')
+  # Testing state is only supported in new-gradle going forward
+  if options.new_gradle and options.rerun:
+    testing_state.set_up_test_state(gradle_args, options.rerun, options.testing_state_dir)
 
   # Enable completeness testing of ART profile rewriting.
   gradle_args.append('-Part_profile_rewriting_completeness_check=true')
