@@ -10,6 +10,7 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugari
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion.LEGACY;
 
 import com.android.tools.r8.L8TestBuilder;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -34,11 +35,15 @@ import org.junit.rules.TemporaryFolder;
 
 public class LibraryDesugaringSpecification {
 
-  public static Descriptor JDK8_DESCRIPTOR = new Descriptor(24, 26, -1, 26, 24);
-  public static Descriptor JDK11_DESCRIPTOR = new Descriptor(24, 26, -1, 10000, -1);
+  public static Descriptor JDK8_DESCRIPTOR =
+      new Descriptor(24, TestBase.apiLevelWithJavaTime().getLevel(), -1, 26, 24);
+  public static Descriptor JDK11_DESCRIPTOR =
+      new Descriptor(24, TestBase.apiLevelWithJavaTime().getLevel(), -1, 10000, -1);
   public static Descriptor EMPTY_DESCRIPTOR_24 = new Descriptor(-1, -1, -1, 24, -1);
-  public static Descriptor JDK11_PATH_DESCRIPTOR = new Descriptor(24, 26, 26, 10000, -1);
-  public static Descriptor JDK11_LEGACY_DESCRIPTOR = new Descriptor(24, 26, -1, 32, 24);
+  public static Descriptor JDK11_PATH_DESCRIPTOR =
+      new Descriptor(24, TestBase.apiLevelWithJavaTime().getLevel(), 26, 10000, -1);
+  public static Descriptor JDK11_LEGACY_DESCRIPTOR =
+      new Descriptor(24, TestBase.apiLevelWithJavaTime().getLevel(), -1, 32, 24);
 
   private static class Descriptor {
 

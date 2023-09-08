@@ -1747,6 +1747,20 @@ public class TestBase {
         && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
   }
 
+  public static AndroidApiLevel apiLevelWithJavaTime() {
+    return AndroidApiLevel.O;
+  }
+
+  public static boolean apiLevelWithJavaTime(TestParameters parameters) {
+    return parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevelWithJavaTime());
+  }
+
+  public static boolean runtimeWithJavaTime(TestParameters parameters) {
+    return parameters.isCfRuntime()
+        || parameters.isDexRuntimeVersionNewerThanOrEqual(
+            ToolHelper.getDexVersionForApiLevel(apiLevelWithJavaTime()));
+  }
+
   // TODO(b/131130038): Do not allow accessmodification when kept.
   public boolean isForceAccessModifyingPackagePrivateAndProtectedMethods() {
     return true;

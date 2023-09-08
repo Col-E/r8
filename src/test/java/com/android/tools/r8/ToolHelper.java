@@ -337,9 +337,9 @@ public class ToolHelper {
       V5_1_1("5.1.1"),
       V6_0_1("6.0.1"),
       V7_0_0("7.0.0"),
-      V8_1_0("8.1.0"),
       // TODO(b/204855476): Remove DEFAULT.
       DEFAULT("default"),
+      V8_1_0("8.1.0"),
       V9_0_0("9.0.0"),
       V10_0_0("10.0.0"),
       V12_0_0("12.0.0"),
@@ -1301,6 +1301,43 @@ public class ToolHelper {
         return AndroidApiLevel.I_MR1;
       default:
         throw new Unreachable("Missing min api level for dex vm " + dexVm);
+    }
+  }
+
+  public static DexVm.Version getDexVersionForApiLevel(AndroidApiLevel apiLevel) {
+    switch (apiLevel) {
+      case MASTER:
+        return DexVm.Version.MASTER;
+      case U:
+        return DexVm.Version.V14_0_0;
+      case T:
+        return DexVm.Version.V13_0_0;
+      case Sv2:
+      case S:
+        return DexVm.Version.V12_0_0;
+      case R:
+        throw new Unreachable("No Android 11 VM");
+      case Q:
+        return DexVm.Version.V10_0_0;
+      case P:
+        return DexVm.Version.V9_0_0;
+      case O_MR1:
+        return DexVm.Version.V8_1_0;
+      case O:
+        // Somewhere on the way to 8.0.0.
+        return DexVm.Version.DEFAULT;
+      case N:
+        return DexVm.Version.V7_0_0;
+      case M:
+        return DexVm.Version.V6_0_1;
+      case L_MR1:
+        return DexVm.Version.V5_1_1;
+      case K:
+        return DexVm.Version.V4_4_4;
+      case I_MR1:
+        return DexVm.Version.V4_0_4;
+      default:
+        throw new Unreachable("No Android VM for API level " + apiLevel.getLevel());
     }
   }
 
