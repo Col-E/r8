@@ -156,6 +156,10 @@ public class ProguardMapMinifier {
     new IdentifierMinifier(appView, lens).run(executorService);
     timing.end();
 
+    timing.begin("RecordInvokeDynamicRewrite");
+    new RecordInvokeDynamicRewriter(appView, lens).run(executorService);
+    timing.begin("MinifyIdentifiers");
+
     appView.notifyOptimizationFinishedForTesting();
     return lens;
   }

@@ -59,9 +59,12 @@ import com.android.tools.r8.ir.optimize.templates.CfUtilityMethodsForCodeOptimiz
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.kotlin.KotlinMetadataUtils;
+import com.android.tools.r8.naming.IdentifierMinifier;
 import com.android.tools.r8.naming.Minifier;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.ProguardMapMinifier;
+import com.android.tools.r8.naming.RecordInvokeDynamicRewriter;
 import com.android.tools.r8.naming.RecordRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.optimize.LegacyAccessModifier;
@@ -767,8 +770,12 @@ public class R8 {
         appView.setNamingLens(new Minifier(appView.withLiveness()).run(executorService, timing));
         timing.end();
       } else {
-        new Minifier(appView.withLiveness())
-            .replaceDexItemBasedConstString(executorService, timing);
+        timing.begin("MinifyIdentifiers");
+        new IdentifierMinifier(appView, NamingLens.getIdentityLens()).run(executorService);
+        timing.end();
+        timing.begin("RecordInvokeDynamicRewrite");
+        new RecordInvokeDynamicRewriter(appView, NamingLens.getIdentityLens()).run(executorService);
+        timing.end();
       }
       appView.appInfo().notifyMinifierFinished();
 

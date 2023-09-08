@@ -86,16 +86,12 @@ public class Minifier {
     new IdentifierMinifier(appView, lens).run(executorService);
     timing.end();
 
+    timing.begin("RecordInvokeDynamicRewrite");
+    new RecordInvokeDynamicRewriter(appView, lens).run(executorService);
+    timing.end();
+
     appView.notifyOptimizationFinishedForTesting();
     return lens;
-  }
-
-  public void replaceDexItemBasedConstString(ExecutorService executorService, Timing timing)
-      throws ExecutionException {
-    timing.begin("ReplaceDexItemBasedConstString");
-    new IdentifierMinifier(appView, NamingLens.getIdentityLens())
-        .replaceDexItemBasedConstString(executorService);
-    timing.end();
   }
 
   abstract static class BaseMinificationNamingStrategy {
