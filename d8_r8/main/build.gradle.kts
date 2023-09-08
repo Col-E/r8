@@ -4,6 +4,7 @@
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import net.ltgt.gradle.errorprone.errorprone
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 
 plugins {
   `kotlin-dsl`
@@ -67,8 +68,63 @@ tasks {
     dependsOn(thirdPartyResourceDependenciesTask)
   }
 
+  val consolidatedLicense by registering() {
+    val root = getRoot()
+    val r8License = root.resolve("LICENSE")
+    val libraryLicense = root.resolve("LIBRARY-LICENSE")
+    val libraryLicenseFiles = fileTree(root.resolve("library-licensing"))
+    inputs.files(
+      listOf(r8License, libraryLicense),
+      libraryLicenseFiles,
+      mainJarDependencies().map(::zipTree))
+
+    val license = rootProject.buildDir.resolveAll("generatedLicense", "LICENSE")
+    outputs.files(license)
+
+    doLast {
+      val dependencies = mutableListOf<String>()
+      configurations
+        .findByName("runtimeClasspath")!!
+        .resolvedConfiguration
+        .resolvedArtifacts
+        .forEach {
+          val identifier = it.id.componentIdentifier
+          if (identifier is ModuleComponentIdentifier) {
+            dependencies.add("${identifier.group}:${identifier.module}")
+          }
+      }
+      val libraryLicenses = libraryLicense.readText()
+      dependencies.forEach {
+        if (!libraryLicenses.contains("- artifact: $it")) {
+          throw GradleException("No license for $it in LIBRARY_LICENSE")
+        }
+      }
+      license.getParentFile().mkdirs()
+      license.createNewFile()
+      license.writeText(buildString {
+        append("This file lists all licenses for code distributed.\n")
+        .append("All non-library code has the following 3-Clause BSD license.\n")
+        .append("\n")
+        .append("\n")
+        .append(r8License.readText())
+        .append("\n")
+        .append("\n")
+        .append("Summary of distributed libraries:\n")
+        .append("\n")
+        .append(libraryLicenses)
+        .append("\n")
+        .append("\n")
+        .append("Licenses details:\n")
+        libraryLicenseFiles.sorted().forEach { file ->
+          append("\n").append("\n").append(file.readText())
+        }
+      })
+    }
+  }
+
   val swissArmyKnife by registering(Jar::class) {
     from(sourceSets.main.get().output)
+    from(consolidatedLicense)
     manifest {
       attributes["Main-Class"] = "com.android.tools.r8.SwissArmyKnife"
     }
