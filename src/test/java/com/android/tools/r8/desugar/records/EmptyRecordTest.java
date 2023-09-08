@@ -4,11 +4,9 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
@@ -76,32 +74,25 @@ public class EmptyRecordTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    try {
-      // TODO(b/288360309): Correctly deal with non-identity lenses in R8 record rewriting.
-      assumeTrue(parameters.isDexRuntime());
-      parameters.assumeR8TestParameters();
-      testForR8(parameters.getBackend())
-          .addProgramClassFileData(PROGRAM_DATA)
-          .addKeepMainRule(MAIN_TYPE)
-          .applyIf(
-              parameters.isCfRuntime(),
-              testBuilder ->
-                  testBuilder.addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp)))
-          .minification(enableMinification)
-          .applyIf(enableRepackaging, b -> b.addKeepRules("-repackageclasses p"))
-          .setMinApi(parameters)
-          .compile()
-          .applyIf(
-              parameters.isCfRuntime(),
-              compileResult -> compileResult.inspect(RecordTestUtils::assertRecordsAreRecords))
-          .run(parameters.getRuntime(), MAIN_TYPE)
-          .assertSuccessWithOutput(
-              enableMinification
-                  ? EXPECTED_RESULT_R8_MINIFICATION
-                  : EXPECTED_RESULT_R8_NO_MINIFICATION);
-      assertTrue(!enableRepackaging || enableMinification);
-    } catch (CompilationFailedException e) {
-      assertTrue(enableRepackaging && !enableMinification);
-    }
+    assumeTrue(parameters.isDexRuntime());
+    parameters.assumeR8TestParameters();
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(PROGRAM_DATA)
+        .addKeepMainRule(MAIN_TYPE)
+        .applyIf(
+            parameters.isCfRuntime(),
+            testBuilder -> testBuilder.addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp)))
+        .minification(enableMinification)
+        .applyIf(enableRepackaging, b -> b.addKeepRules("-repackageclasses p"))
+        .setMinApi(parameters)
+        .compile()
+        .applyIf(
+            parameters.isCfRuntime(),
+            compileResult -> compileResult.inspect(RecordTestUtils::assertRecordsAreRecords))
+        .run(parameters.getRuntime(), MAIN_TYPE)
+        .assertSuccessWithOutput(
+            enableMinification
+                ? EXPECTED_RESULT_R8_MINIFICATION
+                : EXPECTED_RESULT_R8_NO_MINIFICATION);
   }
 }

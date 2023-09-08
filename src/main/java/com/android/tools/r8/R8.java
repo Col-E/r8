@@ -766,14 +766,11 @@ public class R8 {
         timing.begin("Minification");
         appView.setNamingLens(new Minifier(appView.withLiveness()).run(executorService, timing));
         timing.end();
-      }
-      appView.appInfo().notifyMinifierFinished();
-
-      if (!options.isMinifying()
-          && appView.appInfo().app().getFlags().hasReadRecordReferenceFromProgramClass()) {
+      } else {
         new Minifier(appView.withLiveness())
             .replaceDexItemBasedConstString(executorService, timing);
       }
+      appView.appInfo().notifyMinifierFinished();
 
       assert verifyMovedMethodsHaveOriginalMethodPosition(appView, getDirectApp(appView));
 

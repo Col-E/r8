@@ -23,7 +23,6 @@ import com.android.tools.r8.graph.DexValue.DexItemBasedValueString;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.records.RecordCfToCfRewriter;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -39,12 +38,12 @@ import java.util.concurrent.ExecutorService;
  */
 class IdentifierMinifier {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<?> appView;
   private final ProguardClassFilter adaptClassStrings;
   private final RecordCfToCfRewriter recordCfToCfRewriter;
   private final NamingLens lens;
 
-  IdentifierMinifier(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+  IdentifierMinifier(AppView<?> appView, NamingLens lens) {
     this.appView = appView;
     this.adaptClassStrings = appView.options().getProguardConfiguration().getAdaptClassStrings();
     this.recordCfToCfRewriter = RecordCfToCfRewriter.create(appView);
