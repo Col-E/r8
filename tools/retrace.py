@@ -41,6 +41,10 @@ def parse_arguments():
       help='Path to r8lib map.',
       default=None)
   parser.add_argument(
+    '--r8jar',
+    help='Path to r8 jar.',
+    default=None)
+  parser.add_argument(
       '--no-r8lib',
       '--no_r8lib',
       default=False,
@@ -139,6 +143,8 @@ def get_map_file(args, temp):
       return map_path
 
   # If no other map file was found, use the local mapping file.
+  if args.r8jar:
+    return args.r8jar + ".map"
   return utils.R8LIB_MAP
 
 
@@ -166,6 +172,7 @@ def main():
     return run(
       map_path,
       args.stacktrace,
+      args.r8jar,
       args.no_r8lib,
       quiet=args.quiet,
       debug=args.debug_agent,
@@ -173,16 +180,19 @@ def main():
       verbose=args.verbose)
 
 
-def run(map_path, stacktrace, no_r8lib, quiet=False, debug=False, regex=None, verbose=False):
+def run(map_path, stacktrace, r8jar, no_r8lib, quiet=False, debug=False, regex=None, verbose=False):
   retrace_args = [jdk.GetJavaExecutable()]
 
   if debug:
     retrace_args.append(
         '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005')
 
+  if not r8jar:
+    r8jar = utils.R8_JAR if no_r8lib else utils.R8RETRACE_JAR
+
   retrace_args += [
     '-cp',
-    utils.R8_JAR if no_r8lib else utils.R8RETRACE_JAR,
+    r8jar,
     'com.android.tools.r8.retrace.Retrace',
     map_path
   ]
