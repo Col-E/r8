@@ -367,6 +367,10 @@ object ThirdPartyDeps {
     "coreLambdaStubs",
     Paths.get("third_party", "core-lambda-stubs").toFile(),
     Paths.get("third_party", "core-lambda-stubs.tar.gz.sha1").toFile())
+  val customConversion = ThirdPartyDependency(
+    "customConversion",
+    Paths.get("third_party", "openjdk", "custom_conversion").toFile(),
+    Paths.get("third_party", "openjdk", "custom_conversion.tar.gz.sha1").toFile())
   val dagger = ThirdPartyDependency(
     "dagger",
     Paths.get("third_party", "dagger", "2.41").toFile(),
@@ -624,3 +628,48 @@ fun getGmsCoreVersions() : List<ThirdPartyDependency> {
       Paths.get("third_party", "gmscore", "${it}.tar.gz.sha1").toFile(),
       DependencyType.X20)}
 }
+
+val testRuntimeDependencies = (listOf(
+  ThirdPartyDeps.aapt2,
+  ThirdPartyDeps.artTests,
+  ThirdPartyDeps.artTestsLegacy,
+  ThirdPartyDeps.compilerApi,
+  ThirdPartyDeps.coreLambdaStubs,
+  ThirdPartyDeps.customConversion,
+  ThirdPartyDeps.dagger,
+  ThirdPartyDeps.desugarJdkLibs,
+  ThirdPartyDeps.desugarJdkLibsLegacy,
+  ThirdPartyDeps.desugarJdkLibs11,
+  ThirdPartyDeps.examplesAndroidOLegacy,
+  ThirdPartyDeps.gson,
+  ThirdPartyDeps.jacoco,
+  ThirdPartyDeps.java8Runtime,
+  ThirdPartyDeps.jdk11Test,
+  ThirdPartyDeps.jsr223,
+  ThirdPartyDeps.multidex,
+  ThirdPartyDeps.r8,
+  ThirdPartyDeps.r8Mappings,
+  ThirdPartyDeps.r8v2_0_74,
+  ThirdPartyDeps.r8v3_2_54,
+  ThirdPartyDeps.retraceBenchmark,
+  ThirdPartyDeps.retraceBinaryCompatibility,
+  ThirdPartyDeps.rhino,
+  ThirdPartyDeps.rhinoAndroid,
+  ThirdPartyDeps.smali,
+  ThirdPartyDeps.tivi)
+    + ThirdPartyDeps.androidJars
+    + ThirdPartyDeps.androidVMs
+    + ThirdPartyDeps.desugarLibraryReleases
+    + ThirdPartyDeps.jdks
+    + ThirdPartyDeps.kotlinCompilers
+    + ThirdPartyDeps.proguards)
+
+val testRuntimeInternalDependencies = (listOf(
+  ThirdPartyDeps.clank,
+  ThirdPartyDeps.framework,
+  ThirdPartyDeps.nest,
+  ThirdPartyDeps.proto,
+  ThirdPartyDeps.protobufLite,
+  ThirdPartyDeps.retraceInternal)
+  + ThirdPartyDeps.internalIssues
+  + ThirdPartyDeps.gmscoreVersions)

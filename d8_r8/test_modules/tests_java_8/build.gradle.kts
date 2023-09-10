@@ -68,52 +68,11 @@ val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
 
 val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
   "runtimeDeps",
-  listOf(
-    ThirdPartyDeps.aapt2,
-    ThirdPartyDeps.artTests,
-    ThirdPartyDeps.artTestsLegacy,
-    ThirdPartyDeps.compilerApi,
-    ThirdPartyDeps.coreLambdaStubs,
-    ThirdPartyDeps.dagger,
-    ThirdPartyDeps.desugarJdkLibs,
-    ThirdPartyDeps.desugarJdkLibsLegacy,
-    ThirdPartyDeps.desugarJdkLibs11,
-    ThirdPartyDeps.examplesAndroidOLegacy,
-    ThirdPartyDeps.gson,
-    ThirdPartyDeps.jacoco,
-    ThirdPartyDeps.java8Runtime,
-    ThirdPartyDeps.jdk11Test,
-    ThirdPartyDeps.jsr223,
-    ThirdPartyDeps.multidex,
-    ThirdPartyDeps.r8,
-    ThirdPartyDeps.r8Mappings,
-    ThirdPartyDeps.r8v2_0_74,
-    ThirdPartyDeps.r8v3_2_54,
-    ThirdPartyDeps.retraceBenchmark,
-    ThirdPartyDeps.retraceBinaryCompatibility,
-    ThirdPartyDeps.rhino,
-    ThirdPartyDeps.rhinoAndroid,
-    ThirdPartyDeps.smali,
-    ThirdPartyDeps.tivi)
-    + ThirdPartyDeps.androidJars
-    + ThirdPartyDeps.androidVMs
-    + ThirdPartyDeps.desugarLibraryReleases
-    + ThirdPartyDeps.jdks
-    + ThirdPartyDeps.kotlinCompilers
-    + ThirdPartyDeps.proguards)
+  testRuntimeDependencies)
 
 val thirdPartyRuntimeInternalDependenciesTask = ensureThirdPartyDependencies(
   "runtimeInternalDeps",
-  listOf(
-    ThirdPartyDeps.clank,
-    ThirdPartyDeps.framework,
-    ThirdPartyDeps.nest,
-    ThirdPartyDeps.proto,
-    ThirdPartyDeps.protobufLite,
-    ThirdPartyDeps.retraceInternal)
-    + ThirdPartyDeps.internalIssues
-    + ThirdPartyDeps.gmscoreVersions
-)
+  testRuntimeInternalDependencies)
 
 val sourceSetDependenciesTasks = arrayOf(
   projectTask("tests_java_examples", getExampleJarsTaskName("examples")),
@@ -179,22 +138,6 @@ tasks {
       mainCompileTask.outputs.files.getAsPath().split(File.pathSeparator)[0] +
         File.pathSeparator + mainDepsJarTask.outputs.files.singleFile)
     systemProperty("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
-
-    // TODO(b/291198792): Remove this exclusion when desugared library runs correctly.
-    exclude("com/android/tools/r8/desugar/desugaredlibrary/**")
-    exclude("com/android/tools/r8/desugar/InvokeSuperToRewrittenDefaultMethodTest**")
-    exclude("com/android/tools/r8/desugar/InvokeSuperToEmulatedDefaultMethodTest**")
-    exclude("com/android/tools/r8/desugar/backports/ThreadLocalBackportWithDesugaredLibraryTest**")
-    exclude("com/android/tools/r8/L8CommandTest**")
-    exclude("com/android/tools/r8/MarkersTest**")
-    exclude("com/android/tools/r8/apimodel/ApiModelDesugaredLibraryReferenceTest**")
-    exclude("com/android/tools/r8/apimodel/ApiModelNoDesugaredLibraryReferenceTest**")
-    exclude("com/android/tools/r8/benchmarks/desugaredlib/**")
-    exclude("com/android/tools/r8/classmerging/vertical/ForceInlineConstructorWithRetargetedLibMemberTest**")
-    exclude("com/android/tools/r8/classmerging/vertical/ForceInlineConstructorWithRetargetedLibMemberTest**")
-    exclude("com/android/tools/r8/ir/optimize/inliner/InlineMethodWithRetargetedLibMemberTest**")
-    exclude("com/android/tools/r8/profile/art/DesugaredLibraryArtProfileRewritingTest**")
-    exclude("com/android/tools/r8/profile/art/dump/DumpArtProfileProvidersTest**")
   }
 
   val testJar by registering(Jar::class) {

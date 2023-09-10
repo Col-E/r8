@@ -28,6 +28,14 @@ val java8TestJarTask = projectTask("tests_java_8", "testJar")
 val java8TestsDepsJarTask = projectTask("tests_java_8", "depsJar")
 val bootstrapTestsDepsJarTask = projectTask("tests_bootstrap", "depsJar")
 
+val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
+  "runtimeDeps",
+  testRuntimeDependencies)
+
+val thirdPartyRuntimeInternalDependenciesTask = ensureThirdPartyDependencies(
+  "runtimeInternalDeps",
+  testRuntimeInternalDependencies)
+
 tasks {
   withType<Exec> {
     doFirst {
@@ -185,6 +193,7 @@ tasks {
     dependsOn(allTestsJarRelocated)
     dependsOn(r8WithRelocatedDepsTask)
     dependsOn(allTestWithApplyMappingProguardConfiguration)
+    dependsOn(thirdPartyRuntimeDependenciesTask)
     val r8 = r8WithRelocatedDepsTask.outputs.files.singleFile
     val allTests = allTestsJarRelocated.get().outputs.files.singleFile
     val pgConf = allTestWithApplyMappingProguardConfiguration.get().outputs.files.singleFile
@@ -258,6 +267,10 @@ tasks {
     dependsOn(r8LibWithRelocatedDeps)
     dependsOn(unzipTests)
     dependsOn(unzipRewrittenTests)
+    dependsOn(thirdPartyRuntimeDependenciesTask)
+    if (!project.hasProperty("no_internal")) {
+      dependsOn(thirdPartyRuntimeInternalDependenciesTask)
+    }
     val r8LibJar = r8LibWithRelocatedDeps.get().outputs.files.singleFile
     this.configure(isR8Lib = true, r8Jar = r8LibJar)
 
@@ -277,22 +290,5 @@ tasks {
     // TODO(b/270105162): This should change if running with retrace lib/r8lib.
     systemProperty("RETRACE_RUNTIME_PATH", r8LibJar)
     systemProperty("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
-
-    // TODO(b/291198792): Remove this exclusion when desugared library runs correctly.
-    exclude("com/android/tools/r8/desugar/desugaredlibrary/**")
-    exclude("com/android/tools/r8/desugar/InvokeSuperToRewrittenDefaultMethodTest**")
-    exclude("com/android/tools/r8/desugar/InvokeSuperToEmulatedDefaultMethodTest**")
-    exclude("com/android/tools/r8/desugar/backports/ThreadLocalBackportWithDesugaredLibraryTest**")
-    exclude("com/android/tools/r8/L8CommandTest**")
-    exclude("com/android/tools/r8/MarkersTest**")
-    exclude("com/android/tools/r8/apimodel/ApiModelDesugaredLibraryReferenceTest**")
-    exclude("com/android/tools/r8/apimodel/ApiModelNoDesugaredLibraryReferenceTest**")
-    exclude("com/android/tools/r8/benchmarks/desugaredlib/**")
-    exclude("com/android/tools/r8/classmerging/vertical/ForceInlineConstructorWithRetargetedLibMemberTest**")
-    exclude("com/android/tools/r8/classmerging/vertical/ForceInlineConstructorWithRetargetedLibMemberTest**")
-    exclude("com/android/tools/r8/ir/optimize/inliner/InlineMethodWithRetargetedLibMemberTest**")
-    exclude("com/android/tools/r8/profile/art/DesugaredLibraryArtProfileRewritingTest**")
-    exclude("com/android/tools/r8/profile/art/dump/DumpArtProfileProvidersTest**")
-    exclude("com/android/tools/r8/shaking/serviceloader/ServiceLoaderDesugaredLibraryTest**")
  }
 }
