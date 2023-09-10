@@ -9,7 +9,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CollectorsUtils;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
@@ -24,14 +23,12 @@ import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import java.io.File;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -44,10 +41,6 @@ import org.junit.rules.TemporaryFolder;
  * Abstract base to define a collection of API tests that should be run against a checked in jar.
  */
 public abstract class BinaryCompatibilityTestCollection<T> {
-
-  private static final String JUNIT_JAR = "junit-4.13-beta-2.jar";
-
-  private static final String HAMCREST = "hamcrest-core-1.3.jar";
 
   /** Jar to run tests against. */
   public abstract Path getTargetJar();
@@ -128,19 +121,11 @@ public abstract class BinaryCompatibilityTestCollection<T> {
   }
 
   private static Path getJunitDependency() {
-    String junitPath =
-        Arrays.stream(System.getProperty("java.class.path").split(File.pathSeparator))
-            .filter(cp -> cp.endsWith(JUNIT_JAR))
-            .collect(CollectorsUtils.toSingle());
-    return Paths.get(junitPath);
+    return ToolHelper.getJunitFromDeps();
   }
 
   private static Path getHamcrest() {
-    String junitPath =
-        Arrays.stream(System.getProperty("java.class.path").split(File.pathSeparator))
-            .filter(cp -> cp.endsWith(HAMCREST))
-            .collect(CollectorsUtils.toSingle());
-    return Paths.get(junitPath);
+    return ToolHelper.getHamcrestFromDeps();
   }
 
   public Path generateJarForCheckedInTestClasses() throws Exception {

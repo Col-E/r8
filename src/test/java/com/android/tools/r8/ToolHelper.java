@@ -1181,6 +1181,15 @@ public class ToolHelper {
     }
   }
 
+  public static Path getJunitFromDeps() {
+    return Paths.get(DEPENDENCIES, "junit", "junit", "4.13-beta-2", "junit-4.13-beta-2.jar");
+  }
+
+  public static Path getHamcrestFromDeps() {
+    return Paths.get(
+        DEPENDENCIES, "org", "hamcrest", "hamcrest-core", "1.3", "hamcrest-core-1.3.jar");
+  }
+
   /**
    * Get the junit jar bundled with the framework.
    */
