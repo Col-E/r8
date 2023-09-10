@@ -51,6 +51,7 @@ BUILD_DEPENDENCIES = [
 TEST_DEPENDENCIES = [
   'junit:junit:{version}'.format(version = JUNIT_VERSION),
   'com.android.tools.smali:smali:{version}'.format(version = SMALI_VERSION),
+  'com.android.tools.smali:smali-util:{version}'.format(version = SMALI_VERSION),
   'com.google.errorprone:error_prone_core:{version}'.format(version = ERROR_PRONE_VERSION),
   'org.javassist:javassist:{version}'.format(version = JAVASSIST_VERSION),
   'org.jetbrains.kotlin:kotlin-stdlib:{version}'.format(version = KOTLIN_VERSION),

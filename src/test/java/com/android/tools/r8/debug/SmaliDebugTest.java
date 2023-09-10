@@ -198,7 +198,7 @@ public class SmaliDebugTest extends DebugTestBase {
 
   private List<Path> buildAndRun(SmaliBuilder builder) throws Throwable {
     byte[] bytes = builder.compile();
-    Path out = temp.getRoot().toPath().resolve("classes.dex");
+    Path out = temp.newFolder().toPath().resolve("classes.dex");
     Files.write(out, bytes);
     ToolHelper.runArtNoVerificationErrors(out.toString(), CLASS);
     return Collections.singletonList(out);

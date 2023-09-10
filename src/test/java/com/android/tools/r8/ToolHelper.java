@@ -100,13 +100,13 @@ public class ToolHelper {
 
   public static String getProjectRoot() {
     String current = System.getProperty("user.dir");
-    if (!current.contains("test_modules")) {
+    if (!current.contains("d8_r8")) {
       return "";
     }
-    while (current.contains("test_modules")) {
+    while (current.contains("d8_r8")) {
       current = Paths.get(current).getParent().toString();
     }
-    return Paths.get(current).getParent().toString() + "/";
+    return current + "/";
   }
 
   public static final String SOURCE_DIR = getProjectRoot() + "src/";
@@ -141,7 +141,8 @@ public class ToolHelper {
   public static String getExamplesJava11BuildDir() {
     // TODO(b/270105162): This changes when new gradle setup is default.
     if (ToolHelper.isNewGradleSetup()) {
-      return System.getenv("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR");
+      assert System.getProperty("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR") != null;
+      return System.getProperty("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR");
     } else {
       return BUILD_DIR + "classes/java/examplesJava11/";
     }
@@ -150,7 +151,8 @@ public class ToolHelper {
   public static Path getR8MainPath() {
     // TODO(b/270105162): This changes when new gradle setup is default.
     if (ToolHelper.isNewGradleSetup()) {
-      return Paths.get(System.getenv("R8_RUNTIME_PATH"));
+      assert System.getProperty("R8_RUNTIME_PATH") != null;
+      return Paths.get(System.getProperty("R8_RUNTIME_PATH"));
     } else {
       return isTestingR8Lib() ? R8LIB_JAR : R8_JAR_OLD;
     }
@@ -159,7 +161,8 @@ public class ToolHelper {
   public static Path getRetracePath() {
     // TODO(b/270105162): This changes when new gradle setup is default.
     if (ToolHelper.isNewGradleSetup()) {
-      return Paths.get(System.getenv("RETRACE_RUNTIME_PATH"));
+      assert System.getProperty("RETRACE_RUNTIME_PATH") != null;
+      return Paths.get(System.getProperty("RETRACE_RUNTIME_PATH"));
     } else {
       return isTestingR8Lib() ? ToolHelper.R8_RETRACE_JAR : ToolHelper.R8_JAR_OLD;
     }
@@ -234,7 +237,7 @@ public class ToolHelper {
 
   public static Path getDeps() {
     if (isNewGradleSetup()) {
-      return Paths.get(System.getenv("R8_DEPS"));
+      return Paths.get(System.getProperty("R8_DEPS"));
     } else {
       return Paths.get(LIBS_DIR, "deps_all.jar");
     }
@@ -242,7 +245,7 @@ public class ToolHelper {
 
   public static Path getR8WithRelocatedDeps() {
     if (isNewGradleSetup()) {
-      return Paths.get(System.getenv("R8_WITH_RELOCATED_DEPS"));
+      return Paths.get(System.getProperty("R8_WITH_RELOCATED_DEPS"));
     } else {
       return Paths.get(LIBS_DIR, "r8_with_relocated_deps.jar");
     }
@@ -1156,7 +1159,7 @@ public class ToolHelper {
   public static Path getAndroidJar(AndroidApiLevel apiLevel) {
     Path path = getAndroidJarPath(apiLevel);
     assert Files.exists(path)
-        : "Expected android jar to exist for API level " + apiLevel;
+        : "Expected android jar to exist for API level " + apiLevel + " at " + path;
     return path;
   }
 
@@ -1405,7 +1408,8 @@ public class ToolHelper {
 
   public static Path getClassPathForTests() {
     if (isNewGradleSetup()) {
-      return Paths.get(TEST_MODULE_DIR, "tests_java_8", "build", "classes", "java", "test");
+      assert System.getenv("TEST_CLASSES_LOCATIONS") != null;
+      return Paths.get(System.getenv("TEST_CLASSES_LOCATIONS"));
     } else {
       return Paths.get(BUILD_DIR, "classes", "java", "test");
     }
@@ -1454,7 +1458,12 @@ public class ToolHelper {
 
   public static Path getClassFileForTestClass(Class<?> clazz) {
     List<String> parts = getNamePartsForTestClass(clazz);
-    return getClassPathForTests().resolve(Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY)));
+    Path resolve =
+        getClassPathForTests().resolve(Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY)));
+    if (!Files.exists(resolve)) {
+      throw new RuntimeException("Could not find: " + resolve.toString());
+    }
+    return resolve;
   }
 
   public static Collection<Path> getClassFilesForInnerClasses(Path path) throws IOException {

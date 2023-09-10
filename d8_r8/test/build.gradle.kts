@@ -20,16 +20,19 @@ java {
 
 dependencies { }
 
+val keepAnnoCompileTask = projectTask("keepanno", "compileJava")
+val mainDepsJarTask = projectTask("main", "depsJar")
+val r8Jar = projectTask("main", "jar")
 val r8WithRelocatedDepsTask = projectTask("main", "r8WithRelocatedDeps")
 val java8TestJarTask = projectTask("tests_java_8", "testJar")
 val java8TestsDepsJarTask = projectTask("tests_java_8", "depsJar")
 val bootstrapTestsDepsJarTask = projectTask("tests_bootstrap", "depsJar")
 
 tasks {
-  withType<JavaCompile> {
-    options.setFork(true)
-    options.forkOptions.executable = getCompilerPath(Jdk.JDK_17)
-    options.forkOptions.javaHome = getJavaHome(Jdk.JDK_17)
+  withType<Exec> {
+    doFirst {
+      println("Executing command: ${commandLine.joinToString(" ")}")
+    }
   }
 
   withType<KotlinCompile> {
@@ -40,7 +43,7 @@ tasks {
 
   val allTestsJar by registering(Jar::class) {
     dependsOn(java8TestJarTask)
-    from(java8TestJarTask.outputs.getFiles().map(::zipTree))
+    from(java8TestJarTask.outputs.files.map(::zipTree))
     exclude("META-INF/*.kotlin_module")
     exclude("**/*.kotlin_metadata")
     archiveFileName.set("all-tests.jar")
@@ -76,7 +79,141 @@ tasks {
              "kotlinx.metadata.**->com.android.tools.r8.jetbrains.kotlinx.metadata"))
   }
 
-  withType<Test> {
+  val r8LibNoDeps by registering(Exec::class) {
+    dependsOn(mainDepsJarTask)
+    dependsOn(r8WithRelocatedDepsTask)
+    val r8Compiler = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
+    val r8Jar = r8Jar.outputs.files.getSingleFile()
+    val deps = mainDepsJarTask.outputs.files.getSingleFile()
+    inputs.files(listOf(r8Compiler, r8Jar, deps))
+    val output = file(Paths.get("build", "libs", "r8lib-exclude-deps.jar"))
+    outputs.file(output)
+    commandLine = createR8LibCommandLine(
+      r8Compiler,
+      r8Jar,
+      output,
+      listOf(getRoot().resolveAll("src", "main", "keep.txt")),
+      true,
+      listOf(deps))
+  }
+
+  val generateKeepRules by registering(Exec::class) {
+    dependsOn(r8WithRelocatedDepsTask)
+    dependsOn(mainDepsJarTask)
+    dependsOn(allTestsJarRelocated)
+    dependsOn(allDepsJar)
+    val r8 = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
+    val deps = mainDepsJarTask.outputs.files.getSingleFile()
+    val tests = allTestsJarRelocated.get().outputs.files.getSingleFile()
+    val testDeps = allDepsJar.get().outputs.files.getSingleFile()
+    inputs.files(listOf(r8, deps, tests, testDeps))
+    val output = file(Paths.get("build", "libs", "generated-keep-rules.txt"))
+    outputs.file(output)
+    commandLine = baseCompilerCommandLine(
+      r8,
+      "tracereferences",
+      listOf(
+        "--keep-rules",
+        "--allowobfuscation",
+        "--lib",
+        "${getRoot().resolveAll("third_party", "openjdk", "openjdk-rt-1.8", "rt.jar")}",
+        "--lib",
+        "${deps}",
+        "--lib",
+        "$testDeps",
+        "--target",
+        "$r8",
+        "--source",
+        "$tests",
+        "--output",
+        "$output"))
+  }
+
+  val r8LibWithRelocatedDeps by registering(Exec::class) {
+    dependsOn(generateKeepRules)
+    dependsOn(r8WithRelocatedDepsTask)
+    val r8 = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
+    val generatedKeepRules = generateKeepRules.get().outputs.files.getSingleFile()
+    val keepTxt = getRoot().resolveAll("src", "main", "keep.txt")
+    // TODO(b/294351878): Remove once enum issue is fixed
+    val keepResourceShrinkerTxt = getRoot().resolveAll("src", "main", "keep_r8resourceshrinker.txt")
+    inputs.files(listOf(r8, generatedKeepRules, keepTxt, keepResourceShrinkerTxt))
+    val output = getRoot().resolveAll("build", "libs", "r8lib.jar")
+    outputs.files(output)
+    commandLine = createR8LibCommandLine(
+      r8,
+      r8,
+      output,
+      listOf(keepTxt, generatedKeepRules, keepResourceShrinkerTxt),
+      false)
+  }
+
+  val resourceshrinkercli by registering(Exec::class) {
+    dependsOn(r8WithRelocatedDepsTask)
+    val r8 = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
+    val keepTxt = getRoot().resolveAll("src", "main", "resourceshrinker_cli.txt")
+    val cliKeep = getRoot().resolveAll("src", "main", "keep_r8resourceshrinker.txt")
+    inputs.files(listOf(keepTxt, cliKeep))
+    val output = file(Paths.get("build", "libs", "resourceshrinkercli.jar"))
+    outputs.file(output)
+    commandLine = createR8LibCommandLine(
+      r8,
+      r8,
+      output,
+      listOf(keepTxt, cliKeep),
+      false)
+  }
+
+  val allTestWithApplyMappingProguardConfiguration by registering {
+    dependsOn(r8LibWithRelocatedDeps)
+    val license = rootProject.buildDir.resolveAll("libs", "r8tests-keep.txt")
+    outputs.files(license)
+    doLast {
+      // TODO(b/299065371): We should be able to take in the partition map output.
+      license.writeText(
+        """-keep class ** { *; }
+-dontshrink
+-dontoptimize
+-keepattributes *
+-applymapping ${r8LibWithRelocatedDeps.get().outputs.files.singleFile}.map
+""")
+    }
+  }
+
+  val allTestsWithApplyMapping by registering(Exec::class) {
+    dependsOn(allDepsJar)
+    dependsOn(allTestsJarRelocated)
+    dependsOn(r8WithRelocatedDepsTask)
+    dependsOn(allTestWithApplyMappingProguardConfiguration)
+    val r8 = r8WithRelocatedDepsTask.outputs.files.singleFile
+    val allTests = allTestsJarRelocated.get().outputs.files.singleFile
+    val pgConf = allTestWithApplyMappingProguardConfiguration.get().outputs.files.singleFile
+    val lib = resolve(ThirdPartyDeps.java8Runtime, "rt.jar").getSingleFile()
+    val main = r8WithRelocatedDepsTask.outputs.files.singleFile
+    val testDeps = allDepsJar.get().outputs.files.singleFile
+    inputs.files(listOf(r8, allTests, pgConf, lib, main, testDeps))
+    val output = file(Paths.get("build", "libs", "all-tests-relocated-applymapping.jar"))
+    outputs.file(output)
+    commandLine = baseCompilerCommandLine(
+      r8,
+      "r8",
+      listOf(
+        "--classfile",
+        "--debug",
+        "--lib",
+        "$lib",
+        "--classpath",
+        "$main",
+        "--classpath",
+        "$testDeps",
+        "--output",
+        "$output",
+        "--pg-conf",
+        "$pgConf",
+        "$allTests"))
+  }
+
+  test {
     println("NOTE: Number of processors " + Runtime.getRuntime().availableProcessors())
     println("NOTE: Max parallel forks " + maxParallelForks)
     val os = DefaultNativePlatform.getCurrentOperatingSystem()
@@ -91,7 +228,7 @@ tasks {
           "tests requiring Art will be skipped")
     } else if (!os.isLinux) {
       logger.log(
-        LogLevel.ERROR,
+        ERROR,
         "Testing in not supported on your platform. Testing is only fully supported on " +
           "Linux and partially supported on Mac OS and Windows. Art does not run on other " +
           "platforms.")
@@ -99,4 +236,63 @@ tasks {
     dependsOn(gradle.includedBuild("tests_java_8").task(":test"))
     dependsOn(gradle.includedBuild("tests_bootstrap").task(":test"))
   }
+
+  val unzipTests by registering(Copy::class) {
+    dependsOn(allTestsJar)
+    val outputDir = file("${buildDir}/unpacked/test")
+    from(zipTree(allTestsJar.get().outputs.files.singleFile))
+    into(outputDir)
+  }
+
+  val unzipRewrittenTests by registering(Copy::class) {
+    dependsOn(allTestsWithApplyMapping)
+    val outputDir = file("${buildDir}/unpacked/rewrittentest")
+    from(zipTree(allTestsWithApplyMapping.get().outputs.files.singleFile))
+    into(outputDir)
+  }
+
+  val r8LibTest by registering(Test::class) {
+    println("NOTE: Number of processors " + Runtime.getRuntime().availableProcessors())
+    println("NOTE: Max parallel forks " + maxParallelForks)
+    dependsOn(allDepsJar)
+    dependsOn(r8LibWithRelocatedDeps)
+    dependsOn(unzipTests)
+    dependsOn(unzipRewrittenTests)
+    val r8LibJar = r8LibWithRelocatedDeps.get().outputs.files.singleFile
+    this.configure(isR8Lib = true, r8Jar = r8LibJar)
+
+    // R8lib should be used instead of the main output and all the tests in r8 should be mapped and
+    // exists in r8LibTestPath.
+    classpath = files(
+      allDepsJar.get().outputs.files,
+      r8LibJar,
+      unzipRewrittenTests.get().outputs.files)
+    testClassesDirs = unzipRewrittenTests.get().outputs.files
+
+    environment.put("TEST_CLASSES_LOCATIONS", unzipTests.get().outputs.files.singleFile)
+    systemProperty("KEEP_ANNO_JAVAC_BUILD_DIR", keepAnnoCompileTask.outputs.files.getAsPath())
+    systemProperty("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR",
+                   getRoot().resolveAll("build", "test", "examplesJava11", "classes"))
+    systemProperty("R8_RUNTIME_PATH", r8LibJar)
+    // TODO(b/270105162): This should change if running with retrace lib/r8lib.
+    systemProperty("RETRACE_RUNTIME_PATH", r8LibJar)
+    systemProperty("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
+
+    // TODO(b/291198792): Remove this exclusion when desugared library runs correctly.
+    exclude("com/android/tools/r8/desugar/desugaredlibrary/**")
+    exclude("com/android/tools/r8/desugar/InvokeSuperToRewrittenDefaultMethodTest**")
+    exclude("com/android/tools/r8/desugar/InvokeSuperToEmulatedDefaultMethodTest**")
+    exclude("com/android/tools/r8/desugar/backports/ThreadLocalBackportWithDesugaredLibraryTest**")
+    exclude("com/android/tools/r8/L8CommandTest**")
+    exclude("com/android/tools/r8/MarkersTest**")
+    exclude("com/android/tools/r8/apimodel/ApiModelDesugaredLibraryReferenceTest**")
+    exclude("com/android/tools/r8/apimodel/ApiModelNoDesugaredLibraryReferenceTest**")
+    exclude("com/android/tools/r8/benchmarks/desugaredlib/**")
+    exclude("com/android/tools/r8/classmerging/vertical/ForceInlineConstructorWithRetargetedLibMemberTest**")
+    exclude("com/android/tools/r8/classmerging/vertical/ForceInlineConstructorWithRetargetedLibMemberTest**")
+    exclude("com/android/tools/r8/ir/optimize/inliner/InlineMethodWithRetargetedLibMemberTest**")
+    exclude("com/android/tools/r8/profile/art/DesugaredLibraryArtProfileRewritingTest**")
+    exclude("com/android/tools/r8/profile/art/dump/DumpArtProfileProvidersTest**")
+    exclude("com/android/tools/r8/shaking/serviceloader/ServiceLoaderDesugaredLibraryTest**")
+ }
 }

@@ -69,9 +69,10 @@ tasks {
     TestingState.setUpTestingState(this)
 
     environment.put("USE_NEW_GRADLE_SETUP", "true")
+    environment.put("TEST_CLASSES_LOCATIONS", "$buildDir/classes/java/test")
     dependsOn(mainR8RelocatedTask)
-    environment.put("R8_WITH_RELOCATED_DEPS", mainR8RelocatedTask.outputs.files.getSingleFile())
-    environment.put("R8_RUNTIME_PATH", mainR8RelocatedTask.outputs.files.getSingleFile())
+    systemProperty("R8_WITH_RELOCATED_DEPS", mainR8RelocatedTask.outputs.files.getSingleFile())
+    systemProperty("R8_RUNTIME_PATH", mainR8RelocatedTask.outputs.files.getSingleFile())
 
     // TODO(b/291198792): Remove this exclusion when desugared library runs correctly.
     exclude("com/android/tools/r8/bootstrap/HelloWorldCompiledOnArtTest**")

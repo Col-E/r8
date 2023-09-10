@@ -55,6 +55,7 @@ dependencies {
   implementation(resolve(ThirdPartyDeps.jdwpTests,"apache-harmony-jdwp-tests-host.jar"))
   implementation(Deps.fastUtil)
   implementation(Deps.smali)
+  implementation(Deps.smaliUtil)
 }
 
 val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
@@ -133,11 +134,9 @@ fun testDependencies() : FileCollection {
     .get()
     .compileClasspath
     .filter {
-      "$it".contains("keepanno")
-        || "$it".contains("resourceshrinker")
-        || ("$it".contains("third_party")
-              && !"$it".contains("errorprone")
-              && !"$it".contains("third_party/gradle"))
+        "$it".contains("third_party")
+          && !"$it".contains("errorprone")
+          && !"$it".contains("third_party/gradle")
     }
 }
 
@@ -159,29 +158,27 @@ tasks {
 
   withType<Test> {
     TestingState.setUpTestingState(this)
-
     environment.put("USE_NEW_GRADLE_SETUP", "true")
+    environment.put("TEST_CLASSES_LOCATIONS", "$buildDir/classes/java/test")
     dependsOn(mainDepsJarTask)
     dependsOn(thirdPartyRuntimeDependenciesTask)
     if (!project.hasProperty("no_internal")) {
       dependsOn(thirdPartyRuntimeInternalDependenciesTask)
     }
     dependsOn(*sourceSetDependenciesTasks)
-    environment.put("KEEP_ANNO_JAVAC_BUILD_DIR", keepAnnoCompileTask.outputs.files.getAsPath())
+    systemProperty("KEEP_ANNO_JAVAC_BUILD_DIR", keepAnnoCompileTask.outputs.files.getAsPath())
     // This path is set when compiling examples jar task in DependenciesPlugin.
-    environment.put("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR",
+    systemProperty("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR",
                     getRoot().resolveAll("build", "test", "examplesJava11", "classes"))
-    // TODO(b/270105162): This should change if running with r8lib.
-    environment.put(
+    systemProperty(
       "R8_RUNTIME_PATH",
       mainCompileTask.outputs.files.getAsPath().split(File.pathSeparator)[0] +
         File.pathSeparator + mainDepsJarTask.outputs.files.singleFile)
-    // TODO(b/270105162): This should change if running with retrace lib/r8lib.
-    environment.put(
+    systemProperty(
       "RETRACE_RUNTIME_PATH",
       mainCompileTask.outputs.files.getAsPath().split(File.pathSeparator)[0] +
         File.pathSeparator + mainDepsJarTask.outputs.files.singleFile)
-    environment.put("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
+    systemProperty("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
 
     // TODO(b/291198792): Remove this exclusion when desugared library runs correctly.
     exclude("com/android/tools/r8/desugar/desugaredlibrary/**")

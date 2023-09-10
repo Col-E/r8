@@ -131,7 +131,10 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
               // Use the concrete getNoKotlinInfo() instead of isNoKotlinInformation() to handle
               // invalid kotlin info as well.
               assert hasKotlinClassMetadataAnnotation(clazz, definitionsForContext(clazz))
-                  == (clazz.getKotlinInfo() != getNoKotlinInfo());
+                      == (clazz.getKotlinInfo() != getNoKotlinInfo())
+                  : clazz.toSourceString()
+                      + " "
+                      + (clazz.getKotlinInfo() == getNoKotlinInfo() ? "no info" : "has info");
             }
           });
     }

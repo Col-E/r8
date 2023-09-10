@@ -68,7 +68,7 @@ tasks {
     dependsOn(thirdPartyResourceDependenciesTask)
   }
 
-  val consolidatedLicense by registering() {
+  val consolidatedLicense by registering {
     val root = getRoot()
     val r8License = root.resolve("LICENSE")
     val libraryLicense = root.resolve("LIBRARY-LICENSE")
@@ -78,7 +78,7 @@ tasks {
       libraryLicenseFiles,
       mainJarDependencies().map(::zipTree))
 
-    val license = rootProject.buildDir.resolveAll("generatedLicense", "LICENSE")
+    val license = rootProject.layout.buildDirectory.file("generatedLicense/LICENSE").get().asFile
     outputs.files(license)
 
     doLast {
@@ -149,7 +149,6 @@ tasks {
     exclude("META-INF/MANIFEST.MF")
     exclude("META-INF/maven/**")
     exclude("META-INF/proguard/**")
-    exclude("META-INF/services/**")
     exclude("META-INF/versions/**")
     exclude("**/*.xml")
     exclude("com/android/version.properties")

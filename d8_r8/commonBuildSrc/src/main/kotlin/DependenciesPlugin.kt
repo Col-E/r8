@@ -74,6 +74,10 @@ enum class Jdk(val folder : String) {
   }
 }
 
+fun Test.configure(isR8Lib: Boolean = false, r8Jar: File? = null) {
+  TestConfigurationHelper.setupTestTask(this, isR8Lib, r8Jar)
+}
+
 fun Project.getRoot() : File {
   return computeRoot(this.projectDir)
 }
@@ -324,6 +328,7 @@ object Deps {
   val kotlinReflect by lazy { "org.jetbrains.kotlin:kotlin-reflect:${Versions.kotlinVersion}" }
   val mockito by lazy { "org.mockito:mockito-core:${Versions.mockito}" }
   val smali by lazy { "com.android.tools.smali:smali:${Versions.smaliVersion}" }
+  val smaliUtil by lazy { "com.android.tools.smali:smali-util:${Versions.smaliVersion}" }
 }
 
 object ThirdPartyDeps {

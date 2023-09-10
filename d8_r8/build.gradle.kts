@@ -14,6 +14,5 @@ tasks {
     dependsOn(gradle.includedBuild("main").task(":clean"))
     dependsOn(gradle.includedBuild("library_desugar").task(":clean"))
     dependsOn(gradle.includedBuild("test").task(":clean"))
-    dependsOn(gradle.includedBuild("r8lib").task(":clean"))
   }
 }

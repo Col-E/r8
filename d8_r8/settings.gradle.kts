@@ -88,7 +88,3 @@ includeBuild(root.resolve("resourceshrinker"))
 includeBuild(root.resolve("main"))
 includeBuild(root.resolve("library_desugar"))
 includeBuild(root.resolve("test"))
-
-// Include r8lib as standalone to have a nice separation between source artifacts and r8 compiled
-// artifacts
-includeBuild(root.resolve("r8lib"))
