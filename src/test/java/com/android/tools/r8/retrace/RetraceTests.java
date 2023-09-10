@@ -292,7 +292,6 @@ public class RetraceTests extends TestBase {
 
   @Test
   public void testBootLoaderAndNamedModulesStackTrace() throws Exception {
-    assumeTrue("b/170293908", false);
     runRetraceTest(new NamedModuleStackTrace());
   }
 

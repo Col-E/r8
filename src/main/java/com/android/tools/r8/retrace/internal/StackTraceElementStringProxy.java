@@ -168,7 +168,15 @@ public final class StackTraceElementStringProxy
 
   public enum ClassNameType {
     BINARY,
-    TYPENAME
+    TYPENAME;
+
+    public boolean isBinary() {
+      return this == BINARY;
+    }
+
+    public boolean isTypeName() {
+      return this == TYPENAME;
+    }
   }
 
   public static class StackTraceElementStringProxyBuilder {

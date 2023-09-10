@@ -158,13 +158,10 @@ public class StackTraceRegularExpressionParser
     }
   }
 
-  // TODO(b/145731185): Extend support for identifiers with strings inside back ticks.
-  //   Should we relax this to be something like: [^\\s\\[;/<]+
-  private static final String javaIdentifierSegment =
-      "[-\\p{javaJavaIdentifierStart}][-\\p{javaJavaIdentifierPart}]*";
+  private static final String identifierSegment = "[^\\s\\[;(<]+";
 
   private static final String METHOD_NAME_REGULAR_EXPRESSION =
-      "(?:(" + javaIdentifierSegment + "|\\<init\\>|\\<clinit\\>))";
+      "(?:(" + identifierSegment + "|\\<init\\>|\\<clinit\\>))";
 
   abstract static class ClassNameGroup extends RegularExpressionGroup {
 
@@ -181,8 +178,14 @@ public class StackTraceRegularExpressionParser
           }
           String typeName = matcher.group(captureGroup);
           if (typeName.equals("Suppressed")) {
-            // Ensure we do not map supressed.
+            // Ensure we do not map suppressed.
             return false;
+          }
+          // Printing stack traces on the jvm can include classloader and/or module + version.
+          // These are separated by a '/', so if one is present always take the last entry since
+          // this contains the class name.
+          if (getClassNameType().isTypeName()) {
+            startOfGroup += typeName.lastIndexOf('/') + 1;
           }
           builder.registerClassName(startOfGroup, matcher.end(captureGroup), getClassNameType());
           return true;
@@ -200,7 +203,7 @@ public class StackTraceRegularExpressionParser
 
     @Override
     String subExpression() {
-      return "(" + javaIdentifierSegment + "\\.)*" + javaIdentifierSegment;
+      return "(" + identifierSegment + "\\.)*" + identifierSegment;
     }
 
     @Override
@@ -213,7 +216,7 @@ public class StackTraceRegularExpressionParser
 
     @Override
     String subExpression() {
-      return "(?:" + javaIdentifierSegment + "\\/)*" + javaIdentifierSegment;
+      return "(?:" + identifierSegment + "\\/)*" + identifierSegment;
     }
 
     @Override
@@ -246,7 +249,7 @@ public class StackTraceRegularExpressionParser
 
     @Override
     String subExpression() {
-      return javaIdentifierSegment;
+      return identifierSegment;
     }
 
     @Override
@@ -357,7 +360,7 @@ public class StackTraceRegularExpressionParser
   }
 
   private static final String JAVA_TYPE_REGULAR_EXPRESSION =
-      "(" + javaIdentifierSegment + "\\.)*" + javaIdentifierSegment + "[\\[\\]]*";
+      "(" + identifierSegment + "\\.)*" + identifierSegment + "[\\[\\]]*";
 
   private static class FieldOrReturnTypeGroup extends RegularExpressionGroup {
 
