@@ -150,6 +150,12 @@ def GetJavaEnv(androidHomeTemp):
 def setUpFakeAndroidHome(androidHomeTemp):
   # Bazel will check if 30 is present then extract android.jar from 32.
   # We copy android.jar from third_party to mimic repository structure.
+  subpath = os.path.join(androidHomeTemp, "build-tools")
+  cmd = ["mkdir", subpath]
+  subprocess.check_call(cmd)
+  subpath = os.path.join(subpath, "32.0.0")
+  cmd = ["mkdir", subpath]
+  subprocess.check_call(cmd)
   subpath = os.path.join(androidHomeTemp, "platforms")
   cmd = ["mkdir", subpath]
   subprocess.check_call(cmd)
