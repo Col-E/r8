@@ -84,6 +84,12 @@ public abstract class TestRuntime {
     public static CfVm getMinimumSystemVersion() {
       return JDK11;
     }
+
+    // Records was experimental from JDK-15 (requiring turning on experimental feaures), and GA
+    // in JDK-17.
+    public boolean hasRecordsSupport() {
+      return isGreaterThanOrEqualTo(JDK17);
+    }
   }
 
   private static final Path JDK8_PATH = Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "jdk8");
@@ -308,6 +314,10 @@ public abstract class TestRuntime {
     public AndroidApiLevel getMinApiLevel() {
       return ToolHelper.getMinApiLevelForDexVm(vm);
     }
+
+    public boolean hasRecordsSupport() {
+      return getVersion().hasRecordsSupport();
+    }
   }
 
   // Wrapper for the CF runtimes.
@@ -383,6 +393,10 @@ public abstract class TestRuntime {
 
     public boolean isNewerThanOrEqual(CfVm version) {
       return vm == version || !vm.lessThanOrEqual(version);
+    }
+
+    public boolean hasRecordsSupport() {
+      return getVm().hasRecordsSupport();
     }
   }
 

@@ -4,17 +4,14 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
-import static org.hamcrest.CoreMatchers.allOf;
-import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.errors.DuplicateTypeInProgramAndLibraryDiagnostic;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ZipUtils;
 import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,10 +36,13 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
           "true",
           "false",
           "false",
-          "%s[name=Jane Doe, age=42]");
+          "%s[%s=Jane Doe, %s=42]");
   private static final String EXPECTED_RESULT_D8 =
-      String.format(EXPECTED_RESULT, "Empty", "Person");
-  private static final String EXPECTED_RESULT_R8 = String.format(EXPECTED_RESULT, "a", "b");
+      String.format(EXPECTED_RESULT, "Empty", "Person", "name", "age");
+  private static final String EXPECTED_RESULT_R8 =
+      String.format(EXPECTED_RESULT, "a", "b", "name", "age");
+  private static final String EXPECTED_RESULT_R8_2 =
+      String.format(EXPECTED_RESULT, "a", "b", "a", "b");
 
   private final TestParameters parameters;
 
@@ -80,32 +80,17 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
             .setMinApi(parameters)
             .compile()
             .writeToZip();
+    if (canUseNativeRecords(parameters)) {
+      assertFalse(ZipUtils.containsEntry(desugared, "com/android/tools/r8/RecordTag.class"));
+    } else {
+      assertTrue(ZipUtils.containsEntry(desugared, "com/android/tools/r8/RecordTag.class"));
+    }
     testForR8(parameters.getBackend())
         .addProgramFiles(desugared)
         .setMinApi(parameters)
         .addKeepMainRule(MAIN_TYPE)
-        .applyIf(
-            parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U),
-            b -> b.allowDiagnosticMessages())
-        .compileWithExpectedDiagnostics(
-            // Type com.android.tools.r8.RecordTag from desugared code will be converted to
-            // java.lang.Record during reading causing duplicate java.lang.Record class.
-            parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U)
-                ? diagnostics ->
-                    diagnostics
-                        .assertWarningsMatch(
-                            diagnosticMessage(
-                                containsString(
-                                    "The following library types, prefixed by java., are present"
-                                        + " both as library and non library classes:"
-                                        + " java.lang.Record.")))
-                        .assertInfosMatch(
-                            allOf(
-                                diagnosticType(DuplicateTypeInProgramAndLibraryDiagnostic.class),
-                                diagnosticMessage(containsString("java.lang.Record"))))
-                        .assertNoErrors()
-                : diagnostics -> diagnostics.assertNoMessages())
         .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT_R8);
+        .assertSuccessWithOutput(
+            canUseNativeRecords(parameters) ? EXPECTED_RESULT_R8_2 : EXPECTED_RESULT_R8);
   }
 }

@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.records;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.GlobalSyntheticsConsumer;
@@ -64,7 +65,10 @@ public class RecordInterfaceTest extends TestBase {
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .applyIf(
+            canUseNativeRecords(parameters) && !runtimeWithRecordsSupport(parameters.getRuntime()),
+            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
   }
 
   @Test
@@ -75,7 +79,9 @@ public class RecordInterfaceTest extends TestBase {
     Path path = compileIntermediate(globals);
     testForD8()
         .addProgramFiles(path)
-        .apply(
+        .applyIf(
+            canUseNativeRecords(parameters),
+            b -> assertFalse(globals.hasGlobals()),
             b ->
                 b.getBuilder()
                     .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()))
@@ -97,7 +103,9 @@ public class RecordInterfaceTest extends TestBase {
     Path path = compileIntermediate(globals);
     testForD8()
         .addProgramFiles(path)
-        .apply(
+        .applyIf(
+            canUseNativeRecords(parameters),
+            b -> assertFalse(globals.hasGlobals()),
             b ->
                 b.getBuilder()
                     .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()))

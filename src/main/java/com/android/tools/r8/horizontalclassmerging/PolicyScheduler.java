@@ -40,6 +40,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKeepRules;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKotlinMetadata;
 import com.android.tools.r8.horizontalclassmerging.policies.NoNativeMethods;
+import com.android.tools.r8.horizontalclassmerging.policies.NoRecords;
 import com.android.tools.r8.horizontalclassmerging.policies.NoResourceClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoServiceLoaders;
 import com.android.tools.r8.horizontalclassmerging.policies.NoVerticallyMergedClasses;
@@ -174,7 +175,8 @@ public class PolicyScheduler {
         new NoInstanceFieldAnnotations(),
         new NoKotlinMetadata(),
         new NoNativeMethods(),
-        new NoServiceLoaders(appView));
+        new NoServiceLoaders(appView),
+        new NoRecords());
   }
 
   private static boolean verifySingleClassPoliciesIrrelevantForMergingSynthetics(
@@ -192,7 +194,8 @@ public class PolicyScheduler {
             new NoInstanceFieldAnnotations(),
             new NoKotlinMetadata(),
             new NoNativeMethods(),
-            new NoServiceLoaders(appView));
+            new NoServiceLoaders(appView),
+            new NoRecords());
     policies.stream().map(VerifySingleClassPolicyAlwaysSatisfied::new).forEach(builder::add);
     return true;
   }
@@ -208,7 +211,8 @@ public class PolicyScheduler {
             new NoInnerClasses(),
             new NoInstanceFieldAnnotations(),
             new NoKotlinMetadata(),
-            new NoNativeMethods());
+            new NoNativeMethods(),
+            new NoRecords());
     policies.stream().map(VerifySingleClassPolicyAlwaysSatisfied::new).forEach(builder::add);
     return true;
   }

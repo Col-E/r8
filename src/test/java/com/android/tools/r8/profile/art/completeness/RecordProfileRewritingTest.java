@@ -19,6 +19,7 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.desugar.records.RecordTestUtils;
 import com.android.tools.r8.profile.art.model.ExternalArtProfile;
 import com.android.tools.r8.profile.art.utils.ArtProfileInspector;
@@ -78,7 +79,7 @@ public class RecordProfileRewritingTest extends TestBase {
   @Test
   public void testReference() throws Exception {
     parameters.assumeJvmTestParameters();
-    assumeTrue(parameters.canUseRecords());
+    assumeTrue(runtimeWithRecordsSupport(parameters.getRuntime()));
     testForJvm(parameters)
         .addProgramClassFileData(PROGRAM_DATA)
         .run(parameters.getRuntime(), MAIN_REFERENCE.getTypeName())
@@ -100,13 +101,16 @@ public class RecordProfileRewritingTest extends TestBase {
                     inspector -> inspectD8(profileInspector, inspector),
                     options -> options.testing.disableRecordApplicationReaderMap = true))
         .run(parameters.getRuntime(), MAIN_REFERENCE.getTypeName())
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .applyIf(
+            canUseNativeRecords(parameters) && !runtimeWithRecordsSupport(parameters.getRuntime()),
+            r -> r.assertFailureWithErrorThatThrows(ClassNotFoundException.class),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
   }
 
   @Test
   public void testR8() throws Exception {
     parameters.assumeR8TestParameters();
-    assumeTrue(parameters.canUseRecords() || parameters.isDexRuntime());
+    assumeTrue(runtimeWithRecordsSupport(parameters.getRuntime()) || parameters.isDexRuntime());
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)
@@ -162,7 +166,7 @@ public class RecordProfileRewritingTest extends TestBase {
         SyntheticItemsTestUtils.syntheticRecordTagClass(),
         false,
         parameters.canUseNestBasedAccessesWhenDesugaring(),
-        parameters.canUseRecordsWhenDesugaring());
+        canUseNativeRecords(parameters));
   }
 
   private void inspectR8(ArtProfileInspector profileInspector, CodeInspector inspector) {
@@ -172,7 +176,7 @@ public class RecordProfileRewritingTest extends TestBase {
         RECORD_REFERENCE,
         parameters.canHaveNonReboundConstructorInvoke(),
         parameters.canUseNestBasedAccesses(),
-        parameters.canUseRecords());
+        canUseNativeRecords(parameters) || parameters.isCfRuntime());
   }
 
   private void inspect(
@@ -207,7 +211,15 @@ public class RecordProfileRewritingTest extends TestBase {
             ? inspector.getTypeSubject(RECORD_REFERENCE.getTypeName())
             : recordTagClassSubject.asTypeSubject(),
         personRecordClassSubject.getSuperType());
-    assertEquals(canUseRecords ? 6 : 10, personRecordClassSubject.allMethods().size());
+    assertEquals(
+        canUseRecords
+            ? (parameters.isCfRuntime()
+                    && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17)
+                    && !canUseNativeRecords(parameters)
+                ? 6
+                : 8)
+            : 10,
+        personRecordClassSubject.allMethods().size());
 
     MethodSubject personInstanceInitializerSubject =
         personRecordClassSubject.uniqueInstanceInitializer();

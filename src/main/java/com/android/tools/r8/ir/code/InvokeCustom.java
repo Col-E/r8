@@ -221,4 +221,11 @@ public final class InvokeCustom extends Invoke {
   void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
     registry.registerCallSite(callSite);
   }
+
+  @Override
+  protected boolean needsRangedInvoke(DexBuilder builder) {
+    return builder.getOptions().testing.forceInvokeRangeForInvokeCustom
+        ? true
+        : super.needsRangedInvoke(builder);
+  }
 }
