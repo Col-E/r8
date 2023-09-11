@@ -47,7 +47,7 @@ public class RecordInvokeDynamicRewriter {
     }
     Code code = programMethod.getDefinition().getCode();
     assert code != null;
-    if (code.isDexCode()) {
+    if (!code.isCfCode()) {
       return;
     }
     List<CfInstruction> instructions = code.asCfCode().getInstructions();
