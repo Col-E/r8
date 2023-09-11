@@ -1338,10 +1338,9 @@ public class ToolHelper {
       case P:
         return DexVm.Version.V9_0_0;
       case O_MR1:
-        return DexVm.Version.V8_1_0;
       case O:
-        // Somewhere on the way to 8.0.0.
-        return DexVm.Version.DEFAULT;
+        // Currently no Android 8 VM, so return 8.1 for both O and O_MR1.
+        return DexVm.Version.V8_1_0;
       case N:
         return DexVm.Version.V7_0_0;
       case M:
