@@ -8,17 +8,13 @@ import utils
 import datetime
 import os
 
-CHOICES = ["all", "failing", "past-failing", "outstanding"]
-DEFAULT_REPORTS_ROOT = os.path.join(utils.BUILD, "testing-state")
-
-def set_up_test_state(gradle_args, testing_state_mode, testing_state_path):
-  if not testing_state_mode:
-    return
+def set_up_test_state(gradle_args, testing_state_path):
+  # In the new build the test state directory must be passed explictitly.
+  # TODO(b/297316723): Simplify this and just support a single flag: --testing-state <path>
   if not testing_state_path:
-    testing_state_path = os.path.join(DEFAULT_REPORTS_ROOT, utils.get_HEAD_branch())
-  gradle_args.append('-Ptesting-state-mode=%s' % testing_state_mode)
-  gradle_args.append('-Ptesting-state-path=%s' % testing_state_path)
-  prepare_testing_index(testing_state_mode, testing_state_path)
+    testing_state_path = "%s/test-state/%s" % (utils.BUILD, utils.get_HEAD_branch())
+  gradle_args.append('-Ptesting-state=%s' % testing_state_path)
+  prepare_testing_index(testing_state_path)
 
 def fresh_testing_index(testing_state_dir):
   number = 0
@@ -28,22 +24,22 @@ def fresh_testing_index(testing_state_dir):
     if not os.path.exists(freshIndex):
       return freshIndex
 
-def prepare_testing_index(testing_state_mode, testing_state_dir):
+def prepare_testing_index(testing_state_dir):
   if not os.path.exists(testing_state_dir):
     os.makedirs(testing_state_dir)
   index_path = os.path.join(testing_state_dir, "index.html")
   parent_report = None
   resuming = os.path.exists(index_path)
-  mode = testing_state_mode if resuming else f"starting (flag: {testing_state_mode})"
   if (resuming):
     parent_report = fresh_testing_index(testing_state_dir)
     os.rename(index_path, parent_report)
   index = open(index_path, "a")
+  run_prefix = "Resuming" if resuming else "Starting"
   relative_state_dir = os.path.relpath(testing_state_dir)
-  title = relative_state_dir
+  title = f"{run_prefix} @ {relative_state_dir}"
   # Print a console link to the test report for easy access.
   print("=" * 70)
-  print("Test report written to:")
+  print(f"{run_prefix} test, report written to:")
   print(f"  file://{index_path}")
   print("=" * 70)
   # Print the new index content.
@@ -51,7 +47,6 @@ def prepare_testing_index(testing_state_mode, testing_state_dir):
   index.write("<style> * { font-family: monospace; }</style>")
   index.write("<meta http-equiv='refresh' content='10' />")
   index.write(f"</head><body><h1>{title}</h1>")
-  index.write(f"<h2>Mode: {mode}</h2>")
   # write index links first to avoid jumping when browsing.
   if parent_report:
     index.write(f"<p><a href=\"file://{parent_report}\">Previous result index</a></p>")
