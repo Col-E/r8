@@ -16,41 +16,67 @@ import org.gradle.api.tasks.testing.TestListener
 import org.gradle.api.tasks.testing.TestOutputEvent
 import org.gradle.api.tasks.testing.TestOutputListener
 import org.gradle.api.tasks.testing.TestResult
+import org.gradle.api.tasks.testing.TestResult.ResultType
 
 // Utility to install tracking of test results in status files.
 class TestingState {
   companion object {
 
-    fun setUpTestingState(task: Test) {
-      val project = task.project
-      if (!project.hasProperty("testing-state")) {
-        return
+    const val MODE_PROPERTY = "testing-state-mode"
+    const val PATH_PROPERTY = "testing-state-path"
+
+    // Operating mode for the test state.
+    enum class Mode { ALL, OUTSTANDING, FAILING, PAST_FAILING }
+
+    // These are the files that are allowed for tracking test status.
+    enum class StatusFile { SUCCESS, FAILURE, PAST_FAILURE }
+
+    fun getRerunMode(project: Project) : Mode? {
+      val prop = project.findProperty(MODE_PROPERTY) ?: return null
+      return when (prop.toString().lowercase()) {
+        "all" -> Mode.ALL
+        "failing" -> Mode.FAILING
+        "past-failing" -> Mode.PAST_FAILING
+        "past_failing" -> Mode.PAST_FAILING
+        "outstanding" -> Mode.OUTSTANDING
+        else -> null
       }
+    }
+
+    fun setUpTestingState(task: Test) {
+      // Both the path and the mode must be defined for the testing state to be active.
+      val testingStatePath = task.project.findProperty(PATH_PROPERTY) ?: return
+      val testingStateMode = getRerunMode(task.project) ?: return
+
       val projectName = task.project.name
-      val indexDir = File(project.property("testing-state")!!.toString())
-      val reportDir = indexDir.resolve(project.name)
+      val indexDir = File(testingStatePath.toString())
+      val reportDir = indexDir.resolve(projectName)
       val index = indexDir.resolve("index.html")
       val resuming = reportDir.exists()
       if (resuming) {
-        applyTestFilters(task, reportDir)
+        applyTestFilters(testingStateMode, task, reportDir)
       }
       addTestHandler(task, projectName, index, reportDir)
     }
 
-    private fun applyTestFilters(task: Test, reportDir: File) {
-      // If there are failing tests only rerun those.
-      val hasFailingTests = forEachTestReportAlreadyFailing(task, reportDir, { clazz, name ->
-        task.filter.includeTestsMatching("$clazz.$name")
-      })
-      if (hasFailingTests) {
+    private fun applyTestFilters(mode: Mode, task: Test, reportDir: File) {
+      if (mode == Mode.ALL) {
+        // Running without filters will (re)run all tests.
         return
       }
-      // Otherwise exclude all the tests already marked as succeeding or skipped.
-      forEachTestReportAlreadyPassing(task, reportDir, { clazz, name ->
-        task.filter.excludeTestsMatching("$clazz.$name")
-      })
-      forEachTestReportAlreadySkipped(task, reportDir, { clazz, name ->
-        task.filter.excludeTestsMatching("$clazz.$name")
+      if (mode == Mode.OUTSTANDING) {
+        task.logger.lifecycle(
+          "Note: the building of an exclude list often times out."
+            + "You may need to simply rerun all tests.")
+        forEachTestReportStatusMatching(task, reportDir, StatusFile.SUCCESS, { clazz, name ->
+          task.filter.excludeTestsMatching("$clazz.$name")
+        })
+        return
+      }
+      assert(mode == Mode.FAILING || mode == Mode.PAST_FAILING)
+      val result = if (mode == Mode.FAILING) StatusFile.FAILURE else StatusFile.PAST_FAILURE
+      forEachTestReportStatusMatching(task, reportDir, result, { clazz, name ->
+        task.filter.includeTestsMatching("$clazz.$name")
       })
     }
 
@@ -119,20 +145,13 @@ class TestingState {
           if (result.testCount != 1L) {
             throw IllegalStateException("Unexpected test with more than one result: ${desc}")
           }
-          // Clear any previous result files.
-          for (resultType in TestResult.ResultType.values()) {
-            getTestResultEntryOutputFile(reportDir, desc, resultType.name).delete()
-          }
-          // Emit the result type status in a file of the same name: SUCCESS, FAILURE or SKIPPED.
-          withTestResultEntryWriter(reportDir, desc, result.getResultType().name, false, {
-            it.append(result.getResultType().name)
-          })
+          updateStatusFiles(reportDir, desc, result.resultType)
           // Emit the test time.
           withTestResultEntryWriter(reportDir, desc, "time", false, {
             it.append("${result.getEndTime() - result.getStartTime()}")
           })
           // For failed tests, update the index and emit stack trace information.
-          if (result.resultType == TestResult.ResultType.FAILURE) {
+          if (result.resultType == ResultType.FAILURE) {
             val title = testLinkContent(desc)
             val link = getTestReportEntryURL(reportDir, desc)
             index.appendText("<li><a href=\"${link}\">${title}</a></li>")
@@ -160,6 +179,14 @@ class TestingState {
           }
         }
       })
+    }
+
+    private fun getStatusFile(result: ResultType) : StatusFile {
+      return when (result) {
+        ResultType.FAILURE -> StatusFile.FAILURE
+        ResultType.SUCCESS -> StatusFile.SUCCESS
+        ResultType.SKIPPED -> StatusFile.SUCCESS
+      }
     }
 
     private fun escapeHtml(string: String): String {
@@ -219,25 +246,31 @@ class TestingState {
     }
 
     // Some of our test parameters have new lines :-( We really don't want test names to span lines.
-    private fun sanitizedTestName(testDesc: TestDescriptor): String {
-      if (testDesc.getName().contains("\n")) {
-        throw RuntimeException("Unsupported use of newline in test name: '${testDesc.getName()}'")
+    private fun sanitizedTestName(testName: String): String {
+      if (testName.contains("\n")) {
+        throw RuntimeException("Unsupported use of newline in test name: '${testName}'")
       }
-      return testDesc.getName()
+      return testName
     }
 
-    private fun getTestReportEntryDir(reportDir: File, testDesc: TestDescriptor): File {
+    private fun getTestReportClassDirPath(reportDir: File, testClass: String): Path {
+      return reportDir.toPath().resolve(testClass)
+    }
+
+    private fun getTestReportEntryDirFromString(reportDir: File, testClass: String, testName: String): File {
       return ensureDir(
-        reportDir.toPath()
-          .resolve(testDesc.getClassName()!!)
-          .resolve(sanitizedTestName(testDesc))
-          .toFile()
-      )
+        getTestReportClassDirPath(reportDir, testClass)
+          .resolve(sanitizedTestName(testName))
+          .toFile())
+    }
+
+    private fun getTestReportEntryDirFromTest(reportDir: File, testDesc: TestDescriptor): File {
+      return getTestReportEntryDirFromString(reportDir, testDesc.className!!, testDesc.name)
     }
 
     private fun getTestReportEntryURL(reportDir: File, testDesc: TestDescriptor): Path {
-      val classDir = urlEncode(testDesc.getClassName()!!)
-      val testDir = urlEncode(sanitizedTestName(testDesc))
+      val classDir = urlEncode(testDesc.className!!)
+      val testDir = urlEncode(sanitizedTestName(testDesc.name))
       return reportDir.toPath().resolve(classDir).resolve(testDir)
     }
 
@@ -246,8 +279,27 @@ class TestingState {
       testDesc: TestDescriptor,
       fileName: String
     ): File {
-      val dir = getTestReportEntryDir(reportDir, testDesc).toPath()
+      val dir = getTestReportEntryDirFromTest(reportDir, testDesc).toPath()
       return dir.resolve(fileName).toFile()
+    }
+
+    private fun updateStatusFiles(
+      reportDir: File,
+      desc: TestDescriptor,
+      result: ResultType) {
+      val statusFile = getStatusFile(result)
+      withTestResultEntryWriter(reportDir, desc, statusFile.name, false, {
+        it.append(statusFile.name)
+      })
+      if (statusFile == StatusFile.FAILURE) {
+        getTestResultEntryOutputFile(reportDir, desc, StatusFile.SUCCESS.name).delete()
+        val pastFailure = StatusFile.PAST_FAILURE.name
+        withTestResultEntryWriter(reportDir, desc, pastFailure, false, {
+          it.append(pastFailure)
+        })
+      } else {
+        getTestResultEntryOutputFile(reportDir, desc, StatusFile.FAILURE.name).delete()
+      }
     }
 
     private fun withTestResultEntryWriter(
@@ -261,51 +313,13 @@ class TestingState {
       FileWriter(file, append).use(fn)
     }
 
-    private fun forEachTestReportAlreadyFailing(
+    fun forEachTestReportStatusMatching(
       test: Test,
       reportDir: File,
-      onFailureTest: (String, String) -> Unit
-    ): Boolean {
-      return internalForEachTestReportState(
-        test,
-        reportDir,
-        TestResult.ResultType.FAILURE.name,
-        onFailureTest
-      )
-    }
-
-    fun forEachTestReportAlreadyPassing(
-      test: Test,
-      reportDir: File,
-      onSucceededTest: (String, String) -> Unit
-    ): Boolean {
-      return internalForEachTestReportState(
-        test,
-        reportDir,
-        TestResult.ResultType.SUCCESS.name,
-        onSucceededTest
-      )
-    }
-
-    fun forEachTestReportAlreadySkipped(
-      test: Test,
-      reportDir: File,
-      onSucceededTest: (String, String) -> Unit
-    ): Boolean {
-      return internalForEachTestReportState(
-        test,
-        reportDir,
-        TestResult.ResultType.SKIPPED.name,
-        onSucceededTest
-      )
-    }
-
-    fun internalForEachTestReportState(
-      test: Test,
-      reportDir: File,
-      fileName: String,
+      statusFile: StatusFile,
       onTest: (String, String) -> Unit
     ): Boolean {
+      val fileName = statusFile.name
       val logger = test.logger
       val proc = ProcessBuilder("find", ".", "-name", fileName)
         .directory(reportDir)
