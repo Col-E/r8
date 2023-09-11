@@ -17,11 +17,15 @@ import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Enumeration;
+import java.util.Set;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -47,21 +51,55 @@ public class GenerateCustomConversionTest extends TestBase {
   }
 
   @Test
-  public void testCustomConversionIsUpToDate() throws IOException {
+  public void testCustomConversionIsUpToDate() throws Exception {
     Assume.assumeFalse("JDK8 not present on windows", ToolHelper.isWindows());
 
     // Regenerate the files in a temp directory.
     Path customConversionDir = temp.newFolder("custom_conversion").toPath();
-    generateCustomConversions(temp, customConversionDir);
+    Collection<Path> generatedJars = generateCustomConversions(temp, customConversionDir);
 
     for (CustomConversionVersion version : CustomConversionVersion.values()) {
       // Assert the file is generated.
       Path newFile = customConversionDir.resolve(version.getFileName());
-      assertTrue(Files.exists(newFile));
+      String message =
+          "File " + newFile + " was not generated, but " + generatedJars + " were generated.";
+      assertTrue(message, generatedJars.contains(newFile));
+      assertTrue(message, Files.exists(newFile));
 
       // Assert the file matches the one in third_party.
       Path thirdPartyFile = ToolHelper.getDesugarLibConversions(version);
-      assertTrue(filesAreEqual(newFile, thirdPartyFile));
+      uploadJarsToCloudStorageIfTestFails(
+          (file1, file2) -> {
+            verifySameFilesInJar(file1, file2);
+            assertProgramsEqual(file1, file2);
+            return filesAreEqual(file1, file2);
+          },
+          newFile,
+          thirdPartyFile);
+    }
+  }
+
+  private static void verifySameFilesInJar(Path file1, Path file2) throws IOException {
+    try (ZipFile zipFile1 = new ZipFile(file1.toFile())) {
+      try (ZipFile zipFile2 = new ZipFile(file2.toFile())) {
+        Enumeration<? extends ZipEntry> entries1 = zipFile1.entries();
+        Enumeration<? extends ZipEntry> entries2 = zipFile2.entries();
+        Set<String> s1 = Sets.newHashSet();
+        while (entries1.hasMoreElements()) {
+          ZipEntry entry = entries1.nextElement();
+          s1.add(entry.getName());
+        }
+        Set<String> s2 = Sets.newHashSet();
+        while (entries2.hasMoreElements()) {
+          ZipEntry entry = entries2.nextElement();
+          s2.add(entry.getName());
+        }
+        SetView<String> intersection = Sets.intersection(s1, s2);
+        Set<String> inter = Sets.newHashSet(intersection);
+        s1.removeAll(inter);
+        s2.removeAll(inter);
+        assert s1.isEmpty() && s2.isEmpty() : "Extra files in " + s1 + " or " + s2;
+      }
     }
   }
 
@@ -75,8 +113,8 @@ public class GenerateCustomConversionTest extends TestBase {
     }
   }
 
-  private static void generateCustomConversions(TemporaryFolder temp, Path destinationDir)
-      throws IOException {
+  private static Collection<Path> generateCustomConversions(
+      TemporaryFolder temp, Path destinationDir) throws IOException {
     temp.create();
     Files.createDirectories(destinationDir);
 
@@ -103,10 +141,12 @@ public class GenerateCustomConversionTest extends TestBase {
     assert verifyRawOutput(raw);
 
     // Asm rewrite the jar.
-    GenerateCustomConversion.generateJars(raw, destinationDir);
+    Collection<Path> generateJars = GenerateCustomConversion.generateJars(raw, destinationDir);
 
     // No need to keep the raw jar.
     Files.delete(raw);
+
+    return generateJars;
   }
 
   private static boolean verifyRawOutput(Path output) throws IOException {

@@ -20,7 +20,10 @@ import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
@@ -37,16 +40,19 @@ public class GenerateCustomConversion {
   private final Map<String, String> wrapConvertOwnerMap =
       CustomConversionAsmRewriteDescription.getWrapConvertOwnerMap();
 
-  public static void generateJars(Path jar, Path outputDirectory) throws IOException {
+  public static Collection<Path> generateJars(Path jar, Path outputDirectory) throws IOException {
+    List<Path> generatedJars = new ArrayList<>();
     for (CustomConversionVersion version : CustomConversionVersion.values()) {
-      new GenerateCustomConversion(version).convert(jar, outputDirectory);
+      generatedJars.add(new GenerateCustomConversion(version).convert(jar, outputDirectory));
     }
+    return generatedJars;
   }
 
-  private void convert(Path jar, Path outputDirectory) throws IOException {
+  private Path convert(Path jar, Path outputDirectory) throws IOException {
     Path convertedJar = outputDirectory.resolve(version.getFileName());
     internalConvert(jar, convertedJar);
     assert Files.exists(convertedJar) : "Custom conversion generation did not generate anything.";
+    return convertedJar;
   }
 
   private void internalConvert(Path jar, Path convertedJar) throws IOException {
@@ -55,33 +61,30 @@ public class GenerateCustomConversion {
     try (ZipOutputStream out =
         new ZipOutputStream(
             new BufferedOutputStream(Files.newOutputStream(convertedJar, options)))) {
-      new GenerateCustomConversion(version).convert(jar, out, version);
+      new GenerateCustomConversion(version).convert(jar, out);
     }
   }
 
-  private void convert(
-      Path desugaredLibraryFiles, ZipOutputStream out, CustomConversionVersion legacy)
-      throws IOException {
+  private void convert(Path desugaredLibraryFiles, ZipOutputStream out) throws IOException {
     boolean fileGotWritten = false;
     try (ZipFile zipFile = new ZipFile(desugaredLibraryFiles.toFile(), StandardCharsets.UTF_8)) {
       final Enumeration<? extends ZipEntry> entries = zipFile.entries();
       while (entries.hasMoreElements()) {
         ZipEntry entry = entries.nextElement();
         try (InputStream entryStream = zipFile.getInputStream(entry)) {
-          fileGotWritten |= handleFile(entry, entryStream, out, legacy);
+          fileGotWritten |= handleFile(entry, entryStream, out);
         }
       }
     }
     assert fileGotWritten : "No files were written when converting custom conversions.";
   }
 
-  private boolean handleFile(
-      ZipEntry entry, InputStream input, ZipOutputStream out, CustomConversionVersion legacy)
+  private boolean handleFile(ZipEntry entry, InputStream input, ZipOutputStream out)
       throws IOException {
     if (!entry.getName().endsWith(".class")) {
       return false;
     }
-    if (legacy == CustomConversionVersion.LEGACY
+    if (version == CustomConversionVersion.LEGACY
         && (entry.getName().contains("java/nio/file")
             || entry.getName().contains("ApiFlips")
             || entry.getName().contains("java/adapter"))) {
