@@ -6,7 +6,6 @@ package com.android.tools.r8.bootstrap;
 
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -73,8 +72,7 @@ public class SanityCheck extends TestBase {
       }
     }
     assertTrue(apiDatabaseFiles.isEmpty());
-    // TODO(b/270105162): Add LICENSE file to r8 with deps.
-    assertEquals("No LICENSE entry found in " + jar, !ToolHelper.isNewGradleSetup(), licenseSeen);
+    assertTrue("No LICENSE entry found in " + jar, licenseSeen);
   }
 
   private void checkLibJarContent(Path jar, Path map) throws Exception {

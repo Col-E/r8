@@ -150,6 +150,7 @@ tasks {
     exclude("META-INF/maven/**")
     exclude("META-INF/proguard/**")
     exclude("META-INF/versions/**")
+    exclude("META-INF/services/kotlin.reflect.**")
     exclude("**/*.xml")
     exclude("com/android/version.properties")
     exclude("NOTICE")
