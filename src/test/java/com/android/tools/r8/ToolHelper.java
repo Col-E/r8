@@ -39,6 +39,7 @@ import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
@@ -591,7 +592,7 @@ public class ToolHelper {
 
     private DexVm version;
     private boolean withArtFrameworks;
-    private ArtResultCacheLookupKey artResultCacheLookupKey;
+    private CacheLookupKey artResultCacheLookupKey;
     private boolean noCaching = false;
 
     public ArtCommandBuilder() {
@@ -646,7 +647,7 @@ public class ToolHelper {
     }
 
     private boolean useCache() {
-      return !noCaching && CommandResultCache.getInstance() != null;
+      return !noCaching && CommandResultCache.isEnabled();
     }
 
     public void cacheResult(ProcessResult result) {
@@ -654,18 +655,20 @@ public class ToolHelper {
       // put invalid entries into the cache.
       if (useCache() && result.exitCode == 0) {
         assert artResultCacheLookupKey != null;
-        CommandResultCache.getInstance().putResult(result, artResultCacheLookupKey);
+        CommandResultCache.getInstance().putResult(result, artResultCacheLookupKey, null);
       }
     }
 
-    public ProcessResult getCachedResults() {
+    public ProcessResult getCachedResults() throws IOException {
       if (!useCache()) {
         return null;
       }
       assert artResultCacheLookupKey == null;
       // Reuse the key when storing results if this is not already cached.
-      artResultCacheLookupKey = new ArtResultCacheLookupKey(this::hashParts);
-      return CommandResultCache.getInstance().lookup(artResultCacheLookupKey);
+      artResultCacheLookupKey = new CacheLookupKey(this::hashParts);
+      Pair<ProcessResult, Path> lookup =
+          CommandResultCache.getInstance().lookup(artResultCacheLookupKey);
+      return lookup == null ? null : lookup.getFirst();
     }
 
     private void hashParts(Hasher hasher) {
@@ -696,11 +699,11 @@ public class ToolHelper {
     }
   }
 
-  private static class ArtResultCacheLookupKey {
+  public static class CacheLookupKey {
     private final Consumer<Hasher> hasherConsumer;
     private String hash;
 
-    public ArtResultCacheLookupKey(Consumer<Hasher> hasherConsumer) {
+    public CacheLookupKey(Consumer<Hasher> hasherConsumer) {
       this.hasherConsumer = hasherConsumer;
     }
 
@@ -714,7 +717,7 @@ public class ToolHelper {
     }
   }
 
-  private static class CommandResultCache {
+  public static class CommandResultCache {
     private static CommandResultCache INSTANCE =
         System.getProperty("command_cache_dir") != null
             ? new CommandResultCache(Paths.get(System.getProperty("command_cache_dir")))
@@ -730,16 +733,24 @@ public class ToolHelper {
       return INSTANCE;
     }
 
-    private Path getStdoutFile(ArtResultCacheLookupKey artResultCacheLookupKey) {
-      return path.resolve(artResultCacheLookupKey.getHash() + ".stdout");
+    public static boolean isEnabled() {
+      return getInstance() != null;
     }
 
-    private Path getStderrFile(ArtResultCacheLookupKey artResultCacheLookupKey) {
-      return path.resolve(artResultCacheLookupKey.getHash() + ".stderr");
+    private Path getStdoutFile(CacheLookupKey cacheLookupKey) {
+      return path.resolve(cacheLookupKey.getHash() + ".stdout");
     }
 
-    private Path getExitCodeFile(ArtResultCacheLookupKey artResultCacheLookupKey) {
-      return path.resolve(artResultCacheLookupKey.getHash());
+    private Path getStderrFile(CacheLookupKey cacheLookupKey) {
+      return path.resolve(cacheLookupKey.getHash() + ".stderr");
+    }
+
+    private Path getOutputFile(CacheLookupKey cacheLookupKey) {
+      return path.resolve(cacheLookupKey.getHash() + ".output");
+    }
+
+    private Path getExitCodeFile(CacheLookupKey cacheLookupKey) {
+      return path.resolve(cacheLookupKey.getHash());
     }
 
     private Path getTempFile(Path path) {
@@ -758,38 +769,47 @@ public class ToolHelper {
       return "";
     }
 
-    public ProcessResult lookup(ArtResultCacheLookupKey artResultCacheLookupKey) {
+    public Pair<ProcessResult, Path> lookup(CacheLookupKey cacheLookupKey) {
       // TODO Add concurrency handling!
-      Path exitCodeFile = getExitCodeFile(artResultCacheLookupKey);
+      Path exitCodeFile = getExitCodeFile(cacheLookupKey);
       if (exitCodeFile.toFile().exists()) {
         int exitCode = Integer.parseInt(getStringContent(exitCodeFile));
         // Because of the temp files and order of writing we should never get here with an
         // inconsistent state. It is possible, although unlikely, that the stdout/stderr
         // (and even exitcode if art is non deterministic) are from different, process ids etc,
         // but this should have no impact.
-        return new ProcessResult(
-            exitCode,
-            getStringContent(getStdoutFile(artResultCacheLookupKey)),
-            getStringContent(getStderrFile(artResultCacheLookupKey)));
+
+        Path outputFile = getOutputFile(cacheLookupKey);
+        return new Pair(
+            new ProcessResult(
+                exitCode,
+                getStringContent(getStdoutFile(cacheLookupKey)),
+                getStringContent(getStderrFile(cacheLookupKey))),
+            outputFile.toFile().exists() ? outputFile : null);
       }
       return null;
     }
 
-    public void putResult(ProcessResult result, ArtResultCacheLookupKey artResultCacheLookupKey) {
+    public void putResult(ProcessResult result, CacheLookupKey cacheLookupKey, Path output) {
       try {
         String exitCode = "" + result.exitCode;
         // We avoid race conditions of writing vs reading by first writing all 3 files to temp
         // files, then moving these to the result files, moving last the exitcode file (which is
         // what we use as cache present check)
-        Path exitCodeFile = getExitCodeFile(artResultCacheLookupKey);
+        Path exitCodeFile = getExitCodeFile(cacheLookupKey);
         Path exitCodeTempFile = getTempFile(exitCodeFile);
-        Path stdoutFile = getStdoutFile(artResultCacheLookupKey);
+        Path stdoutFile = getStdoutFile(cacheLookupKey);
         Path stdoutTempFile = getTempFile(stdoutFile);
-        Path stderrFile = getStderrFile(artResultCacheLookupKey);
+        Path stderrFile = getStderrFile(cacheLookupKey);
         Path stderrTempFile = getTempFile(stderrFile);
+        Path outputfile = getOutputFile(cacheLookupKey);
+        Path outputTempFile = getTempFile(outputfile);
         Files.write(exitCodeTempFile, exitCode.getBytes(StandardCharsets.UTF_8));
         Files.write(stdoutTempFile, result.stdout.getBytes(StandardCharsets.UTF_8));
         Files.write(stderrTempFile, result.stderr.getBytes(StandardCharsets.UTF_8));
+        if (output != null) {
+          Files.copy(output, outputTempFile);
+        }
         // Order is important, move exitcode file last!
         Files.move(
             stdoutTempFile,
@@ -801,6 +821,13 @@ public class ToolHelper {
             stderrFile,
             StandardCopyOption.ATOMIC_MOVE,
             StandardCopyOption.REPLACE_EXISTING);
+        if (output != null) {
+          Files.move(
+              outputTempFile,
+              outputfile,
+              StandardCopyOption.ATOMIC_MOVE,
+              StandardCopyOption.REPLACE_EXISTING);
+        }
         Files.move(
             exitCodeTempFile,
             exitCodeFile,

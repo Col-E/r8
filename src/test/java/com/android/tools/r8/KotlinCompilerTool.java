@@ -12,13 +12,20 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestRuntime.CfRuntime;
+import com.android.tools.r8.ToolHelper.CacheLookupKey;
+import com.android.tools.r8.ToolHelper.CommandResultCache;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.structural.Ordered;
+import com.google.common.hash.Hasher;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -339,7 +346,45 @@ public class KotlinCompilerTool {
   }
 
   private ProcessResult compileInternal(Path output) throws IOException {
-    List<String> cmdline = new ArrayList<>();
+    CommandLineAndHasherConsumers commandLineAndHasherConsumers =
+        buildCommandLineAndHasherConsumers(output);
+    CacheLookupKey cacheLookupKey = null;
+    if (CommandResultCache.isEnabled()) {
+      cacheLookupKey =
+          new CacheLookupKey(
+              hasher ->
+                  commandLineAndHasherConsumers.hasherConsumers.forEach(
+                      hasherConsumer -> hasherConsumer.acceptWithRuntimeException(hasher)));
+      Pair<ProcessResult, Path> lookupResult =
+          CommandResultCache.getInstance().lookup(cacheLookupKey);
+      if (lookupResult != null
+          && lookupResult.getFirst().exitCode == 0
+          && lookupResult.getSecond() != null) {
+        Files.copy(lookupResult.getSecond(), output);
+        return lookupResult.getFirst();
+      }
+    }
+    ProcessBuilder builder = new ProcessBuilder(commandLineAndHasherConsumers.cmdline);
+    if (ToolHelper.isNewGradleSetup()) {
+      builder.directory(new File(ToolHelper.getProjectRoot()));
+    }
+    ProcessResult processResult = ToolHelper.runProcess(builder);
+    if (CommandResultCache.isEnabled()) {
+      CommandResultCache.getInstance().putResult(processResult, cacheLookupKey, output);
+    }
+    return processResult;
+  }
+
+  public static class CommandLineAndHasherConsumers {
+    final List<String> cmdline = new ArrayList<>();
+    final List<ThrowingConsumer<Hasher, IOException>> hasherConsumers = new ArrayList<>();
+  }
+
+  private CommandLineAndHasherConsumers buildCommandLineAndHasherConsumers(Path output)
+      throws IOException {
+    CommandLineAndHasherConsumers commandLineAndHasherConsumers =
+        new CommandLineAndHasherConsumers();
+    List<String> cmdline = commandLineAndHasherConsumers.cmdline;
     cmdline.add(jdk.getJavaExecutable().toString());
     if (enableAssertions) {
       cmdline.add("-ea");
@@ -354,8 +399,15 @@ public class KotlinCompilerTool {
     cmdline.add(jdk.getJavaHome().toString());
     cmdline.add("-jvm-target");
     cmdline.add(targetVersion.getJvmTargetString());
+    // Until now this is just command line files, no inputs, hash existing command
+    String noneFileCommandLineArguments = StringUtils.join("", cmdline);
+    commandLineAndHasherConsumers.hasherConsumers.add(
+        hasher -> hasher.putString(noneFileCommandLineArguments, StandardCharsets.UTF_8));
+
     for (Path source : sources) {
       cmdline.add(source.toString());
+      commandLineAndHasherConsumers.hasherConsumers.add(
+          hasher -> hasher.putBytes(Files.readAllBytes(source)));
     }
     cmdline.add("-d");
     cmdline.add(output.toString());
@@ -365,12 +417,19 @@ public class KotlinCompilerTool {
           .stream()
           .map(Path::toString)
           .collect(Collectors.joining(isWindows() ? ";" : ":")));
+      for (Path path : classpath) {
+        commandLineAndHasherConsumers.hasherConsumers.add(
+            hasher -> {
+              hasher.putString("--cp", StandardCharsets.UTF_8);
+              hasher.putBytes(Files.readAllBytes(path));
+            });
+      }
     }
     cmdline.addAll(additionalArguments);
-    ProcessBuilder builder = new ProcessBuilder(cmdline);
-    if (ToolHelper.isNewGradleSetup()) {
-      builder.directory(new File(ToolHelper.getProjectRoot()));
-    }
-    return ToolHelper.runProcess(builder);
+    commandLineAndHasherConsumers.hasherConsumers.add(
+        hasher -> additionalArguments.forEach(s -> hasher.putString(s, StandardCharsets.UTF_8)));
+    return commandLineAndHasherConsumers;
   }
+
+
 }
