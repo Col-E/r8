@@ -149,6 +149,7 @@ public class ZipUtils {
     List<Path> files =
         Files.walk(inputDirectory)
             .filter(path -> !Files.isDirectory(path))
+            .sorted()
             .collect(Collectors.toList());
     zip(zipFile, inputDirectory, files);
   }

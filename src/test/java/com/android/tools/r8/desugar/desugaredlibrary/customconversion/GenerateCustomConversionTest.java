@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.customconversion;
 import static com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.getAllFilesWithSuffixInDirectory;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.JavaCompilerTool;
@@ -14,18 +15,16 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.CustomConversionVersion;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
-import java.util.Set;
+import java.util.List;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -39,15 +38,13 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class GenerateCustomConversionTest extends TestBase {
 
-  private final TestParameters parameters;
-
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntime(CfVm.JDK11).build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
   public GenerateCustomConversionTest(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   @Test
@@ -70,7 +67,7 @@ public class GenerateCustomConversionTest extends TestBase {
       Path thirdPartyFile = ToolHelper.getDesugarLibConversions(version);
       uploadJarsToCloudStorageIfTestFails(
           (file1, file2) -> {
-            verifySameFilesInJar(file1, file2);
+            verifySameFilesInJarInSameOrder(file1, file2);
             assertProgramsEqual(file1, file2);
             return filesAreEqual(file1, file2);
           },
@@ -79,26 +76,22 @@ public class GenerateCustomConversionTest extends TestBase {
     }
   }
 
-  private static void verifySameFilesInJar(Path file1, Path file2) throws IOException {
+  private static void verifySameFilesInJarInSameOrder(Path file1, Path file2) throws IOException {
     try (ZipFile zipFile1 = new ZipFile(file1.toFile())) {
       try (ZipFile zipFile2 = new ZipFile(file2.toFile())) {
         Enumeration<? extends ZipEntry> entries1 = zipFile1.entries();
-        Enumeration<? extends ZipEntry> entries2 = zipFile2.entries();
-        Set<String> s1 = Sets.newHashSet();
+        List<String> s1 = new ArrayList<>();
         while (entries1.hasMoreElements()) {
           ZipEntry entry = entries1.nextElement();
           s1.add(entry.getName());
         }
-        Set<String> s2 = Sets.newHashSet();
+        Enumeration<? extends ZipEntry> entries2 = zipFile2.entries();
+        List<String> s2 = new ArrayList<>();
         while (entries2.hasMoreElements()) {
           ZipEntry entry = entries2.nextElement();
           s2.add(entry.getName());
         }
-        SetView<String> intersection = Sets.intersection(s1, s2);
-        Set<String> inter = Sets.newHashSet(intersection);
-        s1.removeAll(inter);
-        s2.removeAll(inter);
-        assert s1.isEmpty() && s2.isEmpty() : "Extra files in " + s1 + " or " + s2;
+        assertEquals(s1, s2);
       }
     }
   }
