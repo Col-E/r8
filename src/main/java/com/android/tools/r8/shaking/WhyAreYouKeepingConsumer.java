@@ -225,7 +225,7 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
           ? keepRuleNode.getContent()
           : keepRuleNode.getOrigin() + ":" + shortPositionInfo(keepRuleNode.getPosition());
     }
-    if (node == GraphNode.cycle()) {
+    if (GraphNode.cycle().equals(node)) {
       return "only cyclic dependencies remain, failed to determine a path from a keep rule";
     }
     assert false : "Unexpected graph node type: " + node;
