@@ -689,17 +689,6 @@ public class Enqueuer {
     return definitionFor(type, context, this::recordNonProgramClass, this::reportMissingClass);
   }
 
-  public DexLibraryClass definitionForLibraryClassOrIgnore(DexType type) {
-    assert type.isClassType();
-    ClassResolutionResult classResolutionResult =
-        appInfo().contextIndependentDefinitionForWithResolutionResult(type);
-    return classResolutionResult.hasClassResolutionResult()
-            && !classResolutionResult.isMultipleClassResolutionResult()
-        ? DexLibraryClass.asLibraryClassOrNull(
-            classResolutionResult.toSingleClassWithProgramOverLibrary())
-        : null;
-  }
-
   public boolean hasAlternativeLibraryDefinition(DexProgramClass programClass) {
     ClassResolutionResult classResolutionResult =
         internalDefinitionFor(

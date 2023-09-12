@@ -58,30 +58,28 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
     super(subConsumer);
   }
 
-  @SuppressWarnings("ReferenceEquality")
   public ClassGraphNode getClassNode(ClassReference clazz) {
     for (GraphNode node : getTargets()) {
-      if (node instanceof ClassGraphNode && ((ClassGraphNode) node).getReference() == clazz) {
+      if (node instanceof ClassGraphNode && ((ClassGraphNode) node).getReference().equals(clazz)) {
         return (ClassGraphNode) node;
       }
     }
     return null;
   }
 
-  @SuppressWarnings("ReferenceEquality")
   public MethodGraphNode getMethodNode(MethodReference method) {
     for (GraphNode node : getTargets()) {
-      if (node instanceof MethodGraphNode && ((MethodGraphNode) node).getReference() == method) {
+      if (node instanceof MethodGraphNode
+          && ((MethodGraphNode) node).getReference().equals(method)) {
         return (MethodGraphNode) node;
       }
     }
     return null;
   }
 
-  @SuppressWarnings("ReferenceEquality")
   public FieldGraphNode getFieldNode(FieldReference field) {
     for (GraphNode node : getTargets()) {
-      if (node instanceof FieldGraphNode && ((FieldGraphNode) node).getReference() == field) {
+      if (node instanceof FieldGraphNode && ((FieldGraphNode) node).getReference().equals(field)) {
         return (FieldGraphNode) node;
       }
     }
@@ -196,7 +194,6 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
     addNodeMessage(node, formatter);
   }
 
-  @SuppressWarnings("ReferenceEquality")
   private String getNodeString(GraphNode node) {
     if (node instanceof ClassGraphNode) {
       return DescriptorUtils.descriptorToJavaType(
@@ -224,7 +221,7 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
     }
     if (node instanceof KeepRuleGraphNode) {
       KeepRuleGraphNode keepRuleNode = (KeepRuleGraphNode) node;
-      return keepRuleNode.getOrigin() == Origin.unknown()
+      return Origin.unknown().equals(keepRuleNode.getOrigin())
           ? keepRuleNode.getContent()
           : keepRuleNode.getOrigin() + ":" + shortPositionInfo(keepRuleNode.getPosition());
     }
