@@ -66,19 +66,20 @@ public class GenerateCustomConversionTest extends TestBase {
       // Assert the file matches the one in third_party.
       Path thirdPartyFile = ToolHelper.getDesugarLibConversions(version);
       uploadJarsToCloudStorageIfTestFails(
-          (file1, file2) -> {
-            verifySameFilesInJarInSameOrder(file1, file2);
-            assertProgramsEqual(file1, file2);
-            return filesAreEqual(file1, file2);
+          (expected, actual) -> {
+            verifySameFilesInJarInSameOrder(expected, actual);
+            assertProgramsEqual(expected, actual);
+            return filesAreEqual(expected, actual);
           },
-          newFile,
-          thirdPartyFile);
+          thirdPartyFile,
+          newFile);
     }
   }
 
-  private static void verifySameFilesInJarInSameOrder(Path file1, Path file2) throws IOException {
-    try (ZipFile zipFile1 = new ZipFile(file1.toFile())) {
-      try (ZipFile zipFile2 = new ZipFile(file2.toFile())) {
+  private static void verifySameFilesInJarInSameOrder(Path expected, Path actual)
+      throws IOException {
+    try (ZipFile zipFile1 = new ZipFile(expected.toFile())) {
+      try (ZipFile zipFile2 = new ZipFile(actual.toFile())) {
         Enumeration<? extends ZipEntry> entries1 = zipFile1.entries();
         List<String> s1 = new ArrayList<>();
         while (entries1.hasMoreElements()) {
