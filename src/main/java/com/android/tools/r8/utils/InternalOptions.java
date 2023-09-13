@@ -1747,18 +1747,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         return simpleInliningInstructionLimit;
       }
       // Allow 4 instructions when using LIR regardless of backend.
-      if (options.testing.useLir) {
-        // TODO(b/288226522): We should reevaluate this for size and other inputs as it regresses
-        //  compared to DEX code with limit 5 for tivi. This is set to 5 to avoid discard errors
-        //  in chrome. Using 5 also improves size for chrome compared to a lower value.
-        return 5;
-      }
-      // Allow 3 instructions when generating to class files.
-      if (options.isGeneratingClassFiles()) {
-        return 3;
-      }
-      // Allow the size of the dex code to be up to 5 bytes.
-      assert options.isGeneratingDex();
+      // TODO(b/288226522): We should reevaluate this for size and other inputs as it regresses
+      //  compared to DEX code with limit 5 for tivi. This is set to 5 to avoid discard errors
+      //  in chrome. Using 5 also improves size for chrome compared to a lower value.
       return 5;
     }
 
@@ -2144,19 +2135,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public static class TestingOptions {
 
     public boolean roundtripThroughLir = false;
-    private boolean useLir = System.getProperty("com.android.tools.r8.nolir") == null;
-    private boolean convertLir = System.getProperty("com.android.tools.r8.convertlir") == null;
-
-    public void enableLir() {
-      useLir = true;
-    }
-
-    public void disableLir() {
-      useLir = false;
-    }
 
     public boolean canUseLir(AppView<?> appView) {
-      return useLir && appView.enableWholeProgramOptimizations();
+      return appView.enableWholeProgramOptimizations();
     }
 
     // As part of integrating LIR the compiler is split in three phases: pre, supported, and post.
@@ -2173,7 +2154,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         throws ExecutionException {
       assert isPreLirPhase();
       currentPhase = LirPhase.SUPPORTED;
-      if (!canUseLir(appView) || !convertLir) {
+      if (!canUseLir(appView)) {
         return;
       }
       // Convert code objects to LIR.

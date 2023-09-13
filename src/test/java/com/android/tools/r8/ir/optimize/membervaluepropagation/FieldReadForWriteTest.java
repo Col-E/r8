@@ -39,7 +39,6 @@ public class FieldReadForWriteTest extends TestBase {
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters)
-        .addOptionsModification(o -> o.testing.enableLir())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("42")
         .inspect(inspector -> assertThat(inspector.clazz(anim.class), isAbsent()));

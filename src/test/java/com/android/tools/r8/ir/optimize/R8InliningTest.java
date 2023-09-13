@@ -123,7 +123,6 @@ public class R8InliningTest extends TestBase {
               o.inlinerOptions().enableInlining = inlining;
               o.inlinerOptions().enableInliningOfInvokesWithNullableReceivers = false;
               o.inlinerOptions().simpleInliningInstructionLimit = 7;
-              o.testing.enableLir();
               o.testing.horizontallyMergedClassesConsumer = this::fixInliningNullabilityClass;
               o.testing.horizontalClassMergingTarget =
                   (appView, candidates, target) -> {

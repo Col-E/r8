@@ -88,7 +88,6 @@ public class B137392797 extends TestBase implements Opcodes {
             options -> {
               // The default limit for LIR is 2 at time of writing.
               // The constructor inlining check needs a limit of 4 to trigger.
-              options.testing.enableLir();
               options.inlinerOptions().simpleInliningInstructionLimit = 4;
             })
         .compile()

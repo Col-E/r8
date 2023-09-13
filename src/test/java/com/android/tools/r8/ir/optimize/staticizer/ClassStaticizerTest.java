@@ -298,7 +298,6 @@ public class ClassStaticizerTest extends TestBase {
             .allowAccessModification()
             .addDontObfuscate()
             .addOptionsModification(this::configure)
-            .addOptionsModification(o -> o.testing.enableLir())
             .setMinApi(parameters)
             .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);

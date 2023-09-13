@@ -38,7 +38,6 @@ public class InlineFunctionalInterfaceMethodImplementedByLambdasTest extends Tes
         .addKeepMainRule(TestClass.class)
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters)
-        .addOptionsModification(o -> o.testing.enableLir())
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

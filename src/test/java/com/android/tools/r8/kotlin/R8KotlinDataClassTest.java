@@ -129,7 +129,6 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             testBuilder ->
                 testBuilder
                     .addKeepRules(keepClassMethod(mainClassName, testMethodSignature))
-                    .addOptionsModification(o -> o.testing.enableLir())
                     .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {

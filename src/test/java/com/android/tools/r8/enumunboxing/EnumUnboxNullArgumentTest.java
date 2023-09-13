@@ -30,7 +30,6 @@ public class EnumUnboxNullArgumentTest extends TestBase {
         .addInnerClasses(getClass())
         .setMinApi(parameters)
         .addKeepMainRule(Main.class)
-        .addOptionsModification(options -> options.testing.disableLir())
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class);
   }
