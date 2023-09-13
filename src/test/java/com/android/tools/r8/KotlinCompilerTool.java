@@ -369,7 +369,7 @@ public class KotlinCompilerTool {
       builder.directory(new File(ToolHelper.getProjectRoot()));
     }
     ProcessResult processResult = ToolHelper.runProcess(builder);
-    if (CommandResultCache.isEnabled()) {
+    if (CommandResultCache.isEnabled() && output.toFile().isFile()) {
       CommandResultCache.getInstance().putResult(processResult, cacheLookupKey, output);
     }
     return processResult;
