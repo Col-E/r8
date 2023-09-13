@@ -77,8 +77,7 @@ public class ComposeWithMissingDebugInfoTest extends TestBase {
             .map(method -> method.getRetracedMethod().getMethodName())
             .collect(Collectors.toSet());
     Set<String> expectedMethods = new HashSet<>();
-    expectedMethods.add("a");
-    // TODO(b/297970886): We should observe 'foo' and not 'a'.
+    expectedMethods.add("foo");
     assertEquals(expectedMethods, foundMethods);
   }
 

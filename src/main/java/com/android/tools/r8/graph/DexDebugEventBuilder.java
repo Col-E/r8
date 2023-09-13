@@ -57,6 +57,7 @@ public class DexDebugEventBuilder {
   private int emittedPc = NO_PC_INFO;
   private Position emittedPosition = Position.none();
   private Int2ReferenceMap<DebugLocalInfo> emittedLocals;
+  private final boolean isComposing;
 
   // Emitted events.
   private final List<DexDebugEvent> events = new ArrayList<>();
@@ -66,9 +67,12 @@ public class DexDebugEventBuilder {
 
   public DexDebugEventBuilder(AppView<?> appView, IRCode code) {
     this.appView = appView;
-    this.method = code.method();
-    this.factory = appView.dexItemFactory();
-    this.options = appView.options();
+    method = code.context().getDefinition();
+    factory = appView.dexItemFactory();
+    options = appView.options();
+    isComposing =
+        options.mappingComposeOptions().enableExperimentalMappingComposition
+            && appView.appInfo().app().getProguardMap() != null;
   }
 
   /** Add events at pc for instruction. */
@@ -94,7 +98,9 @@ public class DexDebugEventBuilder {
       updateLocals(instruction.asDebugLocalsChange());
     } else if (pcAdvancing) {
       if (!position.isNone() && !position.equals(emittedPosition)) {
-        if (options.debug || instruction.instructionInstanceCanThrow(appView, context)) {
+        if (options.debug
+            || instruction.instructionInstanceCanThrow(appView, context)
+            || isComposing) {
           emitDebugPosition(pc, position);
         }
       }
