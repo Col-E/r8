@@ -119,7 +119,10 @@ def prepare_release(args):
 
         validate_version_change_diff(version_diff_output, "main", version)
 
-        maybe_check_call(args, ['git', 'cl', 'upload', '--no-squash'])
+        cmd = ['git', 'cl', 'upload', '--no-squash']
+        if args.bypass_hooks:
+           cmd.append('--bypass-hooks')
+        maybe_check_call(args, cmd)
 
         if args.dry_run:
           input(
@@ -966,6 +969,10 @@ def parse_options():
                       default=False,
                       action='store_true',
                       help='Delete CL in google3')
+  result.add_argument('--bypass-hooks', '--bypass_hooks',
+                      default=False,
+                      action='store_true',
+                      help="Bypass hooks when uploading")
   result.add_argument('--no-upload', '--no_upload',
                       default=False,
                       action='store_true',
