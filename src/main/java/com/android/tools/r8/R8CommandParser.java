@@ -113,6 +113,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
                 "  %MAP_HASH: compiler generated mapping hash."))
         .add(ParseFlagInfoImpl.getAndroidPlatformBuild())
         .add(ParseFlagInfoImpl.getArtProfile())
+        .add(ParseFlagInfoImpl.getStartupProfile())
         .add(ParseFlagInfoImpl.getVersion("r8"))
         .add(ParseFlagInfoImpl.getHelp())
         .build();
