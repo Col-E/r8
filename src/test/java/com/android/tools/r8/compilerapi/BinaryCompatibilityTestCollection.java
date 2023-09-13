@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compilerapi;
 
+import static com.android.tools.r8.ToolHelper.TestDataSourceSet.computeLegacyOrGradleSpecifiedLocation;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -13,6 +14,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.ToolHelper.TestDataSourceSet;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.transformers.ClassFileTransformer.InnerClassPredicate;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -89,7 +91,11 @@ public abstract class BinaryCompatibilityTestCollection<T> {
   public void runJunitOnTestClass(Class<? extends T> test) throws Exception {
     List<Class<? extends T>> testClasses = Collections.singletonList(test);
     runJunitOnTestClasses(
-        generateJarForTestClasses(testClasses, getPendingAdditionalClassesForTests()), testClasses);
+        generateJarForTestClasses(
+            computeLegacyOrGradleSpecifiedLocation(),
+            testClasses,
+            getPendingAdditionalClassesForTests()),
+        testClasses);
   }
 
   private void runJunitOnTestClasses(Path testJar, Collection<Class<? extends T>> tests)
@@ -128,18 +134,23 @@ public abstract class BinaryCompatibilityTestCollection<T> {
     return ToolHelper.getHamcrestFromDeps();
   }
 
-  public Path generateJarForCheckedInTestClasses() throws Exception {
-    return generateJarForTestClasses(getCheckedInTestClasses(), Collections.emptyList());
+  public Path generateJarForCheckedInTestClasses(TestDataSourceSet testDataSourceSet)
+      throws Exception {
+    return generateJarForTestClasses(
+        testDataSourceSet, getCheckedInTestClasses(), Collections.emptyList());
   }
 
   private Path generateJarForTestClasses(
-      Collection<Class<? extends T>> classes, List<Class<?>> additionalPendingClassesForTest)
+      TestDataSourceSet testDataSourceSet,
+      Collection<Class<? extends T>> classes,
+      List<Class<?>> additionalPendingClassesForTest)
       throws Exception {
     Path jar = getTemp().newFolder().toPath().resolve("test.jar");
     ZipBuilder zipBuilder = ZipBuilder.builder(jar);
     for (Class<? extends T> test : classes) {
       zipBuilder.addFilesRelative(
-          ToolHelper.getClassPathForTests(), ToolHelper.getClassFilesForInnerClasses(test));
+          ToolHelper.getClassPathForTestDataSourceSet(testDataSourceSet),
+          ToolHelper.getClassFilesForInnerClasses(testDataSourceSet, test));
       zipBuilder.addBytes(
           ZipUtils.zipEntryNameForClass(test),
           ClassFileTransformer.create(test)
@@ -149,14 +160,14 @@ public abstract class BinaryCompatibilityTestCollection<T> {
               .transform());
     }
     zipBuilder.addFilesRelative(
-        ToolHelper.getClassPathForTests(),
+        ToolHelper.getClassPathForTestDataSourceSet(testDataSourceSet),
         getAdditionalClassesForTests().stream()
-            .map(ToolHelper::getClassFileForTestClass)
+            .map(clazz -> ToolHelper.getClassFileForTestClass(clazz, testDataSourceSet))
             .collect(Collectors.toList()));
     zipBuilder.addFilesRelative(
-        ToolHelper.getClassPathForTests(),
+        ToolHelper.getClassPathForTestDataSourceSet(testDataSourceSet),
         additionalPendingClassesForTest.stream()
-            .map(ToolHelper::getClassFileForTestClass)
+            .map(clazz -> ToolHelper.getClassFileForTestClass(clazz, testDataSourceSet))
             .collect(Collectors.toList()));
     return zipBuilder.build();
   }
@@ -166,7 +177,9 @@ public abstract class BinaryCompatibilityTestCollection<T> {
     Path checkedInContents = temp.newFolder().toPath();
     Path generatedContents = temp.newFolder().toPath();
     ZipUtils.unzip(getCheckedInTestJar(), checkedInContents);
-    ZipUtils.unzip(generateJarForCheckedInTestClasses(), generatedContents);
+    ZipUtils.unzip(
+        generateJarForCheckedInTestClasses(computeLegacyOrGradleSpecifiedLocation()),
+        generatedContents);
     try (Stream<Path> existingPaths = Files.walk(checkedInContents);
         Stream<Path> generatedPaths = Files.walk(generatedContents)) {
       List<Path> existing =
@@ -185,14 +198,14 @@ public abstract class BinaryCompatibilityTestCollection<T> {
     }
   }
 
-  public void replaceJarForCheckedInTestClasses() throws Exception {
+  public void replaceJarForCheckedInTestClasses(TestDataSourceSet sourceSet) throws Exception {
     Path checkedInJar = getCheckedInTestJar();
     Path tarballDir = checkedInJar.getParent();
     Path parentDir = tarballDir.getParent();
     if (!Files.exists(Paths.get(tarballDir + ".tar.gz.sha1"))) {
       throw new RuntimeException("Could not locate the SHA file for " + tarballDir);
     }
-    Path generatedJar = generateJarForCheckedInTestClasses();
+    Path generatedJar = generateJarForCheckedInTestClasses(sourceSet);
     Files.move(generatedJar, checkedInJar, StandardCopyOption.REPLACE_EXISTING);
     System.out.println(
         "Updated file in: "

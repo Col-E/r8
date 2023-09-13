@@ -7,6 +7,7 @@ package com.android.tools.r8.retrace.api;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.TestDataSourceSet;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -42,6 +43,7 @@ public class RetraceApiBinaryCompatibilityTest extends TestBase {
   public static void main(String[] args) throws Exception {
     TemporaryFolder temp = new TemporaryFolder();
     temp.create();
-    new RetraceApiTestCollection(temp).replaceJarForCheckedInTestClasses();
+    new RetraceApiTestCollection(temp)
+        .replaceJarForCheckedInTestClasses(TestDataSourceSet.TESTS_JAVA_8);
   }
 }

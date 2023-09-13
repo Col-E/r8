@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compilerapi;
 
+import static com.android.tools.r8.ToolHelper.getClassPathForTests;
 import static com.android.tools.r8.ToolHelper.isTestingR8Lib;
 
 import com.android.tools.r8.ToolHelper;
@@ -120,6 +121,7 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
   public List<String> getVmArgs() {
     return ImmutableList.of(
         makeProperty("com.android.tools.r8.enableTestAssertions", "1"),
+        makeProperty("TEST_DATA_LOCATION", getClassPathForTests().toString()),
         makeProperty(CompilerApiTest.API_TEST_MODE_KEY, CompilerApiTest.API_TEST_MODE_EXTERNAL),
         makeProperty(
             CompilerApiTest.API_TEST_LIB_KEY,

@@ -6,6 +6,7 @@ package com.android.tools.r8.compilerapi;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.TestDataSourceSet;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -53,6 +54,7 @@ public class CompilerApiTestCollectionTest extends TestBase {
   public static void main(String[] args) throws Exception {
     TemporaryFolder temp = new TemporaryFolder();
     temp.create();
-    new CompilerApiTestCollection(temp).replaceJarForCheckedInTestClasses();
+    new CompilerApiTestCollection(temp)
+        .replaceJarForCheckedInTestClasses(TestDataSourceSet.TESTS_JAVA_8);
   }
 }

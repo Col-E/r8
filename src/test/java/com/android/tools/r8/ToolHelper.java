@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.ToolHelper.TestDataSourceSet.computeLegacyOrGradleSpecifiedLocation;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
@@ -96,7 +97,7 @@ import org.junit.rules.TemporaryFolder;
 public class ToolHelper {
 
   public static boolean isNewGradleSetup() {
-    return "true".equals(System.getenv("USE_NEW_GRADLE_SETUP"));
+    return "true".equals(System.getProperty("USE_NEW_GRADLE_SETUP"));
   }
 
   public static String getProjectRoot() {
@@ -110,11 +111,48 @@ public class ToolHelper {
     return current + "/";
   }
 
+  public enum TestDataSourceSet {
+    LEGACY(null),
+    TESTS_JAVA_8("tests_java_8/build/classes/java/test"),
+    TESTS_BOOTSTRAP("tests_bootstrap/build/classes/java/test"),
+    SPECIFIED_BY_GRADLE_PROPERTY(null);
+
+    private final String destination;
+
+    TestDataSourceSet(String destination) {
+      this.destination = destination;
+    }
+
+    public boolean isLegacy() {
+      return this == LEGACY;
+    }
+
+    public boolean isSpecifiedByGradleProperty() {
+      return this == SPECIFIED_BY_GRADLE_PROPERTY;
+    }
+
+    public Path getBuildDir() {
+      if (isLegacy()) {
+        return Paths.get(BUILD_DIR, "classes", "java", "test");
+      } else if (isSpecifiedByGradleProperty()) {
+        assert System.getProperty("TEST_DATA_LOCATION") != null;
+        return Paths.get(System.getProperty("TEST_DATA_LOCATION"));
+      } else {
+        return Paths.get("d8_r8", "test_modules", destination);
+      }
+    }
+
+    public static TestDataSourceSet computeLegacyOrGradleSpecifiedLocation() {
+      return isNewGradleSetup()
+          ? TestDataSourceSet.SPECIFIED_BY_GRADLE_PROPERTY
+          : TestDataSourceSet.LEGACY;
+    }
+  }
+
   public static final String SOURCE_DIR = getProjectRoot() + "src/";
   public static final String MAIN_SOURCE_DIR = getProjectRoot() + "src/main/java/";
   public static final String LIBRARY_DESUGAR_SOURCE_DIR = getProjectRoot() + "src/library_desugar/";
   public static final String BUILD_DIR = getProjectRoot() + "build/";
-  public static final String TEST_MODULE_DIR = getProjectRoot() + "d8_r8/test_modules/";
   public static final String GENERATED_TEST_BUILD_DIR = BUILD_DIR + "generated/test/";
   public static final String LIBS_DIR = BUILD_DIR + "libs/";
   public static final String THIRD_PARTY_DIR = getProjectRoot() + "third_party/";
@@ -1433,12 +1471,11 @@ public class ToolHelper {
   }
 
   public static Path getClassPathForTests() {
-    if (isNewGradleSetup()) {
-      assert System.getenv("TEST_CLASSES_LOCATIONS") != null;
-      return Paths.get(System.getenv("TEST_CLASSES_LOCATIONS"));
-    } else {
-      return Paths.get(BUILD_DIR, "classes", "java", "test");
-    }
+    return getClassPathForTestDataSourceSet(computeLegacyOrGradleSpecifiedLocation());
+  }
+
+  public static Path getClassPathForTestDataSourceSet(TestDataSourceSet sourceSet) {
+    return sourceSet.getBuildDir();
   }
 
   private static List<String> getNamePartsForTestPackage(Package pkg) {
@@ -1483,29 +1520,41 @@ public class ToolHelper {
   }
 
   public static Path getClassFileForTestClass(Class<?> clazz) {
+    return getClassFileForTestClass(clazz, computeLegacyOrGradleSpecifiedLocation());
+  }
+
+  public static Path getClassFileForTestClass(Class<?> clazz, TestDataSourceSet sourceSet) {
     List<String> parts = getNamePartsForTestClass(clazz);
     Path resolve =
-        getClassPathForTests().resolve(Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY)));
+        getClassPathForTestDataSourceSet(sourceSet)
+            .resolve(Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY)));
     if (!Files.exists(resolve)) {
       throw new RuntimeException("Could not find: " + resolve.toString());
     }
     return resolve;
   }
 
-  public static Collection<Path> getClassFilesForInnerClasses(Path path) throws IOException {
-    Set<Path> paths = new HashSet<>();
-    String prefix = path.toString().replace(CLASS_EXTENSION, "$");
-    paths.addAll(
-        ToolHelper.getClassFilesForTestDirectory(
-            path.getParent(), p -> p.toString().startsWith(prefix)));
-    return paths;
-  }
-
   public static Collection<Path> getClassFilesForInnerClasses(Collection<Class<?>> classes)
       throws IOException {
+    return getClassFilesForInnerClasses(computeLegacyOrGradleSpecifiedLocation(), classes);
+  }
+
+  public static Collection<Path> getClassFilesForInnerClasses(Class<?>... classes)
+      throws IOException {
+    return getClassFilesForInnerClasses(
+        computeLegacyOrGradleSpecifiedLocation(), Arrays.asList(classes));
+  }
+
+  public static Collection<Path> getClassFilesForInnerClasses(
+      TestDataSourceSet sourceSet, Class<?>... classes) throws IOException {
+    return getClassFilesForInnerClasses(sourceSet, Arrays.asList(classes));
+  }
+
+  public static Collection<Path> getClassFilesForInnerClasses(
+      TestDataSourceSet sourceSet, Collection<Class<?>> classes) throws IOException {
     Set<Path> paths = new HashSet<>();
     for (Class<?> clazz : classes) {
-      Path path = ToolHelper.getClassFileForTestClass(clazz);
+      Path path = ToolHelper.getClassFileForTestClass(clazz, sourceSet);
       String prefix = path.toString().replace(CLASS_EXTENSION, "$");
       paths.addAll(
           ToolHelper.getClassFilesForTestDirectory(
@@ -1514,17 +1563,12 @@ public class ToolHelper {
     return paths;
   }
 
-  public static Collection<Path> getClassFilesForInnerClasses(Class<?>... classes)
-      throws IOException {
-    return getClassFilesForInnerClasses(Arrays.asList(classes));
-  }
-
-  public static Path getFileNameForTestClass(Class clazz) {
+  public static Path getFileNameForTestClass(Class<?> clazz) {
     List<String> parts = getNamePartsForTestClass(clazz);
     return Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY));
   }
 
-  public static String getJarEntryForTestClass(Class clazz) {
+  public static String getJarEntryForTestClass(Class<?> clazz) {
     List<String> parts = getNamePartsForTestClass(clazz);
     return String.join("/", parts);
   }

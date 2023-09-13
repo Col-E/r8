@@ -108,16 +108,12 @@ public abstract class CompilerApiTest {
   }
 
   public boolean isNewGradleSetup() {
-    return "true".equals(System.getenv("USE_NEW_GRADLE_SETUP"));
+    return "true".equals(System.getProperty("USE_NEW_GRADLE_SETUP"));
   }
 
   public Path getPathForClass(Class<?> clazz) {
     String file = clazz.getName().replace('.', '/') + ".class";
-    if (isNewGradleSetup()) {
-      return Paths.get(System.getenv("TEST_CLASSES_LOCATIONS"), file);
-    } else {
-      return Paths.get("build", "classes", "java", "test", file);
-    }
+    return Paths.get(System.getProperty("TEST_DATA_LOCATION"), file);
   }
 
   public byte[] getBytesForClass(Class<?> clazz) throws IOException {

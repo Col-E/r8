@@ -222,30 +222,6 @@ tasks {
         "$allTests"))
   }
 
-  test {
-    println("NOTE: Number of processors " + Runtime.getRuntime().availableProcessors())
-    println("NOTE: Max parallel forks " + maxParallelForks)
-    val os = DefaultNativePlatform.getCurrentOperatingSystem()
-    if (os.isMacOsX) {
-      logger.lifecycle(
-        "WARNING: Testing in only partially supported on Mac OS. \n" +
-          "Art only runs on Linux and tests requiring Art runs in a Docker container, which must " +
-          "be present. See tools/docker/README.md for details.")
-    } else if (os.isWindows) {
-      logger.lifecycle(
-        "WARNING: Testing in only partially supported on Windows. Art only runs on Linux and " +
-          "tests requiring Art will be skipped")
-    } else if (!os.isLinux) {
-      logger.log(
-        ERROR,
-        "Testing in not supported on your platform. Testing is only fully supported on " +
-          "Linux and partially supported on Mac OS and Windows. Art does not run on other " +
-          "platforms.")
-    }
-    dependsOn(gradle.includedBuild("tests_java_8").task(":test"))
-    dependsOn(gradle.includedBuild("tests_bootstrap").task(":test"))
-  }
-
   val unzipTests by registering(Copy::class) {
     dependsOn(allTestsJar)
     val outputDir = file("${buildDir}/unpacked/test")
@@ -281,8 +257,7 @@ tasks {
       r8LibJar,
       unzipRewrittenTests.get().outputs.files)
     testClassesDirs = unzipRewrittenTests.get().outputs.files
-
-    environment.put("TEST_CLASSES_LOCATIONS", unzipTests.get().outputs.files.singleFile)
+    systemProperty("TEST_DATA_LOCATION", unzipTests.get().outputs.files.singleFile)
     systemProperty("KEEP_ANNO_JAVAC_BUILD_DIR", keepAnnoCompileTask.outputs.files.getAsPath())
     systemProperty("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR",
                    getRoot().resolveAll("build", "test", "examplesJava11", "classes"))
@@ -290,5 +265,15 @@ tasks {
     // TODO(b/270105162): This should change if running with retrace lib/r8lib.
     systemProperty("RETRACE_RUNTIME_PATH", r8LibJar)
     systemProperty("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
- }
+    systemProperty("com.android.tools.r8.artprofilerewritingcompletenesscheck", "true")
+  }
+
+  test {
+    if (project.hasProperty("r8lib")) {
+      dependsOn(r8LibTest)
+    } else {
+      dependsOn(gradle.includedBuild("tests_java_8").task(":test"))
+      dependsOn(gradle.includedBuild("tests_bootstrap").task(":test"))
+    }
+  }
 }

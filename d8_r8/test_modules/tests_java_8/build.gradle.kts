@@ -117,14 +117,14 @@ tasks {
 
   withType<Test> {
     TestingState.setUpTestingState(this)
-    environment.put("USE_NEW_GRADLE_SETUP", "true")
-    environment.put("TEST_CLASSES_LOCATIONS", "$buildDir/classes/java/test")
     dependsOn(mainDepsJarTask)
     dependsOn(thirdPartyRuntimeDependenciesTask)
     if (!project.hasProperty("no_internal")) {
       dependsOn(thirdPartyRuntimeInternalDependenciesTask)
     }
     dependsOn(*sourceSetDependenciesTasks)
+    systemProperty("TEST_DATA_LOCATION",
+                   layout.buildDirectory.dir("classes/java/test").get().toString())
     systemProperty("KEEP_ANNO_JAVAC_BUILD_DIR", keepAnnoCompileTask.outputs.files.getAsPath())
     // This path is set when compiling examples jar task in DependenciesPlugin.
     systemProperty("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR",
@@ -138,6 +138,7 @@ tasks {
       mainCompileTask.outputs.files.getAsPath().split(File.pathSeparator)[0] +
         File.pathSeparator + mainDepsJarTask.outputs.files.singleFile)
     systemProperty("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
+    systemProperty("com.android.tools.r8.artprofilerewritingcompletenesscheck", "true")
   }
 
   val testJar by registering(Jar::class) {

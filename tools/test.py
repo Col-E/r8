@@ -391,9 +391,14 @@ def Main():
       print("No failing tests")
       return 0
   # Test filtering. Must always follow the 'test' task.
+  testFilterProperty = []
   for testFilter in args:
     gradle_args.append('--tests')
     gradle_args.append(testFilter)
+    testFilterProperty.append(testFilter)
+    assert not ("|" in testFilter), "| is used as separating character"
+  if len(testFilterProperty) > 0:
+    gradle_args.append("-Ptestfilter=" + "|".join(testFilterProperty))
   if options.with_code_coverage:
     # Create Jacoco report after tests.
     gradle_args.append('jacocoTestReport')
