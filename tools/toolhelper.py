@@ -16,7 +16,7 @@ def run(tool, args, build=None, debug=True,
         profile=False, track_memory_file=None, extra_args=None,
         stderr=None, stdout=None, return_stdout=False, timeout=0, quiet=False,
         cmd_prefix=None, jar=None, main=None, time_consumer=None,
-        worker_id=None):
+        debug_agent=None, worker_id=None):
   cmd = []
   if cmd_prefix:
     cmd.extend(cmd_prefix)
@@ -29,8 +29,9 @@ def run(tool, args, build=None, debug=True,
   cmd.append(jdk.GetJavaExecutable())
   if extra_args:
     cmd.extend(extra_args)
-  agent, args = extract_debug_agent_from_args(args)
-  if agent:
+  if debug_agent is None:
+    debug_agent, args = extract_debug_agent_from_args(args)
+  if debug_agent:
     cmd.append(
         '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005')
   if debug:
