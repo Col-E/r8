@@ -107,13 +107,14 @@ public abstract class CompilerApiTest {
         "-keep class " + clazz.getName() + " { public static void main(java.lang.String[]); }");
   }
 
-  public boolean isNewGradleSetup() {
-    return "true".equals(System.getProperty("USE_NEW_GRADLE_SETUP"));
-  }
-
   public Path getPathForClass(Class<?> clazz) {
     String file = clazz.getName().replace('.', '/') + ".class";
-    return Paths.get(System.getProperty("TEST_DATA_LOCATION"), file);
+    if (System.getProperty("TEST_DATA_LOCATION") != null) {
+      return Paths.get(System.getProperty("TEST_DATA_LOCATION"), file);
+    } else {
+      assert System.getProperty("USE_NEW_GRADLE_SETUP") == null;
+      return Paths.get("build", "classes", "java", "test", file);
+    }
   }
 
   public byte[] getBytesForClass(Class<?> clazz) throws IOException {
