@@ -63,7 +63,7 @@ def generate_startup_profile(device, options):
       # Clear logcat and start capturing logcat.
       adb_utils.clear_logcat(device.device_id)
       logcat_process = adb_utils.start_logcat(
-          device.device_id, format='tag', filter='r8:I ActivityTaskManager:I *:S')
+          device.device_id, format='tag', filter='R8:I ActivityTaskManager:I *:S')
     else:
       # Clear existing profile data.
       adb_utils.clear_profile_data(options.app_id, device.device_id)
@@ -113,11 +113,13 @@ def get_r8_startup_descriptors_from_logcat(logcat, options):
         print('Entering post startup: %s' % message)
         post_startup = True
         continue
-    elif tag == 'r8':
+    elif tag == 'R8':
       if is_startup_descriptor(message):
         startup_descriptors[message] = {
           'conditional_startup': False,
-          'post_startup': post_startup
+          'hot': False,
+          'post_startup': post_startup,
+          'startup': True
         }
         continue
     # Reaching here means we didn't expect this line.
@@ -318,6 +320,11 @@ def parse_options(argv):
                            'synthetic contexts',
                       action='store_true',
                       default=False)
+  result.add_argument('--grant-post-notification-permission',
+                      help='Grants the android.permission.POST_NOTIFICATIONS '
+                           'permission before launching the app',
+                      default=False,
+                      action='store_true')
   result.add_argument('--logcat',
                       action='store_true',
                       default=False)
@@ -401,6 +408,12 @@ def run_on_device(device, options, startup_descriptors):
   elif options.bundle:
     adb_utils.uninstall(options.app_id, device.device_id)
     adb_utils.install_bundle(options.bundle, device.device_id)
+  # Grant notifications.
+  if options.grant_post_notification_permission:
+    adb_utils.grant(
+        options.app_id,
+        'android.permission.POST_NOTIFICATIONS',
+        device.device_id)
   if options.until_stable:
     iteration = 0
     stable_iterations = 0
