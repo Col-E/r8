@@ -181,7 +181,7 @@ public class KotlinModuleSynthesizer {
       }
       return Optional.of(
           DataEntryResource.fromBytes(
-              writer.write(metadataVersion.get()).getBytes(),
+              writer.write(metadataVersion.get()),
               "META-INF/" + moduleName + ".kotlin_module",
               Origin.unknown()));
     }

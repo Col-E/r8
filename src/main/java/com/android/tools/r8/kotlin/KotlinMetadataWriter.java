@@ -89,7 +89,7 @@ public class KotlinMetadataWriter {
         "Metadata.Class",
         sb,
         newIndent -> {
-          KotlinMetadataWriter.appendKmClass(newIndent, sb, kMetadata.toKmClass());
+          KotlinMetadataWriter.appendKmClass(newIndent, sb, kMetadata.getKmClass());
         });
     return sb.toString();
   }
@@ -102,7 +102,7 @@ public class KotlinMetadataWriter {
         "Metadata.FileFacade",
         sb,
         newIndent -> {
-          KotlinMetadataWriter.appendKmPackage(newIndent, sb, kMetadata.toKmPackage());
+          KotlinMetadataWriter.appendKmPackage(newIndent, sb, kMetadata.getKmPackage());
         });
     return sb.toString();
   }
@@ -125,7 +125,7 @@ public class KotlinMetadataWriter {
         newIndent -> {
           KotlinMetadataWriter.appendKeyValue(
               newIndent, "facadeClassName", sb, kMetadata.getFacadeClassName());
-          KotlinMetadataWriter.appendKmPackage(newIndent, sb, kMetadata.toKmPackage());
+          KotlinMetadataWriter.appendKmPackage(newIndent, sb, kMetadata.getKmPackage());
         });
     return sb.toString();
   }
@@ -139,7 +139,7 @@ public class KotlinMetadataWriter {
         sb,
         newIndent -> {
           try {
-            KmLambda kmLambda = kMetadata.toKmLambda();
+            KmLambda kmLambda = kMetadata.getKmLambda();
             if (kmLambda != null) {
               KotlinMetadataWriter.appendKeyValue(
                   newIndent,

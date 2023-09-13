@@ -46,15 +46,11 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
       DexClass clazz,
       Kotlin kotlin,
       AppView<?> appView) {
-    KmLambda lambda = syntheticClass.toKmLambda();
+    KmLambda lambda = syntheticClass.getKmLambda();
     assert lambda == null || syntheticClass.isLambda();
-    KotlinJvmSignatureExtensionInformation extensionInformation =
-        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(
-            syntheticClass, appView.options());
     return new KotlinSyntheticClassInfo(
         lambda != null
-            ? KotlinLambdaInfo.create(
-                clazz, lambda, appView.dexItemFactory(), appView.reporter(), extensionInformation)
+            ? KotlinLambdaInfo.create(clazz, lambda, appView.dexItemFactory(), appView.reporter())
             : null,
         getFlavour(clazz, kotlin),
         packageName,
@@ -78,15 +74,13 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
   @Override
   public Pair<Metadata, Boolean> rewrite(DexClass clazz, AppView<?> appView) {
     if (lambda == null) {
-      return Pair.create(
-          Companion.writeSyntheticClass(getCompatibleKotlinInfo(), 0).getAnnotationData(), false);
+      return Pair.create(Companion.writeSyntheticClass(getCompatibleKotlinInfo(), 0), false);
     }
     Box<KmLambda> newLambda = new Box<>();
     boolean rewritten = lambda.rewrite(newLambda::set, clazz, appView);
     assert newLambda.isSet();
     return Pair.create(
-        Companion.writeLambda(newLambda.get(), getCompatibleKotlinInfo(), 0).getAnnotationData(),
-        rewritten);
+        Companion.writeLambda(newLambda.get(), getCompatibleKotlinInfo(), 0), rewritten);
   }
 
   @Override

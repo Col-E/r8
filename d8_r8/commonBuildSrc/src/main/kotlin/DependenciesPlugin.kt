@@ -307,7 +307,7 @@ object Versions {
   const val javassist = "3.29.2-GA"
   const val junitVersion = "4.13-beta-2"
   const val kotlinVersion = "1.8.10"
-  const val kotlinMetadataVersion = "0.6.2"
+  const val kotlinMetadataVersion = "0.7.0"
   const val mockito = "2.10.0"
   const val smaliVersion = "3.0.3"
 }

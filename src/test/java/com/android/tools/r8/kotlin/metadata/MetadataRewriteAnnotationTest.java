@@ -175,10 +175,8 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
     assertEquals(1, arguments.size());
     ArrayValue classes = (ArrayValue) arguments.get("classes");
     assertEquals(
-        "KClassValue(className=" + foo.getFinalBinaryName() + ", arrayDimensionCount=0)",
-        classes.getElements().get(0).toString());
+        "KClassValue(" + foo.getFinalBinaryName() + ")", classes.getElements().get(0).toString());
     assertEquals(
-        "KClassValue(className=" + bar.getFinalBinaryName() + ", arrayDimensionCount=0)",
-        classes.getElements().get(1).toString());
+        "KClassValue(" + bar.getFinalBinaryName() + ")", classes.getElements().get(1).toString());
   }
 }
