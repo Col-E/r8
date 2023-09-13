@@ -28,6 +28,10 @@ public abstract class MethodOptimizationInfo
     Default
   }
 
+  public boolean isDefault() {
+    return false;
+  }
+
   public abstract boolean cannotBeKept();
 
   public abstract boolean classInitializerMayBePostponed();

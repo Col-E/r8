@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.analysis.value.AbstractValueJoiner.AbstractValueF
 import com.android.tools.r8.ir.analysis.value.AbstractValueJoiner.AbstractValueParameterJoiner;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
+import com.android.tools.r8.ir.optimize.info.MethodResolutionOptimizationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
 import com.android.tools.r8.ir.optimize.library.LibraryMemberOptimizer;
 import com.android.tools.r8.ir.optimize.library.LibraryMethodSideEffectModelCollection;
@@ -95,6 +96,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private NamingLens namingLens = NamingLens.getIdentityLens();
   private ProguardCompatibilityActions proguardCompatibilityActions;
   private RootSet rootSet;
+  private MethodResolutionOptimizationInfoCollection methodResolutionOptimizationInfoCollection =
+      MethodResolutionOptimizationInfoCollection.empty();
   private MainDexRootSet mainDexRootSet = null;
   private StartupProfile startupProfile;
 
@@ -338,6 +341,16 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public AbstractValueParameterJoiner getAbstractValueParameterJoiner() {
     return abstractValueParameterJoiner;
+  }
+
+  public MethodResolutionOptimizationInfoCollection
+      getMethodResolutionOptimizationInfoCollection() {
+    return methodResolutionOptimizationInfoCollection;
+  }
+
+  public void setMethodResolutionOptimizationInfoCollection(
+      MethodResolutionOptimizationInfoCollection getMethodResolutionOptimizationInfoCollection) {
+    this.methodResolutionOptimizationInfoCollection = getMethodResolutionOptimizationInfoCollection;
   }
 
   public InstanceFieldInitializationInfoFactory instanceFieldInitializationInfoFactory() {

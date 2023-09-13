@@ -8,7 +8,11 @@ import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess.LookupResultCollectionState;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
+import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MethodResolutionOptimizationInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.InstantiatedObject;
 import com.android.tools.r8.utils.BooleanBox;
@@ -282,6 +286,19 @@ public abstract class MethodResolutionResult
 
     public abstract SingleResolutionResult<T> withInitialResolutionHolder(
         DexClass newInitialResolutionHolder);
+
+    public MethodOptimizationInfo getOptimizationInfo(
+        AppView<?> appView, InvokeMethod invoke, DexClassAndMethod singleTarget) {
+      if (singleTarget != null) {
+        return singleTarget.getOptimizationInfo();
+      }
+      if (invoke.isInvokeMethodWithDynamicDispatch() && resolvedMethod.belongsToVirtualPool()) {
+        MethodResolutionOptimizationInfoCollection methodResolutionOptimizationInfoCollection =
+            appView.getMethodResolutionOptimizationInfoCollection();
+        return methodResolutionOptimizationInfoCollection.get(resolvedMethod, resolvedHolder);
+      }
+      return DefaultMethodOptimizationInfo.getInstance();
+    }
 
     @Override
     public DexClass getInitialResolutionHolder() {

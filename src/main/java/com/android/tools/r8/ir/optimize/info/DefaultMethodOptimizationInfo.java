@@ -33,7 +33,6 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   static final int UNKNOWN_RETURNED_ARGUMENT = -1;
   static final boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
   static final AbstractValue UNKNOWN_ABSTRACT_RETURN_VALUE = UnknownValue.getInstance();
-  static final boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
   static final boolean UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS = false;
   static final boolean UNKNOWN_MAY_HAVE_SIDE_EFFECTS = true;
   static final boolean UNKNOWN_RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS = false;
@@ -44,6 +43,11 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
 
   public static DefaultMethodOptimizationInfo getInstance() {
     return DEFAULT_INSTANCE;
+  }
+
+  @Override
+  public boolean isDefault() {
+    return true;
   }
 
   @Override

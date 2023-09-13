@@ -250,12 +250,13 @@ public class AssumeInserter {
       }
     }
 
-    if (singleTarget == null) {
+    MethodOptimizationInfo optimizationInfo =
+        resolutionResult.getOptimizationInfo(appView, invoke, singleTarget);
+    if (optimizationInfo.isDefault()) {
       return false;
     }
 
     boolean needsAssumeInstruction = false;
-    MethodOptimizationInfo optimizationInfo = singleTarget.getDefinition().getOptimizationInfo();
 
     // Case (2), invocations that are guaranteed to return a non-null value.
     if (invoke.hasUsedOutValue()) {
