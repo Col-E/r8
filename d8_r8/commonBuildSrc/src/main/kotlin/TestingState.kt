@@ -8,8 +8,9 @@ import java.io.FileWriter
 import java.io.PrintStream
 import java.net.URLEncoder
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 import org.gradle.api.Project
+import org.gradle.api.logging.Logger
+import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.TestDescriptor
 import org.gradle.api.tasks.testing.TestListener
@@ -17,6 +18,7 @@ import org.gradle.api.tasks.testing.TestOutputEvent
 import org.gradle.api.tasks.testing.TestOutputListener
 import org.gradle.api.tasks.testing.TestResult
 import org.gradle.api.tasks.testing.TestResult.ResultType
+import org.gradle.kotlin.dsl.register
 
 // Utility to install tracking of test results in status files.
 class TestingState {
@@ -29,7 +31,7 @@ class TestingState {
     enum class Mode { ALL, OUTSTANDING, FAILING, PAST_FAILING }
 
     // These are the files that are allowed for tracking test status.
-    enum class StatusFile { SUCCESS, FAILURE, PAST_FAILURE }
+    enum class StatusType { SUCCESS, FAILURE, PAST_FAILURE }
 
     fun getRerunMode(project: Project) : Mode? {
       val prop = project.findProperty(MODE_PROPERTY) ?: return null
@@ -54,30 +56,57 @@ class TestingState {
       val index = indexDir.resolve("index.html")
       val resuming = reportDir.exists()
       if (resuming) {
-        applyTestFilters(testingStateMode, task, reportDir)
+        applyTestFilters(testingStateMode, task, reportDir, indexDir, projectName)
       }
       addTestHandler(task, projectName, index, reportDir)
     }
 
-    private fun applyTestFilters(mode: Mode, task: Test, reportDir: File) {
+    private fun applyTestFilters(
+      mode: Mode,
+      task: Test,
+      reportDir: File,
+      indexDir: File,
+      projectName: String,
+    ) {
       if (mode == Mode.ALL) {
         // Running without filters will (re)run all tests.
         return
       }
-      if (mode == Mode.OUTSTANDING) {
-        task.logger.lifecycle(
-          "Note: the building of an exclude list often times out."
-            + "You may need to simply rerun all tests.")
-        forEachTestReportStatusMatching(task, reportDir, StatusFile.SUCCESS, { clazz, name ->
-          task.filter.excludeTestsMatching("$clazz.$name")
-        })
-        return
+      val statusType = getStatusTypeForMode(mode)
+      val statusOutputFile = indexDir.resolve("${projectName}.${statusType.name}.txt")
+      val findStatusTask = task.project.tasks.register<Exec>("${projectName}-find-status-files")
+      {
+        inputs.dir(reportDir)
+        outputs.file(statusOutputFile)
+        workingDir(reportDir)
+        commandLine(
+          "find", ".", "-name", statusType.name
+        )
+        doFirst {
+          standardOutput = statusOutputFile.outputStream()
+        }
       }
-      assert(mode == Mode.FAILING || mode == Mode.PAST_FAILING)
-      val result = if (mode == Mode.FAILING) StatusFile.FAILURE else StatusFile.PAST_FAILURE
-      forEachTestReportStatusMatching(task, reportDir, result, { clazz, name ->
-        task.filter.includeTestsMatching("$clazz.$name")
-      })
+      task.dependsOn(findStatusTask)
+      task.doFirst {
+        if (mode == Mode.OUTSTANDING) {
+          forEachTestReportStatusMatching(
+            statusType,
+            findStatusTask.get().outputs.files.singleFile,
+            task.logger,
+            { clazz, name -> task.filter.excludeTestsMatching("${clazz}.${name}") })
+        } else {
+          val hasMatch = forEachTestReportStatusMatching(
+            statusType,
+            findStatusTask.get().outputs.files.singleFile,
+            task.logger,
+            { clazz, name -> task.filter.includeTestsMatching("${clazz}.${name}") })
+          if (!hasMatch) {
+            // Add a filter that does not match to ensure the test run is not "without filters"
+            // which would run all tests.
+            task.filter.includeTestsMatching("NON_MATCHING_TEST_FILTER")
+          }
+        }
+      }
     }
 
     private fun addTestHandler(
@@ -181,11 +210,20 @@ class TestingState {
       })
     }
 
-    private fun getStatusFile(result: ResultType) : StatusFile {
+    private fun getStatusTypeForMode(mode: Mode) : StatusType {
+      return when (mode) {
+        Mode.OUTSTANDING -> StatusType.SUCCESS
+        Mode.FAILING -> StatusType.FAILURE
+        Mode.PAST_FAILING -> StatusType.PAST_FAILURE
+        Mode.ALL -> throw RuntimeException("Unexpected mode 'all' in status determination")
+      }
+    }
+
+    private fun getStatusTypeForResult(result: ResultType) : StatusType {
       return when (result) {
-        ResultType.FAILURE -> StatusFile.FAILURE
-        ResultType.SUCCESS -> StatusFile.SUCCESS
-        ResultType.SKIPPED -> StatusFile.SUCCESS
+        ResultType.FAILURE -> StatusType.FAILURE
+        ResultType.SUCCESS -> StatusType.SUCCESS
+        ResultType.SKIPPED -> StatusType.SUCCESS
       }
     }
 
@@ -287,18 +325,18 @@ class TestingState {
       reportDir: File,
       desc: TestDescriptor,
       result: ResultType) {
-      val statusFile = getStatusFile(result)
+      val statusFile = getStatusTypeForResult(result)
       withTestResultEntryWriter(reportDir, desc, statusFile.name, false, {
         it.append(statusFile.name)
       })
-      if (statusFile == StatusFile.FAILURE) {
-        getTestResultEntryOutputFile(reportDir, desc, StatusFile.SUCCESS.name).delete()
-        val pastFailure = StatusFile.PAST_FAILURE.name
+      if (statusFile == StatusType.FAILURE) {
+        getTestResultEntryOutputFile(reportDir, desc, StatusType.SUCCESS.name).delete()
+        val pastFailure = StatusType.PAST_FAILURE.name
         withTestResultEntryWriter(reportDir, desc, pastFailure, false, {
           it.append(pastFailure)
         })
       } else {
-        getTestResultEntryOutputFile(reportDir, desc, StatusFile.FAILURE.name).delete()
+        getTestResultEntryOutputFile(reportDir, desc, StatusType.FAILURE.name).delete()
       }
     }
 
@@ -313,25 +351,13 @@ class TestingState {
       FileWriter(file, append).use(fn)
     }
 
-    fun forEachTestReportStatusMatching(
-      test: Test,
-      reportDir: File,
-      statusFile: StatusFile,
-      onTest: (String, String) -> Unit
-    ): Boolean {
-      val fileName = statusFile.name
-      val logger = test.logger
-      val proc = ProcessBuilder("find", ".", "-name", fileName)
-        .directory(reportDir)
-        .redirectOutput(ProcessBuilder.Redirect.PIPE)
-        .start()
-      val result = proc.waitFor(10, TimeUnit.SECONDS)
-      if (!result) {
-        throw RuntimeException("Unexpected failure to find reports within time limit")
-      }
-      var hadMatch = false
-      for (rawLine in proc.inputStream.bufferedReader().lineSequence()) {
-        // Lines are of the form: ./<class>/<name>/FAILURE
+    private fun forEachTestReportStatusMatching(
+      type: StatusType, file: File, logger: Logger, onTest: (String, String) -> Unit
+    ) : Boolean {
+      val fileName = type.name
+      var hasMatch = false
+      for (rawLine in file.bufferedReader().lineSequence()) {
+        // Lines are of the form: ./<class>/<name>/<mode>
         try {
           val trimmed = rawLine.trim()
           val line = trimmed.substring(2)
@@ -339,12 +365,12 @@ class TestingState {
           val clazz = line.substring(0, sep)
           val name = line.substring(sep + 1, line.length - fileName.length - 1)
           onTest(clazz, name)
-          hadMatch = true
+          hasMatch = true
         } catch (e: Exception) {
           logger.lifecycle("WARNING: failed attempt to read test description from: '${rawLine}'")
         }
       }
-      return hadMatch
+      return hasMatch
     }
   }
 }
