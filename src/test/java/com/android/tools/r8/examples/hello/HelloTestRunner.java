@@ -7,10 +7,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.examples.ExamplesTestBase;
 import com.android.tools.r8.utils.StringUtils;
-import java.io.IOException;
-import java.nio.file.Path;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -22,34 +19,18 @@ public class HelloTestRunner extends ExamplesTestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().enableApiLevelsForCf().build();
   }
 
-  // The "hello" program is reused in various tests via these static methods.
-
-  public static Class<?> getHelloClass() {
-    return Hello.class;
-  }
-
-  public static String getExpectedOutput() {
-    return StringUtils.lines("Hello, world");
-  }
-
-  public static Path writeHelloProgramJar(TemporaryFolder temp) throws IOException {
-    Path jar = temp.newFolder().toPath().resolve("hello.jar");
-    writeClassesToJar(jar, Hello.class);
-    return jar;
-  }
-
   public HelloTestRunner(TestParameters parameters) {
     super(parameters);
   }
 
   @Override
   public Class<?> getMainClass() {
-    return getHelloClass();
+    return Hello.class;
   }
 
   @Override
   public String getExpected() {
-    return getExpectedOutput();
+    return StringUtils.lines("Hello, world");
   }
 
   @Test

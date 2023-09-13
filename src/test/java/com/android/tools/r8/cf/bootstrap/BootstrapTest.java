@@ -12,8 +12,8 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.examples.hello.HelloTestRunner;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Charsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -27,11 +27,17 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class BootstrapTest extends TestBase {
 
+  static class HelloWorldProgram {
+    public static void main(String[] args) {
+      System.out.println("Hello, world!");
+    }
+  }
+
+  private static final Class<?> HELLO_CLASS = HelloWorldProgram.class;
+  private static String HELLO_EXPECTED = StringUtils.lines("Hello, world!");
+
   private static final Path R8_STABLE_JAR =
       Paths.get(ToolHelper.THIRD_PARTY_DIR, "r8-releases", "3.2.54", "r8.jar");
-
-  private static final Class<?> HELLO_CLASS = HelloTestRunner.getHelloClass();
-  private static final String HELLO_EXPECTED = HelloTestRunner.getExpectedOutput();
 
   private static class R8Result {
 
