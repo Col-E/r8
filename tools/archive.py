@@ -138,14 +138,8 @@ def Main():
       version_writer.write(releaser)
       version_writer.write('version-file.version.code=1\n')
 
-    # Create maven release which uses a build that exclude dependencies.
-    create_maven_release.generate_r8_maven_zip(
-        utils.MAVEN_ZIP,
-        version_file=version_file,
-        skip_gradle_build=options.skip_gradle_build)
     create_maven_release.generate_r8_maven_zip(
         utils.MAVEN_ZIP_LIB,
-        is_r8lib=True,
         version_file=version_file,
         skip_gradle_build=options.skip_gradle_build)
 
@@ -230,7 +224,6 @@ def Main():
       utils.R8RETRACE_EXCLUDE_DEPS_JAR,
       utils.R8RETRACE_EXCLUDE_DEPS_JAR + '.map',
       utils.R8RETRACE_EXCLUDE_DEPS_JAR + '_map.zip',
-      utils.MAVEN_ZIP,
       utils.MAVEN_ZIP_LIB,
       utils.DESUGAR_CONFIGURATION,
       utils.DESUGAR_CONFIGURATION_MAVEN_ZIP,

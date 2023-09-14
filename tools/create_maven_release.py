@@ -18,14 +18,6 @@ import tempfile
 import utils
 import zipfile
 
-DEPENDENCYTEMPLATE = Template(
-"""
-    <dependency>
-        <groupId>$group</groupId>
-        <artifactId>$artifact</artifactId>
-        <version>$version</version>
-    </dependency>""")
-
 LICENSETEMPLATE = Template(
 """
     <license>
@@ -56,7 +48,7 @@ R8_POMTEMPLATE = Template(
       <distribution>repo</distribution>
     </license>$library_licenses
   </licenses>
-  <dependencies>$dependencies
+  <dependencies>
   </dependencies>
   <developers>
     <developer>
@@ -116,8 +108,6 @@ def parse_options(argv):
   result = argparse.ArgumentParser()
   result.add_argument('--out', help='The zip file to output')
   group = result.add_mutually_exclusive_group()
-  group.add_argument('--r8lib', action='store_true',
-                      help='Build r8 with dependencies included shrunken')
   group.add_argument('--desugar-configuration', action='store_true',
                       help='Build desugar library configuration (original JDK-8)')
   group.add_argument('--desugar-configuration-jdk8', action='store_true',
@@ -199,86 +189,19 @@ def generate_library_licenses():
     result += LICENSETEMPLATE.substitute(name=name, url=url)
   return result
 
-
-# Generate the dependencies block for the pom file.
-#
-# We ask gradle to list all dependencies. In that output
-# we locate the runtimeClasspath block for 'main' which
-# looks something like:
-#
-# runtimeClasspath - Runtime classpath of source set 'main'.
-# +--- net.sf.jopt-simple:jopt-simple:4.6
-# +--- com.googlecode.json-simple:json-simple:1.1
-# +--- com.google.guava:guava:23.0
-# +--- it.unimi.dsi:fastutil:7.2.0
-# +--- org.ow2.asm:asm:6.0
-# +--- org.ow2.asm:asm-commons:6.0
-# |    \--- org.ow2.asm:asm-tree:6.0
-# |         \--- org.ow2.asm:asm:6.0
-# +--- org.ow2.asm:asm-tree:6.0 (*)
-# +--- org.ow2.asm:asm-analysis:6.0
-# |    \--- org.ow2.asm:asm-tree:6.0 (*)
-# \--- org.ow2.asm:asm-util:6.0
-#      \--- org.ow2.asm:asm-tree:6.0 (*)
-#
-# We filter out the repeats that are marked by '(*)'.
-#
-# For each remaining line, we remove the junk at the start
-# in chunks. As an example:
-#
-# '  |    \--- org.ow2.asm:asm-tree:6.0  '  --strip-->
-# '|    \--- org.ow2.asm:asm-tree:6.0'  -->
-# '\--- org.ow2.asm:asm-tree:6.0'  -->
-# 'org.ow2.asm:asm-tree:6.0'
-#
-# The end result is the dependency we are looking for:
-#
-# groupId: org.ow2.asm
-# artifact: asm-tree
-# version: 6.0
-def generate_dependencies():
-  dependencies = gradle.RunGradleGetOutput(['dependencies'])
-  dependency_lines = []
-  collect = False
-  for line in dependencies.splitlines():
-    if line and 'runtimeClasspath' in line and "'main'" in line:
-      collect = True
-      continue
-    if collect:
-      if not len(line) == 0:
-        if not '(*)' in line:
-          trimmed = line.strip()
-          while trimmed.find(' ') != -1:
-            trimmed = trimmed[trimmed.find(' ') + 1:].strip()
-          if not trimmed in dependency_lines:
-            dependency_lines.append(trimmed)
-      else:
-        break
-  result = ''
-  for dep in dependency_lines:
-    components = dep.split(':')
-    assert len(components) == 3
-    group = components[0]
-    artifact = components[1]
-    version = components[2]
-    result += DEPENDENCYTEMPLATE.substitute(
-        group=group, artifact=artifact, version=version)
-  return result
-
 def write_default_r8_pom_file(pom_file, version):
   write_pom_file(R8_POMTEMPLATE, pom_file, version)
 
 def write_pom_file(
-    template, pom_file, version, artifact_id=None, dependencies='', library_licenses=''):
+    template, pom_file, version, artifact_id=None, library_licenses=''):
   version_pom = (
       template.substitute(
           artifactId=artifact_id,
           version=version,
-          dependencies=dependencies,
           library_licenses=library_licenses)
     if artifact_id else
       template.substitute(
-          version=version, dependencies=dependencies, library_licenses=library_licenses))
+          version=version, library_licenses=library_licenses))
   with open(pom_file, 'w') as file:
     file.write(version_pom)
 
@@ -323,18 +246,15 @@ def generate_maven_zip(name, version, pom_file, jar_file, out):
     base_no_zip = out[0:len(out)-4]
     make_archive(base_no_zip, 'zip', tmp_dir)
 
-def generate_r8_maven_zip(out, is_r8lib=False, version_file=None, skip_gradle_build=False):
+def generate_r8_maven_zip(out, version_file=None, skip_gradle_build=False):
   # Build the R8 no deps artifact.
   if not skip_gradle_build:
-    if not is_r8lib:
-      gradle.RunGradleExcludeDeps([utils.R8])
-    else:
-      gradle.RunGradle([utils.R8LIB, '-Pno_internal'])
+    gradle.RunGradle([utils.R8LIB, '-Pno_internal'])
 
   version = determine_version()
   with utils.TempDir() as tmp_dir:
     file_copy = join(tmp_dir, 'copy_of_jar.jar')
-    copyfile(utils.R8LIB_JAR if is_r8lib else utils.R8_JAR, file_copy)
+    copyfile(utils.R8LIB_JAR, file_copy)
 
     if version_file:
       with zipfile.ZipFile(file_copy, 'a') as zip:
@@ -346,8 +266,7 @@ def generate_r8_maven_zip(out, is_r8lib=False, version_file=None, skip_gradle_bu
         R8_POMTEMPLATE,
         pom_file,
         version,
-        dependencies='' if is_r8lib else generate_dependencies(),
-        library_licenses=generate_library_licenses() if is_r8lib else '')
+        library_licenses=generate_library_licenses())
     # Write the maven zip file.
     generate_maven_zip(
         'r8',
@@ -473,7 +392,7 @@ def main(argv):
       utils.DESUGAR_IMPLEMENTATION_JDK11,
       utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
   else:
-    generate_r8_maven_zip(options.out, options.r8lib)
+    generate_r8_maven_zip(options.out)
 
 if __name__ == "__main__":
   exit(main(sys.argv[1:]))

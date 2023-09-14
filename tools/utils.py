@@ -71,7 +71,6 @@ R8_TESTS_JAR = os.path.join(LIBS, 'r8tests.jar')
 R8LIB_TESTS_JAR = os.path.join(LIBS, 'r8libtestdeps-cf.jar')
 R8_TESTS_DEPS_JAR = os.path.join(LIBS, 'test_deps_all.jar')
 R8LIB_TESTS_DEPS_JAR = R8_TESTS_DEPS_JAR
-MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
 MAVEN_ZIP_LIB = os.path.join(LIBS, 'r8lib.zip')
 LIBRARY_DESUGAR_CONVERSIONS_LEGACY_ZIP = os.path.join(
     CUSTOM_CONVERSION_DIR, 'library_desugar_conversions_legacy.jar')
