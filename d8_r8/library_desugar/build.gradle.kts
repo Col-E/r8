@@ -18,13 +18,3 @@ java {
 
 dependencies {
 }
-
-val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
-  "compileDeps",
-  listOf(Jdk.JDK_11.getThirdPartyDependency()))
-
-tasks {
-  withType<JavaCompile> {
-    dependsOn(thirdPartyCompileDependenciesTask)
-  }
-}

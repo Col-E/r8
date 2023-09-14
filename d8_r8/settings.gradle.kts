@@ -78,8 +78,7 @@ dependencyResolutionManagement {
   }
 }
 
-// This project is temporarily located in d8_r8. When moved to root, the parent
-// folder should just be removed.
+includeBuild(root.resolve("shared"))
 includeBuild(root.resolve("keepanno"))
 includeBuild(root.resolve("resourceshrinker"))
 

@@ -81,6 +81,10 @@ tasks {
   }
 
   val depsJar by registering(Jar::class) {
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
+    if (!project.hasProperty("no_internal")) {
+      dependsOn(gradle.includedBuild("shared").task(":downloadDepsInternal"))
+    }
     from(testDependencies().map(::zipTree))
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveFileName.set("deps.jar")

@@ -6,6 +6,7 @@ import DependenciesPlugin.Companion.computeRoot
 import java.io.File
 import java.net.URI
 import java.nio.file.Paths
+import kotlin.reflect.full.declaredMemberProperties
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -633,48 +634,23 @@ fun getGmsCoreVersions() : List<ThirdPartyDependency> {
       DependencyType.X20)}
 }
 
-val testRuntimeDependencies = (listOf(
-  ThirdPartyDeps.aapt2,
-  ThirdPartyDeps.artTests,
-  ThirdPartyDeps.artTestsLegacy,
-  ThirdPartyDeps.compilerApi,
-  ThirdPartyDeps.coreLambdaStubs,
-  ThirdPartyDeps.customConversion,
-  ThirdPartyDeps.dagger,
-  ThirdPartyDeps.desugarJdkLibs,
-  ThirdPartyDeps.desugarJdkLibsLegacy,
-  ThirdPartyDeps.desugarJdkLibs11,
-  ThirdPartyDeps.examplesAndroidOLegacy,
-  ThirdPartyDeps.gson,
-  ThirdPartyDeps.guavaJre,
-  ThirdPartyDeps.jacoco,
-  ThirdPartyDeps.java8Runtime,
-  ThirdPartyDeps.jdk11Test,
-  ThirdPartyDeps.jsr223,
-  ThirdPartyDeps.multidex,
-  ThirdPartyDeps.r8,
-  ThirdPartyDeps.r8Mappings,
-  ThirdPartyDeps.r8v2_0_74,
-  ThirdPartyDeps.r8v3_2_54,
-  ThirdPartyDeps.retraceBenchmark,
-  ThirdPartyDeps.retraceBinaryCompatibility,
-  ThirdPartyDeps.rhino,
-  ThirdPartyDeps.rhinoAndroid,
-  ThirdPartyDeps.smali,
-  ThirdPartyDeps.tivi)
-    + ThirdPartyDeps.androidJars
-    + ThirdPartyDeps.androidVMs
-    + ThirdPartyDeps.desugarLibraryReleases
-    + ThirdPartyDeps.jdks
-    + ThirdPartyDeps.kotlinCompilers
-    + ThirdPartyDeps.proguards)
+private fun Project.allDependencies() : List<ThirdPartyDependency> {
+  val allDeps = mutableListOf<ThirdPartyDependency>()
+  ThirdPartyDeps::class.declaredMemberProperties.forEach {
+    val value = it.get(ThirdPartyDeps)
+    if (value is List<*>) {
+      allDeps.addAll(value as List<ThirdPartyDependency>)
+    } else {
+      allDeps.add(value as ThirdPartyDependency)
+    }
+  }
+  return allDeps
+}
 
-val testRuntimeInternalDependencies = (listOf(
-  ThirdPartyDeps.clank,
-  ThirdPartyDeps.framework,
-  ThirdPartyDeps.nest,
-  ThirdPartyDeps.proto,
-  ThirdPartyDeps.protobufLite,
-  ThirdPartyDeps.retraceInternal)
-  + ThirdPartyDeps.internalIssues
-  + ThirdPartyDeps.gmscoreVersions)
+fun Project.allPublicDependencies() : List<ThirdPartyDependency> {
+  return allDependencies().filter { x -> x.type == DependencyType.GOOGLE_STORAGE }
+}
+
+fun Project.allInternalDependencies() : List<ThirdPartyDependency> {
+  return allDependencies().filter { x -> x.type == DependencyType.X20 }
+}

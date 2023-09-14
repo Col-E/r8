@@ -58,22 +58,6 @@ dependencies {
   implementation(Deps.smaliUtil)
 }
 
-val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
-  "compileDeps",
-  listOf(
-    ThirdPartyDeps.apiDatabase,
-    ThirdPartyDeps.ddmLib,
-    ThirdPartyDeps.jasmin,
-    ThirdPartyDeps.jdwpTests))
-
-val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
-  "runtimeDeps",
-  testRuntimeDependencies)
-
-val thirdPartyRuntimeInternalDependenciesTask = ensureThirdPartyDependencies(
-  "runtimeInternalDeps",
-  testRuntimeInternalDependencies)
-
 val sourceSetDependenciesTasks = arrayOf(
   projectTask("tests_java_examples", getExampleJarsTaskName("examples")),
   projectTask("tests_java_9", getExampleJarsTaskName("examplesJava9")),
@@ -101,14 +85,14 @@ fun testDependencies() : FileCollection {
 
 tasks {
   "compileTestJava" {
-    dependsOn(thirdPartyCompileDependenciesTask)
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
   }
   withType<JavaCompile> {
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
     dependsOn(gradle.includedBuild("resourceshrinker").task(":jar"))
     dependsOn(gradle.includedBuild("main").task(":compileJava"))
     dependsOn(gradle.includedBuild("main").task(":processResources"))
-    dependsOn(thirdPartyCompileDependenciesTask)
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
   }
 
   withType<KotlinCompile> {
@@ -118,9 +102,9 @@ tasks {
   withType<Test> {
     TestingState.setUpTestingState(this)
     dependsOn(mainDepsJarTask)
-    dependsOn(thirdPartyRuntimeDependenciesTask)
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
     if (!project.hasProperty("no_internal")) {
-      dependsOn(thirdPartyRuntimeInternalDependenciesTask)
+      dependsOn(gradle.includedBuild("shared").task(":downloadDepsInternal"))
     }
     dependsOn(*sourceSetDependenciesTasks)
     systemProperty("TEST_DATA_LOCATION",
@@ -150,9 +134,9 @@ tasks {
   }
 
   val depsJar by registering(Jar::class) {
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
     dependsOn(gradle.includedBuild("resourceshrinker").task(":jar"))
-    dependsOn(thirdPartyCompileDependenciesTask)
     from(testDependencies().map(::zipTree))
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveFileName.set("deps.jar")

@@ -28,14 +28,6 @@ val java8TestJarTask = projectTask("tests_java_8", "testJar")
 val java8TestsDepsJarTask = projectTask("tests_java_8", "depsJar")
 val bootstrapTestsDepsJarTask = projectTask("tests_bootstrap", "depsJar")
 
-val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
-  "runtimeDeps",
-  testRuntimeDependencies)
-
-val thirdPartyRuntimeInternalDependenciesTask = ensureThirdPartyDependencies(
-  "runtimeInternalDeps",
-  testRuntimeInternalDependencies)
-
 tasks {
   withType<Exec> {
     doFirst {
@@ -193,7 +185,7 @@ tasks {
     dependsOn(allTestsJarRelocated)
     dependsOn(r8WithRelocatedDepsTask)
     dependsOn(allTestWithApplyMappingProguardConfiguration)
-    dependsOn(thirdPartyRuntimeDependenciesTask)
+    // dependsOn(thirdPartyRuntimeDependenciesTask)
     val r8 = r8WithRelocatedDepsTask.outputs.files.singleFile
     val allTests = allTestsJarRelocated.get().outputs.files.singleFile
     val pgConf = allTestWithApplyMappingProguardConfiguration.get().outputs.files.singleFile
@@ -243,9 +235,9 @@ tasks {
     dependsOn(r8LibWithRelocatedDeps)
     dependsOn(unzipTests)
     dependsOn(unzipRewrittenTests)
-    dependsOn(thirdPartyRuntimeDependenciesTask)
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
     if (!project.hasProperty("no_internal")) {
-      dependsOn(thirdPartyRuntimeInternalDependenciesTask)
+      dependsOn(gradle.includedBuild("shared").task(":downloadDepsInternal"))
     }
     val r8LibJar = r8LibWithRelocatedDeps.get().outputs.files.singleFile
     this.configure(isR8Lib = true, r8Jar = r8LibJar)

@@ -19,13 +19,3 @@ dependencies {
   compileOnly(Deps.asm)
   compileOnly(Deps.guava)
 }
-
-val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
-  "compileDeps",
-  listOf(Jdk.JDK_11.getThirdPartyDependency()))
-
-tasks {
-  withType<JavaCompile> {
-    dependsOn(thirdPartyCompileDependenciesTask)
-  }
-}

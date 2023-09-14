@@ -25,3 +25,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "resourceshrinker"
+
+val root = rootProject.projectDir.parentFile
+includeBuild(root.resolve("shared"))
