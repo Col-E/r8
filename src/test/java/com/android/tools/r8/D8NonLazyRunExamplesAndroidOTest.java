@@ -6,8 +6,7 @@ package com.android.tools.r8;
 
 import java.nio.file.Path;
 
-public class D8NonLazyRunExamplesAndroidOTest
-    extends D8IncrementalRunExamplesAndroidOTest {
+public class D8NonLazyRunExamplesAndroidOTest extends D8IncrementalRunExamplesAndroidOTest {
   class D8LazyTestRunner extends D8IncrementalTestRunner {
 
     D8LazyTestRunner(String testName, String packageName, String mainClass) {

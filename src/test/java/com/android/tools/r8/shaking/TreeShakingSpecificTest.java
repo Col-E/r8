@@ -52,10 +52,6 @@ public class TreeShakingSpecificTest extends TestBase {
     return Paths.get(EXAMPLES_BUILD_DIR, test + ".jar");
   }
 
-  private byte[] getProgramDexFileData(String test) throws IOException {
-    return Files.readAllBytes(Paths.get(EXAMPLES_BUILD_DIR, test, "classes.dex"));
-  }
-
   @Test
   public void testIgnoreWarnings() throws Exception {
     // Generate R8 processed version without library option.
