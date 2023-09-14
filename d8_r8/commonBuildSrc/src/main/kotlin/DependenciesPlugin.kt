@@ -402,6 +402,10 @@ object ThirdPartyDeps {
     "gson",
     Paths.get("third_party", "gson", "gson-2.10.1").toFile(),
     Paths.get("third_party", "gson", "gson-2.10.1.tar.gz.sha1").toFile())
+  val guavaJre = ThirdPartyDependency(
+    "guava-jre",
+    Paths.get("third_party", "guava", "guava-32.1.2-jre").toFile(),
+    Paths.get("third_party", "guava", "guava-32.1.2-jre.tar.gz.sha1").toFile())
   val desugarJdkLibs11 = ThirdPartyDependency(
     "desugar-jdk-libs-11",
     Paths.get("third_party", "openjdk", "desugar_jdk_libs_11").toFile(),
@@ -642,6 +646,7 @@ val testRuntimeDependencies = (listOf(
   ThirdPartyDeps.desugarJdkLibs11,
   ThirdPartyDeps.examplesAndroidOLegacy,
   ThirdPartyDeps.gson,
+  ThirdPartyDeps.guavaJre,
   ThirdPartyDeps.jacoco,
   ThirdPartyDeps.java8Runtime,
   ThirdPartyDeps.jdk11Test,
