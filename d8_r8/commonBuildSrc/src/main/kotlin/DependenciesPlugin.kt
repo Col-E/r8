@@ -362,34 +362,10 @@ object ThirdPartyDeps {
     "ddmlib",
     Paths.get("third_party", "ddmlib").toFile(),
     Paths.get("third_party", "ddmlib.tar.gz.sha1").toFile())
-  val examples = ThirdPartyDependency(
-    "examples",
-    Paths.get("third_party", "examples").toFile(),
-    Paths.get("third_party", "examples.tar.gz.sha1").toFile())
-  val examplesAndroidN = ThirdPartyDependency(
-    "examplesAndroidN",
-    Paths.get("third_party", "examplesAndroidN").toFile(),
-    Paths.get("third_party", "examplesAndroidN.tar.gz.sha1").toFile())
-  val examplesAndroidO = ThirdPartyDependency(
-    "examplesAndroidO",
-    Paths.get("third_party", "examplesAndroidO").toFile(),
-    Paths.get("third_party", "examplesAndroidO.tar.gz.sha1").toFile())
-  val examplesAndroidOGenerated = ThirdPartyDependency(
-    "examplesAndroidOGenerated",
-    Paths.get("third_party", "examplesAndroidOGenerated").toFile(),
-    Paths.get("third_party", "examplesAndroidOGenerated.tar.gz.sha1").toFile())
   val examplesAndroidOLegacy = ThirdPartyDependency(
     "examplesAndroidOLegacy",
     Paths.get("third_party", "examplesAndroidOLegacy").toFile(),
     Paths.get("third_party", "examplesAndroidOLegacy.tar.gz.sha1").toFile())
-  val examplesAndroidP = ThirdPartyDependency(
-    "examplesAndroidP",
-    Paths.get("third_party", "examplesAndroidP").toFile(),
-    Paths.get("third_party", "examplesAndroidP.tar.gz.sha1").toFile())
-  val examplesAndroidPGenerated = ThirdPartyDependency(
-    "examplesAndroidPGenerated",
-    Paths.get("third_party", "examplesAndroidPGenerated").toFile(),
-    Paths.get("third_party", "examplesAndroidPGenerated.tar.gz.sha1").toFile())
   val desugarJdkLibs = ThirdPartyDependency(
     "desugar-jdk-libs",
     Paths.get("third_party", "openjdk", "desugar_jdk_libs").toFile(),
@@ -445,10 +421,6 @@ object ThirdPartyDeps {
     Paths.get("third_party", "jdwp-tests").toFile(),
     Paths.get("third_party", "jdwp-tests.tar.gz.sha1").toFile())
   val kotlinCompilers = getThirdPartyKotlinCompilers()
-  val kotlinR8TestResources = ThirdPartyDependency(
-    "kotlinR8TestResources",
-    Paths.get("third_party", "kotlinR8TestResources").toFile(),
-    Paths.get("third_party", "kotlinR8TestResources.tar.gz.sha1").toFile())
   val multidex = ThirdPartyDependency(
     "multidex",
     Paths.get("third_party", "multidex").toFile(),

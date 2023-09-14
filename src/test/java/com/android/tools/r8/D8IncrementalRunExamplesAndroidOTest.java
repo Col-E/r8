@@ -156,7 +156,8 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
 
     Path getGeneratedRoot(Path testJarFile) {
       String sourceSet = testJarFile.getParent().toFile().getName();
-      return Paths.get(ToolHelper.THIRD_PARTY_DIR, sourceSet + "Generated", packageName);
+      Path parent = testJarFile.getParent().getParent().getParent();
+      return parent.resolve(Paths.get("generated", sourceSet, packageName));
     }
 
     AndroidApp compileClassFilesInIntermediate(
