@@ -128,7 +128,8 @@ tasks {
     }
     exclude("META-INF/*.kotlin_module")
     exclude("**/*.kotlin_metadata")
-    archiveFileName.set("r8-swissarmyknife.jar")
+    destinationDirectory.set(getRoot().resolveAll("build", "libs"))
+    archiveFileName.set("r8-full-exclude-deps.jar")
   }
 
   val depsJar by registering(Jar::class) {

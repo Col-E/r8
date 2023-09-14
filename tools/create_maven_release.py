@@ -246,10 +246,13 @@ def generate_maven_zip(name, version, pom_file, jar_file, out):
     base_no_zip = out[0:len(out)-4]
     make_archive(base_no_zip, 'zip', tmp_dir)
 
-def generate_r8_maven_zip(out, version_file=None, skip_gradle_build=False):
-  # Build the R8 no deps artifact.
+def generate_r8_maven_zip(out, version_file=None, skip_gradle_build=False,
+                          new_gradle=False):
   if not skip_gradle_build:
-    gradle.RunGradle([utils.R8LIB, '-Pno_internal'])
+    if (new_gradle):
+      gradle.RunGradle([":test:r8LibWithRelocatedDeps"], new_gradle=True)
+    else:
+      gradle.RunGradle([utils.R8LIB, '-Pno_internal'])
 
   version = determine_version()
   with utils.TempDir() as tmp_dir:
