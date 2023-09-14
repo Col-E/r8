@@ -5,8 +5,8 @@
 
 import argparse
 import os.path
-import shutil
 import subprocess
+import shutil
 import sys
 
 import utils
@@ -21,7 +21,7 @@ ANDRDID_SUPPORT_VERSION = '25.4.0'
 ASM_VERSION = '9.5'
 ESPRESSO_VERSION = '3.0.0'
 FASTUTIL_VERSION = '7.2.1'
-KOTLIN_METADATA_VERSION = '0.7.0'
+KOTLIN_METADATA_VERSION = '0.6.2'
 KOTLIN_VERSION = '1.8.0'
 GUAVA_VERSION = '31.1-jre'
 GUAVA_VERSION_NEW = '32.1.2-jre'

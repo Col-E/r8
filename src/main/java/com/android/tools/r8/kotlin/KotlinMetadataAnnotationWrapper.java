@@ -56,7 +56,7 @@ public class KotlinMetadataAnnotationWrapper implements kotlin.Metadata {
   }
 
   public static KotlinMetadataAnnotationWrapper wrap(KotlinClassMetadata classMetadata) {
-    Metadata annotationData = classMetadata.getAnnotationData$kotlinx_metadata_jvm();
+    Metadata annotationData = classMetadata.getAnnotationData();
     return new KotlinMetadataAnnotationWrapper(
         annotationData.k(),
         annotationData.mv(),

@@ -79,7 +79,10 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
   }
 
   static KotlinFunctionInfo create(
-      KmFunction kmFunction, DexItemFactory factory, Reporter reporter) {
+      KmFunction kmFunction,
+      DexItemFactory factory,
+      Reporter reporter,
+      boolean readMethodSignature) {
     boolean isCrossInline = false;
     List<KotlinValueParameterInfo> valueParameters =
         KotlinValueParameterInfo.create(kmFunction.getValueParameters(), factory, reporter);
@@ -96,14 +99,16 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
         KotlinTypeInfo.create(kmFunction.getReceiverParameterType(), factory, reporter),
         valueParameters,
         KotlinTypeParameterInfo.create(kmFunction.getTypeParameters(), factory, reporter),
-        KotlinJvmMethodSignatureInfo.create(JvmExtensionsKt.getSignature(kmFunction), factory),
+        readMethodSignature
+            ? KotlinJvmMethodSignatureInfo.create(JvmExtensionsKt.getSignature(kmFunction), factory)
+            : null,
         getlambdaClassOrigin(kmFunction, factory),
         KotlinVersionRequirementInfo.create(kmFunction.getVersionRequirements()),
         KotlinContractInfo.create(kmFunction.getContract(), factory, reporter),
         isCrossInline,
         ListUtils.map(
             kmFunction.getContextReceiverTypes(),
-            contextReceiverType -> KotlinTypeInfo.create(contextReceiverType, factory, reporter)));
+            contextRecieverType -> KotlinTypeInfo.create(contextRecieverType, factory, reporter)));
   }
 
   private static KotlinTypeReference getlambdaClassOrigin(

@@ -41,12 +41,18 @@ public class KotlinConstructorInfo implements KotlinMethodLevelInfo {
   }
 
   public static KotlinConstructorInfo create(
-      KmConstructor kmConstructor, DexItemFactory factory, Reporter reporter) {
+      KmConstructor kmConstructor,
+      DexItemFactory factory,
+      Reporter reporter,
+      boolean readConstructorSignature) {
     return new KotlinConstructorInfo(
         kmConstructor.getFlags(),
         KotlinValueParameterInfo.create(kmConstructor.getValueParameters(), factory, reporter),
         KotlinVersionRequirementInfo.create(kmConstructor.getVersionRequirements()),
-        KotlinJvmMethodSignatureInfo.create(JvmExtensionsKt.getSignature(kmConstructor), factory));
+        readConstructorSignature
+            ? KotlinJvmMethodSignatureInfo.create(
+                JvmExtensionsKt.getSignature(kmConstructor), factory)
+            : null);
   }
 
   boolean rewrite(KmClass kmClass, DexEncodedMethod method, AppView<?> appView) {

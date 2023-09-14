@@ -203,9 +203,9 @@ public final class KotlinClassMetadataReader {
       KotlinClassMetadata kMetadata,
       AppView<?> appView,
       Consumer<DexEncodedMethod> keepByteCode) {
-    Metadata metadata = kMetadata.getAnnotationData$kotlinx_metadata_jvm();
-    String packageName = metadata.pn();
-    int[] metadataVersion = metadata.mv();
+    Metadata annotationData = kMetadata.getAnnotationData();
+    String packageName = annotationData.pn();
+    int[] metadataVersion = annotationData.mv();
     if (kMetadata instanceof KotlinClassMetadata.Class) {
       return KotlinClassInfo.create(
           (KotlinClassMetadata.Class) kMetadata,
@@ -240,7 +240,7 @@ public final class KotlinClassMetadataReader {
           kotlin,
           appView);
     } else {
-      throw new MetadataError("unsupported 'k' value: " + metadata.k());
+      throw new MetadataError("unsupported 'k' value: " + annotationData.k());
     }
   }
 

@@ -125,7 +125,10 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       Consumer<DexEncodedMethod> keepByteCode) {
     DexItemFactory factory = appView.dexItemFactory();
     Reporter reporter = appView.reporter();
-    KmClass kmClass = metadata.getKmClass();
+    KmClass kmClass = metadata.toKmClass();
+    KotlinJvmSignatureExtensionInformation extensionInformation =
+        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(
+            metadata, appView.options());
     Map<String, DexEncodedField> fieldMap = new HashMap<>();
     for (DexEncodedField field : hostClass.fields()) {
       fieldMap.put(toJvmFieldSignature(field.getReference()).asString(), field);
@@ -135,11 +138,14 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       methodMap.put(toJvmMethodSignature(method.getReference()).asString(), method);
     }
     ImmutableList.Builder<KotlinConstructorInfo> notBackedConstructors = ImmutableList.builder();
+    int constructorIndex = 0;
     KotlinMetadataMembersTracker originalMembersWithKotlinInfo =
         new KotlinMetadataMembersTracker(appView);
     for (KmConstructor kmConstructor : kmClass.getConstructors()) {
+      boolean readConstructorSignature =
+          extensionInformation.hasJvmMethodSignatureExtensionForConstructor(constructorIndex++);
       KotlinConstructorInfo constructorInfo =
-          KotlinConstructorInfo.create(kmConstructor, factory, reporter);
+          KotlinConstructorInfo.create(kmConstructor, factory, reporter, readConstructorSignature);
       JvmMethodSignature signature = JvmExtensionsKt.getSignature(kmConstructor);
       if (signature != null) {
         DexEncodedMethod method = methodMap.get(signature.asString());
@@ -160,6 +166,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
             factory,
             reporter,
             keepByteCode,
+            extensionInformation,
             originalMembersWithKotlinInfo);
     KotlinTypeReference anonymousObjectOrigin = getAnonymousObjectOrigin(kmClass, factory);
     boolean nameCanBeDeducedFromClassOrOrigin =
@@ -447,7 +454,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
         localDelegatedProperties.rewrite(
             JvmExtensionsKt.getLocalDelegatedProperties(kmClass)::add, appView);
     return Pair.create(
-        Companion.writeClass(kmClass, getCompatibleKotlinInfo(), 0),
+        Companion.writeClass(kmClass, getCompatibleKotlinInfo(), 0).getAnnotationData(),
         rewritten || !originalMembersWithKotlinInfo.isEqual(rewrittenReferences, appView));
   }
 

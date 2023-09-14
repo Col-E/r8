@@ -38,9 +38,12 @@ public class KotlinFileFacadeInfo implements KotlinClassLevelInfo {
       DexClass clazz,
       AppView<?> appView,
       Consumer<DexEncodedMethod> keepByteCode) {
-    KmPackage kmPackage = kmFileFacade.getKmPackage();
+    KmPackage kmPackage = kmFileFacade.toKmPackage();
+    KotlinJvmSignatureExtensionInformation extensionInformation =
+        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(
+            kmFileFacade, appView.options());
     return new KotlinFileFacadeInfo(
-        KotlinPackageInfo.create(kmPackage, clazz, appView, keepByteCode),
+        KotlinPackageInfo.create(kmPackage, clazz, appView, keepByteCode, extensionInformation),
         packageName,
         metadataVersion);
   }
@@ -60,7 +63,8 @@ public class KotlinFileFacadeInfo implements KotlinClassLevelInfo {
     KmPackage kmPackage = new KmPackage();
     boolean rewritten = packageInfo.rewrite(kmPackage, clazz, appView);
     return Pair.create(
-        Companion.writeFileFacade(kmPackage, getCompatibleKotlinInfo(), 0), rewritten);
+        Companion.writeFileFacade(kmPackage, getCompatibleKotlinInfo(), 0).getAnnotationData(),
+        rewritten);
   }
 
   @Override

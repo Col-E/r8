@@ -43,10 +43,13 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
       DexClass clazz,
       AppView<?> appView,
       Consumer<DexEncodedMethod> keepByteCode) {
-    KmPackage kmPackage = classPart.getKmPackage();
+    KmPackage kmPackage = classPart.toKmPackage();
+    KotlinJvmSignatureExtensionInformation extensionInformation =
+        KotlinJvmSignatureExtensionInformation.readInformationFromMessage(
+            classPart, appView.options());
     return new KotlinMultiFileClassPartInfo(
         classPart.getFacadeClassName(),
-        KotlinPackageInfo.create(kmPackage, clazz, appView, keepByteCode),
+        KotlinPackageInfo.create(kmPackage, clazz, appView, keepByteCode, extensionInformation),
         packageName,
         metadataVersion);
   }
@@ -66,7 +69,8 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
     KmPackage kmPackage = new KmPackage();
     boolean rewritten = packageInfo.rewrite(kmPackage, clazz, appView);
     return Pair.create(
-        Companion.writeMultiFileClassPart(kmPackage, facadeClassName, getCompatibleKotlinInfo(), 0),
+        Companion.writeMultiFileClassPart(kmPackage, facadeClassName, getCompatibleKotlinInfo(), 0)
+            .getAnnotationData(),
         rewritten);
   }
 

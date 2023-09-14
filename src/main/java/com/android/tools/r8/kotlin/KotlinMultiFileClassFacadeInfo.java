@@ -71,7 +71,8 @@ public class KotlinMultiFileClassFacadeInfo implements KotlinClassLevelInfo {
               null);
     }
     return Pair.create(
-        Companion.writeMultiFileClassFacade(partClassNameStrings, getCompatibleKotlinInfo(), 0),
+        Companion.writeMultiFileClassFacade(partClassNameStrings, getCompatibleKotlinInfo(), 0)
+            .getAnnotationData(),
         rewritten);
   }
 
