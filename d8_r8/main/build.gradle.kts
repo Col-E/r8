@@ -168,7 +168,7 @@ tasks {
     val swissArmy = swissArmyKnife.get().outputs.getFiles().getSingleFile()
     val deps = depsJar.get().outputs.files.getSingleFile()
     inputs.files(listOf(swissArmy, deps))
-    val output = getRoot().resolveAll("build", "libs", "r8-with-relocated-deps.jar")
+    val output = getRoot().resolveAll("build", "libs", "r8.jar")
     outputs.file(output)
     commandLine = baseCompilerCommandLine(
       swissArmy,

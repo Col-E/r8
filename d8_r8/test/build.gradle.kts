@@ -94,7 +94,7 @@ tasks {
     val r8Jar = swissArmyKnifeTask.outputs.files.getSingleFile()
     val deps = mainDepsJarTask.outputs.files.getSingleFile()
     inputs.files(listOf(r8Compiler, r8Jar, deps))
-    val output = file(Paths.get("build", "libs", "r8lib-exclude-deps.jar"))
+    val output =  getRoot().resolveAll("build", "libs", "r8lib-exclude-deps.jar")
     outputs.file(output)
     commandLine = createR8LibCommandLine(
       r8Compiler,
