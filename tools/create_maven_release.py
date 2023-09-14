@@ -266,7 +266,7 @@ def generate_dependencies():
   return result
 
 def write_default_r8_pom_file(pom_file, version):
-  write_pom_file(R8_POMTEMPLATE, pom_file, version, dependencies=generate_dependencies())
+  write_pom_file(R8_POMTEMPLATE, pom_file, version)
 
 def write_pom_file(
     template, pom_file, version, artifact_id=None, dependencies='', library_licenses=''):
