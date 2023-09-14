@@ -123,7 +123,11 @@ tasks {
   }
 
   val swissArmyKnife by registering(Jar::class) {
+    dependsOn(keepAnnoJarTask)
+    dependsOn(resourceShrinkerJarTask)
     from(sourceSets.main.get().output)
+    from(keepAnnoJarTask.outputs.files.map(::zipTree))
+    from(resourceShrinkerJarTask.outputs.files.map(::zipTree))
     from(consolidatedLicense)
     manifest {
       attributes["Main-Class"] = "com.android.tools.r8.SwissArmyKnife"
@@ -134,12 +138,8 @@ tasks {
   }
 
   val depsJar by registering(Jar::class) {
-    dependsOn(keepAnnoJarTask)
-    dependsOn(resourceShrinkerJarTask)
     dependsOn(resourceShrinkerDepsTask)
     from(mainJarDependencies().map(::zipTree))
-    from(keepAnnoJarTask.outputs.files.map(::zipTree))
-    from(resourceShrinkerJarTask.outputs.files.map(::zipTree))
     from(resourceShrinkerDepsTask.outputs.files.map(::zipTree))
     exclude("**/module-info.class")
     exclude("**/*.kotlin_metadata")

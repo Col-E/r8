@@ -22,7 +22,7 @@ dependencies { }
 
 val keepAnnoCompileTask = projectTask("keepanno", "compileJava")
 val mainDepsJarTask = projectTask("main", "depsJar")
-val r8Jar = projectTask("main", "jar")
+val swissArmyKnifeTask = projectTask("main", "swissArmyKnife")
 val r8WithRelocatedDepsTask = projectTask("main", "r8WithRelocatedDeps")
 val java8TestJarTask = projectTask("tests_java_8", "testJar")
 val java8TestsDepsJarTask = projectTask("tests_java_8", "depsJar")
@@ -91,7 +91,7 @@ tasks {
     dependsOn(mainDepsJarTask)
     dependsOn(r8WithRelocatedDepsTask)
     val r8Compiler = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
-    val r8Jar = r8Jar.outputs.files.getSingleFile()
+    val r8Jar = swissArmyKnifeTask.outputs.files.getSingleFile()
     val deps = mainDepsJarTask.outputs.files.getSingleFile()
     inputs.files(listOf(r8Compiler, r8Jar, deps))
     val output = file(Paths.get("build", "libs", "r8lib-exclude-deps.jar"))
