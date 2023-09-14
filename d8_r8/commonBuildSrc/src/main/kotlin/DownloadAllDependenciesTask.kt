@@ -11,7 +11,6 @@ import java.util.Arrays
 import java.util.stream.Collectors
 import javax.inject.Inject
 import org.gradle.api.DefaultTask
-import org.gradle.api.file.FileCollection
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.InputFiles
@@ -28,15 +27,13 @@ abstract class DownloadAllDependenciesTask : DefaultTask() {
   private var _thirdPartyDeps: List<ThirdPartyDependency>? = null;
 
   @InputFiles
-  fun getInputFile(): FileCollection {
-    val sha1Files = _thirdPartyDeps!!.map { _root!!.resolve(it.sha1File) }
-    return project.files(*sha1Files.toTypedArray())
+  fun getInputFile(): List<File> {
+    return _thirdPartyDeps!!.map { _root!!.resolve(it.sha1File) }
   }
 
   @OutputDirectories
-  fun getOutputDir(): FileCollection {
-    val outputDirs = _thirdPartyDeps!!.map { _root!!.resolve(it.path) }
-    return project.files(*outputDirs.toTypedArray())
+  fun getOutputDir(): List<File> {
+    return _thirdPartyDeps!!.map { _root!!.resolve(it.path) }
   }
 
   @Inject
