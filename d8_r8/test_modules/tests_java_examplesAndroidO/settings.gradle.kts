@@ -25,3 +25,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "tests_java_examplesAndroidO"
+val root = rootProject.projectDir.parentFile.parentFile
+includeBuild(root.resolve("shared"))

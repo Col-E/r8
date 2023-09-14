@@ -17,7 +17,6 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectories
 import org.gradle.api.tasks.TaskAction
-import org.gradle.api.tasks.options.Option
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.workers.WorkAction
 import org.gradle.workers.WorkParameters

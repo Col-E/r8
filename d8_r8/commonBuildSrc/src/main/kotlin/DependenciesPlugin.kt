@@ -87,24 +87,6 @@ fun Project.header(title : String) : String {
   return "****** ${title} ******"
 }
 
-fun Project.ensureThirdPartyDependencies(name : String, deps : List<ThirdPartyDependency>) : Task {
-  val outputFiles : MutableList<File> = mutableListOf()
-  val root = getRoot()
-  val depsTasks = deps.map { tpd ->
-    val projectAndTaskName = "${project.name}-$name"
-    val downloadTaskName = "download-third-party-$projectAndTaskName-${tpd.packageName}"
-    val downloadTask = tasks.register<DownloadDependencyTask>(downloadTaskName) {
-      setDependency(root.resolve(tpd.sha1File), root.resolve(tpd.path), tpd.type, root)
-    }.get()
-    outputFiles.add(tpd.path)
-    downloadTask
-  }
-  return tasks.register("ensure-third-party-$name") {
-    dependsOn(*depsTasks.toTypedArray())
-    outputs.files(outputFiles)
-  }.get()
-}
-
 /**
  * Builds a jar for each sub folder in a test source set.
  *

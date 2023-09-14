@@ -29,12 +29,8 @@ dependencies {
 // We just need to register the examples jars for it to be referenced by other modules.
 val buildExampleJars = buildExampleJars("examplesAndroidN")
 
-val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
-  "compileDeps",
-  listOf(Jdk.JDK_11.getThirdPartyDependency()))
-
 tasks {
   withType<JavaCompile> {
-    dependsOn(thirdPartyCompileDependenciesTask)
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
   }
 }

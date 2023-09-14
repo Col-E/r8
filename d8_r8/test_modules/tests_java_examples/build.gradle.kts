@@ -26,11 +26,11 @@ dependencies {
   testCompileOnly(Deps.mockito)
 }
 
-val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
-  "compileDeps",
-  listOf(Jdk.JDK_11.getThirdPartyDependency()))
-
 tasks {
+  withType<JavaCompile> {
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
+  }
+
   compileTestJava {
     options.compilerArgs = listOf("-g:source,lines")
   }
