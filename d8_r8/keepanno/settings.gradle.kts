@@ -25,3 +25,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "keepanno"
+val root = rootProject.projectDir.parentFile
+includeBuild(root.resolve("shared"))

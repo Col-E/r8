@@ -19,3 +19,12 @@ dependencies {
   compileOnly(Deps.asm)
   compileOnly(Deps.guava)
 }
+
+tasks {
+  val keepAnnoJar by registering(Jar::class) {
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
+    from(sourceSets.main.get().output)
+    destinationDirectory.set(getRoot().resolveAll("build", "libs"))
+    archiveFileName.set("keepanno-annotations.jar")
+  }
+}
