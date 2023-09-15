@@ -250,7 +250,8 @@ def generate_r8_maven_zip(out, version_file=None, skip_gradle_build=False,
                           new_gradle=False):
   if not skip_gradle_build:
     if (new_gradle):
-      gradle.RunGradle([":test:r8LibWithRelocatedDeps"], new_gradle=True)
+      gradle.RunGradle([':test:r8LibWithRelocatedDeps',
+                        '-Pno_internal'], new_gradle=True)
     else:
       gradle.RunGradle([utils.R8LIB, '-Pno_internal'])
 
