@@ -226,7 +226,7 @@ def Run(options, new_gradle):
       print('On main, using git hash for archiving')
       version = GetGitHash()
 
-    destination = GetVersionDestination('gs://', version, is_main)
+    destination = GetVersionDestination('gs://', version, is_main, new_gradle)
     if utils.cloud_storage_exists(destination) and not options.dry_run:
       raise Exception('Target archive directory %s already exists' % destination)
 
