@@ -105,12 +105,6 @@ sourceSets {
         }
         output.resourcesDir = 'build/classes/debugTestResourcesJava8'
     }
-    examples {
-        java {
-            srcDirs = ['src/test/examples']
-        }
-        output.resourcesDir = 'build/classes/examples'
-    }
     examplesJava9 {
         java {
             srcDirs = ['src/test/examplesJava9']
@@ -135,30 +129,6 @@ sourceSets {
         java {
             srcDirs = ['src/test/examplesJava20']
         }
-    }
-    examplesAndroidN {
-        java {
-            srcDirs = ['src/test/examplesAndroidN']
-        }
-        output.resourcesDir = 'build/classes/examplesAndroidN'
-    }
-    examplesAndroidO {
-        java {
-            srcDirs = ['src/test/examplesAndroidO']
-        }
-        output.resourcesDir = 'build/classes/examplesAndroidO'
-    }
-    examplesAndroidP {
-        java {
-            srcDirs = ['src/test/examplesAndroidP']
-        }
-        output.resourcesDir = 'build/classes/examplesAndroidP'
-    }
-    kotlinR8TestResources {
-        java {
-            srcDirs = ['src/test/kotlinR8TestResources']
-        }
-        output.resourcesDir = 'build/classes/kotlinR8TestResources'
     }
     keepanno {
         java {
@@ -225,7 +195,6 @@ dependencies {
     main17Implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     main17Implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
 
-    testCompile sourceSets.examples.output
     testCompile "junit:junit:$junitVersion"
     testCompile "com.google.guava:guava:$guavaVersion"
     testCompile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
@@ -242,18 +211,8 @@ dependencies {
     testCompile group: 'it.unimi.dsi', name: 'fastutil', version: fastutilVersion
     testCompile group: 'org.javassist', name: 'javassist', version: javassistVersion
 
-    examplesAndroidOCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
-    examplesAndroidOCompile files("third_party/android_jar/lib-v26/android.jar")
-    examplesAndroidOCompile files("third_party/examplesAndroidOLegacy")
-
-    examplesAndroidPCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
-    // Import Guava for @Nullable annotation
-    examplesCompile "com.google.guava:guava:$guavaVersion"
-    examplesCompile "junit:junit:$junitVersion"
-    examplesCompile "org.mockito:mockito-core:$mockitoVersion"
     apiUsageSampleCompile sourceSets.main.output
     apiUsageSampleCompile "com.google.guava:guava:$guavaVersion"
-    kotlinR8TestResourcesCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     errorprone("com.google.errorprone:error_prone_core:$errorproneVersion")
 
     keepannoCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
@@ -307,7 +266,13 @@ def cloudDependencies = [
                 "dagger/2.41",
                 "dart-sdk",
                 "ddmlib",
+                "examples",
+                "examplesAndroidN",
+                "examplesAndroidO",
                 "examplesAndroidOLegacy",
+                "examplesAndroidOGenerated",
+                "examplesAndroidP",
+                "examplesAndroidPGenerated",
                 "gradle/gradle",
                 "google/google-java-format/1.14.0",
                 "google-java-format",
@@ -329,6 +294,7 @@ def cloudDependencies = [
                 "kotlin/kotlin-compiler-1.7.0",
                 "kotlin/kotlin-compiler-1.8.0",
                 "kotlinx-coroutines-1.3.6",
+                "kotlinR8TestResources",
                 "multidex",
                 "openjdk/custom_conversion",
                 "openjdk/openjdk-rt-1.8",
@@ -1133,211 +1099,6 @@ task buildApiSampleJars {
     dependsOn buildR8ApiUsageSample
 }
 
-// Proto lite generated code yields warnings when compiling with javac.
-// We change the options passed to javac to ignore it.
-compileExamplesJava.options.compilerArgs = ["-Xlint:none"]
-
-
-task buildExampleJars {
-    def examplesDir = file("src/test/examples")
-    task extractExamplesRuntime(type: Sync) {
-        dependsOn configurations.examplesRuntime
-        from { configurations.examplesRuntime.collect { zipTree(it) } }
-        include "**/*.class"
-        includeEmptyDirs false
-        into "$buildDir/runtime/examples/"
-    }
-
-    task "copy_examples_resources"(type: org.gradle.api.tasks.Copy) {
-        from examplesDir
-        exclude "**/*.java"
-        exclude "**/keep-rules*.txt"
-        into file("build/test/examples/classes")
-    }
-
-    task "compile_examples"(type: JavaCompile) {
-        dependsOn "copy_examples_resources"
-        source examplesDir
-        include "**/*.java"
-        destinationDir = file("build/test/examples/classes")
-        classpath = sourceSets.examples.compileClasspath
-        sourceCompatibility = JavaVersion.VERSION_1_7
-        targetCompatibility = JavaVersion.VERSION_1_7
-        options.compilerArgs = ["-g:source,lines", "-Xlint:none"]
-    }
-    task "compile_examples_debuginfo_all"(type: JavaCompile) {
-        source examplesDir
-        include "**/*.java"
-        destinationDir = file("build/test/examples/classes_debuginfo_all")
-        classpath = sourceSets.examples.compileClasspath
-        sourceCompatibility = JavaVersion.VERSION_1_7
-        targetCompatibility = JavaVersion.VERSION_1_7
-        options.compilerArgs = ["-g", "-Xlint:none"]
-    }
-    task "compile_examples_debuginfo_none"(type: JavaCompile) {
-        source examplesDir
-        include "**/*.java"
-        destinationDir = file("build/test/examples/classes_debuginfo_none")
-        classpath = sourceSets.examples.compileClasspath
-        sourceCompatibility = JavaVersion.VERSION_1_7
-        targetCompatibility = JavaVersion.VERSION_1_7
-        options.compilerArgs = ["-g:none", "-Xlint:none"]
-    }
-    examplesDir.eachDir { dir ->
-        def name = dir.getName();
-        def exampleOutputDir = file("build/test/examples");
-        def jarName = "${name}.jar"
-        dependsOn "jar_example_${name}"
-        dependsOn "jar_example_${name}_debuginfo_all"
-        dependsOn "jar_example_${name}_debuginfo_none"
-        dependsOn "extractExamplesRuntime"
-        def runtimeDependencies = copySpec { }
-        task "jar_example_${name}"(type: Jar, dependsOn: "compile_examples") {
-            archiveName = "${name}.jar"
-            destinationDir = exampleOutputDir
-            from "build/test/examples/classes"
-            include name + "/**/*"
-            with runtimeDependencies
-            includeEmptyDirs true
-        }
-        task "jar_example_${name}_debuginfo_all"(type: Jar, dependsOn: "compile_examples_debuginfo_all") {
-            archiveName = "${name}_debuginfo_all.jar"
-            destinationDir = exampleOutputDir
-            from "build/test/examples/classes_debuginfo_all"
-            include name + "/**/*.class"
-            with runtimeDependencies
-            includeEmptyDirs false
-        }
-        task "jar_example_${name}_debuginfo_none"(type: Jar, dependsOn: "compile_examples_debuginfo_none") {
-            archiveName = "${name}_debuginfo_none.jar"
-            destinationDir = exampleOutputDir
-            from "build/test/examples/classes_debuginfo_none"
-            include name + "/**/*.class"
-            with runtimeDependencies
-            includeEmptyDirs false
-        }
-    }
-}
-
-task buildExampleAndroidNJars {
-    dependsOn downloadDeps
-    def examplesDir = file("src/test/examplesAndroidN")
-    task "compile_examplesAndroidN"(type: JavaCompile) {
-        source = fileTree(dir: examplesDir, include: '**/*.java')
-        destinationDir = file("build/test/examplesAndroidN/classes")
-        classpath = sourceSets.main.compileClasspath
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-        options.compilerArgs += ["-Xlint:-options"]
-    }
-    examplesDir.eachDir { dir ->
-        def name = dir.getName();
-        def exampleOutputDir = file("build/test/examplesAndroidN");
-        def jarName = "${name}.jar"
-        dependsOn "jar_examplesAndroidN_${name}"
-        task "jar_examplesAndroidN_${name}"(type: Jar, dependsOn: "compile_examplesAndroidN") {
-            archiveName = jarName
-            destinationDir = exampleOutputDir
-            from "build/test/examplesAndroidN/classes"
-            include "**/" + name + "/**/*.class"
-        }
-    }
-}
-
-
-task buildExampleAndroidOJars {
-    dependsOn downloadDeps
-    def examplesDir = file("src/test/examplesAndroidO")
-    // Compiling the rest of the files as Java 1.8 code.
-    task "compile_examplesAndroidO"(type: JavaCompile) {
-        source = fileTree(dir: examplesDir, include: '**/*.java', exclude: '**/legacy/**/*.java')
-        destinationDir = file("build/test/examplesAndroidO/classes")
-        classpath = sourceSets.main.compileClasspath
-        classpath += files("build/test/examplesAndroidOLegacy/classes")
-        classpath += files("third_party/android_jar/lib-v26/android.jar")
-        classpath += files("third_party/examplesAndroidOLegacy")
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-        options.compilerArgs += ["-Xlint:-options", "-parameters"]
-    }
-    examplesDir.eachDir { dir ->
-        def name = dir.getName();
-        def destinationDir = file("build/test/examplesAndroidO/classes");
-        if (file("src/test/examplesAndroidO/" + name + "/TestGenerator.java").isFile()) {
-            task "generate_examplesAndroidO_${name}"(type: JavaExec,
-                    dependsOn: "compile_examplesAndroidO") {
-                main = name + ".TestGenerator"
-                classpath = files(destinationDir, sourceSets.main.compileClasspath)
-                args destinationDir, file("build/test/examplesAndroidO/classes/${name}").toString()
-            }
-        } else {
-            task "generate_examplesAndroidO_${name}" () {}
-        }
-    }
-    examplesDir.eachDir { dir ->
-        def name = dir.getName();
-        def exampleOutputDir = file("build/test/examplesAndroidO");
-        def jarName = "${name}.jar"
-        dependsOn "jar_examplesAndroidO_${name}"
-        task "jar_examplesAndroidO_${name}"(type: Jar, dependsOn: ["compile_examplesAndroidO",
-                "generate_examplesAndroidO_${name}"]) {
-            archiveName = jarName
-            destinationDir = exampleOutputDir
-            from "build/test/examplesAndroidO/classes"        // Java 1.8 classes
-            from "build/test/examplesAndroidOLegacy/classes"  // Java 1.6 classes
-            include "**/" + name + "/**/*.class"
-            // Do not include generator into the test runtime jar, it is not useful.
-            // Otherwise, shrinking will need ASM jars.
-            exclude "**/TestGenerator*"
-        }
-    }
-}
-
-task buildExampleAndroidPJars {
-    dependsOn downloadDeps
-    def examplesDir = file("src/test/examplesAndroidP")
-
-    task "compile_examplesAndroidP"(type: JavaCompile) {
-        source = fileTree(dir: examplesDir, include: '**/*.java')
-        destinationDir = file("build/test/examplesAndroidP/classes")
-        classpath = sourceSets.main.compileClasspath
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-        options.compilerArgs += ["-Xlint:-options"]
-    }
-    examplesDir.eachDir { dir ->
-        def name = dir.getName();
-        def destinationDir = file("build/test/examplesAndroidP/classes");
-        if (file("src/test/examplesAndroidP/" + name + "/TestGenerator.java").isFile()) {
-            task "generate_examplesAndroidP_${name}"(type: JavaExec,
-                    dependsOn: "compile_examplesAndroidP") {
-                main = name + ".TestGenerator"
-                classpath = files(destinationDir.toString(), sourceSets.main.compileClasspath)
-                args destinationDir, file("build/test/examplesAndroidP/classes/${name}").toString()
-            }
-        } else {
-            task "generate_examplesAndroidP_${name}" () {}
-        }
-    }
-    examplesDir.eachDir { dir ->
-        def name = dir.getName();
-        def exampleOutputDir = file("build/test/examplesAndroidP");
-        def jarName = "${name}.jar"
-        dependsOn "jar_examplesAndroidP_${name}"
-        task "jar_examplesAndroidP_${name}"(type: Jar,
-                dependsOn: ["compile_examplesAndroidP",
-                            "generate_examplesAndroidP_${name}"]) {
-            archiveName = jarName
-            destinationDir = exampleOutputDir
-            from "build/test/examplesAndroidP/classes"  // Java 1.8 classes
-            include "**/" + name + "/**/*.class"
-            // Do not include generator into the test runtime jar, it is not useful.
-            // Otherwise, shrinking will need ASM jars.
-            exclude "**/TestGenerator*"
-        }
-    }
-}
-
 def buildExampleJarsCreateTask(javaVersion, sourceSet) {
     return tasks.create("buildExample${javaVersion}Jars") {
         def examplesDir = file("src/test/examples${javaVersion}")
@@ -1376,32 +1137,6 @@ task provideArtFrameworksDependencies {
     })
 }
 
-task buildKotlinR8TestResources {
-    def examplesDir = file("src/test/kotlinR8TestResources")
-    examplesDir.eachDir { dir ->
-        def name = dir.getName()
-        def taskName = "jar_kotlinR8TestResources_${name}"
-        def javaOutput = "build/test/kotlinR8TestResources/${name}/java"
-        def javaOutputJarName = "${name}.jar"
-        def javaOutputJarDir = "build/test/kotlinR8TestResources"
-        task "${taskName}Java"(type: JavaCompile) {
-            source = fileTree(dir: file("${examplesDir}/${name}"), include: '**/*.java')
-            destinationDir = file(javaOutput)
-            classpath = sourceSets.main.compileClasspath
-            sourceCompatibility = JavaVersion.VERSION_1_8
-            targetCompatibility = JavaVersion.VERSION_1_8
-            options.compilerArgs += ["-g", "-Xlint:-options"]
-        }
-        task "${taskName}JavaJar"(type: Jar, dependsOn: "${taskName}Java") {
-            archiveName = javaOutputJarName
-            destinationDir = file(javaOutputJarDir)
-            from javaOutput
-            include "**/*.class"
-        }
-        dependsOn "${taskName}JavaJar"
-    }
-}
-
 task buildExamples {
     if (OperatingSystem.current().isMacOsX() || OperatingSystem.current().isWindows()) {
         logger.lifecycle("WARNING: Testing (including building examples) is only partially supported on your " +
@@ -1411,22 +1146,11 @@ task buildExamples {
           "It is fully supported on Linux and partially supported on Mac OS and Windows")
       return;
     }
-    dependsOn buildExampleJars
-    dependsOn buildExampleAndroidNJars
-    dependsOn buildExampleAndroidOJars
-    dependsOn buildExampleAndroidPJars
     dependsOn buildExampleJava9Jars
     dependsOn buildExampleJava10Jars
     dependsOn buildExampleJava11Jars
     dependsOn buildExampleJava17Jars
     dependsOn buildExampleJava20Jars
-    def examplesDir = file("src/test/examples")
-    examplesDir.eachDir { dir ->
-        def exampleOutputDir = file("build/test/examples/" + dir.getName());
-        if (!exampleOutputDir.exists()) {
-          exampleOutputDir.mkdirs()
-        }
-    }
 }
 
 tasks.withType(Test) {
@@ -1512,8 +1236,10 @@ task configureTestForR8Lib(type: Copy) {
     delete r8LibTestPath
     from zipTree(buildR8LibCfTestDeps.outputs.files[0])
     def examplesDir = file("build/test")
-    examplesDir.eachDir { dir ->
-        from ("${buildDir}/test/${dir.getName()}/classes")
+    if (examplesDir.exists()) {
+        examplesDir.eachDir { dir ->
+            from ("${buildDir}/test/${dir.getName()}/classes")
+        }
     }
     from ("${buildDir}/runtime/examples")
     into r8LibTestPath
@@ -2023,7 +1749,6 @@ test { task ->
         }
         dependsOn downloadDeps
         dependsOn buildExamples
-        dependsOn buildKotlinR8TestResources
         dependsOn buildPreNJdwpTestsJar
         dependsOn provideArtFrameworksDependencies
     } else {

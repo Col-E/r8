@@ -98,7 +98,7 @@ abstract class DownloadAllDependenciesTask : DefaultTask() {
     }
 
     @Throws(IOException::class, InterruptedException::class)
-    private fun downloadFromGoogleStorage(parameters: RunDownload2Parameters, sha1File: File) {
+    private fun downloadFromGoogleStorage(parameters: RunDownloadParameters, sha1File: File) {
       val args = Arrays.asList("-n", "-b", "r8-deps", "-s", "-u", sha1File.toString())
       if (OperatingSystem.current().isWindows) {
         val command: MutableList<String> = ArrayList()
@@ -116,7 +116,7 @@ abstract class DownloadAllDependenciesTask : DefaultTask() {
     }
 
     @Throws(IOException::class, InterruptedException::class)
-    private fun downloadFromX20(parameters: RunDownload2Parameters, sha1File: File) {
+    private fun downloadFromX20(parameters: RunDownloadParameters, sha1File: File) {
       if (OperatingSystem.current().isWindows) {
         throw RuntimeException("Downloading from x20 unsupported on windows")
       }
@@ -126,7 +126,7 @@ abstract class DownloadAllDependenciesTask : DefaultTask() {
     }
 
     @Throws(IOException::class, InterruptedException::class)
-    private fun runProcess(parameters: RunDownload2Parameters, builder: ProcessBuilder) {
+    private fun runProcess(parameters: RunDownloadParameters, builder: ProcessBuilder) {
       builder.directory(parameters.root.asFile.get())
       val command = java.lang.String.join(" ", builder.command())
       val p = builder.start()

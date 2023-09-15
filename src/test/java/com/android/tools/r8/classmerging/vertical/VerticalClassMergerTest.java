@@ -65,9 +65,9 @@ import org.junit.runners.Parameterized.Parameters;
 public class VerticalClassMergerTest extends TestBase {
 
   private static final Path CF_DIR =
-      Paths.get(ToolHelper.BUILD_DIR).resolve("test/examples/classes/classmerging");
+      Paths.get(ToolHelper.EXAMPLES_BUILD_DIR).resolve("classes/classmerging");
   private static final Path JAVA8_CF_DIR =
-      Paths.get(ToolHelper.BUILD_DIR).resolve("test/examplesAndroidO/classes/classmerging");
+      Paths.get(ToolHelper.THIRD_PARTY_DIR).resolve("examplesAndroidO/classes/classmerging");
   private static final Path EXAMPLE_JAR = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR)
       .resolve("classmerging.jar");
   private static final Path EXAMPLE_KEEP = Paths.get(ToolHelper.EXAMPLES_DIR)

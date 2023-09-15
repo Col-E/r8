@@ -43,7 +43,7 @@ public class B72312389 extends TestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O))
         .addProgramFiles(
             Paths.get(
-                ToolHelper.TESTS_BUILD_DIR,
+                ToolHelper.THIRD_PARTY_DIR,
                 "examplesAndroidO",
                 "classes",
                 "instrumentationtest",
