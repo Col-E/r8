@@ -372,6 +372,8 @@ def Main():
     gradle_args.append(':main:r8WithRelocatedDeps')
     gradle_args.append(':test:cleanTest')
     gradle_args.append('test:test')
+    gradle_args.append('--stacktrace')
+    gradle_args.append('-Pprint_full_stacktraces')
   else:
     gradle_args.append('r8WithRelocatedDeps')
     gradle_args.append('r8WithRelocatedDeps17')
