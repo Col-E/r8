@@ -282,7 +282,7 @@ def archivers():
         priority = 25,
         trigger = not desugar,
         properties = properties,
-        execution_timeout = time.hour * 1 if desugar else time.minute * 30 ,
+        execution_timeout = time.hour * 1,
         expiration_timeout = time.hour * 35,
     )
 archivers()
