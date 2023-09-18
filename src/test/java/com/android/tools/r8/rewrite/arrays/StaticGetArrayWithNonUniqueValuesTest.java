@@ -26,7 +26,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class StringArrayWithNonUniqueValuesTest extends TestBase {
+public class StaticGetArrayWithNonUniqueValuesTest extends TestBase {
 
   @Parameter(0)
   public TestParameters parameters;
@@ -45,17 +45,16 @@ public class StringArrayWithNonUniqueValuesTest extends TestBase {
         ImmutableList.of(Constants.U8BIT_MAX - 16, 2));
   }
 
-  private static final String EXPECTED_OUTPUT = StringUtils.lines("100", "104");
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("100", "50");
 
-  public boolean canUseFilledNewArrayOfStrings(TestParameters parameters) {
+  public boolean canUseFilledNewArrayOfObject(TestParameters parameters) {
     return parameters.isDexRuntime()
-        && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K);
+        && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
   }
 
-  private void inspect(
-      MethodSubject method, int constStrings, int puts, boolean insideCatchHandler) {
+  private void inspect(MethodSubject method, int staticGets, int puts, boolean insideCatchHandler) {
     boolean expectingFilledNewArray =
-        canUseFilledNewArrayOfStrings(parameters) && !insideCatchHandler;
+        canUseFilledNewArrayOfObject(parameters) && !insideCatchHandler;
     assertEquals(
         expectingFilledNewArray ? 0 : puts,
         method.streamInstructions().filter(InstructionSubject::isArrayPut).count());
@@ -63,8 +62,7 @@ public class StringArrayWithNonUniqueValuesTest extends TestBase {
         expectingFilledNewArray ? 1 : 0,
         method.streamInstructions().filter(InstructionSubject::isFilledNewArray).count());
     assertEquals(
-        expectingFilledNewArray || parameters.isCfRuntime() ? puts : constStrings,
-        method.streamInstructions().filter(InstructionSubject::isConstString).count());
+        staticGets, method.streamInstructions().filter(InstructionSubject::isStaticGet).count());
   }
 
   private void configure(TestCompilerBuilder<?, ?, ?, ?, ?> builder) {
@@ -74,11 +72,15 @@ public class StringArrayWithNonUniqueValuesTest extends TestBase {
   }
 
   private void inspectD8(CodeInspector inspector) {
-    inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m1"), 1, 100, false);
+    inspect(
+        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m1"),
+        canUseFilledNewArrayOfObject(parameters) ? 100 : 1,
+        100,
+        false);
     inspect(
         inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m2"),
-        maxMaterializingConstants == 2 ? 32 : 26,
-        104,
+        canUseFilledNewArrayOfObject(parameters) ? 50 : (maxMaterializingConstants == 2 ? 42 : 10),
+        50,
         false);
   }
 
@@ -96,12 +98,10 @@ public class StringArrayWithNonUniqueValuesTest extends TestBase {
 
   private void inspectR8(CodeInspector inspector) {
     inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m1"), 1, 100, false);
-    // TODO(300882718): Constant canonicalizer is not run for R8 after NewArrayFilled
-    //  lowering (98 vs 32 for D8).
     inspect(
         inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m2"),
-        maxMaterializingConstants == 2 ? 98 : 26,
-        104,
+        maxMaterializingConstants == 2 && !canUseFilledNewArrayOfObject(parameters) ? 42 : 10,
+        50,
         false);
   }
 
@@ -123,35 +123,37 @@ public class StringArrayWithNonUniqueValuesTest extends TestBase {
 
     @NeverInline
     public static void m1() {
-      String[] array =
-          new String[] {
-            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
-            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
-            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
-            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
-            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
-            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
-            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
-            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
-            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
-            "A", "A", "A", "A", "A", "A", "A", "A", "A", "A",
+      A[] array =
+          new A[] {
+            A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00,
+            A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00,
+            A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00,
+            A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00,
+            A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00,
+            A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00,
+            A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00,
+            A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00,
+            A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00,
+            A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00, A.A00,
           };
-      System.out.println(Arrays.asList(array).size());
+      printArraySize(array);
     }
 
     @NeverInline
     public static void m2() {
-      String[] array =
-          new String[] {
-            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q",
-                "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q",
-                "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q",
-                "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q",
-                "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+      A[] array =
+          new A[] {
+            A.A00, A.A01, A.A02, A.A03, A.A04, A.A05, A.A06, A.A07, A.A08, A.A09,
+            A.A00, A.A01, A.A02, A.A03, A.A04, A.A05, A.A06, A.A07, A.A08, A.A09,
+            A.A00, A.A01, A.A02, A.A03, A.A04, A.A05, A.A06, A.A07, A.A08, A.A09,
+            A.A00, A.A01, A.A02, A.A03, A.A04, A.A05, A.A06, A.A07, A.A08, A.A09,
+            A.A00, A.A01, A.A02, A.A03, A.A04, A.A05, A.A06, A.A07, A.A08, A.A09,
           };
+      printArraySize(array);
+    }
+
+    @NeverInline
+    public static void printArraySize(A[] array) {
       System.out.println(Arrays.asList(array).size());
     }
 
@@ -159,5 +161,29 @@ public class StringArrayWithNonUniqueValuesTest extends TestBase {
       m1();
       m2();
     }
+  }
+
+  static class A {
+
+    private final String name;
+
+    private A(String name) {
+      this.name = name;
+    }
+
+    public String toString() {
+      return name;
+    }
+
+    static A A00 = new A("A00");
+    static A A01 = new A("A01");
+    static A A02 = new A("A02");
+    static A A03 = new A("A03");
+    static A A04 = new A("A04");
+    static A A05 = new A("A05");
+    static A A06 = new A("A06");
+    static A A07 = new A("A07");
+    static A A08 = new A("A08");
+    static A A09 = new A("A09");
   }
 }

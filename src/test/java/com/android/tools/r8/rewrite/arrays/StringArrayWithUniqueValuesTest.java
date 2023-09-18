@@ -10,11 +10,13 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Iterator;
 import org.junit.Test;
@@ -32,11 +34,15 @@ public class StringArrayWithUniqueValuesTest extends TestBase {
   @Parameter(1)
   public CompilationMode compilationMode;
 
-  @Parameters(name = "{0}, mode = {1}")
+  @Parameter(2)
+  public Integer maxMaterializingConstants;
+
+  @Parameters(name = "{0}, mode = {1}, maxMaterializingConstants = {2}")
   public static Iterable<?> data() {
     return buildParameters(
         getTestParameters().withDefaultCfRuntime().withDexRuntimesAndAllApiLevels().build(),
-        CompilationMode.values());
+        CompilationMode.values(),
+        ImmutableList.of(Constants.U8BIT_MAX - 16, 2));
   }
 
   private static final String EXPECTED_OUTPUT =

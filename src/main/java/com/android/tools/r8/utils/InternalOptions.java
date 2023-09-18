@@ -27,6 +27,7 @@ import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Backend;
 import com.android.tools.r8.dex.Marker.Tool;
@@ -1551,6 +1552,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public int maxSizeForFilledNewArrayOfInts = 200;
     public int maxSizeForFilledNewArrayOfIntsWhenNewArrayFilledDataApplicable = 5;
     public int maxSizeForFilledNewArrayOfReferences = 200;
+    // All DEX aput instructions takes an 8-bit wide register value for the source.
+    public int maxMaterializingConstants = Constants.U8BIT_MAX - 16;
 
     // Arbitrary limits of number of inputs to fill-array-data.
     public int minSizeForFilledArrayData = 2;

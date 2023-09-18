@@ -9,12 +9,15 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,11 +34,15 @@ public class ConstClassArrayWithNonUniqueValuesTest extends TestBase {
   @Parameter(1)
   public CompilationMode compilationMode;
 
-  @Parameters(name = "{0}, mode = {1}")
+  @Parameter(2)
+  public Integer maxMaterializingConstants;
+
+  @Parameters(name = "{0}, mode = {1}, maxMaterializingConstants = {2}")
   public static Iterable<?> data() {
     return buildParameters(
         getTestParameters().withDefaultCfRuntime().withDexRuntimesAndAllApiLevels().build(),
-        CompilationMode.values());
+        CompilationMode.values(),
+        ImmutableList.of(Constants.U8BIT_MAX - 16, 2));
   }
 
   private static final String EXPECTED_OUTPUT = StringUtils.lines("100", "104");
@@ -62,7 +69,17 @@ public class ConstClassArrayWithNonUniqueValuesTest extends TestBase {
 
   private void inspect(CodeInspector inspector) {
     inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m1"), 1, 100, false);
-    inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m2"), 26, 104, false);
+    inspect(
+        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m2"),
+        maxMaterializingConstants == 2 ? 98 : 26,
+        104,
+        false);
+  }
+
+  private void configure(TestCompilerBuilder<?, ?, ?, ?, ?> builder) {
+    builder.addOptionsModification(
+        options ->
+            options.rewriteArrayOptions().maxMaterializingConstants = maxMaterializingConstants);
   }
 
   @Test
@@ -71,6 +88,7 @@ public class ConstClassArrayWithNonUniqueValuesTest extends TestBase {
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
         .setMinApi(parameters)
+        .apply(this::configure)
         .run(parameters.getRuntime(), TestClass.class)
         .inspect(this::inspect)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
@@ -84,6 +102,7 @@ public class ConstClassArrayWithNonUniqueValuesTest extends TestBase {
         .setMinApi(parameters)
         .enableInliningAnnotations()
         .addDontObfuscate()
+        .apply(this::configure)
         .run(parameters.getRuntime(), TestClass.class)
         .inspect(this::inspect)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
