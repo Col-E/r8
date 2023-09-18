@@ -1172,9 +1172,8 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
                 "                                     method                 future  (Note: all"
                     + " times are in ms. relative to TaskGraph creation)",
                 "    requested,   queued,  started, finished (+  latency), finished, task",
-                // TODO(b/300416467): We could retrace this correctly.
                 "        0.057,    1.290,    2.690,    3.408 (+    0.718),    66.376,"
-                    + " foo.bar.baz.c.b.a.c.b.a.a.b, 0, 6, 0",
+                    + " some.original.factory, 0, 6, 0",
                 "");
           }
 
@@ -1185,9 +1184,8 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
                 "                                     method                 future  (Note: all"
                     + " times are in ms. relative to TaskGraph creation)",
                 "    requested,   queued,  started, finished (+  latency), finished, task",
-                // TODO(b/300416467): We could retrace this correctly.
                 "        0.057,    1.290,    2.690,    3.408 (+    0.718),    66.376,"
-                    + " foo.bar.baz.c.b.a.c.b.a.a.b, 0, 6, 0",
+                    + " some.original.factory, 0, 6, 0",
                 "");
           }
 

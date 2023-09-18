@@ -168,7 +168,10 @@ public class StackTraceRegularExpressionParser
     }
   }
 
-  private static final String identifierSegment = "[^\\s\\[;:(<]+";
+  private static final String notAllowedCharacters = "\\s\\[;:(<";
+  private static final String identifierPrefix = "[^\\d" + notAllowedCharacters + "]";
+  private static final String identifierSuffix = "[^" + notAllowedCharacters + "]*";
+  private static final String identifierSegment = identifierPrefix + identifierSuffix;
 
   private static final String METHOD_NAME_REGULAR_EXPRESSION =
       "(?:(" + identifierSegment + "|\\<init\\>|\\<clinit\\>))";
