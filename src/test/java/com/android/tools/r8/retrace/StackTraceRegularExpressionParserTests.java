@@ -1142,6 +1142,62 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
     runRetraceTest("(?:.*?\\(\\s*%s(?:\\s*:\\s*%l\\s*)?\\)\\s*%c\\.%m)|", new LongLineStackTrace());
   }
 
+  /** This is a regression test for b/300416467. */
+  @Test
+  public void testGraphsModule() {
+    runRetraceTest(
+        "(?:.*, %c,.*)",
+        new StackTraceForTest() {
+          @Override
+          public List<String> obfuscatedStackTrace() {
+            return ImmutableList.of(
+                "TaskGraph@4b0b0f5(\"SomePipeline\") [created at 08-19 18:02:01.531]",
+                "                                     method                 future  (Note: all"
+                    + " times are in ms. relative to TaskGraph creation)",
+                "    requested,   queued,  started, finished (+  latency), finished, task",
+                "        0.057,    1.290,    2.690,    3.408 (+    0.718),    66.376,"
+                    + " foo.bar.baz.c.b.a.c.b.a.a.b, 0, 6, 0",
+                "");
+          }
+
+          @Override
+          public String mapping() {
+            return StringUtils.unixLines("some.original.factory -> foo.bar.baz.c.b.a.c.b.a.a.b:");
+          }
+
+          @Override
+          public List<String> retracedStackTrace() {
+            return ImmutableList.of(
+                "TaskGraph@4b0b0f5(\"SomePipeline\") [created at 08-19 18:02:01.531]",
+                "                                     method                 future  (Note: all"
+                    + " times are in ms. relative to TaskGraph creation)",
+                "    requested,   queued,  started, finished (+  latency), finished, task",
+                // TODO(b/300416467): We could retrace this correctly.
+                "        0.057,    1.290,    2.690,    3.408 (+    0.718),    66.376,"
+                    + " foo.bar.baz.c.b.a.c.b.a.a.b, 0, 6, 0",
+                "");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of(
+                "TaskGraph@4b0b0f5(\"SomePipeline\") [created at 08-19 18:02:01.531]",
+                "                                     method                 future  (Note: all"
+                    + " times are in ms. relative to TaskGraph creation)",
+                "    requested,   queued,  started, finished (+  latency), finished, task",
+                // TODO(b/300416467): We could retrace this correctly.
+                "        0.057,    1.290,    2.690,    3.408 (+    0.718),    66.376,"
+                    + " foo.bar.baz.c.b.a.c.b.a.a.b, 0, 6, 0",
+                "");
+          }
+
+          @Override
+          public int expectedWarnings() {
+            return 0;
+          }
+        });
+  }
+
   private TestDiagnosticMessagesImpl runRetraceTest(
       String regularExpression, StackTraceForTest stackTraceForTest) {
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
