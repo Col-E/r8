@@ -35,6 +35,7 @@ import com.android.tools.r8.retrace.stacktraces.CircularReferenceStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ClassWithDashStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ColonInFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.DifferentLineNumberSpanStackTrace;
+import com.android.tools.r8.retrace.stacktraces.ExceptionMessageWithClassNameInMessage;
 import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FoundMethodVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.IdentityMappingStackTrace;
@@ -293,6 +294,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testBootLoaderAndNamedModulesStackTrace() throws Exception {
     runRetraceTest(new NamedModuleStackTrace());
+  }
+
+  @Test
+  public void testExceptionMessageWithClassNameInMessage() throws Exception {
+    runRetraceTest(new ExceptionMessageWithClassNameInMessage());
   }
 
   @Test
