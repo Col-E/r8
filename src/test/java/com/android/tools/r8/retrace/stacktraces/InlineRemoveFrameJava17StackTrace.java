@@ -38,8 +38,6 @@ public class InlineRemoveFrameJava17StackTrace implements StackTraceForTest {
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "java.lang.NullPointerException",
-        // TODO(b/300416467): The topmost inner frame should be removed.
-        "\tat foo.Class.inlinable(Class.java:90)",
         "\tat foo.Class.caller(Class.java:97)",
         "\tat foo.Class.outerCaller(Class.java:107)",
         "\tat foo.Class.main(Class.java:111)");
@@ -49,8 +47,6 @@ public class InlineRemoveFrameJava17StackTrace implements StackTraceForTest {
   public List<String> retraceVerboseStackTrace() {
     return Arrays.asList(
         "java.lang.NullPointerException",
-        // TODO(b/300416467): The topmost inner frame should be removed.
-        "\tat foo.Class.void inlinable()(Class.java:90)",
         "\tat foo.Class.void caller()(Class.java:97)",
         "\tat foo.Class.void outerCaller()(Class.java:107)",
         "\tat foo.Class.void main()(Class.java:111)");

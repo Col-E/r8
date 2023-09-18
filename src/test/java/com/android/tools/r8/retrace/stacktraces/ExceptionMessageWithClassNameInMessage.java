@@ -29,7 +29,7 @@ public class ExceptionMessageWithClassNameInMessage implements StackTraceForTest
     return ImmutableList.of(
         "10-26 19:26:24.749 10159 26250 26363 E Tycho.crl: Exception",
         "10-26 19:26:24.749 10159 26250 26363 E Tycho.crl: java.util.concurrent.ExecutionException:"
-            + " ary: eu: Exception in CronetUrlRequest: net::ERR_CONNECTION_CLOSED,"
+            + " ary: eu: Exception in CronetUrlRequest: foo.bar.baz::ERR_CONNECTION_CLOSED,"
             + " ErrorCode=5, InternalErrorCode=-100, Retryable=true");
   }
 
@@ -38,7 +38,7 @@ public class ExceptionMessageWithClassNameInMessage implements StackTraceForTest
     return ImmutableList.of(
         "10-26 19:26:24.749 10159 26250 26363 E Tycho.crl: Exception",
         "10-26 19:26:24.749 10159 26250 26363 E Tycho.crl: java.util.concurrent.ExecutionException:"
-            + " ary: eu: Exception in CronetUrlRequest: net::ERR_CONNECTION_CLOSED,"
+            + " ary: eu: Exception in CronetUrlRequest: foo.bar.baz::ERR_CONNECTION_CLOSED,"
             + " ErrorCode=5, InternalErrorCode=-100, Retryable=true");
   }
 
