@@ -37,6 +37,11 @@ def parse_options():
     default=False,
     help='Mark this artifact as an "excldeps" variant of the compiler')
   parser.add_argument(
+    '--debug-variant',
+    action='store_true',
+    default=False,
+    help='Compile with debug flag')
+  parser.add_argument(
     '--lib',
     action='append',
     help='Additional libraries (JDK 1.8 rt.jar already included)')
@@ -48,6 +53,10 @@ def parse_options():
     '--pg-conf',
     action='append',
     help='Keep configuration')
+  parser.add_argument(
+    '--pg-map',
+    default=None,
+    help='Input map for distribution and composition')
   parser.add_argument(
     '--r8jar',
     required=True,
@@ -95,6 +104,8 @@ def main():
     cmd.extend(['-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'])
   cmd.extend(['-cp', args.r8compiler, 'com.android.tools.r8.R8'])
   cmd.append(args.r8jar)
+  if args.debug_variant:
+    cmd.append('--debug')
   cmd.append('--classfile')
   cmd.extend(['--map-id-template', map_id_template])
   cmd.extend(['--source-file-template', source_file_template])
@@ -111,6 +122,8 @@ def main():
   if args.classpath:
     for cp in args.classpath:
       cmd.extend(['--classpath', cp])
+  if args.pg_map:
+    cmd.extend(['--pg-map', args.pg_map])
   print(' '.join(cmd))
   subprocess.check_call(cmd)
 

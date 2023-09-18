@@ -57,7 +57,7 @@ public class ComposeWithMissingDebugInfoTest extends TestBase {
         .apply(
             b ->
                 b.getBuilder()
-                    .setProguardInputMapFile(inputMap)
+                    .setProguardMapInputFile(inputMap)
                     .setProguardMapConsumer((string, handler) -> mappingComposed.append(string)))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("42");

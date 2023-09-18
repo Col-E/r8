@@ -153,7 +153,7 @@ public abstract class BinaryCompatibilityTestCollection<T> {
           ToolHelper.getClassFilesForInnerClasses(testDataSourceSet, test));
       zipBuilder.addBytes(
           ZipUtils.zipEntryNameForClass(test),
-          ClassFileTransformer.create(test)
+          ClassFileTransformer.create(test, testDataSourceSet)
               .removeInnerClasses(
                   InnerClassPredicate.onName(
                       DescriptorUtils.getBinaryNameFromJavaType(test.getTypeName())))

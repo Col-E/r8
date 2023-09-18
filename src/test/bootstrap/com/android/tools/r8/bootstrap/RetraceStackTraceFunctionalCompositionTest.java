@@ -274,7 +274,7 @@ public class RetraceStackTraceFunctionalCompositionTest extends TestBase {
         .apply(
             b ->
                 b.getBuilder()
-                    .setProguardInputMapFile(previousMappingFile)
+                    .setProguardMapInputFile(previousMappingFile)
                     .setProguardMapConsumer((string, handler) -> mappingComposed.append(string)))
         .compile()
         .writeToZip(jar);

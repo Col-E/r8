@@ -147,8 +147,18 @@ public final class D8Command extends BaseCompilerCommand {
       return super.addClasspathResourceProvider(provider);
     }
 
-    /** Set input proguard map used for distribution of classes in multi-dex. */
+    /**
+     * Set input proguard map used for distribution of classes in multi-dex. Use {@link
+     * #setProguardMapInputFile}
+     */
+    @Deprecated()
     public Builder setProguardInputMapFile(Path proguardInputMap) {
+      getAppBuilder().setProguardMapInputData(proguardInputMap);
+      return self();
+    }
+
+    /** Set input proguard map used for distribution of classes in multi-dex. */
+    public Builder setProguardMapInputFile(Path proguardInputMap) {
       getAppBuilder().setProguardMapInputData(proguardInputMap);
       return self();
     }

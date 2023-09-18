@@ -138,7 +138,7 @@ public class ToolHelper {
         assert System.getProperty("TEST_DATA_LOCATION") != null;
         return Paths.get(System.getProperty("TEST_DATA_LOCATION"));
       } else {
-        return Paths.get("d8_r8", "test_modules", destination);
+        return Paths.get(getProjectRoot(), "d8_r8", "test_modules", destination);
       }
     }
 
@@ -489,7 +489,7 @@ public class ToolHelper {
     }
 
     public static DexVm fromVersion(Version version) {
-      return SHORT_NAME_MAP.get(version.shortName + "_" + Kind.HOST.toString());
+      return SHORT_NAME_MAP.get(version.shortName + "_" + Kind.HOST);
     }
 
     public boolean isEqualTo(DexVm other) {
@@ -1068,11 +1068,16 @@ public class ToolHelper {
     }
   }
 
-  public static byte[] getClassAsBytes(Class clazz) throws IOException {
+  public static byte[] getClassAsBytes(Class<?> clazz) throws IOException {
     return Files.readAllBytes(getClassFileForTestClass(clazz));
   }
 
-  public static long getClassByteCrc(Class clazz) {
+  public static byte[] getClassAsBytes(Class<?> clazz, TestDataSourceSet dataSourceSet)
+      throws IOException {
+    return Files.readAllBytes(getClassFileForTestClass(clazz, dataSourceSet));
+  }
+
+  public static long getClassByteCrc(Class<?> clazz) {
     byte[] bytes = null;
     try {
       bytes = getClassAsBytes(clazz);

@@ -86,7 +86,7 @@ tasks {
     val r8Jar = swissArmyKnifeTask.outputs.files.getSingleFile()
     val deps = mainDepsJarTask.outputs.files.getSingleFile()
     inputs.files(listOf(r8Compiler, r8Jar, deps))
-    val output =  getRoot().resolveAll("build", "libs", "r8lib-exclude-deps.jar")
+    val output = getRoot().resolveAll("build", "libs", "r8lib-exclude-deps.jar")
     outputs.file(output)
     commandLine = createR8LibCommandLine(
       r8Compiler,
@@ -94,7 +94,29 @@ tasks {
       output,
       listOf(getRoot().resolveAll("src", "main", "keep.txt")),
       true,
+      false,
       listOf(deps))
+  }
+
+  val retraceNoDeps by registering(Exec::class) {
+    dependsOn(r8LibNoDeps)
+    val r8Compiler = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
+    val r8Jar = r8LibNoDeps.get().outputs.files.getSingleFile()
+    val deps = mainDepsJarTask.outputs.files.getSingleFile()
+    inputs.files(listOf(r8Compiler, r8Jar, deps))
+    val inputMap = file(r8Jar.toString() + ".map")
+    val output = getRoot().resolveAll("build", "libs", "r8retrace-exclude-deps.jar")
+    outputs.file(output)
+    commandLine = createR8LibCommandLine(
+      r8Compiler,
+      r8Jar,
+      output,
+      listOf(getRoot().resolveAll("src", "main", "keep_retrace.txt")),
+      true,
+      true,
+      listOf(deps),
+      listOf(),
+      inputMap)
   }
 
   val generateKeepRules by registering(Exec::class) {
@@ -145,7 +167,29 @@ tasks {
       r8,
       output,
       listOf(keepTxt, generatedKeepRules, keepResourceShrinkerTxt),
+      false,
       false)
+  }
+
+  val retraceWithRelocatedDeps by registering(Exec::class) {
+    dependsOn(r8LibWithRelocatedDeps)
+    val r8Compiler = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
+    val r8Jar = r8LibWithRelocatedDeps.get().outputs.files.getSingleFile()
+    val deps = mainDepsJarTask.outputs.files.getSingleFile()
+    inputs.files(listOf(r8Compiler, r8Jar, deps))
+    val inputMap = file(r8Jar.toString() + ".map")
+    val output = getRoot().resolveAll("build", "libs", "r8retrace.jar")
+    outputs.file(output)
+    commandLine = createR8LibCommandLine(
+      r8Compiler,
+      r8Jar,
+      output,
+      listOf(getRoot().resolveAll("src", "main", "keep_retrace.txt")),
+      false,
+      true,
+      listOf(),
+      listOf(),
+      inputMap)
   }
 
   val resourceshrinkercli by registering(Exec::class) {
@@ -161,6 +205,7 @@ tasks {
       r8,
       output,
       listOf(keepTxt, cliKeep),
+      false,
       false)
   }
 

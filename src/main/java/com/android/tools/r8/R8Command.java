@@ -46,6 +46,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
+import com.android.tools.r8.utils.InternalOptions.MappingComposeOptions;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SemanticVersion;
@@ -287,6 +288,12 @@ public final class R8Command extends BaseCompilerCommand {
     @Override
     public Builder setProguardMapOutputPath(Path proguardMapOutput) {
       return super.setProguardMapOutputPath(proguardMapOutput);
+    }
+
+    /** Set input proguard map used for distribution of classes in multi-dex. */
+    public Builder setProguardMapInputFile(Path proguardInputMap) {
+      getAppBuilder().setProguardMapInputData(proguardInputMap);
+      return self();
     }
 
     /**
@@ -1091,6 +1098,8 @@ public final class R8Command extends BaseCompilerCommand {
         (internal.isOptimizing() || internal.isMinifying())
             ? LineNumberOptimization.ON
             : LineNumberOptimization.OFF;
+    MappingComposeOptions mappingComposeOptions = internal.mappingComposeOptions();
+    mappingComposeOptions.enableExperimentalMappingComposition = true;
 
     HorizontalClassMergerOptions horizontalClassMergerOptions =
         internal.horizontalClassMergerOptions();

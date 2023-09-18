@@ -42,6 +42,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
           "--main-dex-list-output",
           "--pg-conf",
           "--pg-conf-output",
+          "--pg-map",
           "--pg-map-output",
           "--partition-map-output",
           "--desugared-lib",
@@ -71,6 +72,12 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
         .add(flag0("--pg-compat", "Compile with R8 in Proguard compatibility mode."))
         .add(ParseFlagInfoImpl.getPgConf())
         .add(flag1("--pg-conf-output", "<file>", "Output the collective configuration to <file>."))
+        .add(
+            ParseFlagInfoImpl.flag1(
+                "--pg-map",
+                "<file>",
+                "Use <file> as a mapping file for distribution "
+                    + "and composition with output mapping file."))
         .add(ParseFlagInfoImpl.getPgMapOutput())
         .add(ParseFlagInfoImpl.getPartitionMapOutput())
         .add(ParseFlagInfoImpl.getDesugaredLib())
@@ -295,6 +302,8 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
       } else if (arg.equals("--pg-conf-output")) {
         FileConsumer consumer = new FileConsumer(Paths.get(nextArg));
         builder.setProguardConfigurationConsumer(consumer);
+      } else if (arg.equals("--pg-map")) {
+        builder.setProguardMapInputFile(Paths.get(nextArg));
       } else if (arg.equals("--pg-map-output")) {
         builder.setProguardMapOutputPath(Paths.get(nextArg));
       } else if (arg.equals("--partition-map-output")) {

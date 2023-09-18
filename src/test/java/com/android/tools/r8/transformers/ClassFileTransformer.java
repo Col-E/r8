@@ -11,6 +11,7 @@ import static com.android.tools.r8.utils.StringUtils.replaceAll;
 
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.TestDataSourceSet;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AccessFlags;
@@ -153,6 +154,12 @@ public class ClassFileTransformer {
 
   public static ClassFileTransformer create(Class<?> clazz) throws IOException {
     return create(ToolHelper.getClassAsBytes(clazz), classFromTypeName(clazz.getTypeName()));
+  }
+
+  public static ClassFileTransformer create(Class<?> clazz, TestDataSourceSet sourceSet)
+      throws IOException {
+    return create(
+        ToolHelper.getClassAsBytes(clazz, sourceSet), classFromTypeName(clazz.getTypeName()));
   }
 
   public <E extends Exception> ClassFileTransformer applyIf(

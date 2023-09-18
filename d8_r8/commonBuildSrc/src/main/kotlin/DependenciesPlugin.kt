@@ -257,23 +257,34 @@ fun Project.createR8LibCommandLine(
   output: File,
   pgConf: List<File>,
   excludingDepsVariant: Boolean,
+  debugVariant: Boolean,
   lib: List<File> = listOf(),
-  classpath: List<File> = listOf()
+  classpath: List<File> = listOf(),
+  pgInputMap: File? = null
 ) : List<String> {
-  val pgList = pgConf.flatMap({ listOf("--pg-conf", "$it") })
-  val libList = lib.flatMap({ listOf("--lib", "$it") })
-  val cpList = classpath.flatMap({ listOf("--classpath", "$it") })
-  val exclList = if (excludingDepsVariant) listOf("--excldeps-variant") else listOf()
-  return listOf(
-    "python3",
-    "${getRoot().resolve("tools").resolve("create_r8lib.py")}",
-    "--r8compiler",
-    "${r8Compiler}",
-    "--r8jar",
-    "${input}",
-    "--output",
-    "${output}",
-  ) + exclList + pgList + libList + cpList
+  return buildList {
+    add("python3")
+    add("${getRoot().resolve("tools").resolve("create_r8lib.py")}")
+    add("--r8compiler")
+    add("${r8Compiler}")
+    add("--r8jar")
+    add("${input}")
+    add("--output")
+    add("${output}")
+    pgConf.forEach { add("--pg-conf"); add("$it") }
+    lib.forEach { add("--lib"); add("$it") }
+    classpath.forEach { add("--classpath"); add("$it") }
+    if (excludingDepsVariant) {
+      add("--excldeps-variant")
+    }
+    if (debugVariant) {
+      add("--debug-variant")
+    }
+    if (pgInputMap != null) {
+      add("--pg-map")
+      add("$pgInputMap")
+    }
+  }
 }
 
 object JvmCompatibility {
