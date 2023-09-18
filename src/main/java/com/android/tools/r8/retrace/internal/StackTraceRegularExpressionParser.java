@@ -16,12 +16,22 @@ import java.util.regex.Pattern;
 public class StackTraceRegularExpressionParser
     implements StackTraceLineParser<String, StackTraceElementStringProxy> {
 
+  private static final String SUPPRESSED_OR_CAUSED_BY = "(Suppressed:\\s+|Caused [bB]y:\\s+)";
+
   // This is a slight modification of the default regular expression shown for proguard retrace
   // that allow for retracing classes in the form <class>: lorem ipsum...
   // Seems like Proguard retrace is expecting the form "Caused by: <class>".
   public static final String DEFAULT_REGULAR_EXPRESSION =
       "(?:.*?\\bat\\s+%c\\.%m\\s*\\(%S\\)\\p{Z}*(?:~\\[.*\\])?)"
-          + "|(?:(?:(?:%c|.*)?[:\"]\\s+)?%c(?::.*)?)";
+          // Match exception classes:
+          //   <class>:
+          // Suppressed: <class>:
+          // Caused by: <class>:
+          + "|"
+          + SUPPRESSED_OR_CAUSED_BY
+          + "?%c:\\s.*"
+          // Match exceptions on the form Exception in thread \"main\" <class>:
+          + "|Exception in .*\".*\"\\s%c";
 
   private final Pattern compiledPattern;
 
@@ -158,7 +168,7 @@ public class StackTraceRegularExpressionParser
     }
   }
 
-  private static final String identifierSegment = "[^\\s\\[;(<]+";
+  private static final String identifierSegment = "[^\\s\\[;:(<]+";
 
   private static final String METHOD_NAME_REGULAR_EXPRESSION =
       "(?:(" + identifierSegment + "|\\<init\\>|\\<clinit\\>))";
