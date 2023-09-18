@@ -21,9 +21,12 @@ java {
 dependencies { }
 
 val keepAnnoCompileTask = projectTask("keepanno", "compileJava")
+val keepAnnoSourcesTask = projectTask("keepanno", "sourcesJar")
 val mainDepsJarTask = projectTask("main", "depsJar")
 val swissArmyKnifeTask = projectTask("main", "swissArmyKnife")
 val r8WithRelocatedDepsTask = projectTask("main", "r8WithRelocatedDeps")
+val mainSourcesTask = projectTask("main", "sourcesJar")
+val resourceShrinkerSourcesTask = projectTask("resourceshrinker", "sourcesJar")
 val java8TestJarTask = projectTask("tests_java_8", "testJar")
 val java8TestsDepsJarTask = projectTask("tests_java_8", "depsJar")
 val bootstrapTestsDepsJarTask = projectTask("tests_bootstrap", "depsJar")
@@ -230,7 +233,6 @@ tasks {
     dependsOn(allTestsJarRelocated)
     dependsOn(r8WithRelocatedDepsTask)
     dependsOn(allTestWithApplyMappingProguardConfiguration)
-    // dependsOn(thirdPartyRuntimeDependenciesTask)
     val r8 = r8WithRelocatedDepsTask.outputs.files.singleFile
     val allTests = allTestsJarRelocated.get().outputs.files.singleFile
     val pgConf = allTestWithApplyMappingProguardConfiguration.get().outputs.files.singleFile
@@ -303,6 +305,19 @@ tasks {
     systemProperty("RETRACE_RUNTIME_PATH", r8LibJar)
     systemProperty("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
     systemProperty("com.android.tools.r8.artprofilerewritingcompletenesscheck", "true")
+  }
+
+  val sourcesJar by registering(Jar::class) {
+    dependsOn(mainSourcesTask)
+    dependsOn(resourceShrinkerSourcesTask)
+    dependsOn(keepAnnoSourcesTask)
+    from(mainSourcesTask.outputs.files.map(::zipTree))
+    from(resourceShrinkerSourcesTask.outputs.files.map(::zipTree))
+    from(keepAnnoSourcesTask.outputs.files.map(::zipTree))
+    archiveClassifier.set("sources")
+    // Because we use the sources classifier this will be r8-sources.jar.
+    archiveBaseName.set("r8")
+    destinationDirectory.set(getRoot().resolveAll("build", "libs"))
   }
 
   test {

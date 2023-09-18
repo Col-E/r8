@@ -30,5 +30,6 @@ val root = rootProject.projectDir.parentFile
 includeBuild(root.resolve("shared"))
 includeBuild(root.resolve("keepanno"))
 includeBuild(root.resolve("main"))
+includeBuild(root.resolve("resourceshrinker"))
 includeBuild(root.resolve("test_modules").resolve("tests_java_8"))
 includeBuild(root.resolve("test_modules").resolve("tests_bootstrap"))

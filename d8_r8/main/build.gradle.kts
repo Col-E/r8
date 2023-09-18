@@ -19,6 +19,7 @@ java {
   }
   sourceCompatibility = JvmCompatibility.sourceCompatibility
   targetCompatibility = JvmCompatibility.targetCompatibility
+  withSourcesJar()
 }
 
 dependencies {
