@@ -296,7 +296,7 @@ def Main():
     gradle_args.append('-Pslow_tests=1')
   if options.tool:
     gradle_args.append('-Ptool=%s' % options.tool)
-  if options.one_line_per_test:
+  if options.one_line_per_test and not options.new_gradle:
     gradle_args.append('-Pone_line_per_test')
   if options.test_namespace:
     gradle_args.append('-Ptest_namespace=%s' % options.test_namespace)
