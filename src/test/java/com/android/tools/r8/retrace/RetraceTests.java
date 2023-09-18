@@ -47,6 +47,7 @@ import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberAssumeNoInline
 import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineNoLineWithBaseEntryNumberAssumeNoInlineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlinePreambleNoOriginalStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InlineRemoveFrameJava17StackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineSourceFileContextStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineSourceFileStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
@@ -314,6 +315,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testInlineSourceFileStackTrace() throws Exception {
     runRetraceTest(new InlineSourceFileStackTrace());
+  }
+
+  @Test
+  public void testInlineRemoveFrameJava17StackTrace() throws Exception {
+    runRetraceTest(new InlineRemoveFrameJava17StackTrace());
   }
 
   @Test
