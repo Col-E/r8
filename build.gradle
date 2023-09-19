@@ -1130,20 +1130,6 @@ buildExampleJarsCreateTask("Java11", sourceSets.examplesJava11)
 buildExampleJarsCreateTask("Java17", sourceSets.examplesJava17)
 buildExampleJarsCreateTask("Java20", sourceSets.examplesJava20)
 
-task provideArtFrameworksDependencies {
-    cloudDependencies.tools.forEach({ art ->
-        if (art.contains("art")) {
-            def taskName = art.replace('/','_')
-            dependsOn "patch_${taskName}"
-            task "patch_${taskName}"(type: org.gradle.api.tasks.Copy){
-                from "tools/${art}/framework"
-                include "**.jar"
-                into file("tools/${art}/out/host/linux-x86/framework")
-            }
-        }
-    })
-}
-
 task buildExamples {
     if (OperatingSystem.current().isMacOsX() || OperatingSystem.current().isWindows()) {
         logger.lifecycle("WARNING: Testing (including building examples) is only partially supported on your " +
@@ -1757,7 +1743,6 @@ test { task ->
         dependsOn downloadDeps
         dependsOn buildExamples
         dependsOn buildPreNJdwpTestsJar
-        dependsOn provideArtFrameworksDependencies
     } else {
         logger.lifecycle("WARNING: Testing in not supported on your platform. Testing is only fully supported on " +
             "Linux and partially supported on Mac OS and Windows. Art does not run on other platforms.")
