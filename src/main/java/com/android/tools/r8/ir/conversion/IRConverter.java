@@ -801,7 +801,7 @@ public class IRConverter {
     }
 
     // TODO(mkroghj) Test if shorten live ranges is worth it.
-    if (!options.isGeneratingClassFiles()) {
+    if (options.isGeneratingDex()) {
       timing.begin("Canonicalize constants");
       ConstantCanonicalizer constantCanonicalizer =
           new ConstantCanonicalizer(appView, context, code);

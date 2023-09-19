@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.ir.analysis.fieldaccess.TrivialFieldAccessReprocessor;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.passes.FilledNewArrayRewriter;
+import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.lightir.LirCode;
@@ -336,7 +337,13 @@ public class PrimaryR8IRConverter extends IRConverter {
       method.setCode(rewrittenLirCode, appView);
     }
     IRCode irCode = method.buildIR(appView, MethodConversionOptions.forPostLirPhase(appView));
-    new FilledNewArrayRewriter(appView).run(irCode, onThreadTiming);
+    FilledNewArrayRewriter filledNewArrayRewriter = new FilledNewArrayRewriter(appView);
+    boolean changed = filledNewArrayRewriter.run(irCode, onThreadTiming).hasChanged().toBoolean();
+    if (appView.options().isGeneratingDex() && changed) {
+      ConstantCanonicalizer constantCanonicalizer =
+          new ConstantCanonicalizer(appView, method, irCode);
+      constantCanonicalizer.canonicalize();
+    }
     // Processing is done and no further uses of the meta-data should arise.
     BytecodeMetadataProvider noMetadata = BytecodeMetadataProvider.empty();
     // During processing optimization info may cause previously live code to become dead.

@@ -73,7 +73,7 @@ public class StringArrayWithNonUniqueValuesTest extends TestBase {
             options.rewriteArrayOptions().maxMaterializingConstants = maxMaterializingConstants);
   }
 
-  private void inspectD8(CodeInspector inspector) {
+  private void inspect(CodeInspector inspector) {
     inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m1"), 1, 100, false);
     inspect(
         inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m2"),
@@ -90,19 +90,8 @@ public class StringArrayWithNonUniqueValuesTest extends TestBase {
         .setMinApi(parameters)
         .apply(this::configure)
         .run(parameters.getRuntime(), TestClass.class)
-        .inspect(this::inspectD8)
+        .inspect(this::inspect)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
-  }
-
-  private void inspectR8(CodeInspector inspector) {
-    inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m1"), 1, 100, false);
-    // TODO(300882718): Constant canonicalizer is not run for R8 after NewArrayFilled
-    //  lowering (98 vs 32 for D8).
-    inspect(
-        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m2"),
-        maxMaterializingConstants == 2 ? 98 : 26,
-        104,
-        false);
   }
 
   @Test
@@ -115,7 +104,7 @@ public class StringArrayWithNonUniqueValuesTest extends TestBase {
         .addDontObfuscate()
         .apply(this::configure)
         .run(parameters.getRuntime(), TestClass.class)
-        .inspect(this::inspectR8)
+        .inspect(this::inspect)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 

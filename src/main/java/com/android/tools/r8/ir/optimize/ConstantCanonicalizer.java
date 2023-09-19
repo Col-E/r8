@@ -74,6 +74,7 @@ public class ConstantCanonicalizer {
   private Set<InstanceGet> ineligibleInstanceGetInstructions;
 
   public ConstantCanonicalizer(AppView<?> appView, ProgramMethod context, IRCode code) {
+    assert appView.options().isGeneratingDex();
     this.appView = appView;
     this.branchSimplifier = new BranchSimplifier(appView);
     this.context = context;
