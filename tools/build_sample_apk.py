@@ -244,10 +244,10 @@ def store_or_print_benchmarks(lines, output):
       time = split[1]
       name = split[0].split()[-1]
       overall_total += int(time)
-      print '%s: %s' % (name, time)
+      print('%s: %s' % (name, time))
       results[name] = time
 
-  print 'Total: %s' % overall_total
+  print('Total: %s' % overall_total)
   if not output:
     return overall_total
   results['total'] = str(overall_total)
@@ -260,7 +260,7 @@ def store_or_print_benchmarks(lines, output):
     with open(total_file, 'w') as f:
       f.write(time)
 
-  print 'Result stored in: \n%s' % ('\n'.join(written_files))
+  print('Result stored in: \n%s' % ('\n'.join(written_files)))
   return overall_total
 
 def benchmark(app, output_dir):
@@ -331,7 +331,7 @@ def Main():
     ensure_no_logcat()
     for _ in range(BENCHMARK_ITERATIONS):
       grand_total += benchmark(options.app, options.benchmark_output_dir)
-  print 'Combined average: %s' % (grand_total/BENCHMARK_ITERATIONS)
+  print('Combined average: %s' % (grand_total/BENCHMARK_ITERATIONS))
 
 if __name__ == '__main__':
   sys.exit(Main())
