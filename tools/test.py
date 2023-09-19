@@ -203,7 +203,7 @@ def ParseOptions():
                     default=False, action='store_true')
   result.add_option('--new-gradle',
                     help='Specify to run in the new gradle setup',
-                    default=True, action='store_true')
+                    default=False, action='store_true')
   return result.parse_args()
 
 def has_failures(classes_file):
