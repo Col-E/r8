@@ -173,11 +173,19 @@ def Run(options, new_gradle):
     # The '-Pno_internal' flag is important because we generate the lib based on uses in tests.
     if (not options.skip_gradle_build):
       if (new_gradle):
-        gradle.RunGradle([':main:swissArmyKnife',
-                          ':main:r8WithRelocatedDeps',
-                          ':test:r8LibWithRelocatedDeps',
-                          ':test:r8LibNoDeps',
-                          '-Pno_internal'], new_gradle=True)
+        gradle.RunGradle([
+            ':keepanno:keepAnnoJar',
+            ':main:consolidatedLicense',
+            ':main:r8WithRelocatedDeps',
+            ':main:swissArmyKnife',
+            ':test:r8LibNoDeps',
+            ':test:r8LibWithRelocatedDeps',
+            ':test:retraceNoDeps',
+            ':test:retraceWithRelocatedDeps',
+            ':test:sourcesJar',
+            ':test:sourcesJar',
+            '-Pno_internal'
+        ], new_gradle=True)
       else:
         gradle.RunGradle([
             utils.R8,
@@ -250,18 +258,15 @@ def Run(options, new_gradle):
         utils.DESUGAR_CONFIGURATION_JDK11_MINIMAL_MAVEN_ZIP,
         utils.DESUGAR_CONFIGURATION_JDK11_MAVEN_ZIP,
         utils.DESUGAR_CONFIGURATION_JDK11_NIO_MAVEN_ZIP,
-    ]
-    if (not new_gradle):
-      for_archiving.extend([
-          utils.R8_SRC_JAR,
-          utils.R8RETRACE_JAR,
-          utils.R8RETRACE_JAR + '.map',
-          utils.R8RETRACE_JAR + '_map.zip',
-          utils.R8RETRACE_EXCLUDE_DEPS_JAR,
-          utils.R8RETRACE_EXCLUDE_DEPS_JAR + '.map',
-          utils.R8RETRACE_EXCLUDE_DEPS_JAR + '_map.zip',
-          utils.KEEPANNO_ANNOTATIONS_JAR,
-          utils.GENERATED_LICENSE])
+        utils.R8_SRC_JAR,
+        utils.R8RETRACE_JAR,
+        utils.R8RETRACE_JAR + '.map',
+        utils.R8RETRACE_JAR + '_map.zip',
+        utils.R8RETRACE_EXCLUDE_DEPS_JAR,
+        utils.R8RETRACE_EXCLUDE_DEPS_JAR + '.map',
+        utils.R8RETRACE_EXCLUDE_DEPS_JAR + '_map.zip',
+        utils.KEEPANNO_ANNOTATIONS_JAR,
+        utils.GENERATED_LICENSE]
     for file in for_archiving:
       file_name = os.path.basename(file)
       tagged_jar = os.path.join(temp, file_name)

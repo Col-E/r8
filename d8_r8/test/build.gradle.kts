@@ -315,8 +315,7 @@ tasks {
     from(resourceShrinkerSourcesTask.outputs.files.map(::zipTree))
     from(keepAnnoSourcesTask.outputs.files.map(::zipTree))
     archiveClassifier.set("sources")
-    // Because we use the sources classifier this will be r8-sources.jar.
-    archiveBaseName.set("r8")
+    archiveFileName.set("r8-src.jar")
     destinationDirectory.set(getRoot().resolveAll("build", "libs"))
   }
 

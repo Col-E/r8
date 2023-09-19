@@ -72,7 +72,7 @@ tasks {
       libraryLicenseFiles,
       mainJarDependencies().map(::zipTree))
 
-    val license = rootProject.layout.buildDirectory.file("generatedLicense/LICENSE").get().asFile
+    val license = getRoot().resolveAll("build", "generatedLicense", "LICENSE")
     outputs.files(license)
 
     doLast {
