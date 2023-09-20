@@ -71,7 +71,7 @@ public class ConstClassArrayWithNonUniqueValuesTest extends TestBase {
     inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m1"), 1, 100, false);
     inspect(
         inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m2"),
-        maxMaterializingConstants == 2 ? 98 : 26,
+        maxMaterializingConstants == 2 ? 32 : 26,
         104,
         false);
   }

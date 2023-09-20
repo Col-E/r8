@@ -100,7 +100,7 @@ public class StaticGetArrayWithNonUniqueValuesTest extends TestBase {
     inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m1"), 1, 100, false);
     inspect(
         inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m2"),
-        maxMaterializingConstants == 2 && !canUseFilledNewArrayOfObject(parameters) ? 42 : 10,
+        (parameters.isCfRuntime() && maxMaterializingConstants == 2) ? 42 : 10,
         50,
         false);
   }
