@@ -4,6 +4,8 @@
 
 // TODO(b/270105162): Move this file out the repository root when old gradle is removed.
 
+import org.gradle.internal.os.OperatingSystem
+
 rootProject.name = "d8-r8"
 
 // Bootstrap building by downloading dependencies.
@@ -29,8 +31,12 @@ fun downloadFromGoogleStorage(outputDir : File) {
       return
   }
 
+  var downloadScript = "download_from_google_storage.py"
+  if (OperatingSystem.current().isWindows()) {
+    downloadScript = "download_from_google_storage.bat"
+  }
   val cmd = listOf(
-    "download_from_google_storage.py",
+    downloadScript,
     "--extract",
     "--bucket",
     dependencies_bucket,
