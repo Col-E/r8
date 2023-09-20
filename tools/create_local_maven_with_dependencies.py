@@ -11,10 +11,13 @@ import sys
 
 import utils
 
+# The local_maven_repository_generator orderes the repositories by name, so
+# prefix with X- to control the order, as many dependencies are present
+# in several repositories.
 REPOSITORIES = [
-  'Maven Central=https://repo1.maven.org/maven2/',
-  'Google=https://maven.google.com/',
-  "Gradle Plugins=https://plugins.gradle.org/m2/",
+  'A-Google=https://maven.google.com/',
+  'B-Maven Central=https://repo1.maven.org/maven2/',
+  "C-Gradle Plugins=https://plugins.gradle.org/m2/",
 ]
 
 ANDRDID_SUPPORT_VERSION = '25.4.0'
