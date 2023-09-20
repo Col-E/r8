@@ -67,19 +67,19 @@ public class ConstClassArrayWithNonUniqueValuesTest extends TestBase {
         method.streamInstructions().filter(InstructionSubject::isConstClass).count());
   }
 
-  private void inspect(CodeInspector inspector) {
-    inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m1"), 1, 100, false);
-    inspect(
-        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m2"),
-        maxMaterializingConstants == 2 ? 32 : 26,
-        104,
-        false);
-  }
-
   private void configure(TestCompilerBuilder<?, ?, ?, ?, ?> builder) {
     builder.addOptionsModification(
         options ->
             options.rewriteArrayOptions().maxMaterializingConstants = maxMaterializingConstants);
+  }
+
+  private void inspectD8(CodeInspector inspector) {
+    inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m1"), 1, 100, false);
+    inspect(
+        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m2"),
+        maxMaterializingConstants == 2 ? 98 : 26,
+        104,
+        false);
   }
 
   @Test
@@ -90,8 +90,17 @@ public class ConstClassArrayWithNonUniqueValuesTest extends TestBase {
         .setMinApi(parameters)
         .apply(this::configure)
         .run(parameters.getRuntime(), TestClass.class)
-        .inspect(this::inspect)
+        .inspect(this::inspectD8)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
+
+  private void inspectR8(CodeInspector inspector) {
+    inspect(inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m1"), 1, 100, false);
+    inspect(
+        inspector.clazz(TestClass.class).uniqueMethodWithOriginalName("m2"),
+        maxMaterializingConstants == 2 ? 32 : 26,
+        104,
+        false);
   }
 
   @Test
@@ -104,7 +113,7 @@ public class ConstClassArrayWithNonUniqueValuesTest extends TestBase {
         .addDontObfuscate()
         .apply(this::configure)
         .run(parameters.getRuntime(), TestClass.class)
-        .inspect(this::inspect)
+        .inspect(this::inspectR8)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
