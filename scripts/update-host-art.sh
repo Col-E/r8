@@ -135,7 +135,9 @@ fi
 
 # Required framework files.
 mkdir -p $DEST/framework
+mkdir -p $DEST/out/host/linux-x86/framework
 cp -R $ANDROID_HOST_BUILD/framework/* $DEST/framework
+cp $ANDROID_HOST_BUILD/framework/*.jar $DEST/out/host/linux-x86/framework
 
 # Required library files.
 mkdir -p $DEST/lib64
