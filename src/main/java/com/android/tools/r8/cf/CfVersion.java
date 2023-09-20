@@ -46,6 +46,8 @@ public final class CfVersion implements StructuralItem<CfVersion> {
   public static final CfVersion V20_PREVIEW = new CfVersion(Opcodes.V20 | Opcodes.V_PREVIEW);
   public static final CfVersion V21 = new CfVersion(Opcodes.V21);
   public static final CfVersion V21_PREVIEW = new CfVersion(Opcodes.V21 | Opcodes.V_PREVIEW);
+  public static final CfVersion V22 = new CfVersion(66);
+  public static final CfVersion V22_PREVIEW = new CfVersion(66 | Opcodes.V_PREVIEW);
 
   private final int version;
 
