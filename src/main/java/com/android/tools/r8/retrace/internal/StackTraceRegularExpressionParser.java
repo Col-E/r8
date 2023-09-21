@@ -21,7 +21,7 @@ public class StackTraceRegularExpressionParser
   // Seems like Proguard retrace is expecting the form "Caused by: <class>".
   public static final String DEFAULT_REGULAR_EXPRESSION =
       "(?:.*?\\bat\\s+%c\\.%m\\s*\\(%S\\)\\p{Z}*(?:~\\[.*\\])?)"
-          + "|(?:(?:(?:%c|.*)?[:\"]\\s+)?%c(?::.*)?)";
+          + "|(?:(?:(?:%c|.*)?[:\"]\\s+)?%c(?:(:|]).*)?)";
 
   private final Pattern compiledPattern;
 
@@ -158,7 +158,7 @@ public class StackTraceRegularExpressionParser
     }
   }
 
-  private static final String notAllowedCharacters = "\\s\\[;:(<";
+  private static final String notAllowedCharacters = "\\s\\[\\];:()<>";
   private static final String identifierPrefix = "[^\\d" + notAllowedCharacters + "]";
   private static final String identifierSuffix = "[^" + notAllowedCharacters + "]*";
   private static final String identifierSegment = identifierPrefix + identifierSuffix;

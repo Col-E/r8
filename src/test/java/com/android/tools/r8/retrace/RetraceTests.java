@@ -281,9 +281,6 @@ public class RetraceTests extends TestBase {
 
   @Test
   public void testCircularReferenceStackTrace() throws Exception {
-    // Proguard retrace (and therefore the default regular expression) will not retrace circular
-    // reference exceptions.
-    assumeTrue("b/178599214", false);
     runRetraceTest(new CircularReferenceStackTrace());
   }
 
