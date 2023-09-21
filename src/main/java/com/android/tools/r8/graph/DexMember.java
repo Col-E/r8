@@ -9,6 +9,11 @@ import java.util.function.Function;
 public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
     extends DexReference implements NamingLensComparable<R> {
 
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean identical(DexMember<?, ?> t1, DexMember<?, ?> t2) {
+    return t1 == t2;
+  }
+
   public final DexType holder;
   public final DexString name;
 

@@ -21,6 +21,15 @@ import java.util.NoSuchElementException;
 public class DexString extends IndexedDexItem
     implements NamingLensComparable<DexString>, LirConstant {
 
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean identical(DexString t1, DexString t2) {
+    return t1 == t2;
+  }
+
+  public final boolean isIdenticalTo(DexString other) {
+    return identical(this, other);
+  }
+
   public static final DexString[] EMPTY_ARRAY = {};
   private static final int ARRAY_CHARACTER = '[';
 

@@ -22,6 +22,15 @@ import java.util.function.Function;
 
 public class DexField extends DexMember<DexEncodedField, DexField> {
 
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean identical(DexField t1, DexField t2) {
+    return t1 == t2;
+  }
+
+  public final boolean isIdenticalTo(DexField other) {
+    return identical(this, other);
+  }
+
   public final DexType type;
 
   DexField(DexType holder, DexType type, DexString name, boolean skipNameValidationForTesting) {
@@ -191,9 +200,8 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
   }
 
   @Override
-  @SuppressWarnings("ReferenceEquality")
   public boolean match(DexField field) {
-    return field.name == name && field.type == type;
+    return name.isIdenticalTo(field.name) && type.isIdenticalTo(field.type);
   }
 
   @Override
