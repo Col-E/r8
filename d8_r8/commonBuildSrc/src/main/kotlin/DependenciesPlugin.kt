@@ -632,7 +632,8 @@ fun getThirdPartyDesugarLibraryReleases() : List<ThirdPartyDependency> {
     "1.0.10",
     "1.1.0",
     "1.1.1",
-    "1.1.5")
+    "1.1.5",
+    "2.0.3")
     .map { ThirdPartyDependency(
       "desugar-library-release-$it",
       Paths.get("third_party", "openjdk", "desugar_jdk_libs_releases", it).toFile(),
