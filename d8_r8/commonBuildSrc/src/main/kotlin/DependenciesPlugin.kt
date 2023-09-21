@@ -451,6 +451,10 @@ object ThirdPartyDeps {
     "jdk-11-test",
     Paths.get("third_party", "openjdk", "jdk-11-test").toFile(),
     Paths.get("third_party", "openjdk", "jdk-11-test.tar.gz.sha1").toFile())
+  val junit = ThirdPartyDependency(
+    "junit",
+    Paths.get("third_party", "junit").toFile(),
+    Paths.get("third_party", "junit.tar.gz.sha1").toFile())
   val jdwpTests = ThirdPartyDependency(
     "jdwp-tests",
     Paths.get("third_party", "jdwp-tests").toFile(),
