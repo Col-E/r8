@@ -307,6 +307,9 @@ tasks {
     systemProperty("RETRACE_RUNTIME_PATH", r8LibJar)
     systemProperty("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
     systemProperty("com.android.tools.r8.artprofilerewritingcompletenesscheck", "true")
+
+    reports.junitXml.outputLocation.set(getRoot().resolveAll("build", "test-results", "test"))
+    reports.html.outputLocation.set(getRoot().resolveAll("build", "reports", "tests", "test"))
   }
 
   val sourcesJar by registering(Jar::class) {
