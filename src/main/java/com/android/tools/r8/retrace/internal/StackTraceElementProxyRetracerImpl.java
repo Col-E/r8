@@ -29,7 +29,6 @@ import com.android.tools.r8.retrace.StackTraceElementProxyRetracer;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ListUtils;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.function.Consumer;
@@ -280,8 +279,8 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
       return currentResult;
     }
     List<RetraceTypeResult> retracedResults =
-        Arrays.stream(element.getMethodArguments().split(","))
-            .map(typeName -> retracer.retraceType(Reference.typeFromTypeName(typeName)))
+        element.getMethodArgumentTypeReferences().stream()
+            .map(retracer::retraceType)
             .collect(Collectors.toList());
     List<List<RetracedTypeReference>> initial = new ArrayList<>();
     initial.add(new ArrayList<>());

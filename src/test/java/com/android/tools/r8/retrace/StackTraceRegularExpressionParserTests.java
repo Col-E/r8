@@ -826,6 +826,87 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
   }
 
   @Test
+  public void testArgumentsWithWhitespace() {
+    runRetraceTest(
+        "%c.%m\\(%a\\)",
+        new StackTraceForTest() {
+          @Override
+          public List<String> obfuscatedStackTrace() {
+            return ImmutableList.of("a.b.c.a(int, a.a.a[], a.b.c)");
+          }
+
+          @Override
+          public String mapping() {
+            return StringUtils.lines(
+                "com.android.tools.r8.D8 -> a.a.a:",
+                "com.android.tools.r8.R8 -> a.b.c:",
+                "  void foo(int,original.signature) -> a");
+          }
+
+          @Override
+          public List<String> retracedStackTrace() {
+            return ImmutableList.of(
+                "com.android.tools.r8.R8.foo"
+                    + "(int, com.android.tools.r8.D8[], com.android.tools.r8.R8)");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of(
+                "com.android.tools.r8.R8.void foo"
+                    + "(int,original.signature)"
+                    + "(int, com.android.tools.r8.D8[], com.android.tools.r8.R8)");
+          }
+
+          @Override
+          public int expectedWarnings() {
+            return 0;
+          }
+        });
+  }
+
+  @Test
+  public void testArgumentsWithDifferentWhitespace() {
+    runRetraceTest(
+        "%c.%m\\(%a\\)",
+        new StackTraceForTest() {
+          @Override
+          public List<String> obfuscatedStackTrace() {
+            return ImmutableList.of("a.b.c.a(int,a.a.a[], a.a.a,  a.b.c)");
+          }
+
+          @Override
+          public String mapping() {
+            return StringUtils.lines(
+                "com.android.tools.r8.D8 -> a.a.a:",
+                "com.android.tools.r8.R8 -> a.b.c:",
+                "  void foo(int,original.signature) -> a");
+          }
+
+          @Override
+          public List<String> retracedStackTrace() {
+            return ImmutableList.of(
+                "com.android.tools.r8.R8.foo(int,com.android.tools.r8.D8[],"
+                    + " com.android.tools.r8.D8,  com.android.tools.r8.R8)");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of(
+                "com.android.tools.r8.R8.void foo"
+                    + "(int,original.signature)"
+                    + "(int,com.android.tools.r8.D8[],"
+                    + " com.android.tools.r8.D8,  com.android.tools.r8.R8)");
+          }
+
+          @Override
+          public int expectedWarnings() {
+            return 0;
+          }
+        });
+  }
+
+  @Test
   public void testNoArguments() {
     runRetraceTest(
         "%c.%m\\(%a\\)",

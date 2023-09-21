@@ -389,7 +389,11 @@ public class StackTraceRegularExpressionParser
 
     @Override
     String subExpression() {
-      return "((" + JAVA_TYPE_REGULAR_EXPRESSION + "\\,)*" + JAVA_TYPE_REGULAR_EXPRESSION + ")?";
+      return "(("
+          + JAVA_TYPE_REGULAR_EXPRESSION
+          + "\\,\\s*)*"
+          + JAVA_TYPE_REGULAR_EXPRESSION
+          + ")?";
     }
 
     @Override

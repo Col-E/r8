@@ -459,6 +459,15 @@ public class StringUtils {
     return string.length();
   }
 
+  public static int firstNonWhitespaceCharacter(String string, int index) {
+    for (int i = index; i < string.length(); i++) {
+      if (!isWhitespace(string.charAt(i))) {
+        return i;
+      }
+    }
+    return string.length();
+  }
+
   public static String replaceAll(String subject, Map<String, String> map) {
     for (Entry<String, String> entry : map.entrySet()) {
       subject = replaceAll(subject, entry.getKey(), entry.getValue());

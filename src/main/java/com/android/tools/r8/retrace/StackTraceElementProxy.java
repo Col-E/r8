@@ -9,7 +9,9 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
-import java.util.Arrays;
+import com.google.common.base.Splitter;
+import java.util.ArrayList;
+import java.util.List;
 
 @Keep
 public abstract class StackTraceElementProxy<T, ST extends StackTraceElementProxy<T, ST>> {
@@ -42,6 +44,17 @@ public abstract class StackTraceElementProxy<T, ST extends StackTraceElementProx
 
   public abstract String getMethodArguments();
 
+  public List<TypeReference> getMethodArgumentTypeReferences() {
+    if (!hasMethodArguments()) {
+      return null;
+    }
+    List<TypeReference> typeReferences = new ArrayList<>();
+    for (String typeName : Splitter.onPattern(",\\s*").split(getMethodArguments())) {
+      typeReferences.add(Reference.typeFromTypeName(typeName));
+    }
+    return typeReferences;
+  }
+
   public abstract T toRetracedItem(
       RetraceStackTraceElementProxy<T, ST> retracedProxy, boolean verbose);
 
@@ -51,21 +64,21 @@ public abstract class StackTraceElementProxy<T, ST extends StackTraceElementProx
       mappingSupplier.registerClassUse(diagnosticsHandler, getClassReference());
     }
     if (hasMethodArguments()) {
-      Arrays.stream(getMethodArguments().split(","))
+      getMethodArgumentTypeReferences()
           .forEach(
-              typeName ->
-                  registerUseFromTypeReference(mappingSupplier, typeName, diagnosticsHandler));
+              typeReference ->
+                  registerUseFromTypeReference(mappingSupplier, typeReference, diagnosticsHandler));
     }
     if (hasFieldOrReturnType() && !getFieldOrReturnType().equals("void")) {
-      registerUseFromTypeReference(mappingSupplier, getFieldOrReturnType(), diagnosticsHandler);
+      registerUseFromTypeReference(
+          mappingSupplier, Reference.typeFromTypeName(getFieldOrReturnType()), diagnosticsHandler);
     }
   }
 
   private static void registerUseFromTypeReference(
       MappingSupplierBase<?> mappingSupplier,
-      String typeName,
+      TypeReference typeReference,
       DiagnosticsHandler diagnosticsHandler) {
-    TypeReference typeReference = Reference.typeFromTypeName(typeName);
     if (typeReference.isArray()) {
       typeReference = typeReference.asArray().getBaseType();
     }
