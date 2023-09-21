@@ -10,6 +10,7 @@ import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static com.android.tools.r8.utils.ZipUtils.writeToZipStream;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileResourceProvider;
@@ -57,7 +58,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.OpenOption;
@@ -483,24 +483,23 @@ public class AndroidApp {
     return programResourcesMainDescriptor.get(resource);
   }
 
-  @SuppressWarnings("DefaultCharset")
   public void dump(Path output, DumpOptions dumpOptions, InternalOptions options) {
     int nextDexIndex = 0;
     OpenOption[] openOptions =
         new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
     try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(output, openOptions))) {
       writeToZipStream(
-          out, dumpVersionFileName, Version.getVersionString().getBytes(), ZipEntry.DEFLATED);
+          out, dumpVersionFileName, Version.getVersionString().getBytes(UTF_8), ZipEntry.DEFLATED);
       writeToZipStream(
           out,
           dumpBuildPropertiesFileName,
-          dumpOptions.getBuildPropertiesFileContent().getBytes(),
+          dumpOptions.getBuildPropertiesFileContent().getBytes(UTF_8),
           ZipEntry.DEFLATED);
       if (dumpOptions.getDesugaredLibraryJsonSource() != null) {
         writeToZipStream(
             out,
             dumpDesugaredLibraryFileName,
-            dumpOptions.getDesugaredLibraryJsonSource().getBytes(),
+            dumpOptions.getDesugaredLibraryJsonSource().getBytes(UTF_8),
             ZipEntry.DEFLATED);
         if (dumpOptions.dumpInputToFile()) {
           options.reporter.warning(
@@ -510,7 +509,8 @@ public class AndroidApp {
       }
       if (dumpOptions.getParsedProguardConfiguration() != null) {
         String proguardConfig = dumpOptions.getParsedProguardConfiguration();
-        writeToZipStream(out, dumpConfigFileName, proguardConfig.getBytes(), ZipEntry.DEFLATED);
+        writeToZipStream(
+            out, dumpConfigFileName, proguardConfig.getBytes(UTF_8), ZipEntry.DEFLATED);
       }
       if (proguardMapInputData != null) {
         options.reporter.warning(
@@ -518,7 +518,7 @@ public class AndroidApp {
         writeToZipStream(
             out,
             dumpInputConfigFileName,
-            proguardMapInputData.getString().getBytes(),
+            proguardMapInputData.getString().getBytes(UTF_8),
             ZipEntry.DEFLATED);
       }
       if (hasMainDexList()) {
@@ -534,13 +534,14 @@ public class AndroidApp {
           mainDexList.add(mainDexClass.replace(".", "/") + CLASS_EXTENSION);
         }
         String join = StringUtils.join("\n", mainDexList);
-        writeToZipStream(out, dumpMainDexListResourceFileName, join.getBytes(), ZipEntry.DEFLATED);
+        writeToZipStream(
+            out, dumpMainDexListResourceFileName, join.getBytes(UTF_8), ZipEntry.DEFLATED);
       }
       if (dumpOptions.hasMainDexKeepRules()) {
         writeToZipStream(
             out,
             dumpMainDexRulesResourceFileName,
-            StringUtils.joinLines(dumpOptions.getMainDexKeepRules()).getBytes(),
+            StringUtils.joinLines(dumpOptions.getMainDexKeepRules()).getBytes(UTF_8),
             ZipEntry.DEFLATED);
       }
       if (dumpOptions.hasArtProfileProviders()) {
@@ -579,7 +580,6 @@ public class AndroidApp {
     return nextDexIndex;
   }
 
-  @SuppressWarnings("DefaultCharset")
   private void dumpArtProfileProviders(
       Collection<ArtProfileProvider> artProfileProviders, ZipOutputStream out) throws IOException {
     int artProfileProviderIndex = 1;
@@ -588,13 +588,12 @@ public class AndroidApp {
       writeToZipStream(
           out,
           artProfileFileName,
-          ArtProfileProviderUtils.serializeToString(artProfileProvider).getBytes(),
+          ArtProfileProviderUtils.serializeToString(artProfileProvider).getBytes(UTF_8),
           ZipEntry.DEFLATED);
       artProfileProviderIndex++;
     }
   }
 
-  @SuppressWarnings("DefaultCharset")
   private void dumpStartupProfileProviders(
       Collection<StartupProfileProvider> startupProfileProviders,
       InternalOptions options,
@@ -606,7 +605,8 @@ public class AndroidApp {
       writeToZipStream(
           out,
           startupProfileFileName,
-          StartupProfileProviderUtils.serializeToString(options, startupProfileProvider).getBytes(),
+          StartupProfileProviderUtils.serializeToString(options, startupProfileProvider)
+              .getBytes(UTF_8),
           ZipEntry.DEFLATED);
       startupProfileProviderIndex++;
     }
@@ -909,7 +909,7 @@ public class AndroidApp {
           (entry, input) -> {
             String name = entry.getName();
             if (name.equals(dumpVersionFileName)) {
-              String content = new String(ByteStreams.toByteArray(input), StandardCharsets.UTF_8);
+              String content = new String(ByteStreams.toByteArray(input), UTF_8);
               System.out.println("Dump produced by R8 version: " + content);
             } else if (name.equals(dumpProgramFileName)) {
               readProgramDump(origin, input);
