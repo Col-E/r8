@@ -40,10 +40,6 @@ public class KotlinMetadataRewriter {
   private static final class WriteMetadataFieldInfo {
     final boolean writeKind;
     final boolean writeMetadataVersion;
-
-    @SuppressWarnings("UnusedVariable")
-    final boolean writeByteCodeVersion;
-
     final boolean writeData1;
     final boolean writeData2;
     final boolean writeExtraString;
@@ -53,7 +49,6 @@ public class KotlinMetadataRewriter {
     private WriteMetadataFieldInfo(
         boolean writeKind,
         boolean writeMetadataVersion,
-        boolean writeByteCodeVersion,
         boolean writeData1,
         boolean writeData2,
         boolean writeExtraString,
@@ -61,7 +56,6 @@ public class KotlinMetadataRewriter {
         boolean writeExtraInt) {
       this.writeKind = writeKind;
       this.writeMetadataVersion = writeMetadataVersion;
-      this.writeByteCodeVersion = writeByteCodeVersion;
       this.writeData1 = writeData1;
       this.writeData2 = writeData2;
       this.writeExtraString = writeExtraString;
@@ -70,7 +64,7 @@ public class KotlinMetadataRewriter {
     }
 
     private static WriteMetadataFieldInfo rewriteAll() {
-      return new WriteMetadataFieldInfo(true, true, true, true, true, true, true, true);
+      return new WriteMetadataFieldInfo(true, true, true, true, true, true, true);
     }
   }
 
@@ -103,7 +97,6 @@ public class KotlinMetadataRewriter {
             : new WriteMetadataFieldInfo(
                 kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.kind),
                 kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.metadataVersion),
-                kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.bytecodeVersion),
                 kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.data1),
                 kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.data2),
                 kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.extraString),
