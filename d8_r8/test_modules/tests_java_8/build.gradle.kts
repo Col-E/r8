@@ -94,6 +94,10 @@ tasks {
     enabled = false
   }
 
+  val sourceSetDependencyTask by registering {
+    dependsOn(*sourceSetDependenciesTasks)
+  }
+
   withType<Test> {
     TestingState.setUpTestingState(this)
     dependsOn(mainDepsJarTask)
@@ -101,7 +105,7 @@ tasks {
     if (!project.hasProperty("no_internal")) {
       dependsOn(gradle.includedBuild("shared").task(":downloadDepsInternal"))
     }
-    dependsOn(*sourceSetDependenciesTasks)
+    dependsOn(sourceSetDependencyTask)
     systemProperty("TEST_DATA_LOCATION",
                    layout.buildDirectory.dir("classes/java/test").get().toString())
     systemProperty("KEEP_ANNO_JAVAC_BUILD_DIR", keepAnnoCompileTask.outputs.files.getAsPath())

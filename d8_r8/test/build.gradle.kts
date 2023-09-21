@@ -30,6 +30,7 @@ val resourceShrinkerSourcesTask = projectTask("resourceshrinker", "sourcesJar")
 val java8TestJarTask = projectTask("tests_java_8", "testJar")
 val java8TestsDepsJarTask = projectTask("tests_java_8", "depsJar")
 val bootstrapTestsDepsJarTask = projectTask("tests_bootstrap", "depsJar")
+val testsJava8SourceSetDependenciesTask = projectTask("tests_java_8", "sourceSetDependencyTask")
 
 tasks {
   withType<Exec> {
@@ -286,6 +287,7 @@ tasks {
     if (!project.hasProperty("no_internal")) {
       dependsOn(gradle.includedBuild("shared").task(":downloadDepsInternal"))
     }
+    dependsOn(testsJava8SourceSetDependenciesTask)
     val r8LibJar = r8LibWithRelocatedDeps.get().outputs.files.singleFile
     this.configure(isR8Lib = true, r8Jar = r8LibJar)
 
