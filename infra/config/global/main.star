@@ -312,7 +312,7 @@ r8_builder(
   dimensions = get_dimensions(normal=True),
   max_concurrent_invocations = 1,
   properties = {
-    "test_options" : ["--runtimes=dex-default", "--command_cache_dir=/tmp/ccache", "--new-gradle", "--no-r8lib"] + common_test_options,
+    "test_options" : ["--runtimes=dex-default", "--command_cache_dir=/tmp/ccache", "--new-gradle"] + common_test_options,
     "builder_group" : "internal.client.r8"
   }
 )
