@@ -29,6 +29,11 @@ def make_parser():
     help='Dump file or directory to compile',
     default=None)
   parser.add_argument(
+    '-o',
+    '--output',
+    help='File to output (defaults to out.jar in temp)',
+    default=None)
+  parser.add_argument(
     '--temp',
     help='Temp directory to extract the dump to, allows you to rerun the command'
       ' more easily in the terminal with changes',
@@ -325,6 +330,8 @@ def determine_config_files(args, dump, temp):
   return []
 
 def determine_output(args, temp):
+  if (args.output):
+    return args.output
   return os.path.join(temp, 'out.jar')
 
 def determine_min_api(args, build_properties):
