@@ -52,6 +52,7 @@ public class Marker {
   private static final String D8_PREFIX = PREFIX + Tool.D8 + "{";
   private static final String R8_PREFIX = PREFIX + Tool.R8 + "{";
   private static final String L8_PREFIX = PREFIX + Tool.L8 + "{";
+  private static final String RELOCATOR_PREFIX = PREFIX + Tool.Relocator + "{";
 
   private final JsonObject jsonObject;
   private final Tool tool;
@@ -271,6 +272,9 @@ public class Marker {
       }
       if (str.startsWith(L8_PREFIX)) {
         return internalParse(Tool.L8, str.substring(L8_PREFIX.length() - 1));
+      }
+      if (str.startsWith(RELOCATOR_PREFIX)) {
+        return internalParse(Tool.Relocator, str.substring(RELOCATOR_PREFIX.length() - 1));
       }
     }
     return null;
