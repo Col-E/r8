@@ -224,7 +224,7 @@ tasks.withType<JavaCompile> {
   println("NOTE: Running with JDK: " + org.gradle.internal.jvm.Jvm.current().javaHome)
 
   // Enable error prone for D8/R8 main sources.
-  options.errorprone.isEnabled.set(true)
+  options.errorprone.isEnabled.set(!project.hasProperty("disable_errorprone"))
 
   // Make all warnings errors. Warnings that we have chosen not to fix (or suppress) are disabled
   // outright below.

@@ -104,8 +104,9 @@ def ParseOptions():
       help='Tool to run ART tests with: "r8" (default) or "d8" or "r8cf"'
           ' (r8 w/CF-backend). Ignored if "--all_tests" enabled.',
       default=None, choices=["r8", "d8", "r8cf"])
-  result.add_option('--disable-assertions', '--disable_assertions',
-      help='Disable assertions when running tests.',
+  result.add_option('--disable-assertions', '--disable_assertions', '-da',
+      help='Disable Java assertions when running the compiler '
+           '(default enabled)',
       default=False, action='store_true')
   result.add_option('--with-code-coverage', '--with_code_coverage',
       help='Enable code coverage with Jacoco.',

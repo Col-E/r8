@@ -116,8 +116,9 @@ def ParseOptions(argv):
                     help='Do not pass in libraries, even if they exist in conf',
                     default=False,
                     action='store_true')
-  result.add_option('--no-debug',
-                    help='Run without debug asserts.',
+  result.add_option('--disable-assertions', '-da',
+                    help='Disable Java assertions when running the compiler '
+                         '(default enabled)',
                     default=False,
                     action='store_true')
   result.add_option('--debug-agent',
@@ -514,7 +515,7 @@ def build_desugared_library_dex(
   exit_code = toolhelper.run(
       tool, args,
       build=should_build(options),
-      debug=not options.no_debug,
+      debug=not options.disable_assertions,
       quiet=quiet,
       jar=jar,
       main=main)
@@ -543,7 +544,7 @@ def run_with_options(
   if options.print_times:
     extra_args.append('-Dcom.android.tools.r8.printtimes=1')
 
-  if not options.no_debug:
+  if not options.disable_assertions:
     extra_args.append('-Dcom.android.tools.r8.enableTestAssertions=1')
 
   outdir = options.out
@@ -715,7 +716,7 @@ def run_with_options(
         t0 = time.time()
         exit_code = toolhelper.run(tool, args,
             build=False,
-            debug=not options.no_debug,
+            debug=not options.disable_assertions,
             profile=options.profile,
             track_memory_file=options.track_memory_to_file,
             extra_args=extra_args,

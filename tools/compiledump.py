@@ -93,8 +93,8 @@ def make_parser():
     default=False,
     action='store_true')
   parser.add_argument(
-    '--ea',
-    help='Enable Java assertions when running the compiler (default disabled)',
+    '--disable-assertions', '--disable_assertions', '-da',
+    help='Disable Java assertions when running the compiler (default enabled)',
     default=False,
     action='store_true')
   parser.add_argument(
@@ -515,7 +515,7 @@ def run1(out, args, otherargs, jdkhome=None, worker_id=None):
           '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005')
     if args.xmx:
       cmd.append('-Xmx' + args.xmx)
-    if args.ea:
+    if not args.disable_assertions:
       cmd.append('-ea')
       cmd.append('-Dcom.android.tools.r8.enableTestAssertions=1')
     if args.print_times:

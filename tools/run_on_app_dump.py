@@ -919,8 +919,9 @@ def parse_options(argv):
                            '(default disabled)',
                       default=False,
                       action='store_true')
-  result.add_argument('--disable-assertions', '--disable_assertions',
-                      help='Disable assertions when compiling',
+  result.add_argument('--disable-assertions', '--disable_assertions', '-da',
+                      help='Disable Java assertions when running the compiler '
+                           '(default enabled)',
                       default=False,
                       action='store_true')
   result.add_argument('--emulator-id', '--emulator_id',
