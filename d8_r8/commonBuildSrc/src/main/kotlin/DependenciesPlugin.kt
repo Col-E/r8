@@ -416,6 +416,10 @@ object ThirdPartyDeps {
     Paths.get("third_party", "framework").toFile(),
     Paths.get("third_party", "framework.tar.gz.sha1").toFile(),
     DependencyType.X20)
+  val googleJavaFormat = ThirdPartyDependency(
+    "google-java-format",
+    Paths.get("third_party", "google-java-format").toFile(),
+    Paths.get("third_party", "google-java-format.tar.gz.sha1").toFile())
   val gson = ThirdPartyDependency(
     "gson",
     Paths.get("third_party", "gson", "gson-2.10.1").toFile(),
