@@ -4,6 +4,8 @@
 
 // TODO(b/270105162): Move this file out the repository root when old gradle is removed.
 
+import java.nio.file.Files
+import java.nio.file.attribute.FileTime
 import org.gradle.internal.os.OperatingSystem
 
 rootProject.name = "d8-r8"
@@ -54,6 +56,12 @@ fun downloadFromGoogleStorage(outputDir : File) {
                     java.nio.charset.StandardCharsets.UTF_8)}\n"
         + String(process.getInputStream().readAllBytes(),
                  java.nio.charset.StandardCharsets.UTF_8))
+  } else {
+    // Ensure that the gz file is more recent than the .sha1 file
+    // People that upload a new version will generally have an older .sha1 file
+    println("Updating timestamp on " + targz)
+    val now = FileTime.fromMillis(System.currentTimeMillis())
+    Files.setLastModifiedTime(targz.toPath(), now)
   }
 }
 
