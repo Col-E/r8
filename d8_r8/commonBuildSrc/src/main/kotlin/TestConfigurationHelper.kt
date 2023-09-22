@@ -149,7 +149,7 @@ class TestConfigurationHelper {
         test.maxParallelForks = processors.div(userDefinedCoresPerFork.toInt())
       } else {
         // On work machines this seems to give the best test execution time (without freezing).
-        test.maxParallelForks = processors.div(3)
+        test.maxParallelForks = maxOf(processors.div(3), 1)
         // On low cpu count machines (bots) we under subscribe, so increase the count.
         if (processors == 32) {
           test.maxParallelForks = 15
