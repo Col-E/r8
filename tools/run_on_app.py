@@ -5,8 +5,8 @@
 
 from __future__ import print_function
 from glob import glob
+import argparse
 import copy
-import optparse
 import os
 import shutil
 import sys
@@ -41,158 +41,158 @@ FIND_MIN_XMX_FILE = 'find_min_xmx_results'
 FIND_MIN_XMX_DIR = 'find_min_xmx'
 
 def ParseOptions(argv):
-  result = optparse.OptionParser()
-  result.add_option('--compiler',
+  result = argparse.ArgumentParser()
+  result.add_argument('--compiler',
                     help='The compiler to use',
                     choices=COMPILERS)
-  result.add_option('--compiler-build',
+  result.add_argument('--compiler-build',
                     help='Compiler build to use',
                     choices=COMPILER_BUILDS,
                     default='lib')
-  result.add_option('--no-fail-fast',
+  result.add_argument('--no-fail-fast',
                     help='Whether run_on_app.py should report all failures '
                          'and not just the first one',
                     default=False,
                     action='store_true')
-  result.add_option('--hash',
+  result.add_argument('--hash',
                     help='The version of D8/R8 to use')
-  result.add_option('--app',
+  result.add_argument('--app',
                     help='What app to run on',
                     choices=APPS)
-  result.add_option('--run-all',
+  result.add_argument('--run-all',
                     help='Compile all possible combinations',
                     default=False,
                     action='store_true')
-  result.add_option('--expect-oom',
+  result.add_argument('--expect-oom',
                     help='Expect that compilation will fail with an OOM',
                     default=False,
                     action='store_true')
-  result.add_option('--type',
+  result.add_argument('--type',
                     help='Default for R8: deploy, for D8: proguarded',
                     choices=TYPES)
-  result.add_option('--out',
+  result.add_argument('--out',
                     help='Where to place the output',
                     default=utils.BUILD)
-  result.add_option('--no-build',
+  result.add_argument('--no-build',
                     help='Run without building first',
                     default=False,
                     action='store_true')
-  result.add_option('--max-memory',
+  result.add_argument('--max-memory',
                     help='The maximum memory in MB to run with',
-                    type='int')
-  result.add_option('--find-min-xmx',
+                    type=int)
+  result.add_argument('--find-min-xmx',
                     help='Find the minimum amount of memory we can run in',
                     default=False,
                     action='store_true')
-  result.add_option('--find-min-xmx-min-memory',
+  result.add_argument('--find-min-xmx-min-memory',
                     help='Setting the minimum memory baseline to run in',
-                    type='int')
-  result.add_option('--find-min-xmx-max-memory',
+                    type=int)
+  result.add_argument('--find-min-xmx-max-memory',
                     help='Setting the maximum memory baseline to run in',
-                    type='int')
-  result.add_option('--find-min-xmx-range-size',
+                    type=int)
+  result.add_argument('--find-min-xmx-range-size',
                     help='Setting the size of the acceptable memory range',
-                    type='int',
+                    type=int,
                     default=32)
-  result.add_option('--find-min-xmx-archive',
+  result.add_argument('--find-min-xmx-archive',
                     help='Archive find-min-xmx results on GCS',
                     default=False,
                     action='store_true')
-  result.add_option('--no-extra-pgconf', '--no_extra_pgconf',
+  result.add_argument('--no-extra-pgconf', '--no_extra_pgconf',
                     help='Build without the following extra rules: ' +
                          '-printconfiguration, -printmapping, -printseeds, ' +
                          '-printusage',
                     default=False,
                     action='store_true')
-  result.add_option('--timeout',
-                    type='int',
+  result.add_argument('--timeout',
+                    type=int,
                     default=0,
                     help='Set timeout instead of waiting for OOM.')
-  result.add_option('--ignore-java-version',
+  result.add_argument('--ignore-java-version',
                     help='Do not check java version',
                     default=False,
                     action='store_true')
-  result.add_option('--no-libraries',
+  result.add_argument('--no-libraries',
                     help='Do not pass in libraries, even if they exist in conf',
                     default=False,
                     action='store_true')
-  result.add_option('--disable-assertions', '-da',
+  result.add_argument('--disable-assertions', '--disable_assertions', '-da',
                     help='Disable Java assertions when running the compiler '
                          '(default enabled)',
                     default=False,
                     action='store_true')
-  result.add_option('--debug-agent',
+  result.add_argument('--debug-agent',
                     help='Run with debug agent.',
                     default=False,
                     action='store_true')
-  result.add_option('--version',
+  result.add_argument('--version',
                     help='The version of the app to run')
-  result.add_option('-k',
+  result.add_argument('-k',
                     help='Override the default ProGuard keep rules')
-  result.add_option('--compiler-flags',
+  result.add_argument('--compiler-flags',
                     help='Additional option(s) for the compiler. ' +
                          'If passing several options use a quoted string.')
-  result.add_option('--r8-flags',
+  result.add_argument('--r8-flags',
                     help='Additional option(s) for the compiler. ' +
                          'Same as --compiler-flags, keeping it for backward'
                          ' compatibility. ' +
                          'If passing several options use a quoted string.')
-  result.add_option('--track-memory-to-file',
+  result.add_argument('--track-memory-to-file',
                     help='Track how much memory the jvm is using while ' +
                     ' compiling. Output to the specified file.')
-  result.add_option('--profile',
+  result.add_argument('--profile',
                     help='Profile R8 run.',
                     default=False,
                     action='store_true')
-  result.add_option('--dump-args-file',
+  result.add_argument('--dump-args-file',
                     help='Dump a file with the arguments for the specified ' +
                     'configuration. For use as a @<file> argument to perform ' +
                     'the run.')
-  result.add_option('--print-runtimeraw',
+  result.add_argument('--print-runtimeraw',
                     metavar='BENCHMARKNAME',
                     help='Print the line \'<BENCHMARKNAME>(RunTimeRaw):' +
                         ' <elapsed> ms\' at the end where <elapsed> is' +
                         ' the elapsed time in milliseconds.')
-  result.add_option('--print-memoryuse',
+  result.add_argument('--print-memoryuse',
                     metavar='BENCHMARKNAME',
                     help='Print the line \'<BENCHMARKNAME>(MemoryUse):' +
                         ' <mem>\' at the end where <mem> is the peak' +
                         ' peak resident set size (VmHWM) in bytes.')
-  result.add_option('--print-dexsegments',
+  result.add_argument('--print-dexsegments',
                     metavar='BENCHMARKNAME',
                     help='Print the sizes of individual dex segments as ' +
                         '\'<BENCHMARKNAME>-<segment>(CodeSize): <bytes>\'')
-  result.add_option('--track-time-in-memory',
+  result.add_argument('--track-time-in-memory',
                     help='Plot the times taken from memory starting point to '
                          'end-point with defined memory increment',
                     default=False,
                     action='store_true')
-  result.add_option('--track-time-in-memory-max',
+  result.add_argument('--track-time-in-memory-max',
                     help='Setting the maximum memory baseline to run in',
-                    type='int')
-  result.add_option('--track-time-in-memory-min',
+                    type=int)
+  result.add_argument('--track-time-in-memory-min',
                     help='Setting the minimum memory baseline to run in',
-                    type='int')
-  result.add_option('--track-time-in-memory-increment',
+                    type=int)
+  result.add_argument('--track-time-in-memory-increment',
                     help='Setting the increment',
-                    type='int',
+                    type=int,
                     default=32)
-  result.add_option('--print-times',
+  result.add_argument('--print-times',
                     help='Include timing',
                     default=False,
                     action='store_true')
-  result.add_option('--cpu-list',
+  result.add_argument('--cpu-list',
                     help='Run under \'taskset\' with these CPUs. See '
                          'the \'taskset\' -c option for the format')
-  result.add_option('--quiet',
+  result.add_argument('--quiet',
                     help='Disable compiler logging',
                     default=False,
                     action='store_true')
-  result.add_option('--workers',
+  result.add_argument('--workers',
                     help='Number of workers to use',
                     default=1,
                     type=int)
-  (options, args) = result.parse_args(argv)
+  (options, args) = result.parse_known_args(argv)
   assert not options.hash or options.no_build, (
       'Argument --no-build is required when using --hash')
   assert not options.hash or options.compiler_build == 'full', (

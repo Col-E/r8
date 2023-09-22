@@ -7,7 +7,7 @@
 # if an argument is given, run only tests with that pattern. This script will
 # force the tests to run, even if no input changed.
 
-import optparse
+import argparse
 import os
 import shutil
 import subprocess
@@ -64,148 +64,148 @@ VALID_RUNTIMES = [
 ] + [ 'dex-%s' % dexvm for dexvm in ALL_ART_VMS ]
 
 def ParseOptions():
-  result = optparse.OptionParser()
-  result.add_option('--no-internal', '--no_internal',
+  result = argparse.ArgumentParser()
+  result.add_argument('--no-internal', '--no_internal',
       help='Do not run Google internal tests.',
       default=False, action='store_true')
-  result.add_option('--archive-failures', '--archive_failures',
+  result.add_argument('--archive-failures', '--archive_failures',
       help='Upload test results to cloud storage on failure.',
       default=False, action='store_true')
-  result.add_option('--archive-failures-file-name',
+  result.add_argument('--archive-failures-file-name',
                     '--archive_failures_file_name',
                     help='Set file name for the archived failures file name',
                     default=uuid.uuid4())
-  result.add_option('--only-internal', '--only_internal',
+  result.add_argument('--only-internal', '--only_internal',
       help='Only run Google internal tests.',
       default=False, action='store_true')
-  result.add_option('--all-tests', '--all_tests',
+  result.add_argument('--all-tests', '--all_tests',
       help='Run tests in all configurations.',
       default=False, action='store_true')
-  result.add_option('--slow-tests', '--slow_tests',
+  result.add_argument('--slow-tests', '--slow_tests',
       help='Also run slow tests.',
       default=False, action='store_true')
-  result.add_option('-v', '--verbose',
+  result.add_argument('-v', '--verbose',
       help='Print test stdout to, well, stdout.',
       default=False, action='store_true')
-  result.add_option('--dex-vm', '--dex_vm',
+  result.add_argument('--dex-vm', '--dex_vm',
       help='The android version of the vm to use. "all" will run the tests on '
            'all art vm versions (stopping after first failed execution)',
       default="default",
       choices=ALL_ART_VMS + ["all"])
-  result.add_option('--dex-vm-kind', '--dex_vm_kind',
+  result.add_argument('--dex-vm-kind', '--dex_vm_kind',
                     help='Whether to use host or target version of runtime',
                     default="host",
                     nargs=1,
                     choices=["host", "target"])
-  result.add_option('--one-line-per-test', '--one_line_per_test',
+  result.add_argument('--one-line-per-test', '--one_line_per_test',
       help='Print a line before a tests starts and after it ends to stdout.',
       default=False, action='store_true')
-  result.add_option('--tool',
+  result.add_argument('--tool',
       help='Tool to run ART tests with: "r8" (default) or "d8" or "r8cf"'
           ' (r8 w/CF-backend). Ignored if "--all_tests" enabled.',
       default=None, choices=["r8", "d8", "r8cf"])
-  result.add_option('--disable-assertions', '--disable_assertions', '-da',
+  result.add_argument('--disable-assertions', '--disable_assertions', '-da',
       help='Disable Java assertions when running the compiler '
            '(default enabled)',
       default=False, action='store_true')
-  result.add_option('--with-code-coverage', '--with_code_coverage',
+  result.add_argument('--with-code-coverage', '--with_code_coverage',
       help='Enable code coverage with Jacoco.',
       default=False, action='store_true')
-  result.add_option('--test-dir', '--test_dir',
+  result.add_argument('--test-dir', '--test_dir',
       help='Use a custom directory for the test artifacts instead of a'
           ' temporary (which is automatically removed after the test).'
           ' Note that the directory will not be cleared before the test.')
-  result.add_option('--command-cache-dir', '--command_cache_dir',
+  result.add_argument('--command-cache-dir', '--command_cache_dir',
       help='Cache command invocations to this directory, speeds up test runs',
       default=os.environ.get('R8_COMMAND_CACHE_DIR'))
-  result.add_option('--java-home', '--java_home',
+  result.add_argument('--java-home', '--java_home',
       help='Use a custom java version to run tests.')
-  result.add_option('--java-max-memory-size', '--java_max_memory_size',
+  result.add_argument('--java-max-memory-size', '--java_max_memory_size',
       help='Set memory for running tests, default 4G',
       default=os.environ.get('R8_JAVA_MAX_MEMORY_SIZE', '4G'))
-  result.add_option('--test-namespace', '--test_namespace',
+  result.add_argument('--test-namespace', '--test_namespace',
       help='Only run tests in  this namespace. The namespace is relative to '
           'com/android/tools/r8, e.g., desugar/desugaredlibrary',
       default=None)
-  result.add_option('--shard-count', '--shard_count',
+  result.add_argument('--shard-count', '--shard_count',
       help='We are running this many shards.')
-  result.add_option('--shard-number', '--shard_number',
+  result.add_argument('--shard-number', '--shard_number',
       help='We are running this shard.')
-  result.add_option('--generate-golden-files-to', '--generate_golden_files_to',
+  result.add_argument('--generate-golden-files-to', '--generate_golden_files_to',
       help='Store dex files produced by tests in the specified directory.'
            ' It is aimed to be read on platforms with no host runtime available'
            ' for comparison.')
-  result.add_option('--use-golden-files-in', '--use_golden_files_in',
+  result.add_argument('--use-golden-files-in', '--use_golden_files_in',
       help='Download golden files hierarchy for this commit in the specified'
            ' location and use them instead of executing on host runtime.')
-  result.add_option('--no-r8lib', '--no_r8lib',
+  result.add_argument('--no-r8lib', '--no_r8lib',
       default=False, action='store_true',
       help='Run the tests on R8 full with relocated dependencies.')
-  result.add_option('--no-arttests', '--no_arttests',
+  result.add_argument('--no-arttests', '--no_arttests',
       default=False, action='store_true',
       help='Do not run the art tests.')
-  result.add_option('--r8lib-no-deps', '--r8lib_no_deps',
+  result.add_argument('--r8lib-no-deps', '--r8lib_no_deps',
       default=False, action='store_true',
       help='Run the tests on r8lib without relocated dependencies.')
-  result.add_option('--failed',
+  result.add_argument('--failed',
       default=False, action='store_true',
       help='Run the tests that failed last execution.')
-  result.add_option('--fail-fast', '--fail_fast',
+  result.add_argument('--fail-fast', '--fail_fast',
       default=False, action='store_true',
       help='Stop on first failure. Passes --fail-fast to gradle test runner.')
-  result.add_option('--worktree',
+  result.add_argument('--worktree',
       default=False, action='store_true',
       help='Tests are run in worktree and should not use gradle user home.')
-  result.add_option('--runtimes',
+  result.add_argument('--runtimes',
       default=None,
       help='Test parameter runtimes to use, separated by : (eg, none:jdk9).'
           ' Special values include: all (for all runtimes)'
           ' and empty (for no runtimes).')
-  result.add_option('--print-hanging-stacks', '--print_hanging_stacks',
-      default=-1, type="int", help='Print hanging stacks after timeout in seconds')
-  result.add_option('--print-full-stacktraces', '--print_full_stacktraces',
+  result.add_argument('--print-hanging-stacks', '--print_hanging_stacks',
+      default=-1, type=int, help='Print hanging stacks after timeout in seconds')
+  result.add_argument('--print-full-stacktraces', '--print_full_stacktraces',
       default=False, action='store_true',
       help='Print the full stacktraces without any filtering applied')
-  result.add_option(
+  result.add_argument(
       '--print-obfuscated-stacktraces', '--print_obfuscated_stacktraces',
       default=False, action='store_true',
       help='Print the obfuscated stacktraces')
-  result.add_option(
+  result.add_argument(
       '--debug-agent', '--debug_agent',
       help='Enable Java debug agent and suspend compilation (default disabled)',
       default=False,
       action='store_true')
-  result.add_option('--desugared-library-configuration',
+  result.add_argument('--desugared-library-configuration',
       '--desugared_library-configuration',
       help='Use alternative desugared library configuration.')
-  result.add_option('--desugared-library', '--desugared_library',
+  result.add_argument('--desugared-library', '--desugared_library',
       help='Build and use desugared library from GitHub.')
-  result.add_option('--print-times', '--print_times',
+  result.add_argument('--print-times', '--print_times',
       help='Print the execution time of the slowest tests..',
       default=False, action='store_true')
-  result.add_option(
+  result.add_argument(
       '--testing-state-dir',
       help='Explicitly set the testing state directory '
            '(defaults to build/test-state/<git-branch>).')
-  result.add_option(
+  result.add_argument(
       '--rerun',
       help='Rerun tests (implicitly enables testing state).',
       choices=testing_state.CHOICES)
-  result.add_option(
+  result.add_argument(
       '--stacktrace',
       help='Pass --stacktrace to the gradle run',
       default=False, action='store_true')
-  result.add_option('--kotlin-compiler-dev',
+  result.add_argument('--kotlin-compiler-dev',
                     help='Specify to download a kotlin dev compiler and run '
                          'tests with that',
                     default=False, action='store_true')
-  result.add_option('--kotlin-compiler-old',
+  result.add_argument('--kotlin-compiler-old',
                     help='Specify to run tests on older kotlin compilers',
                     default=False, action='store_true')
-  result.add_option('--new-gradle',
+  result.add_argument('--new-gradle',
                     help='Specify to run in the new gradle setup',
                     default=False, action='store_true')
-  return result.parse_args()
+  return result.parse_known_args()
 
 def has_failures(classes_file):
   with open(classes_file) as f:
