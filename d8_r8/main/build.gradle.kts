@@ -124,6 +124,7 @@ tasks {
     from(keepAnnoJarTask.outputs.files.map(::zipTree))
     from(resourceShrinkerJarTask.outputs.files.map(::zipTree))
     from(consolidatedLicense)
+    entryCompression = ZipEntryCompression.STORED
     manifest {
       attributes["Main-Class"] = "com.android.tools.r8.SwissArmyKnife"
     }
