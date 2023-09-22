@@ -1175,15 +1175,6 @@ tasks.withType(Test) {
     }
 }
 
-task buildPreNJdwpTestsJar(type: Jar) {
-    archiveFileName = 'jdwp-tests-preN.jar'
-    from zipTree('third_party/jdwp-tests/apache-harmony-jdwp-tests-host.jar')
-    // Exclude the classes containing java8
-    exclude 'org/apache/harmony/jpda/tests/jdwp/InterfaceType/*.class'
-    exclude 'org/apache/harmony/jpda/tests/jdwp/ObjectReference/InvokeMethodDefault*.class'
-    includeEmptyDirs = false
-}
-
 task generateR8TestKeepRules {
     def path = "build/generated/r8tests-keep.txt"
     outputs.file path
@@ -1742,7 +1733,6 @@ test { task ->
         }
         dependsOn downloadDeps
         dependsOn buildExamples
-        dependsOn buildPreNJdwpTestsJar
     } else {
         logger.lifecycle("WARNING: Testing in not supported on your platform. Testing is only fully supported on " +
             "Linux and partially supported on Mac OS and Windows. Art does not run on other platforms.")
