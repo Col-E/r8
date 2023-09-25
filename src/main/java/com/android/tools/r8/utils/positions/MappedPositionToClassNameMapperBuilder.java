@@ -283,7 +283,14 @@ public class MappedPositionToClassNameMapperBuilder {
       Function<DexMethod, MethodSignature> getOriginalMethodSignature =
           m ->
               signatures.computeIfAbsent(
-                  m, key -> MethodSignature.fromDexMethod(m, m.holder != clazz.getType()));
+                  m,
+                  key -> {
+                    DexType holder = key.holder;
+                    boolean withQualifiedName =
+                        !holder.isIdenticalTo(clazz.getType())
+                            && !holder.isIdenticalTo(originalType);
+                    return MethodSignature.fromDexMethod(m, withQualifiedName);
+                  });
 
       // Check if mapped position is an outline
       DexMethod outlineMethod = getOutlineMethod(mappedPositions.get(0).getPosition());
