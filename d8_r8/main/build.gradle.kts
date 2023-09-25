@@ -123,7 +123,7 @@ tasks {
     from(sourceSets.main.get().output)
     from(keepAnnoJarTask.outputs.files.map(::zipTree))
     from(resourceShrinkerJarTask.outputs.files.map(::zipTree))
-    from(consolidatedLicense)
+    from(getRoot().resolve("LICENSE"))
     entryCompression = ZipEntryCompression.STORED
     manifest {
       attributes["Main-Class"] = "com.android.tools.r8.SwissArmyKnife"
@@ -134,11 +134,12 @@ tasks {
     archiveFileName.set("r8-full-exclude-deps.jar")
   }
 
-  val depsJar by registering(Jar::class) {
+  val depsJar by registering(Zip::class) {
     dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
     dependsOn(resourceShrinkerDepsTask)
     from(mainJarDependencies().map(::zipTree))
     from(resourceShrinkerDepsTask.outputs.files.map(::zipTree))
+    from(consolidatedLicense)
     exclude("**/module-info.class")
     exclude("**/*.kotlin_metadata")
     exclude("META-INF/*.kotlin_module")
@@ -155,15 +156,22 @@ tasks {
     exclude("README.md")
     exclude("javax/annotation/**")
     exclude("wireless/**")
-    manifest {}
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveFileName.set("deps.jar")
   }
 
-  val r8WithRelocatedDeps by registering(Exec::class) {
+
+val swissArmyKnifeWithoutLicense by registering(Zip::class) {
     dependsOn(swissArmyKnife)
+    from(swissArmyKnife.get().outputs.files.map(::zipTree))
+    exclude("LICENSE")
+    archiveFileName.set("swiss-army-no-license.jar")
+}
+
+val r8WithRelocatedDeps by registering(Exec::class) {
     dependsOn(depsJar)
-    val swissArmy = swissArmyKnife.get().outputs.getFiles().getSingleFile()
+    dependsOn(swissArmyKnifeWithoutLicense)
+    val swissArmy = swissArmyKnifeWithoutLicense.get().outputs.getFiles().getSingleFile()
     val deps = depsJar.get().outputs.files.getSingleFile()
     inputs.files(listOf(swissArmy, deps))
     val output = getRoot().resolveAll("build", "libs", "r8.jar")
