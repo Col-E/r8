@@ -174,7 +174,7 @@ def Run(options, new_gradle):
     if (not options.skip_gradle_build):
       if (new_gradle):
         gradle.RunGradle([
-            ':keepanno:keepAnnoJar',
+            ':keepanno:keepAnnoAnnotationsJar',
             ':main:consolidatedLicense',
             ':main:r8WithRelocatedDeps',
             ':main:swissArmyKnife',
