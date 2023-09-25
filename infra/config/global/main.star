@@ -168,7 +168,12 @@ common_test_options = [
     "--archive_failures"
 ]
 
-def get_dimensions(windows=False, internal=False, normal=False, smali=False):
+def get_dimensions(windows=False, internal=False, archive=False):
+  # We use the following setup:
+  #   windows -> always windows machine
+  #   internal -> always internal, single small, machine
+  #   archie -> archive or normal machines (normal machines set archive)
+  #   all_other -> normal linux machines
   dimensions = {
     "cpu" : "x86-64",
     "pool" : "luci.r8.ci"
@@ -179,7 +184,9 @@ def get_dimensions(windows=False, internal=False, normal=False, smali=False):
     dimensions["os"] = "Ubuntu-20.04"
   if internal:
     dimensions["internal"] = "true"
-  if normal:
+  elif archive:
+    dimensions["archive"] = "true"
+  else:
     dimensions["normal"] = "true"
   return dimensions
 
@@ -224,7 +231,7 @@ def r8_tester(name,
     max_concurrent_invocations = 1,
     category=None,
     release_trigger=None):
-  dimensions = dimensions if dimensions else get_dimensions(normal=True)
+  dimensions = dimensions if dimensions else get_dimensions()
   for name in [name, name + "_release"]:
     r8_builder(
         name = name,
@@ -273,7 +280,7 @@ def archivers():
     r8_builder(
         name,
         category = "library_desugar" if desugar else "archive",
-        dimensions = get_dimensions(),
+        dimensions = get_dimensions(archive=True),
         triggering_policy = scheduler.policy(
             kind = scheduler.GREEDY_BATCHING_KIND,
             max_batch_size = 1,
@@ -309,7 +316,7 @@ r8_builder(
   name = "linux-dex_default-new_gradle",
   execution_timeout = time.hour * 6,
   expiration_timeout = time.hour * 35,
-  dimensions = get_dimensions(normal=True),
+  dimensions = get_dimensions(),
   max_concurrent_invocations = 1,
   properties = {
     "test_options" : ["--runtimes=dex-default", "--command_cache_dir=/tmp/ccache", "--new-gradle"] + common_test_options,
@@ -455,7 +462,7 @@ r8_builder(
     "smali",
     category = "aux",
     trigger = False,
-    dimensions = get_dimensions(smali=True),
+    dimensions = get_dimensions(),
     triggering_policy = scheduler.policy(
         kind = scheduler.GREEDY_BATCHING_KIND,
         max_concurrent_invocations = 1,
