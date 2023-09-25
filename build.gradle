@@ -30,7 +30,7 @@ ext {
     // The kotlin version is only here to specify the kotlin language level,
     // all kotlin compilations are done in tests.
     kotlinVersion = '1.8.0'
-    kotlinExtMetadataJVMVersion = '0.6.2'
+    kotlinExtMetadataJVMVersion = '0.7.0'
     smaliVersion = '3.0.3'
     errorproneVersion = '2.18.0'
     testngVersion = '6.10'
