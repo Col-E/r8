@@ -10,6 +10,7 @@ plugins {
 java {
   sourceSets.main.configure {
     java.srcDir(getRoot().resolveAll("src", "keepanno", "java"))
+    java.include("com/android/tools/r8/keepanno/annotations/*.java")
   }
   sourceCompatibility = JvmCompatibility.sourceCompatibility
   targetCompatibility = JvmCompatibility.targetCompatibility
