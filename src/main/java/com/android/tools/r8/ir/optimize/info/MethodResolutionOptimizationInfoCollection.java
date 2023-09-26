@@ -47,6 +47,10 @@ public class MethodResolutionOptimizationInfoCollection {
     return backing.getOrDefault(method.getReference(), defaultValue);
   }
 
+  public boolean isEmpty() {
+    return backing.isEmpty();
+  }
+
   public static class Builder {
 
     private final Map<DexMethod, MethodOptimizationInfo> backing = new ConcurrentHashMap<>();

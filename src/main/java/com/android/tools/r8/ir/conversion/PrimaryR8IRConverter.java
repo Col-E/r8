@@ -166,7 +166,8 @@ public class PrimaryR8IRConverter extends IRConverter {
 
     outliner.rewriteWithLens();
 
-    MethodResolutionOptimizationInfoAnalysis.run(appView, executorService);
+    MethodResolutionOptimizationInfoAnalysis.run(
+        appView, executorService, postMethodProcessorBuilder);
 
     {
       timing.begin("IR conversion phase 2");

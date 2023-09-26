@@ -10,7 +10,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
-import com.android.tools.r8.ReprocessMethod;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -39,7 +38,6 @@ public class InvokeVirtualWithDynamicDispatchReturnTypePropagationTest extends T
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .enableReprocessMethodAnnotations()
         .setMinApi(parameters)
         .compile()
         .inspect(
@@ -54,7 +52,6 @@ public class InvokeVirtualWithDynamicDispatchReturnTypePropagationTest extends T
 
   static class Main {
 
-    @ReprocessMethod
     public static void main(String[] args) {
       A aOrB = System.currentTimeMillis() > 0 ? new A() : new B();
       Object o = aOrB.m();

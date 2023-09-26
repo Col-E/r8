@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.optimize.argumentpropagation.utils.DepthFirstTopDownClassHierarchyTraversal;
 import com.android.tools.r8.optimize.argumentpropagation.utils.ProgramClassesBidirectedGraph;
 import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
@@ -38,7 +39,10 @@ import java.util.concurrent.ExecutorService;
 
 public class MethodResolutionOptimizationInfoAnalysis {
 
-  public static void run(AppView<AppInfoWithLiveness> appView, ExecutorService executorService)
+  public static void run(
+      AppView<AppInfoWithLiveness> appView,
+      ExecutorService executorService,
+      PostMethodProcessor.Builder postMethodProcessorBuilder)
       throws ExecutionException {
     ImmediateProgramSubtypingInfo immediateSubtypingInfo =
         ImmediateProgramSubtypingInfo.create(appView);
@@ -52,7 +56,14 @@ public class MethodResolutionOptimizationInfoAnalysis {
         stronglyConnectedComponent ->
             new Traversal(appView, builder, immediateSubtypingInfo).run(stronglyConnectedComponent),
         executorService);
-    appView.setMethodResolutionOptimizationInfoCollection(builder.build());
+    MethodResolutionOptimizationInfoCollection methodResolutionOptimizationInfoCollection =
+        builder.build();
+    appView.setMethodResolutionOptimizationInfoCollection(
+        methodResolutionOptimizationInfoCollection);
+    if (!methodResolutionOptimizationInfoCollection.isEmpty()) {
+      new MethodResolutionOptimizationInfoReprocessingEnqueuer(appView)
+          .enqueueMethodForReprocessing(executorService, postMethodProcessorBuilder);
+    }
   }
 
   private static class Traversal extends DepthFirstTopDownClassHierarchyTraversal {

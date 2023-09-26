@@ -11,7 +11,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
-import com.android.tools.r8.ReprocessMethod;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -50,7 +49,6 @@ public class InvokeInterfaceWithDynamicDispatchReturnTypePropagationTest extends
         .enableInliningAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
-        .enableReprocessMethodAnnotations()
         .setMinApi(parameters)
         .compile()
         .inspect(
@@ -67,7 +65,6 @@ public class InvokeInterfaceWithDynamicDispatchReturnTypePropagationTest extends
 
   static class Main {
 
-    @ReprocessMethod
     public static void main(String[] args) {
       I i = System.currentTimeMillis() > 0 ? new B() : new C();
       Object o = i.m();
