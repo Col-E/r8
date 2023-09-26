@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
+import static com.google.common.base.Predicates.not;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -97,6 +99,11 @@ public class MethodResolutionOptimizationInfoAnalysis {
                     .asDownwardsTraversalState();
             state.add(superState);
             for (DexEncodedMethod method : superClass.virtualMethods()) {
+              // No need to request optimization info for the (non-existing) overrides of final
+              // methods.
+              if (method.isFinal()) {
+                continue;
+              }
               // If the method is not abstract and does not have any optimization info, there is no
               // need to request the optimization info for overrides in subclasses, since the join
               // of the optimization info becomes unknown anyway.
@@ -157,10 +164,13 @@ public class MethodResolutionOptimizationInfoAnalysis {
         }
       }
 
-      // Record the computed optimization info for all virtual methods on the current class.
-      for (DexEncodedMethod method : clazz.virtualMethods()) {
-        MethodOptimizationInfo info = newState.getMethodOptimizationInfo(method);
-        builder.add(method.getReference(), info);
+      // Record the computed optimization info for all non-final virtual methods on the current
+      // class.
+      if (!clazz.isFinal()) {
+        for (DexEncodedMethod method : clazz.virtualMethods(not(DexEncodedMethod::isFinal))) {
+          MethodOptimizationInfo info = newState.getMethodOptimizationInfo(method);
+          builder.add(method.getReference(), info);
+        }
       }
 
       // Prune out everything that does not need to be pushed upwards and store the resulting state.
