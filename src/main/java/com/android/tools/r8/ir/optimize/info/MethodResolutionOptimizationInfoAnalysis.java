@@ -164,13 +164,15 @@ public class MethodResolutionOptimizationInfoAnalysis {
       } else {
         for (DexEncodedMethod method : clazz.virtualMethods()) {
           KeepMethodInfo keepInfo = appView.getKeepInfo().getMethodInfo(method, clazz);
-          if (!method.isAbstract()) {
-            newState.joinMethodOptimizationInfo(
-                appView, method.getSignature(), method.getOptimizationInfo());
-          } else if (!keepInfo.isShrinkingAllowed(appView.options())) {
-            // Method is kept and could be overridden outside app (e.g., in tests).
+          if (!keepInfo.isShrinkingAllowed(appView.options())) {
+            // Method is kept and could be overridden outside app (e.g., in tests). Verify we don't
+            // have any optimization info recorded for non-abstract methods.
+            assert method.isAbstract() || method.getOptimizationInfo().isDefault();
             newState.joinMethodOptimizationInfo(
                 appView, method.getSignature(), DefaultMethodOptimizationInfo.getInstance());
+          } else if (!method.isAbstract()) {
+            newState.joinMethodOptimizationInfo(
+                appView, method.getSignature(), method.getOptimizationInfo());
           }
         }
       }

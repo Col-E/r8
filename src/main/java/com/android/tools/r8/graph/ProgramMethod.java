@@ -116,7 +116,7 @@ public final class ProgramMethod extends DexClassAndMethod
     getDefinition().setApiLevelForCode(appView.computedMinApiLevel());
     setCode(ThrowNullCode.get(), appView);
     getSimpleFeedback().markProcessed(getDefinition(), ConstraintWithTarget.ALWAYS);
-    getSimpleFeedback().unsetOptimizationInfoForThrowNullMethod(this);
+    getSimpleFeedback().unsetOptimizationInfoForThrowNullMethod(appView, this);
   }
 
   public void registerCodeReferences(UseRegistry<?> registry) {
