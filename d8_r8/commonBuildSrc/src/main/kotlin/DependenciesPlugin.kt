@@ -207,18 +207,35 @@ fun File.resolveAll(vararg xs: String) : File {
 }
 
 fun Project.getJavaHome(jdk : Jdk) : File {
-  // TODO(b/270105162): Make sure this works on other platforms.
-  return getRoot().resolveAll("third_party", "openjdk", jdk.folder, "linux")
+  val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
+  var osFolder = "linux"
+  if (os.isWindows()) {
+    osFolder = "windows"
+  }
+  if (os.isMacOsX) {
+    osFolder = "osx"
+  }
+  return getRoot().resolveAll("third_party", "openjdk", jdk.folder, osFolder)
 }
 
 fun Project.getCompilerPath(jdk : Jdk) : String {
-  // TODO(b/270105162): Make sure this works on other platforms.
-  return getJavaHome(jdk).resolveAll("bin", "javac").toString()
+  val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
+  val binary = if (os.isWindows()) "javac.exe" else "javac"
+  return getJavaHome(jdk).resolveAll("bin", binary).toString()
 }
 
 fun Project.getJavaPath(jdk : Jdk) : String {
-  // TODO(b/270105162): Make sure this works on other platforms.
-  return getJavaHome(jdk).resolveAll("bin", "java").toString()
+  val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
+  val binary = if (os.isWindows()) "java.exe" else "java"
+  return getJavaHome(jdk).resolveAll("bin", binary).toString()
+}
+
+fun Project.getClasspath(vararg paths: File) : String {
+  val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
+  assert (!paths.isEmpty())
+  val separator = if (os.isWindows()) ";"  else ":"
+  var classpath = paths.joinToString(separator = separator) { it -> it.toString() }
+  return classpath
 }
 
 fun Project.baseCompilerCommandLine(
