@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -18,6 +19,7 @@ import com.android.tools.r8.optimize.argumentpropagation.utils.DepthFirstTopDown
 import com.android.tools.r8.optimize.argumentpropagation.utils.ProgramClassesBidirectedGraph;
 import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.BitSetUtils;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.NumberUtils;
@@ -36,10 +38,6 @@ public class MethodResolutionOptimizationInfoAnalysis {
 
   public static void run(AppView<AppInfoWithLiveness> appView, ExecutorService executorService)
       throws ExecutionException {
-    if (appView.options().isGeneratingClassFiles()) {
-      // TODO(b/301089542): Enable for CF by accounting for lambdas in class hierarchy traversal.
-      return;
-    }
     ImmediateProgramSubtypingInfo immediateSubtypingInfo =
         ImmediateProgramSubtypingInfo.create(appView);
     List<Set<DexProgramClass>> stronglyConnectedComponents =
@@ -138,15 +136,24 @@ public class MethodResolutionOptimizationInfoAnalysis {
               handleInvokeInterfaceToSiblingMethod(clazz, subClass, state, newState);
             }
           });
-      for (DexEncodedMethod method : clazz.virtualMethods()) {
-        KeepMethodInfo keepInfo = appView.getKeepInfo().getMethodInfo(method, clazz);
-        if (!method.isAbstract()) {
-          newState.joinMethodOptimizationInfo(
-              appView, method.getSignature(), method.getOptimizationInfo());
-        } else if (!keepInfo.isShrinkingAllowed(appView.options())) {
-          // Method is kept and could be overridden outside app (e.g., in tests).
+      ObjectAllocationInfoCollection objectAllocationInfoCollection =
+          appView.appInfo().getObjectAllocationInfoCollection();
+      if (objectAllocationInfoCollection.isImmediateInterfaceOfInstantiatedLambda(clazz)) {
+        for (DexEncodedMethod method : clazz.virtualMethods()) {
           newState.joinMethodOptimizationInfo(
               appView, method.getSignature(), DefaultMethodOptimizationInfo.getInstance());
+        }
+      } else {
+        for (DexEncodedMethod method : clazz.virtualMethods()) {
+          KeepMethodInfo keepInfo = appView.getKeepInfo().getMethodInfo(method, clazz);
+          if (!method.isAbstract()) {
+            newState.joinMethodOptimizationInfo(
+                appView, method.getSignature(), method.getOptimizationInfo());
+          } else if (!keepInfo.isShrinkingAllowed(appView.options())) {
+            // Method is kept and could be overridden outside app (e.g., in tests).
+            newState.joinMethodOptimizationInfo(
+                appView, method.getSignature(), DefaultMethodOptimizationInfo.getInstance());
+          }
         }
       }
 

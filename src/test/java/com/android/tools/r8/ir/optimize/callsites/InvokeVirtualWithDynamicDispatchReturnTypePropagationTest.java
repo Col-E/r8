@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.callsites;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsentIf;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -46,10 +46,7 @@ public class InvokeVirtualWithDynamicDispatchReturnTypePropagationTest extends T
             inspector -> {
               ClassSubject mainClassSubject = inspector.clazz(Main.class);
               assertThat(mainClassSubject, isPresent());
-              // TODO(b/301089542): Should not depend on runtime.
-              assertThat(
-                  mainClassSubject.uniqueMethodWithOriginalName("dead"),
-                  isAbsentIf(parameters.isDexRuntime()));
+              assertThat(mainClassSubject.uniqueMethodWithOriginalName("dead"), isAbsent());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithEmptyOutput();

@@ -57,10 +57,9 @@ public class InvokeInterfaceWithDynamicDispatchReturnTypePropagationTest extends
             inspector -> {
               ClassSubject mainClassSubject = inspector.clazz(Main.class);
               assertThat(mainClassSubject, isPresent());
-              // TODO(b/301089542): Should not depend on runtime.
               assertThat(
                   mainClassSubject.uniqueMethodWithOriginalName("dead"),
-                  isAbsentIf(nonNullFromSiblingMethod && parameters.isDexRuntime()));
+                  isAbsentIf(nonNullFromSiblingMethod));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithEmptyOutput();
