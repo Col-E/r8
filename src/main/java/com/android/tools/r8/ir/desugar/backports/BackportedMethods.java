@@ -35,6 +35,7 @@ import com.android.tools.r8.cf.code.CfNumberConversion;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStaticFieldRead;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
@@ -78,6 +79,8 @@ public final class BackportedMethods {
     factory.createSynthesizedType("Ljava/lang/reflect/Constructor;");
     factory.createSynthesizedType("Ljava/lang/reflect/InvocationTargetException;");
     factory.createSynthesizedType("Ljava/lang/reflect/Method;");
+    factory.createSynthesizedType("Ljava/math/BigDecimal;");
+    factory.createSynthesizedType("Ljava/math/BigInteger;");
     factory.createSynthesizedType("Ljava/util/AbstractMap$SimpleImmutableEntry;");
     factory.createSynthesizedType("Ljava/util/ArrayList;");
     factory.createSynthesizedType("Ljava/util/Arrays;");
@@ -421,6 +424,69 @@ public final class BackportedMethods {
             new CfConstNumber(0, ValueType.INT),
             new CfReturn(ValueType.INT),
             label4),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode BigDecimalMethods_stripTrailingZeros(
+      DexItemFactory factory, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        4,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.createType("Ljava/math/BigDecimal;"),
+                    factory.createProto(factory.intType),
+                    factory.createString("signum")),
+                false),
+            new CfIf(IfType.NE, ValueType.INT, label2),
+            label1,
+            new CfNew(factory.createType("Ljava/math/BigDecimal;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfStaticFieldRead(
+                factory.createField(
+                    factory.createType("Ljava/math/BigInteger;"),
+                    factory.createType("Ljava/math/BigInteger;"),
+                    factory.createString("ZERO"))),
+            new CfConstNumber(0, ValueType.INT),
+            new CfInvoke(
+                183,
+                factory.createMethod(
+                    factory.createType("Ljava/math/BigDecimal;"),
+                    factory.createProto(
+                        factory.voidType,
+                        factory.createType("Ljava/math/BigInteger;"),
+                        factory.intType),
+                    factory.createString("<init>")),
+                false),
+            new CfReturn(ValueType.OBJECT),
+            label2,
+            new CfFrame(
+                new Int2ObjectAVLTreeMap<>(
+                    new int[] {0},
+                    new FrameType[] {
+                      FrameType.initializedNonNullReference(
+                          factory.createType("Ljava/math/BigDecimal;"))
+                    })),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                factory.createMethod(
+                    factory.createType("Ljava/math/BigDecimal;"),
+                    factory.createProto(factory.createType("Ljava/math/BigDecimal;")),
+                    factory.createString("stripTrailingZeros")),
+                false),
+            new CfReturn(ValueType.OBJECT),
+            label3),
         ImmutableList.of(),
         ImmutableList.of());
   }

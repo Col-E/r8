@@ -1088,6 +1088,16 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     }
 
     private void initializeAndroidQMethodProviders(DexItemFactory factory) {
+      // BigDecimal BigDecimal.stripTrailingZeros()
+      DexType bigDecimal = factory.createType("Ljava/math/BigDecimal;");
+      addProvider(
+          new StatifyingMethodWithForwardingGenerator(
+              factory.createMethod(
+                  bigDecimal, factory.createProto(bigDecimal), "stripTrailingZeros"),
+              BackportedMethods::BigDecimalMethods_stripTrailingZeros,
+              "stripTrailingZeros",
+              bigDecimal));
+
       // void android.drm.DrmManagerClient.close()
       addProvider(
           new InvokeRewriter(
