@@ -343,6 +343,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return abstractValueParameterJoiner;
   }
 
+  public void clearMethodResolutionOptimizationInfoCollection() {
+    methodResolutionOptimizationInfoCollection = MethodResolutionOptimizationInfoCollection.empty();
+  }
+
   public MethodResolutionOptimizationInfoCollection
       getMethodResolutionOptimizationInfoCollection() {
     return methodResolutionOptimizationInfoCollection;

@@ -6,9 +6,11 @@ package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexMethod;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Collection of optimization info for virtual methods with dynamic dispatch.
@@ -23,10 +25,14 @@ public class MethodResolutionOptimizationInfoCollection {
   private static final MethodResolutionOptimizationInfoCollection EMPTY =
       new MethodResolutionOptimizationInfoCollection(Collections.emptyMap());
 
-  private final Map<DexReference, MethodOptimizationInfo> backing;
+  private final Map<DexMethod, MethodOptimizationInfo> backing;
 
-  MethodResolutionOptimizationInfoCollection(Map<DexReference, MethodOptimizationInfo> backing) {
+  MethodResolutionOptimizationInfoCollection(Map<DexMethod, MethodOptimizationInfo> backing) {
     this.backing = backing;
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   public static MethodResolutionOptimizationInfoCollection empty() {
@@ -39,5 +45,21 @@ public class MethodResolutionOptimizationInfoCollection {
       return defaultValue;
     }
     return backing.getOrDefault(method.getReference(), defaultValue);
+  }
+
+  public static class Builder {
+
+    private final Map<DexMethod, MethodOptimizationInfo> backing = new ConcurrentHashMap<>();
+
+    void add(DexMethod method, MethodOptimizationInfo optimizationInfo) {
+      assert !backing.containsKey(method);
+      if (!optimizationInfo.isDefault()) {
+        backing.put(method, optimizationInfo);
+      }
+    }
+
+    MethodResolutionOptimizationInfoCollection build() {
+      return new MethodResolutionOptimizationInfoCollection(new IdentityHashMap<>(backing));
+    }
   }
 }

@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
-import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
@@ -32,6 +31,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
@@ -159,11 +159,10 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
     AbstractValue abstractReturnValue;
     if (invokedMethod.getReturnType().isAlwaysNull(appView)) {
       abstractReturnValue = appView.abstractValueFactory().createNullValue();
-    } else if (singleTarget != null) {
-      abstractReturnValue =
-          singleTarget.getDefinition().getOptimizationInfo().getAbstractReturnValue();
     } else {
-      abstractReturnValue = UnknownValue.getInstance();
+      MethodOptimizationInfo optimizationInfo =
+          resolutionResult.getOptimizationInfo(appView, invoke, singleTarget);
+      abstractReturnValue = optimizationInfo.getAbstractReturnValue();
     }
 
     if (abstractReturnValue.isSingleValue()) {

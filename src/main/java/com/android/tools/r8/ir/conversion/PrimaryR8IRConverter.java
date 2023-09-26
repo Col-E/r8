@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.passes.FilledNewArrayRewriter;
 import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
+import com.android.tools.r8.ir.optimize.info.MethodResolutionOptimizationInfoAnalysis;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.lightir.LirCode;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
@@ -165,6 +166,8 @@ public class PrimaryR8IRConverter extends IRConverter {
 
     outliner.rewriteWithLens();
 
+    MethodResolutionOptimizationInfoAnalysis.run(appView, executorService);
+
     {
       timing.begin("IR conversion phase 2");
       MethodProcessorEventConsumer eventConsumer =
@@ -196,6 +199,8 @@ public class PrimaryR8IRConverter extends IRConverter {
       }
       timing.end();
     }
+
+    appView.clearMethodResolutionOptimizationInfoCollection();
 
     enumUnboxer.unsetRewriter();
 

@@ -632,7 +632,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     clearFlag(NEVER_RETURNS_NORMALLY_FLAG);
   }
 
-  void markReturnsAbstractValue(AbstractValue value) {
+  public void markReturnsAbstractValue(AbstractValue value) {
     assert !abstractReturnValue.isSingleValue() || abstractReturnValue.equals(value)
         : "return single value changed from " + abstractReturnValue + " to " + value;
     abstractReturnValue = value;
@@ -643,6 +643,11 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   void setDynamicType(AppView<?> appView, DynamicType newDynamicType, DexEncodedMethod method) {
+    setDynamicType(appView, newDynamicType, method.getReturnType().toTypeElement(appView));
+  }
+
+  public void setDynamicType(
+      AppView<?> appView, DynamicType newDynamicType, TypeElement staticReturnType) {
     assert newDynamicType != null;
     // We may get more precise type information if the method is reprocessed (e.g., due to
     // optimization info collected from all call sites), and hence the
@@ -651,14 +656,13 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     // Nullability could be less precise, though. For example, suppose a value is known to be
     // non-null after a safe invocation, hence recorded with the non-null variant. If that call is
     // inlined and the method is reprocessed, such non-null assumption cannot be made again.
-    assert verifyDynamicType(appView, newDynamicType, method);
+    assert verifyDynamicType(appView, newDynamicType, staticReturnType);
     dynamicType = newDynamicType;
   }
 
   private boolean verifyDynamicType(
-      AppView<?> appView, DynamicType newDynamicType, DexEncodedMethod method) {
+      AppView<?> appView, DynamicType newDynamicType, TypeElement staticReturnType) {
     if (appView.enableWholeProgramOptimizations()) {
-      TypeElement staticReturnType = method.getReturnType().toTypeElement(appView);
       TypeElement previousDynamicUpperBoundType =
           dynamicType.getDynamicUpperBoundType(staticReturnType);
       TypeElement newDynamicUpperBoundType =

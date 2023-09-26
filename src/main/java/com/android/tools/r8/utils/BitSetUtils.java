@@ -23,6 +23,16 @@ public class BitSetUtils {
     return newBitSet;
   }
 
+  // A null bit set is interpreted as the empty bit set.
+  public static BitSet intersectNullableBitSets(BitSet bitSet, BitSet other) {
+    if (bitSet == null || other == null) {
+      return null;
+    }
+    BitSet result = (BitSet) bitSet.clone();
+    result.and(other);
+    return result.isEmpty() ? null : result;
+  }
+
   public static boolean verifyLessThanOrEqualTo(BitSet bitSet, BitSet other) {
     assert other.equals(or(bitSet, other));
     return true;

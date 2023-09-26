@@ -80,6 +80,10 @@ public class DexMethodSignatureMap<T> implements Map<DexMethodSignature, T> {
     return backing.getOrDefault(key, defaultValue);
   }
 
+  public T getOrDefault(DexEncodedMethod method, T defaultValue) {
+    return getOrDefault(method.getSignature(), defaultValue);
+  }
+
   @Override
   public void forEach(BiConsumer<? super DexMethodSignature, ? super T> action) {
     backing.forEach(action);
@@ -168,6 +172,10 @@ public class DexMethodSignatureMap<T> implements Map<DexMethodSignature, T> {
   @Override
   public T get(Object key) {
     return backing.get(key);
+  }
+
+  public T get(DexEncodedMethod method) {
+    return get(method.getSignature());
   }
 
   public boolean containsKey(DexMethodSignature signature) {
