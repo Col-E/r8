@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -17,6 +18,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
@@ -30,6 +32,7 @@ import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -37,7 +40,6 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -111,6 +113,11 @@ public abstract class InvokeMethod extends Invoke {
   @Override
   public InvokeMethod asInvokeMethod() {
     return this;
+  }
+
+  public MethodResolutionResult resolveMethod(
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return appView.appInfo().resolveMethod(method, getInterfaceBit());
   }
 
   // In subclasses, e.g., invoke-virtual or invoke-super, use a narrower receiver type by using
@@ -266,13 +273,25 @@ public abstract class InvokeMethod extends Invoke {
 
   @Override
   public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, ProgramMethod context) {
+    if (!appView.hasClassHierarchy()) {
+      return false;
+    }
+    AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+        appView.withClassHierarchy();
+    SingleResolutionResult<?> resolutionResult =
+        resolveMethod(appViewWithClassHierarchy).asSingleResolution();
+    if (resolutionResult == null) {
+      return false;
+    }
     DexClassAndMethod singleTarget = lookupSingleTarget(appView, context);
-    if (singleTarget != null) {
-      BitSet nonNullParamOrThrow =
-          singleTarget.getDefinition().getOptimizationInfo().getNonNullParamOrThrow();
-      if (nonNullParamOrThrow != null) {
-        int argumentIndex = inValues.indexOf(value);
-        return argumentIndex >= 0 && nonNullParamOrThrow.get(argumentIndex);
+    MethodOptimizationInfo optimizationInfo =
+        resolutionResult.getOptimizationInfo(appView, this, singleTarget);
+    if (optimizationInfo.hasNonNullParamOrThrow()) {
+      for (int argumentIndex = 0; argumentIndex < arguments().size(); argumentIndex++) {
+        if (value == getArgument(argumentIndex)
+            && optimizationInfo.getNonNullParamOrThrow().get(argumentIndex)) {
+          return true;
+        }
       }
     }
     return false;

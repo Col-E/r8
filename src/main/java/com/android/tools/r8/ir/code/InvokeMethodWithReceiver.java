@@ -250,10 +250,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
         appView.withClassHierarchy();
 
     SingleResolutionResult<?> resolutionResult =
-        appViewWithClassHierarchy
-            .appInfo()
-            .resolveMethodLegacy(getInvokedMethod(), getInterfaceBit())
-            .asSingleResolution();
+        resolveMethod(appViewWithClassHierarchy).asSingleResolution();
     if (resolutionResult == null) {
       return true;
     }
@@ -275,6 +272,12 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
     // Find the target and check if the invoke may have side effects.
     DexClassAndMethod singleTarget = lookupSingleTarget(appView, context);
+    MethodOptimizationInfo optimizationInfo =
+        resolutionResult.getOptimizationInfo(appView, this, singleTarget);
+    if (!optimizationInfo.mayHaveSideEffects(this, appView.options())) {
+      return false;
+    }
+
     if (singleTarget == null) {
       return true;
     }
@@ -291,10 +294,8 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
       return false;
     }
 
-    DexEncodedMethod singleTargetDefinition = singleTarget.getDefinition();
-    MethodOptimizationInfo optimizationInfo = singleTargetDefinition.getOptimizationInfo();
     if (assumption.canIgnoreInstanceFieldAssignmentsToReceiver()
-        && singleTargetDefinition.isInstanceInitializer()) {
+        && singleTarget.getDefinition().isInstanceInitializer()) {
       assert isInvokeDirect();
       InstanceInitializerInfo initializerInfo =
           optimizationInfo.getInstanceInitializerInfo(asInvokeDirect());
@@ -303,6 +304,6 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
       }
     }
 
-    return optimizationInfo.mayHaveSideEffects(this, appView.options());
+    return true;
   }
 }

@@ -6,9 +6,11 @@ package com.android.tools.r8.ir.conversion.passes;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -270,18 +272,22 @@ public class ThrowCatchOptimizer extends CodeRewriterPass<AppInfo> {
           }
         }
 
-        if (!instruction.isInvokeMethod()) {
+        if (!appView.hasClassHierarchy() || !instruction.isInvokeMethod()) {
           continue;
         }
 
+        AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+            appView.withClassHierarchy();
         InvokeMethod invoke = instruction.asInvokeMethod();
-        DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
-        if (singleTarget == null) {
+        SingleResolutionResult<?> resolutionResult =
+            invoke.resolveMethod(appViewWithClassHierarchy).asSingleResolution();
+        if (resolutionResult == null) {
           continue;
         }
 
+        DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
         MethodOptimizationInfo optimizationInfo =
-            singleTarget.getDefinition().getOptimizationInfo();
+            resolutionResult.getOptimizationInfo(appViewWithClassHierarchy, invoke, singleTarget);
 
         // If the invoke instruction is a null check, we can remove it.
         boolean isNullCheck = false;
