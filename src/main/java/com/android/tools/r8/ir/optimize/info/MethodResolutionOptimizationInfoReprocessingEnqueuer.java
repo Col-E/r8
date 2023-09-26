@@ -54,7 +54,8 @@ class MethodResolutionOptimizationInfoReprocessingEnqueuer {
               clazz.forEachProgramMethodMatching(
                   DexEncodedMethod::hasCode,
                   method -> {
-                    if (!postMethodProcessorBuilder.contains(method, currentGraphLens)) {
+                    if (!postMethodProcessorBuilder.contains(method, currentGraphLens)
+                        && !appView.appInfo().isNeverReprocessMethod(method)) {
                       AffectedMethodUseRegistry registry =
                           new AffectedMethodUseRegistry(appView, method);
                       if (method.registerCodeReferencesWithResult(registry)) {
