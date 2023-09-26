@@ -1015,7 +1015,7 @@ public class MethodOptimizationInfoCollector {
     }
     List<Value> arguments = code.collectArguments();
     BitSet paramsCheckedForNull = new BitSet();
-    for (int index = 0; index < arguments.size(); index++) {
+    for (int index = method.getFirstNonReceiverArgumentIndex(); index < arguments.size(); index++) {
       Value argument = arguments.get(index);
       // This handles cases where the parameter is checked via Kotlin Intrinsics:
       //
@@ -1055,7 +1055,9 @@ public class MethodOptimizationInfoCollector {
     if (nonNullParamOrThrow != null) {
       facts.or(nonNullParamOrThrow);
     }
-    for (int index = 0; index < arguments.size(); index++) {
+    for (int index = code.context().getDefinition().getFirstNonReceiverArgumentIndex();
+        index < arguments.size();
+        index++) {
       if (facts.get(index)) {
         continue;
       }

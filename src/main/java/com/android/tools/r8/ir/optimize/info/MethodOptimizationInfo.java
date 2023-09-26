@@ -32,6 +32,10 @@ public abstract class MethodOptimizationInfo
     return false;
   }
 
+  public boolean isMethodResolutionOptimizationInfo() {
+    return false;
+  }
+
   public abstract boolean cannotBeKept();
 
   public abstract boolean classInitializerMayBePostponed();

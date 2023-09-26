@@ -8,7 +8,6 @@ import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.is;
 
 import com.android.tools.r8.DiagnosticsMatcher;
-import com.android.tools.r8.NeverReprocessMethod;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -39,7 +38,6 @@ public class WhyAreYouNotInliningInvokeWithUnknownTargetTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-whyareyounotinlining class " + A.class.getTypeName() + " { void m(); }")
         .enableExperimentalWhyAreYouNotInlining()
-        .enableNeverReprocessMethodAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters)
         .allowDiagnosticInfoMessages()
@@ -61,7 +59,6 @@ public class WhyAreYouNotInliningInvokeWithUnknownTargetTest extends TestBase {
 
   static class TestClass {
 
-    @NeverReprocessMethod
     public static void main(String[] args) {
       (System.currentTimeMillis() >= 0 ? new A() : new B()).m();
     }

@@ -182,6 +182,7 @@ public class MethodResolutionOptimizationInfoAnalysis {
       if (!clazz.isFinal()) {
         for (DexEncodedMethod method : clazz.virtualMethods(not(DexEncodedMethod::isFinal))) {
           MethodOptimizationInfo info = newState.getMethodOptimizationInfo(method);
+          assert info.isDefault() || info.isMethodResolutionOptimizationInfo();
           builder.add(method.getReference(), info);
         }
       }
@@ -336,11 +337,10 @@ public class MethodResolutionOptimizationInfoAnalysis {
 
       // Join abstract return value.
       AbstractValue abstractReturnValue;
-      TypeElement staticReturnType = null;
       if (method.getReturnType().isVoidType()) {
         abstractReturnValue = AbstractValue.unknown();
       } else {
-        staticReturnType = method.getReturnType().toTypeElement(appView);
+        TypeElement staticReturnType = method.getReturnType().toTypeElement(appView);
         abstractReturnValue =
             appView
                 .getAbstractValueConstantPropagationJoiner()
@@ -376,40 +376,27 @@ public class MethodResolutionOptimizationInfoAnalysis {
       boolean returnValueOnlyDependsOnArguments =
           info.returnValueOnlyDependsOnArguments() && otherInfo.returnValueOnlyDependsOnArguments();
 
-      if (dynamicReturnType.isUnknown()
-          && abstractReturnValue.isUnknown()
-          && returnedArgument < 0
-          && nonNullParamOnNormalExits == null
-          && nonNullParamOrThrow == null
-          && !mayNotHaveSideEffects
-          && !neverReturnsNormally
-          && !returnValueOnlyDependsOnArguments) {
-        return DefaultMethodOptimizationInfo.getInstance();
-      } else {
-        MutableMethodOptimizationInfo result =
-            DefaultMethodOptimizationInfo.getInstance().toMutableOptimizationInfo();
-        result.setDynamicType(appView, dynamicReturnType, staticReturnType);
-        result.markReturnsAbstractValue(abstractReturnValue);
-        if (returnedArgument >= 0) {
-          result.markReturnsArgument(returnedArgument);
-        }
-        result.setNonNullParamOnNormalExits(nonNullParamOnNormalExits);
-        result.setNonNullParamOrThrow(nonNullParamOrThrow);
-        if (mayNotHaveSideEffects) {
-          result.markMayNotHaveSideEffects();
-        }
-        if (neverReturnsNormally) {
-          result.markNeverReturnsNormally();
-        }
-        if (returnValueOnlyDependsOnArguments) {
-          result.markReturnValueOnlyDependsOnArguments();
-        }
-        return result;
-      }
+      return MethodResolutionOptimizationInfo.builder()
+          .setAbstractReturnValue(abstractReturnValue)
+          .setDynamicReturnType(dynamicReturnType)
+          .setMayHaveSideEffects(!mayNotHaveSideEffects)
+          .setNeverReturnsNormally(neverReturnsNormally)
+          .setNonNullParamOnNormalExits(nonNullParamOnNormalExits)
+          .setNonNullParamOrThrow(nonNullParamOrThrow)
+          .setReturnedArgument(returnedArgument)
+          .setReturnValueOnlyDependsOnArguments(returnValueOnlyDependsOnArguments)
+          .build();
     }
 
     MethodOptimizationInfo getMethodOptimizationInfo(DexEncodedMethod method) {
-      return infos.getOrDefault(method, DefaultMethodOptimizationInfo.getInstance());
+      MethodOptimizationInfo optimizationInfo =
+          infos.getOrDefault(method, DefaultMethodOptimizationInfo.getInstance());
+      if (optimizationInfo.isMutableOptimizationInfo()) {
+        return MethodResolutionOptimizationInfo.create(
+            optimizationInfo.asMutableMethodOptimizationInfo());
+      }
+      assert optimizationInfo.isDefault() || optimizationInfo.isMethodResolutionOptimizationInfo();
+      return optimizationInfo;
     }
 
     boolean isEmpty() {
