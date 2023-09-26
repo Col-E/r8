@@ -324,9 +324,13 @@ public class MethodResolutionOptimizationInfoAnalysis {
           dynamicReturnType =
               WideningUtils.widenDynamicNonReceiverType(
                   appView, dynamicReturnType, method.getReturnType());
-        } else {
+        } else if (method.getReturnType().isArrayType()) {
           // TODO: also widen array types.
-          assert method.getReturnType().isArrayType() || dynamicReturnType.isUnknown();
+        } else {
+          // TODO(b/302109512): The dynamic type for methods that return primitives should always be
+          //  unknown (i.e., we should: assert dynamicReturnType.isUnknown()).
+          assert method.getReturnType().isPrimitiveType();
+          dynamicReturnType = DynamicType.unknown();
         }
       }
 
