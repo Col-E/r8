@@ -621,6 +621,12 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return accessFlags.isSynthetic();
   }
 
+  /** Returns true if this method is synthetic and a bridge method. */
+  public boolean isSyntheticBridgeMethod() {
+    checkIfObsolete();
+    return accessFlags.isSynthetic() && accessFlags.isBridge();
+  }
+
   public boolean belongsToDirectPool() {
     return accessFlags.belongsToDirectPool();
   }

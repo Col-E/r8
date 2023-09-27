@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
+import static com.android.tools.r8.utils.MapUtils.unmodifiableForTesting;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -18,13 +21,19 @@ import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -234,10 +243,9 @@ class MethodNameMinifier {
                           namingStates
                               .getOrDefault(clazz.superType, rootNamingState)
                               .createChild(reservationState));
-              DexClass holder = appView.definitionFor(type);
-              if (holder != null && strategy.allowMemberRenaming(holder)) {
-                for (DexEncodedMethod method : holder.allMethodsSorted()) {
-                  assignNameToMethod(holder, method, namingState);
+              if (strategy.allowMemberRenaming(clazz)) {
+                for (DexEncodedMethod method : clazz.allMethodsSorted()) {
+                  assignNameToMethod(clazz, method, namingState);
                 }
               }
             });
@@ -312,13 +320,74 @@ class MethodNameMinifier {
         reservationStates.computeIfAbsent(frontier, ignore -> parent.createChild());
     DexClass holder = appView.definitionFor(type);
     if (holder != null) {
-      for (DexEncodedMethod method : shuffleMethods(holder.methods(), appView.options())) {
+      // When javac compiles code against a class-path it will assume that the target of a synthetic
+      // bridge has the same name as the bridge.
+      // <pre>
+      //   public class I { Result foo(); }
+      //   public class Impl {
+      //     ResultImpl foo() { ... }  <-- this needs to be named foo
+      //     Result {synthetic,bridge} foo() { invoke-virtual foo():()ResultImpl; }
+      //   }
+      // </pre>
+      // In general we should consider the bridge and target as a group and reserve/rename as one
+      // however that is difficult in the current setup of reservation states. We therefore allow
+      // them to differ unless there is a kept/reserved method. For one to observe this one would
+      // have to do byte-code rewriting against a mapping file to observe the issue. Doing that they
+      // may as well just adjust the keep rules to keep the targets of bridges.
+      // See b/290711987 for an actual issue regarding this.
+      Set<DexEncodedMethod> bridgeMethodCandidates = Sets.newIdentityHashSet();
+      Iterable<DexEncodedMethod> methods = shuffleMethods(holder.methods(), appView.options());
+      for (DexEncodedMethod method : methods) {
         DexString reservedName = strategy.getReservedName(method, holder);
         if (reservedName != null) {
           state.reserveName(reservedName, method);
+        } else if (appView.options().isGeneratingClassFiles() && method.isSyntheticBridgeMethod()) {
+          bridgeMethodCandidates.add(method);
+        }
+      }
+      Map<DexString, Set<Integer>> methodNamesToReserve =
+          computeBridgesThatAreReserved(holder, bridgeMethodCandidates);
+      if (!methodNamesToReserve.isEmpty()) {
+        for (DexEncodedMethod method : methods) {
+          if (methodNamesToReserve
+              .getOrDefault(method.getName(), Collections.emptySet())
+              .contains(method.getProto().getArity())) {
+            state.reserveName(method.getName(), method);
+          }
         }
       }
     }
+  }
+
+  private Map<DexString, Set<Integer>> computeBridgesThatAreReserved(
+      DexClass holder, Set<DexEncodedMethod> methods) {
+    if (methods.isEmpty()) {
+      return Collections.emptyMap();
+    }
+    WorkList<DexClass> workList = WorkList.newIdentityWorkList(holder);
+    Map<DexString, Set<Integer>> reservedNamesWithArity = new HashMap<>();
+    while (workList.hasNext()) {
+      DexClass clazz = workList.next();
+      MethodReservationState<?> state = reservationStates.get(frontiers.get(clazz.getType()));
+      if (state != null) {
+        methods.forEach(
+            bridgeMethod -> {
+              if (state.isReserved(bridgeMethod.getName(), bridgeMethod.getReference())) {
+                reservedNamesWithArity
+                    .computeIfAbsent(bridgeMethod.getName(), ignoreArgument(HashSet::new))
+                    .add(bridgeMethod.getProto().getArity());
+              }
+            });
+      }
+      clazz.forEachImmediateSupertype(
+          superType -> {
+            DexClass superClass = appView.definitionFor(superType);
+            if (superClass != null) {
+              workList.addIfNotSeen(superClass);
+            }
+          });
+    }
+    return unmodifiableForTesting(reservedNamesWithArity);
   }
 
   @SuppressWarnings("ReferenceEquality")

@@ -384,7 +384,7 @@ class InterfaceMethodNameMinifier {
             ? MethodSignatureEquivalence.get()
             : MethodJavaSignatureEquivalence.get();
     this.definitionEquivalence =
-        new Equivalence<DexEncodedMethod>() {
+        new Equivalence<>() {
           @Override
           protected boolean doEquivalent(DexEncodedMethod method, DexEncodedMethod other) {
             return equivalence.equivalent(method.getReference(), other.getReference());
