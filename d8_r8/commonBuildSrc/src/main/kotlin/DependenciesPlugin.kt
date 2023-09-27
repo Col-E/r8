@@ -248,7 +248,7 @@ fun Project.baseCompilerCommandLine(
     "-Xmx8g",
     "-ea",
     "-cp",
-    "$jar:$deps",
+    getClasspath(jar, deps),
     "com.android.tools.r8.SwissArmyKnife",
     compiler) + args
 }
