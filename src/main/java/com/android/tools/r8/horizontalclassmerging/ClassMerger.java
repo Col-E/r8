@@ -134,7 +134,10 @@ public class ClassMerger {
         newMethodReference.withName("$r8$clinit$synthetic", dexItemFactory);
     lensBuilder.recordNewMethodSignature(syntheticMethodReference, newMethodReference, true);
 
-    ComputedApiLevel apiReferenceLevel = classInitializerMerger.getApiReferenceLevel(appView);
+    ComputedApiLevel apiReferenceLevel =
+        appView.options().apiModelingOptions().isApiLibraryModelingEnabled()
+            ? classInitializerMerger.getApiReferenceLevel(appView)
+            : ComputedApiLevel.notSet();
     DexEncodedMethod definition =
         DexEncodedMethod.syntheticBuilder()
             .setMethod(newMethodReference)
