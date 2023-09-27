@@ -1136,7 +1136,7 @@ def print_golem_config_target(
   print_indented('%s.fromRevision = 9700;' % options, indentation);
   print_indented('%s.mainFile = "tools/run_on_app_dump.py "' % options,
                  indentation)
-  print_indented('"--golem --quiet --shrinker %s --app %s "'
+  print_indented('"--golem --disable-assertions --quiet --shrinker %s --app %s "'
                    % (shrinker, app.name),
                  indentation + 4)
   print_indented('"--minify %s --optimize %s --shrink %s";'
