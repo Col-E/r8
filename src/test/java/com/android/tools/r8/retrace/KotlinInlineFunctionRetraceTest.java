@@ -156,10 +156,7 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
                           15,
                           FILENAME_INLINE_INSTANCE),
                       LinePosition.create(mainSubject.asFoundMethodSubject(), 2, 7, mainFileName));
-              // TODO(b/202811699): Retracing fails to find the right file for the inline frame.
-              if (false) {
-                checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
-              }
+              checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
             });
   }
 
