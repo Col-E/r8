@@ -54,20 +54,19 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       List<CfInstruction> instructions, AbstractValue value, DexType returnType) {
     // TODO(b/155368026): Support fields and const class fields.
     // Move this to something similar than SingleValue#createMaterializingInstruction
-    if (value.isSingleStringValue()) {
+    if (value.isNull()) {
+      assert returnType.isReferenceType();
+      instructions.add(new CfConstNull());
+    } else if (value.isSingleStringValue()) {
       assert returnType == appView.dexItemFactory().stringType;
       instructions.add(new CfConstString(value.asSingleStringValue().getDexString()));
     } else if (value.isSingleNumberValue()) {
-      if (returnType.isReferenceType()) {
-        assert value.isNull();
-        instructions.add(new CfConstNull());
-      } else {
-        instructions.add(
-            new CfConstNumber(
-                value.asSingleNumberValue().getValue(), ValueType.fromDexType(returnType)));
-      }
+      assert returnType.isPrimitiveType();
+      instructions.add(
+          new CfConstNumber(
+              value.asSingleNumberValue().getValue(), ValueType.fromDexType(returnType)));
     } else {
-      throw new Unreachable("Only Number and String fields in enums are supported.");
+      throw new Unreachable("Unsupported value: " + value);
     }
   }
 

@@ -170,7 +170,8 @@ public class NumberFromSetValue extends NonConstantNumberValue {
         assert !numbers.isEmpty();
         assert numbers.size() <= MAX_SIZE;
         if (numbers.size() == 1) {
-          return abstractValueFactory.createSingleNumberValue(numbers.iterator().nextInt());
+          return abstractValueFactory.createUncheckedSingleNumberValue(
+              numbers.iterator().nextInt());
         }
         return new NumberFromSetValue(numbers);
       }

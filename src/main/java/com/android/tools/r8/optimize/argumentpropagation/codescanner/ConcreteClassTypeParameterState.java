@@ -55,7 +55,7 @@ public class ConcreteClassTypeParameterState extends ConcreteReferenceTypeParame
   public AbstractValue getAbstractValue(AppView<AppInfoWithLiveness> appView) {
     if (getDynamicType().getNullability().isDefinitelyNull()) {
       assert abstractValue.isNull() || abstractValue.isUnknown();
-      return appView.abstractValueFactory().createNullValue();
+      return appView.abstractValueFactory().createUncheckedNullValue();
     }
     return abstractValue;
   }

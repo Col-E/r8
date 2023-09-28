@@ -254,17 +254,16 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
           new CfDexItemBasedConstString(
               dexItemBasedStringValue.getItem(), dexItemBasedStringValue.getNameComputationInfo()));
       return 1;
+    } else if (singleConstValue.isNull()) {
+      assert type.isReferenceType();
+      instructionBuilder.add(new CfConstNull());
+      return 1;
     } else if (singleConstValue.isSingleNumberValue()) {
-      if (type.isReferenceType()) {
-        assert singleConstValue.isNull();
-        instructionBuilder.add(new CfConstNull());
-        return 1;
-      } else {
-        instructionBuilder.add(
-            new CfConstNumber(
-                singleConstValue.asSingleNumberValue().getValue(), ValueType.fromDexType(type)));
-        return type.getRequiredRegisters();
-      }
+      assert type.isPrimitiveType();
+      instructionBuilder.add(
+          new CfConstNumber(
+              singleConstValue.asSingleNumberValue().getValue(), ValueType.fromDexType(type)));
+      return type.getRequiredRegisters();
     } else {
       assert singleConstValue.isSingleStringValue();
       instructionBuilder.add(

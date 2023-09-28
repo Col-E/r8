@@ -99,7 +99,6 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
-import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.StringSwitchConverter;
 import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
@@ -328,7 +327,7 @@ public class Lir2IRConverter {
       for (ExtraParameter extraParameter : protoChanges.getExtraParameters()) {
         int newArgumentIndex = argumentsInfo.getNewArgumentIndex(index, numberOfRemovedArguments);
         DexType extraArgumentType = method.getArgumentType(newArgumentIndex);
-        if (extraParameter instanceof ExtraUnusedNullParameter) {
+        if (extraParameter.isUnused()) {
           // Note that we do *not* increment the index here as that would shift the SSA value map.
           addUnusedArgument(extraArgumentType);
         } else {

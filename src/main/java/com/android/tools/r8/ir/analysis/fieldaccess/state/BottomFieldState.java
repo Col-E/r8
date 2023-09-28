@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.fieldaccess.state;
 
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 
@@ -19,8 +20,9 @@ public class BottomFieldState extends FieldState {
   }
 
   @Override
-  public AbstractValue getAbstractValue(AbstractValueFactory abstractValueFactory) {
-    return abstractValueFactory.createNullValue();
+  public AbstractValue getAbstractValue(
+      AbstractValueFactory abstractValueFactory, ProgramField field) {
+    return abstractValueFactory.createDefaultValue(field.getType());
   }
 
   @Override

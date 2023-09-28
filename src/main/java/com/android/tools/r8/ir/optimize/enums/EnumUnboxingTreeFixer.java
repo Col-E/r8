@@ -34,7 +34,7 @@ import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
+import com.android.tools.r8.ir.analysis.value.SingleConstValue;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.IRCode;
@@ -405,9 +405,9 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
               }
               for (ExtraParameter extraParameter :
                   lookupResult.getPrototypeChanges().getExtraParameters()) {
-                SingleNumberValue singleNumberValue = extraParameter.getValue(appView);
+                SingleConstValue singleConstValue = extraParameter.getValue(appView);
                 Instruction materializingInstruction =
-                    singleNumberValue.createMaterializingInstruction(
+                    singleConstValue.createMaterializingInstruction(
                         appView,
                         code,
                         TypeAndLocalInfoSupplier.create(

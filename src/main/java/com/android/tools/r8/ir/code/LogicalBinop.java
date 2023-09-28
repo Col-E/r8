@@ -132,7 +132,7 @@ public abstract class LogicalBinop extends Binop {
         }
         newConst = foldLongs(leftConst.getLongValue(), right);
       }
-      return appView.abstractValueFactory().createSingleNumberValue(newConst);
+      return appView.abstractValueFactory().createSingleNumberValue(newConst, getOutType());
     } else {
       if (type == NumericType.INT) {
         return foldIntegers(leftAbstractValue, rightAbstractValue, appView);

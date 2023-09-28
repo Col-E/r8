@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.fieldaccess.state;
 
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 
@@ -18,7 +19,8 @@ public abstract class FieldState {
     return UnknownFieldState.getInstance();
   }
 
-  public abstract AbstractValue getAbstractValue(AbstractValueFactory abstractValueFactory);
+  public abstract AbstractValue getAbstractValue(
+      AbstractValueFactory abstractValueFactory, ProgramField field);
 
   public boolean isArray() {
     return false;

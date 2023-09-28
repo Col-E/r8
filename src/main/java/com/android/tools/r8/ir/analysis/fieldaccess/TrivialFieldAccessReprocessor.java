@@ -119,7 +119,7 @@ public final class TrivialFieldAccessReprocessor {
     markFieldAsDead(field);
     getSimpleFeedback()
         .recordFieldHasAbstractValue(
-            field, appView, appView.abstractValueFactory().createNullValue());
+            field, appView, appView.abstractValueFactory().createDefaultValue(field.getType()));
   }
 
   private void markFieldAsDead(DexEncodedField field) {

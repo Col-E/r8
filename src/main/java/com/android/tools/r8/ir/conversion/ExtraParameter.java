@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
+import com.android.tools.r8.ir.analysis.value.SingleConstValue;
 
 public abstract class ExtraParameter {
 
@@ -16,7 +16,9 @@ public abstract class ExtraParameter {
 
   public abstract TypeElement getTypeElement(AppView<?> appView, DexType argType);
 
-  public abstract SingleNumberValue getValue(AppView<?> appView);
+  public abstract SingleConstValue getValue(AppView<?> appView);
+
+  public abstract boolean isUnused();
 
   @Override
   public abstract boolean equals(Object obj);

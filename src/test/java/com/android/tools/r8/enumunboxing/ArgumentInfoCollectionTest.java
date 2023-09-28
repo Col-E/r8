@@ -135,13 +135,13 @@ public class ArgumentInfoCollectionTest extends TestBase {
         1,
         RemovedArgumentInfo.builder()
             .setType(factory.intType)
-            .setSingleValue(abstractValueFactory.createNullValue())
+            .setSingleValue(abstractValueFactory.createZeroValue())
             .build());
     builder1.addArgumentInfo(
         3,
         RemovedArgumentInfo.builder()
             .setType(factory.intType)
-            .setSingleValue(abstractValueFactory.createNullValue())
+            .setSingleValue(abstractValueFactory.createZeroValue())
             .build());
     ArgumentInfoCollection arguments1 = builder1.setArgumentInfosSize(5).build();
 

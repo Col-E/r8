@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.objectstate.KnownLengthArrayState;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
@@ -25,12 +26,17 @@ public class AbstractValueFactory {
   private ConcurrentHashMap<Integer, KnownLengthArrayState> knownArrayLengthStates =
       new ConcurrentHashMap<>();
 
+  public SingleConstValue createDefaultValue(DexType type) {
+    assert type.isPrimitiveType() || type.isReferenceType();
+    return type.isPrimitiveType() ? createZeroValue() : createNullValue(type);
+  }
+
   public AbstractValue createDefiniteBitsNumberValue(
       int definitelySetBits, int definitelyUnsetBits) {
     if (definitelySetBits != 0 || definitelyUnsetBits != 0) {
       // If all bits are known, then create a single number value.
       if ((definitelySetBits | definitelyUnsetBits) == ALL_BITS_SET_MASK) {
-        return createSingleNumberValue(definitelySetBits);
+        return createUncheckedSingleNumberValue(definitelySetBits);
       }
       return new DefiniteBitsNumberValue(definitelySetBits, definitelyUnsetBits);
     }
@@ -56,16 +62,31 @@ public class AbstractValueFactory {
         : new SingleStatefulFieldValue(field, state);
   }
 
-  public SingleNumberValue createSingleNumberValue(long value) {
+  public SingleNumberValue createSingleNumberValue(long value, TypeElement type) {
+    assert type.isPrimitiveType();
+    return createUncheckedSingleNumberValue(value);
+  }
+
+  public SingleNumberValue createUncheckedSingleNumberValue(long value) {
     return singleNumberValues.computeIfAbsent(value, SingleNumberValue::new);
   }
 
-  public SingleNumberValue createNullValue() {
-    return createSingleNumberValue(0);
+  public SingleNullValue createNullValue(DexType type) {
+    assert type.isReferenceType() : type;
+    return createUncheckedNullValue();
+  }
+
+  public SingleNullValue createNullValue(TypeElement type) {
+    assert type.isReferenceType();
+    return createUncheckedNullValue();
+  }
+
+  public SingleNullValue createUncheckedNullValue() {
+    return SingleNullValue.get();
   }
 
   public SingleNumberValue createZeroValue() {
-    return createSingleNumberValue(0);
+    return createUncheckedSingleNumberValue(0);
   }
 
   public SingleStringValue createSingleStringValue(DexString string) {

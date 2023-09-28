@@ -108,7 +108,7 @@ public class Or extends LogicalBinop {
       int result =
           foldIntegers(
               left.asSingleNumberValue().getIntValue(), right.asSingleNumberValue().getIntValue());
-      return appView.abstractValueFactory().createSingleNumberValue(result);
+      return appView.abstractValueFactory().createSingleNumberValue(result, getOutType());
     }
     if (left.hasDefinitelySetAndUnsetBitsInformation()
         && right.hasDefinitelySetAndUnsetBitsInformation()) {

@@ -38,8 +38,8 @@ public abstract class AbstractValue {
     return false;
   }
 
-  public final boolean isNull() {
-    return isFalse();
+  public boolean isNull() {
+    return false;
   }
 
   public final boolean isZero() {

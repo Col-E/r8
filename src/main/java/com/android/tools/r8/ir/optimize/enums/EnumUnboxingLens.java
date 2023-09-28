@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.lens.NestedGraphLens;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
@@ -212,7 +213,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
       SingleFieldValue singleFieldValue = singleValue.asSingleFieldValue();
       if (unboxedEnums.hasUnboxedValueFor(singleFieldValue.getField())) {
         return abstractValueFactory.createSingleNumberValue(
-            unboxedEnums.getUnboxedValue(singleFieldValue.getField()));
+            unboxedEnums.getUnboxedValue(singleFieldValue.getField()), TypeElement.getInt());
       }
     }
     return singleValue;

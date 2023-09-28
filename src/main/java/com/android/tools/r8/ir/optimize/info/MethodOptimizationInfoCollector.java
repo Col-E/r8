@@ -847,7 +847,9 @@ public class MethodOptimizationInfoCollector {
 
     if (dynamicReturnType.isNullType()) {
       feedback.methodReturnsAbstractValue(
-          method.getDefinition(), appView, appView.abstractValueFactory().createNullValue());
+          method.getDefinition(),
+          appView,
+          appView.abstractValueFactory().createNullValue(method.getReturnType()));
       feedback.setDynamicReturnType(method, appView, dynamicReturnType);
       return;
     }

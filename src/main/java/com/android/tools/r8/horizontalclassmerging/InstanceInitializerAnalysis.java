@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -193,9 +194,13 @@ public class InstanceInitializerAnalysis {
           .createArgumentInitializationInfo(root.getDefinition().asArgument().getIndex());
     }
     if (definition.isConstNumber()) {
-      return appView
-          .abstractValueFactory()
-          .createSingleNumberValue(definition.asConstNumber().getRawValue());
+      AbstractValueFactory abstractValueFactory = appView.abstractValueFactory();
+      if (definition.getOutType().isReferenceType()) {
+        return abstractValueFactory.createNullValue(definition.getOutType());
+      } else {
+        return abstractValueFactory.createSingleNumberValue(
+            definition.asConstNumber().getRawValue(), definition.getOutType());
+      }
     }
     if (definition.isConstString()) {
       return appView

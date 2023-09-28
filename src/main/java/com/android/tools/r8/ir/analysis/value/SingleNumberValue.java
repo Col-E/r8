@@ -154,14 +154,10 @@ public class SingleNumberValue extends SingleConstValue
       ProgramMethod context,
       NumberGenerator valueNumberGenerator,
       TypeAndLocalInfoSupplier info) {
-    TypeElement typeLattice = info.getOutType();
-    DebugLocalInfo debugLocalInfo = info.getLocalInfo();
-    assert !typeLattice.isReferenceType() || value == 0;
-    Value returnedValue =
-        new Value(
-            valueNumberGenerator.next(),
-            typeLattice.isReferenceType() ? TypeElement.getNull() : typeLattice,
-            debugLocalInfo);
+    TypeElement type = info.getOutType();
+    assert type.isPrimitiveType() : type;
+    DebugLocalInfo localInfo = info.getLocalInfo();
+    Value returnedValue = new Value(valueNumberGenerator.next(), type, localInfo);
     return new ConstNumber(returnedValue, value);
   }
 

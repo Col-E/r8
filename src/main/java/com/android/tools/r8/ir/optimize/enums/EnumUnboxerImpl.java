@@ -1087,7 +1087,9 @@ public class EnumUnboxerImpl extends EnumUnboxer {
             enumClass, new MissingInstanceFieldValueForEnumInstanceReason(instanceField, ordinal));
         return EnumInstanceFieldUnknownData.getInstance();
       }
-      if (!(fieldValue.isSingleNumberValue() || fieldValue.isSingleStringValue())) {
+      if (!(fieldValue.isNull()
+          || fieldValue.isSingleNumberValue()
+          || fieldValue.isSingleStringValue())) {
         reportFailure(
             enumClass,
             new UnsupportedInstanceFieldValueForEnumInstanceReason(ordinal, instanceField));

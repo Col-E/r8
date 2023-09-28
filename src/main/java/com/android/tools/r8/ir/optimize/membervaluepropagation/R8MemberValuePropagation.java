@@ -87,7 +87,7 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
     Instruction replacement =
         appView
             .abstractValueFactory()
-            .createNullValue()
+            .createNullValue(memberType)
             .createMaterializingInstruction(appView, code, arrayGet);
     affectedValues.addAll(arrayGet.outValue().affectedValues());
     arrayGet.outValue().replaceUsers(replacement.outValue());
@@ -158,7 +158,8 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
 
     AbstractValue abstractReturnValue;
     if (invokedMethod.getReturnType().isAlwaysNull(appView)) {
-      abstractReturnValue = appView.abstractValueFactory().createNullValue();
+      abstractReturnValue =
+          appView.abstractValueFactory().createNullValue(invokedMethod.getReturnType());
     } else {
       MethodOptimizationInfo optimizationInfo =
           resolutionResult.getOptimizationInfo(appView, invoke, singleTarget);
@@ -274,7 +275,7 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
 
     AbstractValue abstractValue;
     if (field.getType().isAlwaysNull(appView)) {
-      abstractValue = appView.abstractValueFactory().createSingleNumberValue(0);
+      abstractValue = appView.abstractValueFactory().createNullValue(field.getType());
     } else if (appView.appInfo().isFieldWrittenByFieldPutInstruction(target)) {
       abstractValue = definition.getOptimizationInfo().getAbstractValue();
       if (!definition.isStatic()) {
@@ -298,7 +299,7 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
       assert verifyStaticFieldValueConsistentWithOptimizationInfo(appView, definition);
     } else {
       // This is guaranteed to read the default value of the field.
-      abstractValue = appView.abstractValueFactory().createSingleNumberValue(0);
+      abstractValue = appView.abstractValueFactory().createDefaultValue(field.getType());
     }
 
     if (abstractValue.isSingleValue()) {

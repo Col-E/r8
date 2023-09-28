@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
@@ -132,7 +133,8 @@ public class ProguardMemberRuleReturnValue {
     AbstractValueFactory abstractValueFactory = appView.abstractValueFactory();
     switch (type) {
       case BOOLEAN:
-        return abstractValueFactory.createSingleNumberValue(BooleanUtils.intValue(booleanValue));
+        return abstractValueFactory.createSingleNumberValue(
+            BooleanUtils.intValue(booleanValue), TypeElement.getBoolean());
 
       case FIELD:
         DexClass holder = appView.definitionFor(fieldHolder);
@@ -147,17 +149,18 @@ public class ProguardMemberRuleReturnValue {
 
       case NULLABILITY:
         return nullability.isDefinitelyNull()
-            ? abstractValueFactory.createNullValue()
+            ? abstractValueFactory.createUncheckedNullValue()
             : AbstractValue.unknown();
 
       case VALUE_RANGE:
         if (valueType.isReferenceType()) {
           return nullability.isDefinitelyNull()
-              ? abstractValueFactory.createNullValue()
+              ? abstractValueFactory.createUncheckedNullValue()
               : AbstractValue.unknown();
         }
         return longInterval.isSingleValue()
-            ? abstractValueFactory.createSingleNumberValue(longInterval.getSingleValue())
+            ? abstractValueFactory.createSingleNumberValue(
+                longInterval.getSingleValue(), TypeElement.getLong())
             : abstractValueFactory.createNumberFromIntervalValue(
                 longInterval.getMin(), longInterval.getMax());
 

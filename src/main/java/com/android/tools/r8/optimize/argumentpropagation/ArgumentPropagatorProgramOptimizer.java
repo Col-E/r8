@@ -30,6 +30,7 @@ import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
+import com.android.tools.r8.ir.conversion.ExtraUnusedIntParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
@@ -457,7 +458,7 @@ public class ArgumentPropagatorProgramOptimizer {
         }
         AbstractValue returnValueForMethod =
             method.getReturnType().isAlwaysNull(appView)
-                ? appView.abstractValueFactory().createNullValue()
+                ? appView.abstractValueFactory().createNullValue(method.getReturnType())
                 : method.getOptimizationInfo().getAbstractReturnValue();
         if (!returnValueForMethod.isSingleValue()
             || !returnValueForMethod.asSingleValue().isMaterializableInAllContexts(appView)
@@ -863,7 +864,10 @@ public class ArgumentPropagatorProgramOptimizer {
         for (DexType extraArgumentType :
             ImmutableList.of(dexItemFactory.intType, dexItemFactory.objectType)) {
           RewrittenPrototypeDescription candidatePrototypeChanges =
-              prototypeChanges.withExtraParameters(new ExtraUnusedNullParameter(extraArgumentType));
+              prototypeChanges.withExtraParameters(
+                  extraArgumentType.isIntType()
+                      ? new ExtraUnusedIntParameter()
+                      : new ExtraUnusedNullParameter(extraArgumentType));
           rewrittenMethod = candidatePrototypeChanges.rewriteMethod(method, dexItemFactory);
           if (instanceInitializerSignatures.add(rewrittenMethod)) {
             return candidatePrototypeChanges;
@@ -1021,7 +1025,7 @@ public class ArgumentPropagatorProgramOptimizer {
     private SingleValue getReturnValue(ProgramMethod method) {
       AbstractValue returnValue;
       if (method.getReturnType().isAlwaysNull(appView)) {
-        returnValue = appView.abstractValueFactory().createNullValue();
+        returnValue = appView.abstractValueFactory().createNullValue(method.getReturnType());
       } else if (method.getDefinition().belongsToVirtualPool()
           && returnValuesForVirtualMethods.containsKey(method)) {
         assert method.getAccessFlags().isAbstract();

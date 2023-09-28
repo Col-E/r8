@@ -285,7 +285,8 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
                 return parameterState;
               }
               return new ConcreteClassTypeParameterState(
-                  appView.abstractValueFactory().createNullValue(), DynamicType.definitelyNull());
+                  appView.abstractValueFactory().createNullValue(argumentType),
+                  DynamicType.definitelyNull());
             },
             null);
     return narrowedParameterStates != null

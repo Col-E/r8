@@ -154,7 +154,7 @@ public abstract class ArithmeticBinop extends Binop {
         double result = foldDouble(leftConst.getDoubleValue(), rightConst.getDoubleValue());
         newConst = Double.doubleToLongBits(result);
       }
-      return appView.abstractValueFactory().createSingleNumberValue(newConst);
+      return appView.abstractValueFactory().createSingleNumberValue(newConst, getOutType());
     }
     return AbstractValue.unknown();
   }

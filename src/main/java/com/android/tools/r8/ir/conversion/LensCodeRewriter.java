@@ -64,7 +64,7 @@ import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
+import com.android.tools.r8.ir.analysis.value.SingleConstValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.Assume;
@@ -501,7 +501,7 @@ public class LensCodeRewriter {
                   newOutValue = makeOutValue(invoke, code, graphLens, codeLens);
                 }
 
-                Map<SingleNumberValue, Map<DexType, Value>> parameterMap = new IdentityHashMap<>();
+                Map<SingleConstValue, Map<DexType, Value>> parameterMap = new IdentityHashMap<>();
 
                 int extraArgumentIndex =
                     numberOfArguments - prototypeChanges.getExtraParameters().size();
@@ -512,19 +512,19 @@ public class LensCodeRewriter {
                       actualTarget.getArgumentType(
                           newExtraArgumentIndex, actualInvokeType.isStatic());
 
-                  SingleNumberValue numberValue = parameter.getValue(appView);
+                  SingleConstValue singleConstValue = parameter.getValue(appView);
 
                   // Try to find an existing constant instruction, otherwise generate a new one.
                   InstructionListIterator finalIterator = iterator;
                   Value value =
                       parameterMap
-                          .computeIfAbsent(numberValue, ignore -> new IdentityHashMap<>())
+                          .computeIfAbsent(singleConstValue, ignore -> new IdentityHashMap<>())
                           .computeIfAbsent(
                               extraArgumentType,
                               ignore -> {
                                 finalIterator.previous();
                                 Instruction instruction =
-                                    numberValue.createMaterializingInstruction(
+                                    singleConstValue.createMaterializingInstruction(
                                         appView,
                                         code,
                                         TypeAndLocalInfoSupplier.create(

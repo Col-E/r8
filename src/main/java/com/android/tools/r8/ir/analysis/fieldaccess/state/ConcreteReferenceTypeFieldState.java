@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.fieldaccess.state;
 
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 
@@ -17,7 +18,8 @@ public abstract class ConcreteReferenceTypeFieldState extends ConcreteFieldState
   }
 
   @Override
-  public AbstractValue getAbstractValue(AbstractValueFactory abstractValueFactory) {
+  public AbstractValue getAbstractValue(
+      AbstractValueFactory abstractValueFactory, ProgramField field) {
     return abstractValue;
   }
 

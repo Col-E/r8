@@ -99,16 +99,8 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
           }
 
           AbstractValueFactory factory = appView.abstractValueFactory();
-          if (value.isDexValueNumber()) {
-            feedback.recordFieldHasAbstractValue(
-                field,
-                appView,
-                factory.createSingleNumberValue(value.asDexValueNumber().getRawValue()));
-          } else if (value.isDexValueString()) {
-            feedback.recordFieldHasAbstractValue(
-                field,
-                appView,
-                factory.createSingleStringValue(value.asDexValueString().getValue()));
+          if (value.isDexValueNumber() || value.isDexValueString()) {
+            feedback.recordFieldHasAbstractValue(field, appView, value.toAbstractValue(factory));
           } else if (value.isDexItemBasedValueString()) {
             // TODO(b/150835624): Extend to dex item based const strings.
           } else {

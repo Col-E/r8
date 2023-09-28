@@ -601,7 +601,7 @@ public class IRBuilder {
       int newArgumentIndex =
           argumentsInfo.getNewArgumentIndex(argumentIndex, numberOfRemovedArguments);
       DexType extraArgumentType = method.getArgumentType(newArgumentIndex);
-      if (extraParameter instanceof ExtraUnusedNullParameter) {
+      if (extraParameter.isUnused()) {
         addExtraUnusedArgument(extraArgumentType);
       } else {
         addNonThisArgument(register, extraParameter.getTypeElement(appView, extraArgumentType));
