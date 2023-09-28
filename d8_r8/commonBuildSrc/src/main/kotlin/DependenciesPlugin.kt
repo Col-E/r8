@@ -489,6 +489,10 @@ object ThirdPartyDeps {
     "kotlinR8TestResources",
     Paths.get("third_party", "kotlinR8TestResources").toFile(),
     Paths.get("third_party", "kotlinR8TestResources.tar.gz.sha1").toFile())
+  val kotlinxCoroutines = ThirdPartyDependency(
+    "kotlinx-coroutines-1.3.6",
+    Paths.get("third_party", "kotlinx-coroutines-1.3.6").toFile(),
+    Paths.get("third_party", "kotlinx-coroutines-1.3.6.tar.gz.sha1").toFile())
   val multidex = ThirdPartyDependency(
     "multidex",
     Paths.get("third_party", "multidex").toFile(),
