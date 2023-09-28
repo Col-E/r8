@@ -331,7 +331,7 @@ public class SupportedClassesGenerator {
 
     // All retargeted methods are supported.
     machineSpecification.forEachRetargetMethod(
-        method -> registerMethod(method, implementationApplication));
+        method -> registerMethod(method, implementationApplication, backports));
 
     machineSpecification
         .getStaticFieldRetarget()
@@ -366,7 +366,8 @@ public class SupportedClassesGenerator {
     }
   }
 
-  private void registerMethod(DexMethod method, DexApplication implementationApplication) {
+  private void registerMethod(
+      DexMethod method, DexApplication implementationApplication, List<DexMethod> backports) {
     DexClass dexClass = implementationApplication.definitionFor(method.getHolderType());
     if (dexClass != null) {
       DexEncodedMethod dexEncodedMethod = dexClass.lookupMethod(method);
@@ -381,6 +382,7 @@ public class SupportedClassesGenerator {
     if (dexEncodedMethod != null) {
       builder.addSupportedMethod(dexClass, dexEncodedMethod);
       builder.annotateClass(dexClass.getType(), ClassAnnotation.getAdditionnalMembersOnClass());
+      backports.remove(method);
     }
   }
 

@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -130,6 +131,18 @@ public class DesugaredMethodsListCommand {
       return this;
     }
 
+    public Builder setOutputPath(Path outputPath) {
+      this.outputConsumer =
+          new StringConsumer.FileConsumer(outputPath) {
+            @Override
+            public void accept(String string, DiagnosticsHandler handler) {
+              super.accept(string, handler);
+              super.accept(System.lineSeparator(), handler);
+            }
+          };
+      return this;
+    }
+
     public Builder addDesugarLibraryImplementation(
         ProgramResourceProvider programResourceProvider) {
       desugarLibraryImplementation.add(programResourceProvider);
@@ -228,7 +241,7 @@ public class DesugaredMethodsListCommand {
           builder.addDesugarLibraryImplementation(
               ArchiveProgramResourceProvider.fromArchive(Paths.get(argValue)));
         } else if (arg.equals("--output")) {
-          builder.setOutputConsumer(new StringConsumer.FileConsumer(Paths.get(argValue)));
+          builder.setOutputPath(Paths.get(argValue));
         } else if (arg.equals("--lib")) {
           builder.addLibrary(new ArchiveClassFileProvider(Paths.get(argValue)));
         }

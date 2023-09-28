@@ -26,7 +26,9 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -86,6 +88,10 @@ public class DesugaredMethodsListTest extends DesugaredLibraryTestBase {
     List<String> sorted = new ArrayList<>(lintContents);
     sorted.sort(Comparator.naturalOrder());
     assertEquals(lintContents, sorted);
+
+    // No duplicates.
+    Set<String> set = new HashSet<>(lintContents);
+    assertEquals(set.size(), lintContents.size());
   }
 
   @Test

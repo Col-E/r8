@@ -82,7 +82,6 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
       List<String> desugaredApisSignatures) {
     for (String desugaredApisSignature : desugaredApisSignatures) {
       outputConsumer.accept(desugaredApisSignature, options.reporter);
-      outputConsumer.accept("\n", options.reporter);
     }
     outputConsumer.finished(options.reporter);
   }
@@ -100,13 +99,16 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
 
   public static void main(String[] args) throws Exception {
     if (args.length == 4 || args.length == 5) {
-      new DesugaredMethodsList(
-              parseInt(args[0]),
-              getSpecificationArg(args[1]),
-              getImplementationArg(args[2]),
-              new StringConsumer.FileConsumer(Paths.get(args[3])),
-              ImmutableList.of(new ArchiveClassFileProvider(Paths.get(getAndroidJarPath(args, 5)))))
-          .run();
+      DesugaredMethodsListCommand.Builder builder =
+          DesugaredMethodsListCommand.builder()
+              .setMinApi(parseInt(args[0]))
+              .setDesugarLibrarySpecification(getSpecificationArg(args[1]))
+              .setOutputPath(Paths.get(args[3]));
+      for (ProgramResourceProvider programResourceProvider : getImplementationArg(args[2])) {
+        builder.addDesugarLibraryImplementation(programResourceProvider);
+      }
+      builder.addLibrary(new ArchiveClassFileProvider(Paths.get(getAndroidJarPath(args, 5))));
+      DesugaredMethodsList.run(builder.build());
       return;
     }
     throw new RuntimeException(
