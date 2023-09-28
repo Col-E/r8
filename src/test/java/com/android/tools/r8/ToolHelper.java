@@ -827,19 +827,20 @@ public class ToolHelper {
     }
 
     public void putResult(ProcessResult result, CacheLookupKey cacheLookupKey, Path output) {
+      Path exitCodeFile = getExitCodeFile(cacheLookupKey);
+      Path exitCodeTempFile = getTempFile(exitCodeFile);
+      Path stdoutFile = getStdoutFile(cacheLookupKey);
+      Path stdoutTempFile = getTempFile(stdoutFile);
+      Path stderrFile = getStderrFile(cacheLookupKey);
+      Path stderrTempFile = getTempFile(stderrFile);
+      Path outputFile = getOutputFile(cacheLookupKey);
+      Path outputTempFile = getTempFile(outputFile);
+
       try {
         String exitCode = "" + result.exitCode;
         // We avoid race conditions of writing vs reading by first writing all 3 files to temp
         // files, then moving these to the result files, moving last the exitcode file (which is
         // what we use as cache present check)
-        Path exitCodeFile = getExitCodeFile(cacheLookupKey);
-        Path exitCodeTempFile = getTempFile(exitCodeFile);
-        Path stdoutFile = getStdoutFile(cacheLookupKey);
-        Path stdoutTempFile = getTempFile(stdoutFile);
-        Path stderrFile = getStderrFile(cacheLookupKey);
-        Path stderrTempFile = getTempFile(stderrFile);
-        Path outputfile = getOutputFile(cacheLookupKey);
-        Path outputTempFile = getTempFile(outputfile);
         Files.write(exitCodeTempFile, exitCode.getBytes(StandardCharsets.UTF_8));
         Files.write(stdoutTempFile, result.stdout.getBytes(StandardCharsets.UTF_8));
         Files.write(stderrTempFile, result.stderr.getBytes(StandardCharsets.UTF_8));
@@ -860,7 +861,7 @@ public class ToolHelper {
         if (output != null) {
           Files.move(
               outputTempFile,
-              outputfile,
+              outputFile,
               StandardCopyOption.ATOMIC_MOVE,
               StandardCopyOption.REPLACE_EXISTING);
         }
@@ -870,7 +871,13 @@ public class ToolHelper {
             StandardCopyOption.ATOMIC_MOVE,
             StandardCopyOption.REPLACE_EXISTING);
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        StringBuilder exceptionMessage = new StringBuilder();
+        exceptionMessage.append(
+            "Files.exists(exitCodeTempFile) = " + Files.exists(exitCodeTempFile));
+        exceptionMessage.append("Files.exists(stdoutTempFile) = " + Files.exists(stdoutTempFile));
+        exceptionMessage.append("Files.exists(stderrTempFile) = " + Files.exists(stderrTempFile));
+        exceptionMessage.append("Files.exists(outputTempFile) = " + Files.exists(outputTempFile));
+        throw new RuntimeException(exceptionMessage.toString(), e);
       }
     }
   }
