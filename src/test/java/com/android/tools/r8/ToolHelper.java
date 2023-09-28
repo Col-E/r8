@@ -82,6 +82,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -789,7 +790,7 @@ public class ToolHelper {
     }
 
     private Path getTempFile(Path path) {
-      return Paths.get(path.toString() + ".temp" + Thread.currentThread().getId());
+      return Paths.get(path.toString() + ".temp" + UUID.randomUUID());
     }
 
     private String getStringContent(Path path) {
