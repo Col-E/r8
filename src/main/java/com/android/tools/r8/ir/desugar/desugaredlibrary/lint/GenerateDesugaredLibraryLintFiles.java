@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -45,7 +46,7 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
 
   private Path lintFile(
       AndroidApiLevel compilationApiLevel, AndroidApiLevel minApiLevel, String extension)
-      throws Exception {
+      throws IOException {
     Path directory = output.resolve("compile_api_level_" + compilationApiLevel.getLevel());
     Files.createDirectories(directory);
     return Paths.get(
@@ -59,7 +60,7 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
       AndroidApiLevel compilationApiLevel,
       AndroidApiLevel minApiLevel,
       SupportedClasses supportedClasses)
-      throws Exception {
+      throws IOException {
     // Build a plain text file with the desugared APIs.
     List<String> desugaredApisSignatures = new ArrayList<>();
 
@@ -114,7 +115,7 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
       AndroidApiLevel compilationApiLevel,
       AndroidApiLevel minApiLevel,
       List<String> desugaredApisSignatures)
-      throws Exception {
+      throws IOException {
     FileUtils.writeTextFile(
         lintFile(compilationApiLevel, minApiLevel, ".txt"), desugaredApisSignatures);
   }

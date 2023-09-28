@@ -13,9 +13,11 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.StringResource;
+import com.android.tools.r8.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
@@ -38,8 +40,26 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
     this.outputConsumer = outputConsumer;
   }
 
+  public static void run(DesugaredMethodsListCommand command) throws IOException {
+    if (command.isHelp()) {
+      System.out.println(DesugaredMethodsListCommand.getUsageMessage());
+      return;
+    }
+    if (command.isVersion()) {
+      System.out.println("DesugaredMethodsList " + Version.getVersionString());
+      return;
+    }
+    new DesugaredMethodsList(
+            command.getMinApi(),
+            command.getDesugarLibrarySpecification(),
+            command.getDesugarLibraryImplementation(),
+            command.getOutputConsumer(),
+            command.getLibrary())
+        .run();
+  }
+
   @Override
-  public AndroidApiLevel run() throws Exception {
+  public AndroidApiLevel run() throws IOException {
     AndroidApiLevel compilationLevel =
         desugaredLibrarySpecification.getRequiredCompilationApiLevel();
     SupportedClasses supportedMethods =
