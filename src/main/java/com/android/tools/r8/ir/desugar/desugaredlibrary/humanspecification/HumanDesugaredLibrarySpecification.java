@@ -69,6 +69,7 @@ public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpeci
     return rewritingFlags;
   }
 
+  @Override
   public String getIdentifier() {
     return topLevelFlags.getIdentifier();
   }

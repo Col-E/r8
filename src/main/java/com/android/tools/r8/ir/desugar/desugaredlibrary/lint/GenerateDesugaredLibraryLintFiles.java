@@ -26,8 +26,7 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
   private static final boolean FORMAT_WITH_FIELD = true;
 
   public static GenerateDesugaredLibraryLintFiles createForTesting(
-      Path specification, Set<Path> implementation, Path outputDirectory, Path androidJar)
-      throws Exception {
+      Path specification, Set<Path> implementation, Path outputDirectory, Path androidJar) {
     return new GenerateDesugaredLibraryLintFiles(
         specification, implementation, outputDirectory, androidJar);
   }
@@ -36,8 +35,7 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
       String desugarConfigurationPath,
       String desugarImplementationPath,
       String outputDirectory,
-      String androidJarPath)
-      throws Exception {
+      String androidJarPath) {
     super(desugarConfigurationPath, desugarImplementationPath, outputDirectory, androidJarPath);
   }
 
@@ -45,8 +43,7 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
       Path desugarConfigurationPath,
       Collection<Path> desugarImplementationPath,
       Path outputDirectory,
-      Path androidJar)
-      throws Exception {
+      Path androidJar) {
     super(desugarConfigurationPath, desugarImplementationPath, outputDirectory, androidJar);
   }
 
@@ -149,6 +146,12 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
     writeLintFiles(compilationApiLevel, minApiLevel, supportedMethods);
   }
 
+  String getDebugIdentifier() {
+    return desugaredLibrarySpecification.getIdentifier() == null
+        ? "backported methods only"
+        : desugaredLibrarySpecification.getIdentifier();
+  }
+
   @Override
   public AndroidApiLevel run() throws Exception {
     AndroidApiLevel compilationLevel =
@@ -158,7 +161,7 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
             .run(desugaredLibraryImplementation, desugaredLibrarySpecificationPath);
     System.out.println(
         "Generating lint files for "
-            + desugaredLibrarySpecification.getIdentifier()
+            + getDebugIdentifier()
             + " (compile API "
             + compilationLevel
             + ")");

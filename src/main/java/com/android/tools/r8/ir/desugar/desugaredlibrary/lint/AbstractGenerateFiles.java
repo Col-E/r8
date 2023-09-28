@@ -38,7 +38,7 @@ public abstract class AbstractGenerateFiles {
           .setAllowReadingEmptyArtProfileProvidersMultipleTimesForTesting(true)
           .getOptions();
 
-  final MachineDesugaredLibrarySpecification desugaredLibrarySpecification;
+  final DesugaredLibrarySpecification desugaredLibrarySpecification;
   final Path desugaredLibrarySpecificationPath;
   final Collection<Path> desugaredLibraryImplementation;
   final Path output;
@@ -48,8 +48,7 @@ public abstract class AbstractGenerateFiles {
       String desugarConfigurationPath,
       String desugarImplementationPath,
       String output,
-      String androidJarPath)
-      throws Exception {
+      String androidJarPath) {
     this(
         desugarConfigurationPath == null ? null : Paths.get(desugarConfigurationPath),
         desugarImplementationPath == null
@@ -63,30 +62,21 @@ public abstract class AbstractGenerateFiles {
       Path desugarConfigurationPath,
       Collection<Path> desugarImplementationPath,
       Path output,
-      Path androidJar)
-      throws Exception {
+      Path androidJar) {
     assert androidJar != null;
     this.desugaredLibrarySpecificationPath = desugarConfigurationPath;
     this.androidJar = androidJar;
-    this.desugaredLibrarySpecification = computeMachineSpecification();
+    this.desugaredLibrarySpecification = readDesugaredLibraryConfiguration();
     this.desugaredLibraryImplementation = desugarImplementationPath;
     this.output = output;
   }
 
-  private MachineDesugaredLibrarySpecification computeMachineSpecification() throws IOException {
+  private DesugaredLibrarySpecification readDesugaredLibraryConfiguration() {
     if (desugaredLibrarySpecificationPath == null) {
       return MachineDesugaredLibrarySpecification.empty();
     }
-    DexApplication app = createApp(androidJar, options);
-    DesugaredLibrarySpecification specification =
-        readDesugaredLibraryConfiguration(desugaredLibrarySpecificationPath);
-    return specification.toMachineSpecification(app, Timing.empty());
-  }
-
-  private DesugaredLibrarySpecification readDesugaredLibraryConfiguration(
-      Path desugarConfigurationPath) {
     return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
-        StringResource.fromFile(desugarConfigurationPath),
+        StringResource.fromFile(desugaredLibrarySpecificationPath),
         factory,
         reporter,
         false,

@@ -21,8 +21,7 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
       String desugarConfigurationPath,
       String desugarImplementationPath,
       String ouputFile,
-      String androidJarPath)
-      throws Exception {
+      String androidJarPath) {
     super(desugarConfigurationPath, desugarImplementationPath, ouputFile, androidJarPath);
     this.minApi = AndroidApiLevel.getAndroidApiLevel(minApi);
   }
@@ -36,7 +35,7 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
             .run(desugaredLibraryImplementation, desugaredLibrarySpecificationPath);
     System.out.println(
         "Generating lint files for "
-            + desugaredLibrarySpecification.getIdentifier()
+            + getDebugIdentifier()
             + " (compile API "
             + compilationLevel
             + ")");

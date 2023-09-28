@@ -61,10 +61,7 @@ public class SupportedClassesGenerator {
   private final boolean addBackports;
 
   public SupportedClassesGenerator(InternalOptions options, Path androidJar) throws IOException {
-    this.options = options;
-    this.appForMax = createAppForMax(androidJar);
-    this.minApi = AndroidApiLevel.B;
-    this.addBackports = false;
+    this(options, androidJar, AndroidApiLevel.B, false);
   }
 
   public SupportedClassesGenerator(

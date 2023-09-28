@@ -89,6 +89,7 @@ public class MachineDesugaredLibrarySpecification implements DesugaredLibrarySpe
     return topLevelFlags.getSynthesizedLibraryClassesPackagePrefix();
   }
 
+  @Override
   public String getIdentifier() {
     return topLevelFlags.getIdentifier();
   }
