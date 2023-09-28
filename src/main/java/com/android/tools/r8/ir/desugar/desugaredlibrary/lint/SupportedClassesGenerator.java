@@ -129,6 +129,9 @@ public class SupportedClassesGenerator {
   }
 
   private void annotatePartialDesugaringMembers(Path specification) throws IOException {
+    if (builder.hasOnlyExtraMethods()) {
+      return;
+    }
     // The first difference should be at 18 so we're safe starting at J and not B.
     for (int api = AndroidApiLevel.J.getLevel();
         api <= MAX_TESTED_ANDROID_API_LEVEL.getLevel();
@@ -305,7 +308,6 @@ public class SupportedClassesGenerator {
             }
             builder.addSupportedMethod(clazz, method);
           }
-          addBackports(clazz, backports);
           for (DexEncodedField field : clazz.fields()) {
             if (!field.isPublic() && !field.isProtected()) {
               continue;
@@ -313,6 +315,7 @@ public class SupportedClassesGenerator {
             builder.addSupportedField(clazz, field);
           }
         }
+        addBackports(clazz, backports);
       }
     }
 
@@ -426,6 +429,9 @@ public class SupportedClassesGenerator {
 
   private MachineDesugaredLibrarySpecification getMachineSpecification(
       AndroidApiLevel api, Path specification) throws IOException {
+    if (specification == null) {
+      return MachineDesugaredLibrarySpecification.empty();
+    }
     DesugaredLibrarySpecification librarySpecification =
         DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
             StringResource.fromFile(specification),

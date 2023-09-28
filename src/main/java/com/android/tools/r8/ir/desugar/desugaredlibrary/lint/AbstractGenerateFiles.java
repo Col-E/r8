@@ -51,8 +51,10 @@ public abstract class AbstractGenerateFiles {
       String androidJarPath)
       throws Exception {
     this(
-        Paths.get(desugarConfigurationPath),
-        ImmutableList.of(Paths.get(desugarImplementationPath)),
+        desugarConfigurationPath == null ? null : Paths.get(desugarConfigurationPath),
+        desugarImplementationPath == null
+            ? ImmutableList.of()
+            : ImmutableList.of(Paths.get(desugarImplementationPath)),
         Paths.get(output),
         Paths.get(androidJarPath));
   }
@@ -65,13 +67,20 @@ public abstract class AbstractGenerateFiles {
       throws Exception {
     assert androidJar != null;
     this.desugaredLibrarySpecificationPath = desugarConfigurationPath;
-    DesugaredLibrarySpecification specification =
-        readDesugaredLibraryConfiguration(desugarConfigurationPath);
     this.androidJar = androidJar;
-    DexApplication app = createApp(androidJar, options);
-    this.desugaredLibrarySpecification = specification.toMachineSpecification(app, Timing.empty());
+    this.desugaredLibrarySpecification = computeMachineSpecification();
     this.desugaredLibraryImplementation = desugarImplementationPath;
     this.output = output;
+  }
+
+  private MachineDesugaredLibrarySpecification computeMachineSpecification() throws IOException {
+    if (desugaredLibrarySpecificationPath == null) {
+      return MachineDesugaredLibrarySpecification.empty();
+    }
+    DexApplication app = createApp(androidJar, options);
+    DesugaredLibrarySpecification specification =
+        readDesugaredLibraryConfiguration(desugaredLibrarySpecificationPath);
+    return specification.toMachineSpecification(app, Timing.empty());
   }
 
   private DesugaredLibrarySpecification readDesugaredLibraryConfiguration(

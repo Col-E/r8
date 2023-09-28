@@ -11,17 +11,23 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugari
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.JDK8;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.DesugaredMethodsList;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.GenerateDesugaredLibraryLintFiles;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -52,19 +58,29 @@ public class DesugaredMethodsListTest extends DesugaredLibraryTestBase {
     return lintContents.contains(type);
   }
 
-  private void checkFileContent(AndroidApiLevel minApiLevel, Path lintFile) throws Exception {
+  private void checkFileContent(
+      AndroidApiLevel minApiLevel,
+      Path lintFile,
+      boolean includeBackports,
+      boolean includeDesugaredLibrary)
+      throws Exception {
     // Just do some light probing in the generated lint files.
     lintContents = FileUtils.readAllLines(lintFile);
 
     // All methods supported on BiFunction with maintain prefix.
     assertEquals(
-        minApiLevel.isLessThan(AndroidApiLevel.N),
+        minApiLevel.isLessThan(AndroidApiLevel.N) && includeDesugaredLibrary,
         supportsAllMethodsOf("java/util/function/BiFunction"));
 
     assertEquals(
         minApiLevel.isLessThan(AndroidApiLevel.O)
-            && libraryDesugaringSpecification != JDK11_MINIMAL,
+            && libraryDesugaringSpecification != JDK11_MINIMAL
+            && includeDesugaredLibrary,
         supportsAllMethodsOf("java/time/MonthDay"));
+
+    assertEquals(
+        minApiLevel.isLessThan(AndroidApiLevel.O) && includeBackports,
+        lintContents.contains("java/lang/Byte#toUnsignedInt(B)I"));
 
     // File should be sorted.
     List<String> sorted = new ArrayList<>(lintContents);
@@ -80,6 +96,7 @@ public class DesugaredMethodsListTest extends DesugaredLibraryTestBase {
             ? ToolHelper.DESUGARED_JDK_8_LIB_JAR
             : LibraryDesugaringSpecification.getTempLibraryJDK11Undesugar();
 
+    // TODO(b/b/302508099): Refactor users of parameters.getRuntime().asDex().getMinApiLevel().
     AndroidApiLevel minApi = parameters.getRuntime().asDex().getMinApiLevel();
     DesugaredMethodsList.main(
         new String[] {
@@ -89,6 +106,54 @@ public class DesugaredMethodsListTest extends DesugaredLibraryTestBase {
           output.toString(),
           ToolHelper.getAndroidJar(AndroidApiLevel.U).toString()
         });
-    checkFileContent(minApi, output);
+    checkFileContent(minApi, output, true, true);
+  }
+
+  @Test
+  public void testDesugaredLibLint() throws Exception {
+    Assume.assumeTrue(
+        "Run for a single api because the test is independent of api",
+        parameters.getRuntime().asDex().getMinApiLevel().isEqualTo(AndroidApiLevel.T));
+    Path output = temp.newFolder("lint").toPath();
+    Path jdkLibJar =
+        libraryDesugaringSpecification == JDK8
+            ? ToolHelper.DESUGARED_JDK_8_LIB_JAR
+            : LibraryDesugaringSpecification.getTempLibraryJDK11Undesugar();
+
+    GenerateDesugaredLibraryLintFiles.main(
+        new String[] {
+          libraryDesugaringSpecification.getSpecification().toString(),
+          jdkLibJar.toString(),
+          output.toString(),
+          ToolHelper.getAndroidJar(AndroidApiLevel.U).toString()
+        });
+
+    InternalOptions options = new InternalOptions();
+    DesugaredLibrarySpecification spec =
+        DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
+            StringResource.fromFile(libraryDesugaringSpecification.getSpecification()),
+            options.dexItemFactory(),
+            options.reporter,
+            true,
+            1);
+    int req = spec.getRequiredCompilationApiLevel().getLevel();
+    Path file = output.resolve("compile_api_level_" + req + "/desugared_apis_" + req + "_1.txt");
+    checkFileContent(AndroidApiLevel.B, file, false, true);
+  }
+
+  @Test
+  public void testBackportedMethodLint() throws Exception {
+    Path output = temp.newFile("backport.txt").toPath();
+    // TODO(b/b/302508099): Refactor users of parameters.getRuntime().asDex().getMinApiLevel().
+    AndroidApiLevel minApi = parameters.getRuntime().asDex().getMinApiLevel();
+    DesugaredMethodsList.main(
+        new String[] {
+          String.valueOf(minApi.getLevel()),
+          null,
+          null,
+          output.toString(),
+          ToolHelper.getAndroidJar(AndroidApiLevel.U).toString()
+        });
+    checkFileContent(minApi, output, true, false);
   }
 }

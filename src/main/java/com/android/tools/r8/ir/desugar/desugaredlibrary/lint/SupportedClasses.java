@@ -282,6 +282,10 @@ public class SupportedClasses {
       this.extraMethods = extraMethods;
     }
 
+    public boolean hasOnlyExtraMethods() {
+      return supportedClassBuilders.isEmpty();
+    }
+
     SupportedClasses build() {
       Map<DexType, SupportedClass> map = new IdentityHashMap<>();
       supportedClassBuilders.forEach(
