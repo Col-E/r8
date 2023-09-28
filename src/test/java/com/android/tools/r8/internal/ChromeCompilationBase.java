@@ -7,6 +7,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -25,7 +26,8 @@ public abstract class ChromeCompilationBase extends CompilationTestBase {
 
   public ChromeCompilationBase(int version, boolean minimal) {
     this.base =
-        "third_party/chrome/"
+        ToolHelper.THIRD_PARTY_DIR
+            + "chrome/"
             + (minimal ? "monochrome_public_minimal_apks/" : "")
             + "chrome_"
             + version

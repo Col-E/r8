@@ -366,6 +366,11 @@ object ThirdPartyDeps {
     Paths.get("third_party", "chrome", "clank_google3_prebuilt").toFile(),
     Paths.get("third_party", "chrome", "clank_google3_prebuilt.tar.gz.sha1").toFile(),
     DependencyType.X20)
+  val chrome = ThirdPartyDependency(
+    "chrome",
+    Paths.get("third_party", "chrome", "chrome_200430").toFile(),
+    Paths.get("third_party", "chrome", "chrome_200430.tar.gz.sha1").toFile(),
+    DependencyType.X20)
   val compilerApi = ThirdPartyDependency(
     "compiler-api",
     Paths.get(
