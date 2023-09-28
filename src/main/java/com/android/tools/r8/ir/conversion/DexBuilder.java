@@ -261,8 +261,7 @@ public class DexBuilder {
         dexInstruction.setOffset(instructionOffset);
         instructionOffset += dexInstruction.getSize();
       }
-      debugEventBuilder.add(
-          instructionStartOffset, instructionOffset, irInstruction, getProgramMethod());
+      debugEventBuilder.add(instructionStartOffset, instructionOffset, irInstruction);
     }
 
     // Workaround dalvik tracing bug, where the dalvik tracing JIT can end up tracing
