@@ -13,6 +13,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ArchiveClassFileProvider;
+import com.android.tools.r8.ArchiveProgramResourceProvider;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -249,18 +251,18 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
               ? ToolHelper.DESUGARED_JDK_8_LIB_JAR
               : LibraryDesugaringSpecification.getTempLibraryJDK11Undesugar();
       new GenerateHtmlDoc(
-              spec.getSpecification().toString(),
-              jdkLibJar.toString(),
-              html.toString(),
-              ANDROID_JAR_34)
+              StringResource.fromFile(spec.getSpecification()),
+              ImmutableList.of(ArchiveProgramResourceProvider.fromArchive(jdkLibJar)),
+              html,
+              ImmutableList.of(new ArchiveClassFileProvider(Paths.get(ANDROID_JAR_34))))
           .run(spec + ".html");
       Path lint = top.resolve("lint_" + spec);
       Files.createDirectories(lint);
       new GenerateDesugaredLibraryLintFiles(
-              spec.getSpecification().toString(),
-              jdkLibJar.toString(),
-              lint.toString(),
-              ANDROID_JAR_34)
+              StringResource.fromFile(spec.getSpecification()),
+              ImmutableList.of(ArchiveProgramResourceProvider.fromArchive(jdkLibJar)),
+              lint,
+              ImmutableList.of(new ArchiveClassFileProvider(Paths.get(ANDROID_JAR_34))))
           .run();
     }
   }

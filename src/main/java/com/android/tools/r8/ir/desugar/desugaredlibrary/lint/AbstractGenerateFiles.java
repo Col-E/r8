@@ -4,26 +4,20 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.lint;
 
+import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.StringResource;
-import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.ThreadUtils;
-import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.concurrent.ExecutorService;
 
 public abstract class AbstractGenerateFiles {
 
@@ -39,61 +33,34 @@ public abstract class AbstractGenerateFiles {
           .getOptions();
 
   final DesugaredLibrarySpecification desugaredLibrarySpecification;
-  final Path desugaredLibrarySpecificationPath;
-  final Collection<Path> desugaredLibraryImplementation;
+  final StringResource desugaredLibrarySpecificationResource;
+  final Collection<ProgramResourceProvider> desugaredLibraryImplementation;
   final Path output;
-  final Path androidJar;
+  final Collection<ClassFileResourceProvider> androidJar;
 
   AbstractGenerateFiles(
-      String desugarConfigurationPath,
-      String desugarImplementationPath,
-      String output,
-      String androidJarPath) {
-    this(
-        desugarConfigurationPath == null ? null : Paths.get(desugarConfigurationPath),
-        desugarImplementationPath == null
-            ? ImmutableList.of()
-            : ImmutableList.of(Paths.get(desugarImplementationPath)),
-        Paths.get(output),
-        Paths.get(androidJarPath));
-  }
-
-  AbstractGenerateFiles(
-      Path desugarConfigurationPath,
-      Collection<Path> desugarImplementationPath,
+      StringResource desugaredLibrarySpecificationResource,
+      Collection<ProgramResourceProvider> desugarImplementation,
       Path output,
-      Path androidJar) {
+      Collection<ClassFileResourceProvider> androidJar) {
     assert androidJar != null;
-    this.desugaredLibrarySpecificationPath = desugarConfigurationPath;
+    this.desugaredLibrarySpecificationResource = desugaredLibrarySpecificationResource;
     this.androidJar = androidJar;
-    this.desugaredLibrarySpecification = readDesugaredLibraryConfiguration();
-    this.desugaredLibraryImplementation = desugarImplementationPath;
+    this.desugaredLibrarySpecification = readDesugaredLibrarySpecification();
+    this.desugaredLibraryImplementation = desugarImplementation;
     this.output = output;
   }
 
-  private DesugaredLibrarySpecification readDesugaredLibraryConfiguration() {
-    if (desugaredLibrarySpecificationPath == null) {
+  private DesugaredLibrarySpecification readDesugaredLibrarySpecification() {
+    if (desugaredLibrarySpecificationResource == null) {
       return MachineDesugaredLibrarySpecification.empty();
     }
     return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
-        StringResource.fromFile(desugaredLibrarySpecificationPath),
+        desugaredLibrarySpecificationResource,
         factory,
         reporter,
         false,
         AndroidApiLevel.B.getLevel());
-  }
-
-  private static DexApplication createApp(Path androidJar, InternalOptions options)
-      throws IOException {
-    AndroidApp.Builder builder = AndroidApp.builder();
-    AndroidApp inputApp = builder.addLibraryFiles(androidJar).build();
-    ApplicationReader applicationReader = new ApplicationReader(inputApp, options, Timing.empty());
-    ExecutorService executorService = ThreadUtils.getExecutorService(options);
-    assert !options.ignoreJavaLibraryOverride;
-    options.ignoreJavaLibraryOverride = true;
-    DexApplication app = applicationReader.read(executorService);
-    options.ignoreJavaLibraryOverride = false;
-    return app;
   }
 
   abstract AndroidApiLevel run() throws Exception;

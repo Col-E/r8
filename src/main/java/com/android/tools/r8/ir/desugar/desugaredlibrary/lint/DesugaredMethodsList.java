@@ -6,24 +6,36 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.lint;
 
 import static java.lang.Integer.parseInt;
 
+import com.android.tools.r8.ArchiveClassFileProvider;
+import com.android.tools.r8.ArchiveProgramResourceProvider;
+import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
-import java.nio.file.Path;
+import com.google.common.collect.ImmutableList;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.List;
 
 @Keep
 public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
 
   private final AndroidApiLevel minApi;
 
-  private DesugaredMethodsList(
+  private final StringConsumer outputConsumer;
+
+  DesugaredMethodsList(
       int minApi,
-      String desugarConfigurationPath,
-      String desugarImplementationPath,
-      String ouputFile,
-      String androidJarPath) {
-    super(desugarConfigurationPath, desugarImplementationPath, ouputFile, androidJarPath);
+      StringResource desugarConfiguration,
+      Collection<ProgramResourceProvider> desugarImplementation,
+      StringConsumer outputConsumer,
+      Collection<ClassFileResourceProvider> androidJar) {
+    super(desugarConfiguration, desugarImplementation, null, androidJar);
     this.minApi = AndroidApiLevel.getAndroidApiLevel(minApi);
+    this.outputConsumer = outputConsumer;
   }
 
   @Override
@@ -32,7 +44,7 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
         desugaredLibrarySpecification.getRequiredCompilationApiLevel();
     SupportedClasses supportedMethods =
         new SupportedClassesGenerator(options, androidJar, minApi, true)
-            .run(desugaredLibraryImplementation, desugaredLibrarySpecificationPath);
+            .run(desugaredLibraryImplementation, desugaredLibrarySpecificationResource);
     System.out.println(
         "Generating lint files for "
             + getDebugIdentifier()
@@ -44,15 +56,36 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
   }
 
   @Override
-  Path lintFile(
-      AndroidApiLevel compilationApiLevel, AndroidApiLevel minApiLevel, String extension) {
-    return output;
+  void writeOutput(
+      AndroidApiLevel compilationApiLevel,
+      AndroidApiLevel minApiLevel,
+      List<String> desugaredApisSignatures) {
+    for (String desugaredApisSignature : desugaredApisSignatures) {
+      outputConsumer.accept(desugaredApisSignature, options.reporter);
+      outputConsumer.accept("\n", options.reporter);
+    }
+    outputConsumer.finished(options.reporter);
+  }
+
+  private static StringResource getSpecificationArg(String arg) {
+    return arg == null ? null : StringResource.fromFile(Paths.get(arg));
+  }
+
+  private static Collection<ProgramResourceProvider> getImplementationArg(String arg) {
+    if (arg == null) {
+      return ImmutableList.of();
+    }
+    return ImmutableList.of(ArchiveProgramResourceProvider.fromArchive(Paths.get(arg)));
   }
 
   public static void main(String[] args) throws Exception {
     if (args.length == 4 || args.length == 5) {
       new DesugaredMethodsList(
-              parseInt(args[0]), args[1], args[2], args[3], getAndroidJarPath(args, 5))
+              parseInt(args[0]),
+              getSpecificationArg(args[1]),
+              getImplementationArg(args[2]),
+              new StringConsumer.FileConsumer(Paths.get(args[3])),
+              ImmutableList.of(new ArchiveClassFileProvider(Paths.get(getAndroidJarPath(args, 5)))))
           .run();
       return;
     }
