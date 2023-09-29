@@ -26,6 +26,7 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableSet;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -70,10 +71,17 @@ public class TestBackportedNotPresentInAndroidJar extends TestBase {
                 "compareAndSet", int.class, Object.class, Object.class));
     assert AtomicReference_compareAndSet.getReturnType().getTypeName().equals("boolean");
 
+    MethodReference BigDecimal_stripTrailingZeros =
+        Reference.methodFromMethod(BigDecimal.class.getDeclaredMethod("stripTrailingZeros"));
+    assert BigDecimal_stripTrailingZeros.getReturnType()
+        .getTypeName()
+        .equals("java.math.BigDecimal");
+
     return ImmutableSet.of(
         factory.createMethod(AtomicReferenceFieldUpdater_compareAndSet),
         factory.createMethod(AtomicReference_compareAndSet),
-        factory.createMethod(AtomicReferenceArray_compareAndSet));
+        factory.createMethod(AtomicReferenceArray_compareAndSet),
+        factory.createMethod(BigDecimal_stripTrailingZeros));
   }
 
   @Test
