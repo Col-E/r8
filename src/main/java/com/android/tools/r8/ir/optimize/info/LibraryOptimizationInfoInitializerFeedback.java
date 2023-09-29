@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
-import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.ir.analysis.value.AbstractValue;
-
 public class LibraryOptimizationInfoInitializerFeedback extends OptimizationFeedbackSimple {
 
   private static LibraryOptimizationInfoInitializerFeedback INSTANCE =
@@ -16,10 +13,5 @@ public class LibraryOptimizationInfoInitializerFeedback extends OptimizationFeed
 
   public static LibraryOptimizationInfoInitializerFeedback getInstance() {
     return INSTANCE;
-  }
-
-  public void recordLibraryFieldHasAbstractValue(
-      DexEncodedField field, AbstractValue abstractValue) {
-    field.getMutableOptimizationInfo().setAbstractValue(abstractValue);
   }
 }

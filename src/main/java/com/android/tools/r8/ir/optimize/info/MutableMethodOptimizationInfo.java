@@ -202,8 +202,12 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   public MutableMethodOptimizationInfo fixupAbstractReturnValue(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
-    abstractReturnValue = abstractReturnValue.rewrittenWithLens(appView, lens, codeLens);
+      AppView<AppInfoWithLiveness> appView,
+      DexEncodedMethod method,
+      GraphLens lens,
+      GraphLens codeLens) {
+    abstractReturnValue =
+        abstractReturnValue.rewrittenWithLens(appView, method.getReturnType(), lens, codeLens);
     return this;
   }
 
@@ -655,7 +659,13 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     clearFlag(NEVER_RETURNS_NORMALLY_FLAG);
   }
 
-  public void markReturnsAbstractValue(AbstractValue value) {
+  void setAbstractReturnValue(AbstractValue value, DexEncodedMethod method) {
+    assert !value.isNull() || method.getReturnType().isReferenceType();
+    assert !value.isSingleNumberValue() || method.getReturnType().isPrimitiveType();
+    setAbstractReturnValue(value);
+  }
+
+  private void setAbstractReturnValue(AbstractValue value) {
     assert !abstractReturnValue.isSingleValue() || abstractReturnValue.equals(value)
         : "return single value changed from " + abstractReturnValue + " to " + value;
     abstractReturnValue = value;

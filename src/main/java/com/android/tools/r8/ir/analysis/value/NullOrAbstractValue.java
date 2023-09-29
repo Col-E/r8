@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
@@ -44,8 +45,8 @@ public class NullOrAbstractValue extends AbstractValue {
 
   @Override
   public NullOrAbstractValue rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
-    return new NullOrAbstractValue(value.rewrittenWithLens(appView, lens, codeLens));
+      AppView<AppInfoWithLiveness> appView, DexType newType, GraphLens lens, GraphLens codeLens) {
+    return new NullOrAbstractValue(value.rewrittenWithLens(appView, newType, lens, codeLens));
   }
 
   @Override

@@ -175,7 +175,7 @@ public class RewrittenPrototypeDescription {
     SingleValue rewrittenSingleValue =
         rewrittenReturnInfo
             .getSingleValue()
-            .rewrittenWithLens(appView, appView.graphLens(), codeLens);
+            .rewrittenWithLens(appView, method.getReturnType(), appView.graphLens(), codeLens);
     assert rewrittenSingleValue.isMaterializableInContext(appView, method);
     return true;
   }

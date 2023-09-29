@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.info;
 import static java.util.Collections.emptySet;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
@@ -59,15 +60,26 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
     return abstractValue;
   }
 
-  void setAbstractValue(AbstractValue abstractValue) {
+  MutableFieldOptimizationInfo setAbstractValue(
+      AbstractValue abstractValue, DexEncodedField field) {
+    assert !abstractValue.isNull() || field.getType().isReferenceType();
+    assert !abstractValue.isSingleNumberValue() || field.getType().isPrimitiveType();
+    return setAbstractValue(abstractValue);
+  }
+
+  private MutableFieldOptimizationInfo setAbstractValue(AbstractValue abstractValue) {
     assert getAbstractValue().isUnknown() || abstractValue.isNonTrivial();
     this.abstractValue = abstractValue;
+    return this;
   }
 
   public MutableFieldOptimizationInfo fixupAbstractValue(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
-    setAbstractValue(abstractValue.rewrittenWithLens(appView, lens, codeLens));
-    return this;
+      AppView<AppInfoWithLiveness> appView,
+      DexEncodedField field,
+      GraphLens lens,
+      GraphLens codeLens) {
+    return setAbstractValue(
+        abstractValue.rewrittenWithLens(appView, field.getType(), lens, codeLens), field);
   }
 
   @Override

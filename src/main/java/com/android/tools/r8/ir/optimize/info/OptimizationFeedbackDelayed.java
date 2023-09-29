@@ -151,7 +151,7 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
         .get(field.getReference())
         .hasReflectiveAccess();
     if (appView.appInfo().mayPropagateValueFor(appView, field.getReference())) {
-      getFieldOptimizationInfoForUpdating(field).setAbstractValue(abstractValue);
+      getFieldOptimizationInfoForUpdating(field).setAbstractValue(abstractValue, field);
     }
   }
 
@@ -188,7 +188,7 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   public synchronized void methodReturnsAbstractValue(
       DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, AbstractValue value) {
     if (appView.appInfo().mayPropagateValueFor(appView, method.getReference())) {
-      getMethodOptimizationInfoForUpdating(method).markReturnsAbstractValue(value);
+      getMethodOptimizationInfoForUpdating(method).setAbstractReturnValue(value, method);
     }
   }
 

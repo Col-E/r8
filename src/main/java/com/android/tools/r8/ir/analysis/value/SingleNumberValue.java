@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.analysis.value;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
@@ -180,7 +181,7 @@ public class SingleNumberValue extends SingleConstValue
 
   @Override
   public SingleValue rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
+      AppView<AppInfoWithLiveness> appView, DexType newType, GraphLens lens, GraphLens codeLens) {
     return this;
   }
 }

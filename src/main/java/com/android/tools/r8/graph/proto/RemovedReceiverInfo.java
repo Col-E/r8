@@ -26,9 +26,11 @@ public class RemovedReceiverInfo extends RemovedArgumentInfo {
   @SuppressWarnings("ReferenceEquality")
   public RemovedReceiverInfo rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
-    SingleValue rewrittenSingleValue =
-        hasSingleValue() ? getSingleValue().rewrittenWithLens(appView, graphLens, codeLens) : null;
     DexType rewrittenType = graphLens.lookupType(getType(), codeLens);
+    SingleValue rewrittenSingleValue =
+        hasSingleValue()
+            ? getSingleValue().rewrittenWithLens(appView, rewrittenType, graphLens, codeLens)
+            : null;
     if (rewrittenSingleValue != getSingleValue() || rewrittenType != getType()) {
       return new RemovedReceiverInfo(rewrittenSingleValue, rewrittenType);
     }

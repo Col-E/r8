@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.info.field;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -55,7 +56,7 @@ public class InstanceFieldTypeInitializationInfo implements InstanceFieldInitial
 
   @Override
   public InstanceFieldInitializationInfo rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
+      AppView<AppInfoWithLiveness> appView, DexType newType, GraphLens lens, GraphLens codeLens) {
     EnumDataMap enumDataMap = appView.unboxedEnums();
     if (dynamicLowerBoundType != null
         && enumDataMap.isUnboxedEnum(dynamicLowerBoundType.getClassType())) {

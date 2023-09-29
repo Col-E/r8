@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.info.field;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
@@ -51,5 +52,5 @@ public interface InstanceFieldInitializationInfo {
       ArgumentInfoCollection argumentInfoCollection);
 
   InstanceFieldInitializationInfo rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens);
+      AppView<AppInfoWithLiveness> appView, DexType newType, GraphLens lens, GraphLens codeLens);
 }
