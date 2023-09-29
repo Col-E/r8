@@ -46,13 +46,17 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
     return originalName;
   }
 
-  static KotlinTypeReference fromBinaryName(
-      String binaryName, DexItemFactory factory, String originalName) {
-    if (DescriptorUtils.isValidBinaryName(binaryName)) {
+  static KotlinTypeReference fromBinaryNameOrKotlinClassifier(
+      String binaryNameOrKotlinClassifier, DexItemFactory factory, String originalName) {
+    // Kotlin classifiers are valid binary names.
+    // The method getDescriptorFromKotlinClassifier also works for binary names.
+    if (DescriptorUtils.isValidBinaryName(binaryNameOrKotlinClassifier)) {
       return fromDescriptor(
-          DescriptorUtils.getDescriptorFromClassBinaryName(binaryName), factory, originalName);
+          DescriptorUtils.getDescriptorFromKotlinClassifier(binaryNameOrKotlinClassifier),
+          factory,
+          originalName);
     }
-    return new KotlinTypeReference(binaryName);
+    return new KotlinTypeReference(binaryNameOrKotlinClassifier);
   }
 
   static KotlinTypeReference fromDescriptor(String descriptor, DexItemFactory factory) {

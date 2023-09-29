@@ -34,7 +34,7 @@ public class KotlinAnnotationInfo implements EnqueuerMetadataTraceable {
 
   static KotlinAnnotationInfo create(KmAnnotation annotation, DexItemFactory factory) {
     return new KotlinAnnotationInfo(
-        KotlinTypeReference.fromBinaryName(
+        KotlinTypeReference.fromBinaryNameOrKotlinClassifier(
             annotation.getClassName(), factory, annotation.getClassName()),
         KotlinAnnotationArgumentInfo.create(annotation.getArguments(), factory));
   }

@@ -200,7 +200,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       KmClass kmClass, DexItemFactory factory) {
     String anonymousObjectOriginName = JvmExtensionsKt.getAnonymousObjectOriginName(kmClass);
     if (anonymousObjectOriginName != null) {
-      return KotlinTypeReference.fromBinaryName(
+      return KotlinTypeReference.fromBinaryNameOrKotlinClassifier(
           anonymousObjectOriginName, factory, anonymousObjectOriginName);
     }
     return null;
@@ -212,7 +212,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     for (String nestedClass : nestedClasses) {
       String binaryName =
           clazz.type.toBinaryName() + DescriptorUtils.INNER_CLASS_SEPARATOR + nestedClass;
-      nestedTypes.add(KotlinTypeReference.fromBinaryName(binaryName, factory, nestedClass));
+      nestedTypes.add(
+          KotlinTypeReference.fromBinaryNameOrKotlinClassifier(binaryName, factory, nestedClass));
     }
     return nestedTypes.build();
   }
@@ -224,7 +225,9 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       String binaryName =
           sealedSubClass.replace(
               DescriptorUtils.JAVA_PACKAGE_SEPARATOR, DescriptorUtils.INNER_CLASS_SEPARATOR);
-      sealedTypes.add(KotlinTypeReference.fromBinaryName(binaryName, factory, sealedSubClass));
+      sealedTypes.add(
+          KotlinTypeReference.fromBinaryNameOrKotlinClassifier(
+              binaryName, factory, sealedSubClass));
     }
     return sealedTypes.build();
   }
