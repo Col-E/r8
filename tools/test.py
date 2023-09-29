@@ -246,6 +246,8 @@ def Main():
   if utils.is_bot():
     gradle.RunGradle(['--no-daemon', 'clean'], new_gradle=options.new_gradle)
     print('Running with python ' + str(sys.version_info))
+    # Always print stats on bots if command cache is enabled
+    options.command_cache_stats = options.command_cache_dir is not None
 
   desugar_jdk_json_dir = None
   if options.desugared_library_configuration:
