@@ -621,7 +621,7 @@ def try_retrace_output(e, version, temp):
     print("=" * 80)
     print(" RETRACED OUTPUT")
     print("=" * 80)
-    retrace.run(get_map_file(version, temp), stacktrace, no_r8lib=False)
+    retrace.run(get_map_file(version, temp), stacktrace, None, no_r8lib=False)
     return True
   except Exception as e2:
     print("Failed to retrace for version: %s" % version)
