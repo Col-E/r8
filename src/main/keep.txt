@@ -33,6 +33,22 @@
 # TODO(b/176783536): Avoid need to use -dontwarn.
 -include dontwarn.txt
 
+# TODO(b/185756596): Remove when no longer needed
+-keep class com.android.tools.r8.jetbrains.kotlinx.metadata.jvm.KotlinClassMetadata$FileFacade {
+  com.android.tools.r8.jetbrains.kotlin.Lazy packageData$delegate;
+}
+-keep class com.android.tools.r8.jetbrains.kotlinx.metadata.jvm.KotlinClassMetadata$Class {
+  com.android.tools.r8.jetbrains.kotlin.Lazy classData$delegate;
+}
+-keep class com.android.tools.r8.jetbrains.kotlinx.metadata.jvm.KotlinClassMetadata$SyntheticClass {
+  com.android.tools.r8.jetbrains.kotlin.Lazy functionData$delegate;
+}
+-keep class com.android.tools.r8.jetbrains.kotlinx.metadata.jvm.KotlinClassMetadata$MultiFileClassPart {
+  com.android.tools.r8.jetbrains.kotlin.Lazy packageData$delegate;
+}
+-keep class com.android.tools.r8.jetbrains.kotlin.SafePublicationLazyImpl {
+  java.lang.Object getValue();
+}
 # Test in this class is using the class name to fing the original .java file.
 -keep class com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringMethods
 
