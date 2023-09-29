@@ -425,8 +425,8 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   public T enableAssumeNotNullAnnotations(String annotationPackageName) {
     return addInternalKeepRules(
         "-assumevalues class * {",
-        "  @" + annotationPackageName + ".AssumeNotNull *** * return 1;",
-        "  @" + annotationPackageName + ".AssumeNotNull *** *(...) return 1;",
+        "  @" + annotationPackageName + ".AssumeNotNull *** * return _NONNULL_;",
+        "  @" + annotationPackageName + ".AssumeNotNull *** *(...) return _NONNULL_;",
         "}");
   }
 

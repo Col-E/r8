@@ -154,9 +154,8 @@ public class ProguardMemberRuleReturnValue {
 
       case VALUE_RANGE:
         if (valueType.isReferenceType()) {
-          return nullability.isDefinitelyNull()
-              ? abstractValueFactory.createUncheckedNullValue()
-              : AbstractValue.unknown();
+          assert false;
+          return AbstractValue.unknown();
         }
         return longInterval.isSingleValue()
             ? abstractValueFactory.createSingleNumberValue(

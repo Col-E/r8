@@ -47,10 +47,10 @@ public class AssumeNotNullTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepRules(
             "-" + flavor + " class " + Factory.class.getTypeName() + " {",
-            "  java.lang.Object create() return 1;",
+            "  java.lang.Object create() return _NONNULL_;",
             "}",
             "-" + flavor + " class " + Singleton.class.getTypeName() + " {",
-            "  java.lang.Object INSTANCE return 1;",
+            "  java.lang.Object INSTANCE return _NONNULL_;",
             "}")
         .enableInliningAnnotations()
         .setMinApi(parameters)
