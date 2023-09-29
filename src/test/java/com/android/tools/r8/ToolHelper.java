@@ -70,6 +70,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -753,6 +754,61 @@ public class ToolHelper {
     }
   }
 
+  public static class CommandCacheStatistics {
+
+    public static CommandCacheStatistics INSTANCE = new CommandCacheStatistics();
+    private final Path cachePutCounter;
+    private final Path cacheMissCounter;
+    private final Path cacheHitCounter;
+
+    private CommandCacheStatistics() {
+      String commandCacheStatsDir = System.getProperty("command_cache_stats_dir");
+      if (commandCacheStatsDir != null) {
+        String processSpecificUUID = UUID.randomUUID().toString();
+        cachePutCounter = Paths.get(commandCacheStatsDir, processSpecificUUID + "CACHEPUT");
+        cacheMissCounter = Paths.get(commandCacheStatsDir, processSpecificUUID + "CACHEFAIL");
+        cacheHitCounter = Paths.get(commandCacheStatsDir, processSpecificUUID + "CACHEHIT");
+        try {
+          Files.createFile(cachePutCounter);
+          Files.createFile(cacheMissCounter);
+          Files.createFile(cacheHitCounter);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      } else {
+        cachePutCounter = null;
+        cacheMissCounter = null;
+        cacheHitCounter = null;
+      }
+    }
+
+    private static void increaseCount(Path path) {
+      // Not enabled
+      if (path == null) {
+        return;
+      }
+      synchronized (path) {
+        try {
+          Files.write(path, "X".getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+
+    public void addCachePut() {
+      increaseCount(cachePutCounter);
+    }
+
+    public void addCacheHit() {
+      increaseCount(cacheHitCounter);
+    }
+
+    public void addCacheMiss() {
+      increaseCount(cacheMissCounter);
+    }
+  }
+
   public static class CommandResultCache {
     private static CommandResultCache INSTANCE =
         System.getProperty("command_cache_dir") != null
@@ -816,6 +872,7 @@ public class ToolHelper {
         // but this should have no impact.
 
         Path outputFile = getOutputFile(cacheLookupKey);
+        CommandCacheStatistics.INSTANCE.addCacheHit();
         return new Pair(
             new ProcessResult(
                 exitCode,
@@ -823,6 +880,7 @@ public class ToolHelper {
                 getStringContent(getStderrFile(cacheLookupKey))),
             outputFile.toFile().exists() ? outputFile : null);
       }
+      CommandCacheStatistics.INSTANCE.addCacheMiss();
       return null;
     }
 
@@ -870,6 +928,7 @@ public class ToolHelper {
             exitCodeFile,
             StandardCopyOption.ATOMIC_MOVE,
             StandardCopyOption.REPLACE_EXISTING);
+        CommandCacheStatistics.INSTANCE.addCachePut();
       } catch (IOException e) {
         StringBuilder exceptionMessage = new StringBuilder();
         exceptionMessage.append(

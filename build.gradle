@@ -1709,6 +1709,9 @@ test { task ->
     if (project.hasProperty('command_cache_dir')) {
         systemProperty 'command_cache_dir', project.property('command_cache_dir')
     }
+    if (project.hasProperty('command_cache_stats_dir')) {
+        systemProperty 'command_cache_stats_dir', project.property('command_cache_stats_dir')
+    }
     if (project.hasProperty('r8lib')) {
         dependsOn configureTestForR8Lib
         // R8lib should be used instead of the main output and all the tests in

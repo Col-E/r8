@@ -118,6 +118,9 @@ def ParseOptions():
   result.add_argument('--command-cache-dir', '--command_cache_dir',
       help='Cache command invocations to this directory, speeds up test runs',
       default=os.environ.get('R8_COMMAND_CACHE_DIR'))
+  result.add_argument('--command-cache-stats', '--command_cache_stats',
+      help='Collect and print statistics about the command cache.',
+      default=False, action='store_true')
   result.add_argument('--java-home', '--java_home',
       help='Use a custom java version to run tests.')
   result.add_argument('--java-max-memory-size', '--java_max_memory_size',
@@ -324,6 +327,15 @@ def Main():
     gradle_args.append('-Pcommand_cache_dir=' + options.command_cache_dir)
     if not os.path.exists(options.command_cache_dir):
       os.makedirs(options.command_cache_dir)
+    if options.command_cache_stats:
+      stats_dir = os.path.join(options.command_cache_dir, 'stats')
+      gradle_args.append('-Pcommand_cache_stats_dir=' + stats_dir)
+      if not os.path.exists(stats_dir):
+        os.makedirs(stats_dir)
+      # Clean out old stats files
+      for (_, _, file_names) in os.walk(stats_dir):
+        for f in file_names:
+          os.remove(os.path.join(stats_dir, f))
   if options.java_home:
     gradle_args.append('-Dorg.gradle.java.home=' + options.java_home)
   if options.java_max_memory_size:
@@ -490,8 +502,7 @@ def Main():
         utils.upload_file_to_cloud_storage(archive,
                                            'gs://r8-test-results/golden-files/' + archive)
 
-    if return_code != 0:
-      return archive_and_return(return_code, options)
+    return archive_and_return(return_code, options)
 
   return 0
 
@@ -499,6 +510,23 @@ def archive_and_return(return_code, options):
   if return_code != 0:
     if options.archive_failures:
       archive_failures(options)
+  if options.command_cache_stats:
+    stats_dir = os.path.join(options.command_cache_dir, 'stats')
+    cache_hit = 0
+    cache_miss = 0
+    cache_put = 0
+    for (_, _, file_names) in os.walk(stats_dir):
+      for f in file_names:
+        if f.endswith('CACHEHIT'):
+          cache_hit += os.stat(os.path.join(stats_dir, f)).st_size
+        if f.endswith('CACHEMISS'):
+          cache_miss += os.stat(os.path.join(stats_dir, f)).st_size
+        if f.endswith('CACHEPUT'):
+          cache_put += os.stat(os.path.join(stats_dir, f)).st_size
+    print('Command cache stats')
+    print('  Cache hits: ' + str(cache_hit))
+    print('  Cache miss: ' + str(cache_miss))
+    print('  Cache puts: ' + str(cache_put))
   return return_code
 
 def print_jstacks():

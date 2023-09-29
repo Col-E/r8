@@ -90,7 +90,8 @@ class TestConfigurationHelper {
         "desugar_jdk_json_dir",
         "desugar_jdk_libs",
         "test_dir",
-        "command_cache_dir").forEach {
+        "command_cache_dir",
+        "command_cache_stats_dir").forEach {
         val propertyName = it
         if (project.hasProperty(propertyName)) {
           project.property(propertyName)?.let { v -> test.systemProperty(propertyName, v) }
