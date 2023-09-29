@@ -575,13 +575,12 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
 
   public static void main(String[] args) throws Exception {
     if (args[0].equals("--generate-api-docs")) {
-      if (args.length == 4 || args.length == 5) {
+      if (args.length == 5) {
         new GenerateHtmlDoc(
                 StringResource.fromFile(Paths.get(args[1])),
                 ImmutableList.of(ArchiveProgramResourceProvider.fromArchive(Paths.get(args[2]))),
                 Paths.get(args[3]),
-                ImmutableList.of(
-                    new ArchiveClassFileProvider(Paths.get(getAndroidJarPath(args, 4)))))
+                ImmutableList.of(new ArchiveClassFileProvider(Paths.get(args[4]))))
             .run();
         return;
       }

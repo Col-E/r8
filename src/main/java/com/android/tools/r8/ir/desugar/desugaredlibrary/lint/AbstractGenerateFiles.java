@@ -14,9 +14,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Mac
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 
 public abstract class AbstractGenerateFiles {
@@ -64,26 +62,4 @@ public abstract class AbstractGenerateFiles {
   }
 
   abstract AndroidApiLevel run() throws Exception;
-
-  // TODO(b/289365156): Move this out.
-  private static String getFallBackAndroidJarPath(AndroidApiLevel apiLevel) {
-    String jar =
-        apiLevel == AndroidApiLevel.MASTER
-            ? "third_party/android_jar/lib-master/android.jar"
-            : String.format("third_party/android_jar/lib-v%d/android.jar", apiLevel.getLevel());
-    Path jarPath = Paths.get(jar);
-    if (!Files.exists(jarPath)) {
-      throw new RuntimeException(
-          "Generate files tools should pass a valid recent android.jar as parameter if used outside"
-              + " of the r8 repository. Missing file: "
-              + jarPath);
-    }
-    return jar;
-  }
-
-  static String getAndroidJarPath(String[] args, int fullLength) {
-    return args.length == fullLength
-        ? args[fullLength - 1]
-        : getFallBackAndroidJarPath(MAX_TESTED_ANDROID_API_LEVEL);
-  }
 }

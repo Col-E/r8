@@ -107,7 +107,7 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
       for (ProgramResourceProvider programResourceProvider : getImplementationArg(args[2])) {
         builder.addDesugarLibraryImplementation(programResourceProvider);
       }
-      builder.addLibrary(new ArchiveClassFileProvider(Paths.get(getAndroidJarPath(args, 5))));
+      builder.addLibrary(new ArchiveClassFileProvider(Paths.get(args[4])));
       DesugaredMethodsList.run(builder.build());
       return;
     }

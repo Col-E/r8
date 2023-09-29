@@ -173,12 +173,12 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
   }
 
   public static void main(String[] args) throws Exception {
-    if (args.length == 3 || args.length == 4) {
+    if (args.length == 4) {
       new GenerateDesugaredLibraryLintFiles(
               StringResource.fromFile(Paths.get(args[0])),
               ImmutableList.of(ArchiveProgramResourceProvider.fromArchive(Paths.get(args[1]))),
               Paths.get(args[2]),
-              ImmutableList.of(new ArchiveClassFileProvider(Paths.get(getAndroidJarPath(args, 4)))))
+              ImmutableList.of(new ArchiveClassFileProvider(Paths.get(args[3]))))
           .run();
       return;
     }
