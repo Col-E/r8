@@ -22,14 +22,7 @@ public abstract class AbstractGenerateFiles {
   // If we increment this api level, we need to verify everything works correctly.
   static final AndroidApiLevel MAX_TESTED_ANDROID_API_LEVEL = AndroidApiLevel.U;
 
-  private final DexItemFactory factory = new DexItemFactory();
-  private final Reporter reporter = new Reporter();
-  final InternalOptions options =
-      new InternalOptions(factory, reporter)
-          .getArtProfileOptions()
-          .setAllowReadingEmptyArtProfileProvidersMultipleTimesForTesting(true)
-          .getOptions();
-
+  final InternalOptions options;
   final DesugaredLibrarySpecification desugaredLibrarySpecification;
   final StringResource desugaredLibrarySpecificationResource;
   final Collection<ProgramResourceProvider> desugaredLibraryImplementation;
@@ -37,16 +30,25 @@ public abstract class AbstractGenerateFiles {
   final Collection<ClassFileResourceProvider> androidJar;
 
   AbstractGenerateFiles(
+      Reporter reporter,
       StringResource desugaredLibrarySpecificationResource,
       Collection<ProgramResourceProvider> desugarImplementation,
       Path output,
       Collection<ClassFileResourceProvider> androidJar) {
     assert androidJar != null;
+    this.options = createOptions(reporter);
     this.desugaredLibrarySpecificationResource = desugaredLibrarySpecificationResource;
     this.androidJar = androidJar;
     this.desugaredLibrarySpecification = readDesugaredLibrarySpecification();
     this.desugaredLibraryImplementation = desugarImplementation;
     this.output = output;
+  }
+
+  private InternalOptions createOptions(Reporter reporter) {
+    return new InternalOptions(new DexItemFactory(), reporter)
+        .getArtProfileOptions()
+        .setAllowReadingEmptyArtProfileProvidersMultipleTimesForTesting(true)
+        .getOptions();
   }
 
   private DesugaredLibrarySpecification readDesugaredLibrarySpecification() {
@@ -55,8 +57,8 @@ public abstract class AbstractGenerateFiles {
     }
     return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
         desugaredLibrarySpecificationResource,
-        factory,
-        reporter,
+        options.dexItemFactory(),
+        options.reporter,
         false,
         AndroidApiLevel.B.getLevel());
   }

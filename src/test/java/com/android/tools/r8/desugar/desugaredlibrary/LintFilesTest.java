@@ -259,6 +259,7 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
       Path lint = top.resolve("lint_" + spec);
       Files.createDirectories(lint);
       new GenerateDesugaredLibraryLintFiles(
+              new Reporter(),
               StringResource.fromFile(spec.getSpecification()),
               ImmutableList.of(ArchiveProgramResourceProvider.fromArchive(jdkLibJar)),
               lint,

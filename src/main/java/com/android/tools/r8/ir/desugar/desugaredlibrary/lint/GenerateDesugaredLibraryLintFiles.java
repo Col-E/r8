@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.Me
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
@@ -32,11 +33,12 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
   private static final boolean FORMAT_WITH_FIELD = true;
 
   public GenerateDesugaredLibraryLintFiles(
+      Reporter reporter,
       StringResource desugarConfiguration,
       Collection<ProgramResourceProvider> desugarImplementation,
       Path output,
       Collection<ClassFileResourceProvider> androidJar) {
-    super(desugarConfiguration, desugarImplementation, output, androidJar);
+    super(reporter, desugarConfiguration, desugarImplementation, output, androidJar);
   }
 
   private String lintBaseFileName(
@@ -175,6 +177,7 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
   public static void main(String[] args) throws Exception {
     if (args.length == 4) {
       new GenerateDesugaredLibraryLintFiles(
+              new Reporter(),
               StringResource.fromFile(Paths.get(args[0])),
               ImmutableList.of(ArchiveProgramResourceProvider.fromArchive(Paths.get(args[1]))),
               Paths.get(args[2]),

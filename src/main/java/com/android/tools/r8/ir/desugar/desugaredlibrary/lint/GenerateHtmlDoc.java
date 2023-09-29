@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.Me
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.SupportedClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
@@ -50,7 +51,7 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
       Collection<ProgramResourceProvider> desugarImplementation,
       Path outputDirectory,
       Collection<ClassFileResourceProvider> androidJar) {
-    super(desugarSpecification, desugarImplementation, outputDirectory, androidJar);
+    super(new Reporter(), desugarSpecification, desugarImplementation, outputDirectory, androidJar);
   }
 
   private static class StringBuilderWithIndent {

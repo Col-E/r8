@@ -9,38 +9,43 @@ import static java.lang.Integer.parseInt;
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ArchiveProgramResourceProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ExceptionUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 @Keep
 public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
 
   private final AndroidApiLevel minApi;
-
   private final StringConsumer outputConsumer;
 
   DesugaredMethodsList(
       int minApi,
+      Reporter reporter,
       StringResource desugarConfiguration,
       Collection<ProgramResourceProvider> desugarImplementation,
       StringConsumer outputConsumer,
       Collection<ClassFileResourceProvider> androidJar) {
-    super(desugarConfiguration, desugarImplementation, null, androidJar);
+    super(reporter, desugarConfiguration, desugarImplementation, null, androidJar);
     this.minApi = AndroidApiLevel.getAndroidApiLevel(minApi);
     this.outputConsumer = outputConsumer;
   }
 
-  public static void run(DesugaredMethodsListCommand command) throws IOException {
+  public static void run(DesugaredMethodsListCommand command) throws CompilationFailedException {
     if (command.isHelp()) {
       System.out.println(DesugaredMethodsListCommand.getUsageMessage());
       return;
@@ -49,13 +54,23 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
       System.out.println("DesugaredMethodsList " + Version.getVersionString());
       return;
     }
-    new DesugaredMethodsList(
-            command.getMinApi(),
-            command.getDesugarLibrarySpecification(),
-            command.getDesugarLibraryImplementation(),
-            command.getOutputConsumer(),
-            command.getLibrary())
-        .run();
+    ExecutorService executorService = ThreadUtils.getExecutorService(ThreadUtils.NOT_SPECIFIED);
+    try {
+      ExceptionUtils.withD8CompilationHandler(
+          command.getReporter(),
+          () -> {
+            new DesugaredMethodsList(
+                    command.getMinApi(),
+                    command.getReporter(),
+                    command.getDesugarLibrarySpecification(),
+                    command.getDesugarLibraryImplementation(),
+                    command.getOutputConsumer(),
+                    command.getLibrary())
+                .run();
+          });
+    } finally {
+      executorService.shutdown();
+    }
   }
 
   @Override
@@ -100,7 +115,7 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
   public static void main(String[] args) throws Exception {
     if (args.length == 4 || args.length == 5) {
       DesugaredMethodsListCommand.Builder builder =
-          DesugaredMethodsListCommand.builder()
+          DesugaredMethodsListCommand.builder(new Reporter())
               .setMinApi(parseInt(args[0]))
               .setDesugarLibrarySpecification(getSpecificationArg(args[1]))
               .setOutputPath(Paths.get(args[3]));

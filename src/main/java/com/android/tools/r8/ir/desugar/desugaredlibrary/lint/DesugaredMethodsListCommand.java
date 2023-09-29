@@ -15,9 +15,8 @@ import com.android.tools.r8.ParseFlagPrinter;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.StringResource;
-import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -33,6 +32,8 @@ public class DesugaredMethodsListCommand {
   private final boolean help;
   private final boolean version;
   private final int minApi;
+
+  private final Reporter reporter;
   private final StringResource desugarLibrarySpecification;
   private final Collection<ProgramResourceProvider> desugarLibraryImplementation;
   private final StringConsumer outputConsumer;
@@ -40,6 +41,7 @@ public class DesugaredMethodsListCommand {
 
   DesugaredMethodsListCommand(
       int minApi,
+      Reporter reporter,
       StringResource desugarLibrarySpecification,
       Collection<ProgramResourceProvider> desugarLibraryImplementation,
       StringConsumer outputConsumer,
@@ -47,6 +49,7 @@ public class DesugaredMethodsListCommand {
     this.help = false;
     this.version = false;
     this.minApi = minApi;
+    this.reporter = reporter;
     this.desugarLibrarySpecification = desugarLibrarySpecification;
     this.desugarLibraryImplementation = desugarLibraryImplementation;
     this.outputConsumer = outputConsumer;
@@ -57,6 +60,7 @@ public class DesugaredMethodsListCommand {
     this.help = help;
     this.version = version;
     this.minApi = -1;
+    this.reporter = null;
     this.desugarLibrarySpecification = null;
     this.desugarLibraryImplementation = null;
     this.outputConsumer = null;
@@ -100,14 +104,19 @@ public class DesugaredMethodsListCommand {
     return builder.toString();
   }
 
-  public static Builder builder() {
-    return new Builder();
+  public Reporter getReporter() {
+    return reporter;
+  }
+
+  public static Builder builder(DiagnosticsHandler diagnosticsHandler) {
+    return new Builder(diagnosticsHandler);
   }
 
   @Keep
   public static class Builder {
 
     private int minApi = AndroidApiLevel.B.getLevel();
+    private final Reporter reporter;
     private StringResource desugarLibrarySpecification = null;
     private Collection<ProgramResourceProvider> desugarLibraryImplementation = new ArrayList<>();
     private StringConsumer outputConsumer;
@@ -115,6 +124,10 @@ public class DesugaredMethodsListCommand {
 
     private boolean help = false;
     private boolean version = false;
+
+    public Builder(DiagnosticsHandler diagnosticsHandler) {
+      this.reporter = new Reporter(diagnosticsHandler);
+    }
 
     public Builder setMinApi(int minApi) {
       this.minApi = minApi;
@@ -173,11 +186,11 @@ public class DesugaredMethodsListCommand {
       }
 
       if (desugarLibrarySpecification != null && library.isEmpty()) {
-        throw new CompilationError("With desugared library configuration a library is required");
+        reporter.error("With desugared library configuration a library is required");
       }
 
       if (!desugarLibraryImplementation.isEmpty() && desugarLibrarySpecification == null) {
-        throw new CompilationError(
+        reporter.error(
             "desugarLibrarySpecification is required when desugared library implementation is"
                 + " present.");
       }
@@ -196,6 +209,7 @@ public class DesugaredMethodsListCommand {
       }
       return new DesugaredMethodsListCommand(
           minApi,
+          reporter,
           desugarLibrarySpecification,
           desugarLibraryImplementation,
           outputConsumer,
@@ -219,8 +233,9 @@ public class DesugaredMethodsListCommand {
           .build();
     }
 
-    public DesugaredMethodsListCommand parse(String[] args, Origin origin) throws IOException {
-      DesugaredMethodsListCommand.Builder builder = DesugaredMethodsListCommand.builder();
+    public DesugaredMethodsListCommand parse(String[] args, DiagnosticsHandler handler)
+        throws IOException {
+      DesugaredMethodsListCommand.Builder builder = DesugaredMethodsListCommand.builder(handler);
       for (int i = 0; i < args.length; i += 2) {
         String arg = args[i].trim();
         if (arg.length() == 0) {
