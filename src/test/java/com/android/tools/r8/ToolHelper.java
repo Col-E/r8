@@ -1289,7 +1289,7 @@ public class ToolHelper {
   public static TemporaryFolder getTemporaryFolderForTest() {
     String tmpDir = System.getProperty("test_dir");
     if (tmpDir == null) {
-      return new TemporaryFolder(ToolHelper.isLinux() ? null : Paths.get("build", "tmp").toFile());
+      return new TemporaryFolder();
     } else {
       return new RetainedTemporaryFolder(new java.io.File(tmpDir));
     }
