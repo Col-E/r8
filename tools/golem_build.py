@@ -17,11 +17,17 @@ def lower(items):
   return [ item.lower() for item in items ]
 
 def Main():
+  # TODO(b/302999071): Move java based benchmarking to new gradle
   targets = set()
-  targets.update(lower(run_benchmark.GOLEM_BUILD_TARGETS))
-  targets.update(lower(run_on_app_dump.GOLEM_BUILD_TARGETS))
+  targets.update(lower(run_benchmark.GOLEM_BUILD_TARGETS_OLD))
   cmd = GRADLE_ARGS + [target for target in targets]
   gradle.RunGradle(cmd)
+
+  targets = set()
+  targets.update(lower(run_benchmark.GOLEM_BUILD_TARGETS_NEW))
+  targets.update(lower(run_on_app_dump.GOLEM_BUILD_TARGETS))
+  cmd = GRADLE_ARGS + [target for target in targets]
+  gradle.RunGradle(cmd, new_gradle=True)
 
 if __name__ == '__main__':
   sys.exit(Main())

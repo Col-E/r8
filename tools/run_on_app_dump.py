@@ -23,7 +23,9 @@ from thread_utils import print_thread
 import update_prebuilds_in_android
 import utils
 
-GOLEM_BUILD_TARGETS = ['R8Lib', 'R8Retrace']
+# TODO(b/300387869): Cleanup targets
+GOLEM_BUILD_TARGETS = [':test:r8LibWithRelocatedDeps',
+                       ':test:retraceWithRelocatedDeps']
 SHRINKERS = ['r8', 'r8-full', 'r8-nolib', 'r8-nolib-full']
 
 class AttrDict(dict):

@@ -16,11 +16,13 @@ import utils
 NONLIB_BUILD_TARGET = 'R8WithRelocatedDeps'
 NONLIB_TEST_BUILD_TARGETS = [utils.R8_TESTS_TARGET, utils.R8_TESTS_DEPS_TARGET]
 
-R8LIB_BUILD_TARGET = utils.R8LIB
+# TODO(b/300387869): Cleanup targets
+R8LIB_BUILD_TARGET = ':test:r8LibWithRelocatedDeps'
 R8LIB_TEST_BUILD_TARGETS = [utils.R8LIB_TESTS_TARGET, utils.R8LIB_TESTS_DEPS_TARGET]
 
 # The r8lib target is always the golem target.
-GOLEM_BUILD_TARGETS = [R8LIB_BUILD_TARGET] + R8LIB_TEST_BUILD_TARGETS
+GOLEM_BUILD_TARGETS_OLD = R8LIB_TEST_BUILD_TARGETS
+GOLEM_BUILD_TARGETS_NEW = [R8LIB_BUILD_TARGET]
 
 def get_golem_resource_path(benchmark):
   return os.path.join('benchmarks', benchmark)
@@ -87,7 +89,7 @@ def main(argv, temp):
     testjars = [utils.R8_TESTS_DEPS_JAR, utils.R8_TESTS_JAR]
   else:
     testBuildTargets = R8LIB_TEST_BUILD_TARGETS
-    buildTargets = GOLEM_BUILD_TARGETS
+    buildTargets = GOLEM_BUILD_TARGETS_OLD + GOLEM_BUILD_TARGETS_NEW
     r8jar = utils.R8LIB_JAR
     testjars = [utils.R8LIB_TESTS_DEPS_JAR, utils.R8LIB_TESTS_JAR]
 
