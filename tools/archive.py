@@ -85,8 +85,9 @@ def GetStorageDestination(storage_prefix,
 
 def GetVersionDestination(storage_prefix, version_or_path, is_main,
                           new_gradle=False):
+  assert new_gradle
   archive_dir = 'raw/main' if is_main else 'raw'
-  bucket = ARCHIVE_BUCKET if not new_gradle else "r8-test-results"
+  bucket = ARCHIVE_BUCKET
   return '%s%s/%s/%s' % (storage_prefix, bucket,
                          archive_dir, version_or_path)
 
@@ -115,12 +116,10 @@ def PrintResourceInfo():
 
 def Main():
   (options, args) = ParseOptions()
-  Run(options, False)
-  # Clean to ensure that we actually generate all of the artifacts
-  shutil.rmtree(utils.BUILD)
   Run(options, True)
 
 def Run(options, new_gradle):
+  assert new_gradle
   if not utils.is_bot() and not options.dry_run:
     raise Exception('You are not a bot, don\'t archive builds. '
       + 'Use --dry-run to test locally')
