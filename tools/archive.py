@@ -74,35 +74,27 @@ def IsMain(version):
 def GetStorageDestination(storage_prefix,
                           version_or_path,
                           file_name,
-                          is_main,
-                          new_gradle=False):
+                          is_main):
   # We archive main commits under raw/main instead of directly under raw
   version_dir = GetVersionDestination(storage_prefix,
                                       version_or_path,
-                                      is_main,
-                                      new_gradle)
+                                      is_main)
   return '%s/%s' % (version_dir, file_name)
 
-def GetVersionDestination(storage_prefix, version_or_path, is_main,
-                          new_gradle=False):
-  assert new_gradle
+def GetVersionDestination(storage_prefix, version_or_path, is_main):
   archive_dir = 'raw/main' if is_main else 'raw'
-  bucket = ARCHIVE_BUCKET
-  return '%s%s/%s/%s' % (storage_prefix, bucket,
+  return '%s%s/%s/%s' % (storage_prefix, ARCHIVE_BUCKET,
                          archive_dir, version_or_path)
 
-def GetUploadDestination(version_or_path, file_name, is_main,
-                         new_gradle=False):
-  return GetStorageDestination('gs://', version_or_path, file_name, is_main,
-                               new_gradle)
+def GetUploadDestination(version_or_path, file_name, is_main):
+  return GetStorageDestination('gs://', version_or_path, file_name, is_main)
 
-def GetUrl(version_or_path, file_name, is_main, new_gradle=False):
+def GetUrl(version_or_path, file_name, is_main):
   return GetStorageDestination('https://storage.googleapis.com/',
-                               version_or_path, file_name, is_main, new_gradle)
+                               version_or_path, file_name, is_main)
 
-def GetMavenUrl(is_main, new_gradle=False):
-  return GetVersionDestination('https://storage.googleapis.com/', '', is_main,
-                               new_gradle)
+def GetMavenUrl(is_main):
+  return GetVersionDestination('https://storage.googleapis.com/', '', is_main)
 
 def SetRLimitToMax():
   (soft, hard) = resource.getrlimit(resource.RLIMIT_NOFILE)
@@ -116,10 +108,9 @@ def PrintResourceInfo():
 
 def Main():
   (options, args) = ParseOptions()
-  Run(options, True)
+  Run(options)
 
-def Run(options, new_gradle):
-  assert new_gradle
+def Run(options):
   if not utils.is_bot() and not options.dry_run:
     raise Exception('You are not a bot, don\'t archive builds. '
       + 'Use --dry-run to test locally')
@@ -153,49 +144,31 @@ def Run(options, new_gradle):
     create_maven_release.generate_r8_maven_zip(
         utils.MAVEN_ZIP_LIB,
         version_file=version_file,
-        skip_gradle_build=options.skip_gradle_build,
-        new_gradle=new_gradle)
+        skip_gradle_build=options.skip_gradle_build)
 
 
     # Generate and copy a full build without dependencies.
     if (not options.skip_gradle_build):
-      if (new_gradle):
-        gradle.RunGradle([':main:swissArmyKnife'], new_gradle=True)
-      else:
-        gradle.RunGradleExcludeDeps([utils.R8, utils.R8_SRC])
-    if (not new_gradle):
-      shutil.copyfile(utils.R8_JAR, utils.R8_FULL_EXCLUDE_DEPS_JAR)
+      gradle.RunGradle([':main:swissArmyKnife'], new_gradle=True)
 
     # Ensure all archived artifacts has been built before archiving.
     # The target tasks postfixed by 'lib' depend on the actual target task so
     # building it invokes the original task first.
     # The '-Pno_internal' flag is important because we generate the lib based on uses in tests.
     if (not options.skip_gradle_build):
-      if (new_gradle):
-        gradle.RunGradle([
-            ':keepanno:keepAnnoAnnotationsJar',
-            ':main:consolidatedLicense',
-            ':main:r8WithRelocatedDeps',
-            ':main:swissArmyKnife',
-            ':test:r8LibNoDeps',
-            ':test:r8LibWithRelocatedDeps',
-            ':test:retraceNoDeps',
-            ':test:retraceWithRelocatedDeps',
-            ':test:sourcesJar',
-            ':test:sourcesJar',
-            '-Pno_internal'
-        ], new_gradle=True)
-      else:
-        gradle.RunGradle([
-            utils.R8,
-            utils.R8LIB,
-            utils.R8LIB_NO_DEPS,
-            utils.R8RETRACE,
-            utils.R8RETRACE_NO_DEPS,
-            utils.LIBRARY_DESUGAR_CONVERSIONS,
-            utils.KEEPANNO_ANNOTATIONS_TARGET,
-            '-Pno_internal'
-        ])
+      gradle.RunGradle([
+          ':keepanno:keepAnnoAnnotationsJar',
+          ':main:consolidatedLicense',
+          ':main:r8WithRelocatedDeps',
+          ':main:swissArmyKnife',
+          ':test:r8LibNoDeps',
+          ':test:r8LibWithRelocatedDeps',
+          ':test:retraceNoDeps',
+          ':test:retraceWithRelocatedDeps',
+          ':test:sourcesJar',
+          ':test:sourcesJar',
+          '-Pno_internal'
+      ], new_gradle=True)
 
     # Create maven release of the desuage_jdk_libs configuration. This require
     # an r8.jar with dependencies to have been built.
@@ -233,7 +206,7 @@ def Run(options, new_gradle):
       print('On main, using git hash for archiving')
       version = GetGitHash()
 
-    destination = GetVersionDestination('gs://', version, is_main, new_gradle)
+    destination = GetVersionDestination('gs://', version, is_main)
     if utils.cloud_storage_exists(destination) and not options.dry_run:
       raise Exception('Target archive directory %s already exists' % destination)
 
@@ -273,8 +246,7 @@ def Run(options, new_gradle):
       if file_name.endswith('.jar') and not file_name.endswith('-src.jar'):
         with zipfile.ZipFile(tagged_jar, 'a') as zip:
           zip.write(version_file, os.path.basename(version_file))
-      destination = GetUploadDestination(version, file_name, is_main,
-                                         new_gradle=new_gradle)
+      destination = GetUploadDestination(version, file_name, is_main)
       print('Uploading %s to %s' % (tagged_jar, destination))
       if options.dry_run:
         if options.dry_run_output:
@@ -286,24 +258,21 @@ def Run(options, new_gradle):
           print('Dry run, not actually uploading')
       else:
         utils.upload_file_to_cloud_storage(tagged_jar, destination)
-        print('File available at: %s' % GetUrl(version, file_name, is_main,
-                                               new_gradle=new_gradle))
+        print('File available at: %s' % GetUrl(version, file_name, is_main))
 
       # Upload R8 to a maven compatible location.
       if file == utils.R8_JAR:
         maven_dst = GetUploadDestination(utils.get_maven_path('r8', version),
-                                         'r8-%s.jar' % version, is_main,
-                                         new_gradle=new_gradle)
+                                         'r8-%s.jar' % version, is_main)
         maven_pom_dst = GetUploadDestination(
             utils.get_maven_path('r8', version),
-            'r8-%s.pom' % version, is_main, new_gradle=new_gradle)
+            'r8-%s.pom' % version, is_main)
         if options.dry_run:
           print('Dry run, not actually creating maven repo for R8')
         else:
           utils.upload_file_to_cloud_storage(tagged_jar, maven_dst)
           utils.upload_file_to_cloud_storage(default_pom_file, maven_pom_dst)
-          print('Maven repo root available at: %s' % GetMavenUrl(
-              is_main, new_gradle=new_gradle))
+          print('Maven repo root available at: %s' % GetMavenUrl(is_main))
 
       # Upload desugar_jdk_libs configuration to a maven compatible location.
       if file == utils.DESUGAR_CONFIGURATION:
@@ -311,8 +280,7 @@ def Run(options, new_gradle):
         jar_version_name = 'desugar_jdk_libs_configuration-%s.jar' % version
         maven_dst = GetUploadDestination(
             utils.get_maven_path('desugar_jdk_libs_configuration', version),
-                                 jar_version_name, is_main,
-            new_gradle=new_gradle)
+                                 jar_version_name, is_main)
 
         with utils.TempDir() as tmp_dir:
           desugar_jdk_libs_configuration_jar = os.path.join(tmp_dir,
@@ -333,11 +301,10 @@ def Run(options, new_gradle):
           else:
             utils.upload_file_to_cloud_storage(
                 desugar_jdk_libs_configuration_jar, maven_dst)
-            print('Maven repo root available at: %s' % GetMavenUrl(is_main,
-                                                                   new_gradle=new_gradle))
+            print('Maven repo root available at: %s' % GetMavenUrl(is_main))
             # Also archive the jar as non maven destination for Google3
             jar_destination = GetUploadDestination(
-                version, jar_basename, is_main, new_gradle=new_gradle)
+                version, jar_basename, is_main)
             utils.upload_file_to_cloud_storage(
                 desugar_jdk_libs_configuration_jar, jar_destination)
 
@@ -348,8 +315,7 @@ def Run(options, new_gradle):
         jar_version_name = 'desugar_jdk_libs_configuration-%s-jdk11-legacy.jar' % version
         maven_dst = GetUploadDestination(
             utils.get_maven_path('desugar_jdk_libs_configuration', version),
-            jar_version_name, is_main,
-            new_gradle=new_gradle)
+            jar_version_name, is_main)
 
         with utils.TempDir() as tmp_dir:
           desugar_jdk_libs_configuration_jar = os.path.join(tmp_dir,
@@ -370,11 +336,10 @@ def Run(options, new_gradle):
           else:
             utils.upload_file_to_cloud_storage(
                 desugar_jdk_libs_configuration_jar, maven_dst)
-            print('Maven repo root available at: %s' % GetMavenUrl(
-                is_main, new_gradle=new_gradle))
+            print('Maven repo root available at: %s' % GetMavenUrl(is_main))
             # Also archive the jar as non maven destination for Google3
             jar_destination = GetUploadDestination(
-                version, jar_basename, is_main, new_gradle=new_gradle)
+                version, jar_basename, is_main)
             utils.upload_file_to_cloud_storage(
                 desugar_jdk_libs_configuration_jar, jar_destination)
 
