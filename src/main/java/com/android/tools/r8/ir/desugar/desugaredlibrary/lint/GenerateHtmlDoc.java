@@ -589,8 +589,8 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
         StringUtils.joinLines(
             "Invalid invocation.",
             "Usage: GenerateHtmlDoc --generate-api-docs <desugar configuration> "
-                + "<desugar implementation> <output directory> [<android jar path for Android "
+                + "<desugar implementation> <output directory> <android jar path for Android "
                 + MAX_TESTED_ANDROID_API_LEVEL
-                + " or higher>]"));
+                + " or higher>"));
   }
 }

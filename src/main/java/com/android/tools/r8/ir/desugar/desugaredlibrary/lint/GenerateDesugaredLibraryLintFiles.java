@@ -186,8 +186,8 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
         StringUtils.joinLines(
             "Invalid invocation.",
             "Usage: GenerateDesugaredLibraryLintFiles <desugar configuration> "
-                + "<desugar implementation> <output directory> [<android jar path for Android "
+                + "<desugar implementation> <output directory> <android jar path for Android "
                 + MAX_TESTED_ANDROID_API_LEVEL
-                + " or higher>]"));
+                + " or higher>"));
   }
 }

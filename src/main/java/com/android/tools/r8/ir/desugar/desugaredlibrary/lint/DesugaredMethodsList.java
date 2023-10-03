@@ -115,8 +115,8 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
         StringUtils.joinLines(
             "Invalid invocation.",
             "Usage: DesugaredMethodList <min-api> <desugar configuration> "
-                + "<desugar implementation> <output file> [<android jar path for Android "
+                + "<desugar implementation> <output file> <android jar path for Android "
                 + MAX_TESTED_ANDROID_API_LEVEL
-                + " or higher>]"));
+                + " or higher>"));
   }
 }

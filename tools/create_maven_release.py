@@ -4,19 +4,21 @@
 # BSD-style license that can be found in the LICENSE file.
 
 import argparse
-import gradle
 import hashlib
 import jdk
-import json
-from os import makedirs
-from os.path import join, basename
-from shutil import copyfile, make_archive, move, rmtree
 import subprocess
 import sys
-from string import Template
-import tempfile
-import utils
 import zipfile
+from os import makedirs
+from os.path import basename
+from os.path import join
+from shutil import copyfile
+from shutil import make_archive
+from shutil import move
+from string import Template
+
+import gradle
+import utils
 
 LICENSETEMPLATE = Template(
 """
@@ -313,7 +315,8 @@ def generate_jar_with_desugar_configuration(
         'com.android.tools.r8.ir.desugar.desugaredlibrary.lint.GenerateDesugaredLibraryLintFiles',
         configuration,
         implementation,
-        lint_dir]
+        lint_dir,
+        utils.get_android_jar(34)]
     utils.PrintCmd(cmd)
     subprocess.check_call(cmd)
 
