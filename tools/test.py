@@ -205,9 +205,6 @@ def ParseOptions():
   result.add_argument('--kotlin-compiler-old',
                     help='Specify to run tests on older kotlin compilers',
                     default=False, action='store_true')
-  result.add_argument('--new-gradle',
-                    help='Specify to run in the new gradle setup',
-                    default=True, action='store_true')
   return result.parse_known_args()
 
 def has_failures(classes_file):
@@ -244,7 +241,7 @@ def archive_failures(options):
 def Main():
   (options, args) = ParseOptions()
   if utils.is_bot():
-    gradle.RunGradle(['--no-daemon', 'clean'], new_gradle=options.new_gradle)
+    gradle.RunGradle(['--no-daemon', 'clean'], new_gradle=True)
     print('Running with python ' + str(sys.version_info))
     # Always print stats on bots if command cache is enabled
     options.command_cache_stats = options.command_cache_dir is not None
@@ -302,7 +299,7 @@ def Main():
     gradle_args.append('-Pslow_tests=1')
   if options.tool:
     gradle_args.append('-Ptool=%s' % options.tool)
-  if options.one_line_per_test and not options.new_gradle:
+  if options.one_line_per_test:
     gradle_args.append('-Pone_line_per_test')
   if options.test_namespace:
     gradle_args.append('-Ptest_namespace=%s' % options.test_namespace)
@@ -357,14 +354,8 @@ def Main():
     exit(1)
   if not options.no_r8lib:
     gradle_args.append('-Pr8lib')
-    if options.new_gradle:
-      gradle_args.append(':test:r8LibNoDeps')
-      gradle_args.append(':test:retraceWithRelocatedDeps')
-    else:
-      # Force gradle to build a version of r8lib without dependencies for
-      # BootstrapCurrentEqualityTest.
-      gradle_args.append('R8LibNoDeps')
-      gradle_args.append('R8Retrace')
+    gradle_args.append(':test:r8LibNoDeps')
+    gradle_args.append(':test:retraceWithRelocatedDeps')
   if options.r8lib_no_deps:
     gradle_args.append('-Pr8lib_no_deps')
   if options.worktree:
@@ -379,26 +370,18 @@ def Main():
   if options.no_arttests:
     gradle_args.append('-Pno_arttests=true')
 
-  # Testing state is only supported in new-gradle going forward
-  if options.new_gradle and options.rerun:
+  if options.rerun:
     testing_state.set_up_test_state(gradle_args, options.rerun, options.testing_state_dir)
 
   # Enable completeness testing of ART profile rewriting.
   gradle_args.append('-Part_profile_rewriting_completeness_check=true')
 
   # Build an R8 with dependencies for bootstrapping tests before adding test sources.
-  if options.new_gradle:
-    gradle_args.append(':main:r8WithRelocatedDeps')
-    gradle_args.append(':test:cleanTest')
-    gradle_args.append('test:test')
-    gradle_args.append('--stacktrace')
-    gradle_args.append('-Pprint_full_stacktraces')
-  else:
-    gradle_args.append('r8WithRelocatedDeps')
-    gradle_args.append('r8WithRelocatedDeps17')
-    # Add Gradle tasks
-    gradle_args.append('cleanTest')
-    gradle_args.append('test')
+  gradle_args.append(':main:r8WithRelocatedDeps')
+  gradle_args.append(':test:cleanTest')
+  gradle_args.append('test:test')
+  gradle_args.append('--stacktrace')
+  gradle_args.append('-Pprint_full_stacktraces')
 
   if options.debug_agent:
     gradle_args.append('--debug-jvm')
@@ -476,7 +459,7 @@ def Main():
       gradle_args.append('-Pruntimes=%s' % ':'.join(runtimes))
 
     return_code = gradle.RunGradle(
-        gradle_args, throw_on_failure=False, new_gradle=options.new_gradle)
+        gradle_args, throw_on_failure=False, new_gradle=True)
     return archive_and_return(return_code, options)
 
   # Legacy testing populates the runtimes based on dex_vm.
@@ -496,7 +479,7 @@ def Main():
           '-Pruntimes=%s' % ':'.join(runtimes),
         ],
         throw_on_failure=False,
-        new_gradle=options.new_gradle)
+        new_gradle=True)
     if options.generate_golden_files_to:
       sha1 = '%s' % utils.get_HEAD_sha1()
       with utils.ChangedWorkingDirectory(options.generate_golden_files_to):
