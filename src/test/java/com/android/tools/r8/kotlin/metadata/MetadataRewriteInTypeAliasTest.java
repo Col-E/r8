@@ -30,6 +30,7 @@ import com.android.tools.r8.utils.codeinspector.KmTypeSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -193,6 +194,7 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     KmTypeProjectionSubject expandedArgument = apIs.expandedType().typeArguments().get(0);
     assertThat(expandedArgument.type(), isDexClass(itf.getDexProgramClass()));
 
+    Assume.assumeFalse("TODO(b/303374432)", kotlinParameters.isKotlinDev());
     assertEquals(myAliasedArray.descriptor(packageName), apIs.underlyingType().descriptor());
     assertEquals(1, apIs.underlyingType().typeArguments().size());
     KmTypeProjectionSubject underlyingArgument = apIs.underlyingType().typeArguments().get(0);

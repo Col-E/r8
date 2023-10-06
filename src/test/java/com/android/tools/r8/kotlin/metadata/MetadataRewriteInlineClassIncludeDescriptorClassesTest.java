@@ -107,6 +107,8 @@ public class MetadataRewriteInlineClassIncludeDescriptorClassesTest extends Kotl
             .setOutputPath(temp.newFolder().toPath())
             .compileRaw();
     assertEquals(1, kotlinCompileAppResult.exitCode);
-    assertThat(kotlinCompileAppResult.stderr, containsString("unresolved reference: Password"));
+    assertThat(
+        kotlinCompileAppResult.stderr,
+        containsString(unresolvedReferenceMessage(kotlinParameters, "Password")));
   }
 }

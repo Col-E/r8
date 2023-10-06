@@ -102,7 +102,9 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
             .setOutputPath(temp.newFolder().toPath())
             .compileRaw();
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: join"));
+    assertThat(
+        kotlinTestCompileResult.stderr,
+        containsString(unresolvedReferenceMessage(kotlinParameters, "join")));
   }
 
   private void inspectMerged(CodeInspector inspector) {
