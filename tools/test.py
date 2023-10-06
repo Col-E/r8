@@ -354,8 +354,6 @@ def Main():
     exit(1)
   if not options.no_r8lib:
     gradle_args.append('-Pr8lib')
-    gradle_args.append(':test:r8LibNoDeps')
-    gradle_args.append(':test:retraceWithRelocatedDeps')
   if options.r8lib_no_deps:
     gradle_args.append('-Pr8lib_no_deps')
   if options.worktree:
