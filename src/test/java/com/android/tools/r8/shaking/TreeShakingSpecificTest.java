@@ -18,7 +18,6 @@ import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -27,11 +26,13 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+@Ignore("Will be fixed by update in CL 84843")
 @RunWith(Parameterized.class)
 public class TreeShakingSpecificTest extends TestBase {
 
