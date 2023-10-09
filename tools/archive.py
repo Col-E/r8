@@ -146,27 +146,21 @@ def Run(options):
         version_file=version_file,
         skip_gradle_build=options.skip_gradle_build)
 
-
-    # Generate and copy a full build without dependencies.
-    if (not options.skip_gradle_build):
-      gradle.RunGradle([':main:swissArmyKnife'], new_gradle=True)
-
     # Ensure all archived artifacts has been built before archiving.
     # The target tasks postfixed by 'lib' depend on the actual target task so
     # building it invokes the original task first.
     # The '-Pno_internal' flag is important because we generate the lib based on uses in tests.
     if (not options.skip_gradle_build):
       gradle.RunGradle([
-          ':keepanno:keepAnnoAnnotationsJar',
-          ':main:consolidatedLicense',
-          ':main:r8WithRelocatedDeps',
-          ':main:swissArmyKnife',
-          ':test:r8LibNoDeps',
-          ':test:r8LibWithRelocatedDeps',
-          ':test:retraceNoDeps',
-          ':test:retraceWithRelocatedDeps',
-          ':test:sourcesJar',
-          ':test:sourcesJar',
+          utils.GRADLE_TASK_CONSOLIDATED_LICENSE,
+          utils.GRADLE_TASK_KEEP_ANNO_JAR,
+          utils.GRADLE_TASK_R8,
+          utils.GRADLE_TASK_R8LIB,
+          utils.GRADLE_TASK_R8LIB_NO_DEPS,
+          utils.GRADLE_TASK_RETRACE,
+          utils.GRADLE_TASK_RETRACE_NO_DEPS,
+          utils.GRADLE_TASK_SOURCE_JAR,
+          utils.GRADLE_TASK_SWISS_ARMY_KNIFE,
           '-Pno_internal'
       ], new_gradle=True)
 

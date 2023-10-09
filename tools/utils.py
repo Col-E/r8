@@ -42,6 +42,18 @@ SRC_ROOT = os.path.join(REPO_ROOT, 'src', 'main', 'java')
 TEST_ROOT = os.path.join(REPO_ROOT, 'src', 'test', 'java')
 REPO_SOURCE = 'https://r8.googlesource.com/r8'
 
+GRADLE_TASK_CLEAN_TEST = ':test:cleanTest'
+GRADLE_TASK_CONSOLIDATED_LICENSE = ':main:consolidatedLicense'
+GRADLE_TASK_KEEP_ANNO_JAR = ':keepanno:keepAnnoAnnotationsJar'
+GRADLE_TASK_R8 = ':main:r8WithRelocatedDeps'
+GRADLE_TASK_R8LIB = ':test:r8LibWithRelocatedDeps'
+GRADLE_TASK_R8LIB_NO_DEPS = ':test:r8LibNoDeps'
+GRADLE_TASK_RETRACE = ':test:retraceWithRelocatedDeps'
+GRADLE_TASK_RETRACE_NO_DEPS = ':test:retraceNoDeps'
+GRADLE_TASK_SOURCE_JAR = ':test:sourcesJar'
+GRADLE_TASK_SWISS_ARMY_KNIFE = ':main:swissArmyKnife'
+GRADLE_TASK_TEST = ':test:test'
+
 D8 = 'd8'
 R8 = 'r8'
 R8LIB = 'r8lib'

@@ -375,9 +375,9 @@ def Main():
   gradle_args.append('-Part_profile_rewriting_completeness_check=true')
 
   # Build an R8 with dependencies for bootstrapping tests before adding test sources.
-  gradle_args.append(':main:r8WithRelocatedDeps')
-  gradle_args.append(':test:cleanTest')
-  gradle_args.append('test:test')
+  gradle_args.append(utils.GRADLE_TASK_R8)
+  gradle_args.append(utils.GRADLE_TASK_CLEAN_TEST)
+  gradle_args.append(utils.GRADLE_TASK_TEST)
   gradle_args.append('--stacktrace')
   gradle_args.append('-Pprint_full_stacktraces')
 

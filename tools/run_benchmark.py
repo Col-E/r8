@@ -16,8 +16,7 @@ import utils
 NONLIB_BUILD_TARGET = 'R8WithRelocatedDeps'
 NONLIB_TEST_BUILD_TARGETS = [utils.R8_TESTS_TARGET, utils.R8_TESTS_DEPS_TARGET]
 
-# TODO(b/300387869): Cleanup targets
-R8LIB_BUILD_TARGET = ':test:r8LibWithRelocatedDeps'
+R8LIB_BUILD_TARGET = utils.GRADLE_TASK_R8LIB
 R8LIB_TEST_BUILD_TARGETS = [utils.R8LIB_TESTS_TARGET, utils.R8LIB_TESTS_DEPS_TARGET]
 
 # The r8lib target is always the golem target.
