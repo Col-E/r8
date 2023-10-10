@@ -51,6 +51,7 @@ class TestConfigurationHelper {
       test.systemProperty("USE_NEW_GRADLE_SETUP", "true")
       if (project.hasProperty("testfilter")) {
         val testFilter = project.property("testfilter").toString()
+        test.filter.setFailOnNoMatchingTests(false)
         test.filter.setIncludePatterns(*(testFilter.split("|").toTypedArray()))
       }
       if (project.hasProperty("kotlin_compiler_dev")) {
