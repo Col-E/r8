@@ -30,6 +30,8 @@ ANDROID_SDK = os.path.join(THIRD_PARTY, 'android_sdk')
 MEMORY_USE_TMP_FILE = 'memory_use.tmp'
 DEX_SEGMENTS_RESULT_PATTERN = re.compile('- ([^:]+): ([0-9]+)')
 
+DEPENDENCIES_DIR = os.path.join(THIRD_PARTY, 'dependencies')
+
 BUILD = os.path.join(REPO_ROOT, 'build')
 BUILD_JAVA_MAIN_DIR = os.path.join(BUILD, 'classes', 'java', 'main')
 LIBS = os.path.join(BUILD, 'libs')

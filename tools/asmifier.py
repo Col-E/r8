@@ -11,16 +11,16 @@ import sys
 import utils
 
 ASM_VERSION = '9.5'
-ASM_JAR = 'asm-' + ASM_VERSION + '.jar'
-ASM_UTIL_JAR = 'asm-util-' + ASM_VERSION + '.jar'
+ASM_JAR = os.path.join(utils.DEPENDENCIES_DIR, 'org', 'ow2', 'asm', 'asm',
+                       ASM_VERSION, 'asm-' + ASM_VERSION + '.jar')
+ASM_UTIL_JAR = os.path.join(utils.DEPENDENCIES_DIR, 'org', 'ow2', 'asm', 'asm-util',
+                       ASM_VERSION, 'asm-util-' + ASM_VERSION + '.jar')
 
-def run(args, build=True):
-  if build:
-    gradle.RunGradle(['copyMavenDeps'])
+def run(args):
   cmd = []
   cmd.append(jdk.GetJavaExecutable())
-  cp = ":".join([os.path.join(utils.REPO_ROOT, 'build/deps/' + ASM_JAR),
-                 os.path.join(utils.REPO_ROOT, 'build/deps/' + ASM_UTIL_JAR)])
+  cp = ":".join([ASM_JAR, ASM_UTIL_JAR])
+  print(cp)
   cmd.extend(['-cp', cp])
   cmd.append('org.objectweb.asm.util.ASMifier')
   cmd.extend(args)
@@ -30,13 +30,10 @@ def run(args, build=True):
   return result
 
 def main():
-  build = True
   help = True
   args = []
   for arg in sys.argv[1:]:
-    if arg in ("--build", "--no-build"):
-      build = arg == "--build"
-    elif arg == "--no-debug":
+    if arg == "--no-debug":
       args.append("-debug")
     elif arg in ("-help", "--help", "-debug"):
       help = True
@@ -45,12 +42,11 @@ def main():
       help = False
       args.append(arg)
   if help:
-    print("asmifier.py [--no-build] [--no-debug] <classfile>*")
-    print("  --no-build    Don't run R8 dependencies.")
+    print("asmifier.py [--no-debug] <classfile>*")
     print("  --no-debug    Don't include local variable information in output.")
     return
   try:
-    run(args, build)
+    run(args)
   except subprocess.CalledProcessError as e:
     # In case anything relevant was printed to stdout, normally this is already
     # on stderr.
