@@ -1053,7 +1053,6 @@ public class IRConverter {
             appView,
             null,
             RewrittenPrototypeDescription.none(),
-            appView.graphLens().getOriginalMethodSignature(code.context().getReference()),
             (MutableMethodConversionOptions) code.getConversionOptions());
     timing.end();
     return irCode;

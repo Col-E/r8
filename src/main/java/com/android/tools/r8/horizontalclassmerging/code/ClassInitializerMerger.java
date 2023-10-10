@@ -82,7 +82,7 @@ public class ClassInitializerMerger {
           classInitializer -> classInitializer.getDefinition().getCode().isCfCode());
       return new CfCodeBuilder().build(syntheticMethodReference);
     }
-    return new IRProvider(classInitializers, syntheticMethodReference);
+    return new IRProvider(classInitializers);
   }
 
   public CfVersion getCfVersion() {
@@ -141,7 +141,11 @@ public class ClassInitializerMerger {
       // Building the instructions will adjust maxStack and maxLocals. Build it here before invoking
       // the CfCode constructor to ensure that the value passed in is the updated values.
       Position callerPosition =
-          SyntheticPosition.builder().setLine(0).setMethod(syntheticMethodReference).build();
+          SyntheticPosition.builder()
+              .setLine(0)
+              .setMethod(syntheticMethodReference)
+              .setIsD8R8Synthesized(true)
+              .build();
       List<CfInstruction> instructions = buildInstructions(callerPosition);
       return new CfCode(
           syntheticMethodReference.getHolderType(), maxStack, maxLocals, instructions);
@@ -163,13 +167,15 @@ public class ClassInitializerMerger {
       CfLabel endLabel = new CfLabel();
       boolean requiresLabel = false;
       int index = 1;
+      boolean calleeD8R8Synthesized = method.getDefinition().isD8R8Synthesized();
       for (CfInstruction instruction : code.getInstructions()) {
         if (instruction.isPosition()) {
-          CfPosition cfPosition = instruction.asPosition();
+          CfPosition calleePosition = instruction.asPosition();
           newInstructions.add(
               new CfPosition(
-                  cfPosition.getLabel(),
-                  cfPosition.getPosition().withOutermostCallerPosition(callerPosition)));
+                  calleePosition.getLabel(),
+                  Code.newInlineePosition(
+                      callerPosition, calleePosition.getPosition(), calleeD8R8Synthesized)));
         } else if (instruction.isReturn()) {
           if (code.getInstructions().size() != index) {
             newInstructions.add(new CfGoto(endLabel));
@@ -193,12 +199,9 @@ public class ClassInitializerMerger {
   static class IRProvider extends Code {
 
     private final ImmutableList<ProgramMethod> classInitializers;
-    private final DexMethod syntheticMethodReference;
 
-    private IRProvider(
-        ImmutableList<ProgramMethod> classInitializers, DexMethod syntheticMethodReference) {
+    private IRProvider(ImmutableList<ProgramMethod> classInitializers) {
       this.classInitializers = classInitializers;
-      this.syntheticMethodReference = syntheticMethodReference;
     }
 
     @Override
@@ -209,8 +212,13 @@ public class ClassInitializerMerger {
         MutableMethodConversionOptions conversionOptions) {
       assert !classInitializers.isEmpty();
 
-      Position callerPosition =
-          SyntheticPosition.builder().setLine(0).setMethod(syntheticMethodReference).build();
+      Position preamblePosition =
+          SyntheticPosition.builder()
+              .setLine(0)
+              .setMethod(method.getReference())
+              .setIsD8R8Synthesized(method.getDefinition().isD8R8Synthesized())
+              .build();
+
       IRMetadata metadata = new IRMetadata();
       NumberGenerator blockNumberGenerator = new NumberGenerator();
       NumberGenerator valueNumberGenerator = new NumberGenerator();
@@ -223,7 +231,7 @@ public class ClassInitializerMerger {
         block.add(
             InvokeStatic.builder()
                 .setMethod(classInitializer.getReference())
-                .setPosition(callerPosition)
+                .setPosition(preamblePosition)
                 .build(),
             metadata);
       }
@@ -236,7 +244,7 @@ public class ClassInitializerMerger {
           new IRCode(
               appView.options(),
               method,
-              callerPosition,
+              preamblePosition,
               ListUtils.newLinkedList(block),
               valueNumberGenerator,
               blockNumberGenerator,
@@ -266,7 +274,7 @@ public class ClassInitializerMerger {
                     appView,
                     appView.codeLens(),
                     valueNumberGenerator,
-                    callerPosition,
+                    preamblePosition,
                     classInitializer.getOrigin(),
                     RewrittenPrototypeDescription.none());
         classInitializer.getDefinition().setObsolete();

@@ -237,7 +237,7 @@ class TreeFixer extends TreeFixerBase {
         newMethodSignature.withHolder(originalMethodReference, dexItemFactory);
     lensBuilder.fixupMethod(originalMethodReference, newMethodReference);
     return newMethodReference != originalMethodReference
-        ? method.toTypeSubstitutedMethod(newMethodReference)
+        ? method.toTypeSubstitutedMethodAsInlining(newMethodReference, dexItemFactory)
         : method;
   }
 
@@ -278,7 +278,8 @@ class TreeFixer extends TreeFixerBase {
 
     lensBuilder.fixupMethod(originalMethodReference, newMethodReference);
 
-    DexEncodedMethod newMethod = method.toTypeSubstitutedMethod(newMethodReference);
+    DexEncodedMethod newMethod =
+        method.toTypeSubstitutedMethodAsInlining(newMethodReference, dexItemFactory);
     if (newMethod.isNonPrivateVirtualMethod()) {
       // Since we changed the return type or one of the parameters, this method cannot be a
       // classpath or library method override, since we only class merge program classes.

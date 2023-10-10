@@ -71,12 +71,9 @@ public class InstanceInitializerDescription {
    * Transform this description into actual CF code.
    *
    * @param originalMethodReference the original reference of the representative method
-   * @param syntheticMethodReference the original, synthetic reference of the new method reference
-   *     ($r8$init$synthetic)
    */
   public IncompleteMergedInstanceInitializerCode createCfCode(
       DexMethod originalMethodReference,
-      DexMethod syntheticMethodReference,
       MergeGroup group,
       boolean hasClassId,
       int extraNulls) {
@@ -84,7 +81,6 @@ public class InstanceInitializerDescription {
         hasClassId ? group.getClassIdField() : null,
         extraNulls,
         originalMethodReference,
-        syntheticMethodReference,
         instanceFieldAssignmentsPre,
         instanceFieldAssignmentsPost,
         parentConstructor,

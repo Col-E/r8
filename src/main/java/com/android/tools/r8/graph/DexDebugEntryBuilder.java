@@ -57,9 +57,9 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
   private List<DexDebugEntry> entries = new ArrayList<>();
   private final DexDebugPositionState positionState;
 
-  public DexDebugEntryBuilder(int startLine, DexMethod method) {
+  public DexDebugEntryBuilder(DexMethod method, boolean isD8R8Synthesized, int startLine) {
     assert method != null;
-    positionState = new DexDebugPositionState(startLine, method);
+    positionState = new DexDebugPositionState(startLine, method, isD8R8Synthesized);
   }
 
   public DexDebugEntryBuilder(DexEncodedMethod method, DexItemFactory factory) {
@@ -68,7 +68,9 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
     EventBasedDebugInfo info = code.getDebugInfo().asEventBasedInfo();
     // Only event based debug info supports conversion to entries.
     assert info != null;
-    positionState = new DexDebugPositionState(info.startLine, method.getReference());
+    positionState =
+        new DexDebugPositionState(
+            info.startLine, method.getReference(), method.isD8R8Synthesized());
     int argumentRegister = code.registerSize - code.incomingRegisterSize;
     if (!method.accessFlags.isStatic()) {
       DexString name = factory.thisName;

@@ -84,7 +84,7 @@ public class InliningIRProvider {
         context,
         appView,
         valueNumberGenerator,
-        Position.getPositionForInlining(appView, invoke, context),
+        Position.getPositionForInlining(invoke, context),
         origin,
         methodProcessor);
   }

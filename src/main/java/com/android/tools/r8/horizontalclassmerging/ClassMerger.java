@@ -142,7 +142,7 @@ public class ClassMerger {
         DexEncodedMethod.syntheticBuilder()
             .setMethod(newMethodReference)
             .setAccessFlags(MethodAccessFlags.createForClassInitializer())
-            .setCode(classInitializerMerger.getCode(syntheticMethodReference))
+            .setCode(classInitializerMerger.getCode(newMethodReference))
             .setClassFileVersion(classInitializerMerger.getCfVersion())
             .setApiLevelForDefinition(apiReferenceLevel)
             .setApiLevelForCode(apiReferenceLevel)
@@ -176,7 +176,7 @@ public class ClassMerger {
             }
             classMethodsBuilder.addDirectMethod(
                 newMethod != method.getReference()
-                    ? definition.toTypeSubstitutedMethod(newMethod)
+                    ? definition.toTypeSubstitutedMethodAsInlining(newMethod, dexItemFactory)
                     : method.getDefinition());
             if (definition.getReference() != newMethod) {
               lensBuilder.moveMethod(definition.getReference(), newMethod);

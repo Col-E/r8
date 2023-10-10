@@ -27,11 +27,13 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
   private int currentPc = 0;
   private int currentLine;
   protected DexMethod currentMethod;
+  protected boolean isCurrentMethodD8R8Synthesized;
   protected Position currentPosition;
 
-  public DexDebugPositionState(int startLine, DexMethod method) {
+  public DexDebugPositionState(int startLine, DexMethod method, boolean isD8R8Synthesized) {
     currentLine = startLine;
     currentMethod = method;
+    isCurrentMethodD8R8Synthesized = isD8R8Synthesized;
   }
 
   @Override
@@ -50,6 +52,7 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
     assert setPositionFrame.getPosition() != null;
     Position position = setPositionFrame.getPosition();
     currentMethod = position.getMethod();
+    isCurrentMethodD8R8Synthesized = position.isD8R8Synthesized();
     currentPosition = position;
   }
 
@@ -103,6 +106,7 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
       return (getCurrentLine() > 0 ? SourcePosition.builder() : SyntheticPosition.builder())
           .setLine(getCurrentLine())
           .setMethod(currentMethod)
+          .setIsD8R8Synthesized(isCurrentMethodD8R8Synthesized)
           .build();
     } else {
       return currentPosition.builderWithCopy().setLine(getCurrentLine()).build();

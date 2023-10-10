@@ -8,6 +8,7 @@ import static com.android.tools.r8.graph.DexApplication.classesWithDeterministic
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.defaultAsMethodOfCompanionClass;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.getInterfaceClassType;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.isCompanionClassType;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.staticAsMethodOfCompanionClass;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -77,7 +78,7 @@ public class ProguardMapMinifier {
   // To keep the order deterministic, we sort the classes by their type, which is a unique key.
   private final Set<ProgramOrClasspathClass> mappedClasses = Sets.newIdentityHashSet();
   private final Map<DexReference, MemberNaming> memberNames = Maps.newIdentityHashMap();
-  private final Map<DexMethod, DexString> defaultInterfaceMethodImplementationNames =
+  private final Map<DexMethod, DexString> companionClassInterfaceMethodImplementationNames =
       Maps.newIdentityHashMap();
   private final Map<DexMethod, DexString> additionalMethodNamings = Maps.newIdentityHashMap();
   private final Map<DexField, DexString> additionalFieldNamings = Maps.newIdentityHashMap();
@@ -135,7 +136,7 @@ public class ProguardMapMinifier {
         new MethodNameMinifier(appView, nameStrategy)
             .computeRenaming(interfaces, subtypingInfo, executorService, timing);
     // Amend the method renamings with the default interface methods.
-    methodRenaming.renaming.putAll(defaultInterfaceMethodImplementationNames);
+    methodRenaming.renaming.putAll(companionClassInterfaceMethodImplementationNames);
     methodRenaming.renaming.putAll(additionalMethodNamings);
     timing.end();
 
@@ -329,19 +330,16 @@ public class ProguardMapMinifier {
       // TODO(b/150736225): Is this sound? What if the type is a library type that has been pruned?
       DexClass dexClass = appView.appInfo().definitionForWithoutExistenceAssert(type);
       if (dexClass == null || dexClass.isClasspathClass()) {
-        computeDefaultInterfaceMethodMappingsForType(
-            type,
-            classNaming,
-            defaultInterfaceMethodImplementationNames);
+        computeCompanionClassInterfaceMethodMappingsForType(
+            type, classNaming, companionClassInterfaceMethodImplementationNames);
       }
     }
   }
 
-  @SuppressWarnings("ReferenceEquality")
-  private void computeDefaultInterfaceMethodMappingsForType(
+  private void computeCompanionClassInterfaceMethodMappingsForType(
       DexType type,
       ClassNamingForMapApplier classNaming,
-      Map<DexMethod, DexString> defaultInterfaceMethodImplementationNames) {
+      Map<DexMethod, DexString> companionClassInterfaceMethodImplementationNames) {
     // If the class does not resolve, then check if it is a companion class for an interface on
     // the class path.
     if (!isCompanionClassType(type)) {
@@ -360,12 +358,26 @@ public class ProguardMapMinifier {
       MemberNaming naming = namings.get(0);
       MethodSignature signature = (MethodSignature) naming.getOriginalSignature();
       if (signature.name.startsWith(interfaceType.type.toSourceString())) {
-        DexMethod defaultMethod =
-            defaultAsMethodOfCompanionClass(
-                signature.toUnqualified().toDexMethod(factory, interfaceType.type), factory);
-        assert defaultMethod.holder == type;
-        defaultInterfaceMethodImplementationNames.put(
-            defaultMethod, factory.createString(naming.getRenamedName()));
+        DexMethod originalReference =
+            signature.toUnqualified().toDexMethod(factory, interfaceType.type);
+        DexEncodedMethod originalDefinition = interfaceType.lookupMethod(originalReference);
+        if (originalDefinition == null) {
+          assert false;
+          continue;
+        }
+        DexMethod originalDesugaredMethod;
+        if (originalDefinition.isStatic()) {
+          originalDesugaredMethod = staticAsMethodOfCompanionClass(originalReference, factory);
+        } else if (originalDefinition.isNonAbstractVirtualMethod()) {
+          originalDesugaredMethod = defaultAsMethodOfCompanionClass(originalReference, factory);
+        } else {
+          // There is no implementation for private interface methods as those are not accessible
+          // outside the interface itself and should never need to be represented for apply mapping.
+          continue;
+        }
+        assert type.isIdenticalTo(originalDesugaredMethod.holder);
+        DexString renamed = factory.createString(naming.getRenamedName());
+        companionClassInterfaceMethodImplementationNames.put(originalDesugaredMethod, renamed);
       }
     }
   }
