@@ -17,7 +17,7 @@ def ParseOptions(argv):
       '--commit_hash',
       help='Commit hash of R8 to use.',
       default=None)
-  parser.add_argument(
+  parser.add_option(
       '--debug-agent',
       help='Enable Java debug agent and suspend compilation (default disabled)',
       default=False,
