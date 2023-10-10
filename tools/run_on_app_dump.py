@@ -23,7 +23,6 @@ from thread_utils import print_thread
 import update_prebuilds_in_android
 import utils
 
-# TODO(b/300387869): Cleanup targets
 GOLEM_BUILD_TARGETS = [utils.GRADLE_TASK_R8LIB,
                        utils.GRADLE_TASK_RETRACE]
 SHRINKERS = ['r8', 'r8-full', 'r8-nolib', 'r8-nolib-full']
@@ -1208,13 +1207,15 @@ def main(argv):
           quiet=options.quiet)
     elif options.version == 'main':
       if not options.no_build:
-        gradle.RunGradle(['R8Retrace', 'r8', '-Pno_internal'])
+        gradle.RunGradle([utils.GRADLE_TASK_RETRACE, utils.GRADLE_TASK_R8,
+                          '-Pno_internal'], new_gradle=True)
         build_r8lib = False
         for shrinker in options.shrinker:
           if is_minified_r8(shrinker):
             build_r8lib = True
         if build_r8lib:
-          gradle.RunGradle(['r8lib', '-Pno_internal'])
+          gradle.RunGradle([utils.GRADLE_TASK_R8LIB, '-Pno_internal'],
+                           new_gradle=True)
       # Make a copy of r8.jar and r8lib.jar such that they stay the same for
       # the entire execution of this script.
       if 'r8-nolib' in options.shrinker or 'r8-nolib-full' in options.shrinker:
