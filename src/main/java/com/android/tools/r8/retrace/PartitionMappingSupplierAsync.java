@@ -11,7 +11,6 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.internal.PartitionMappingSupplierBase;
-import com.android.tools.r8.retrace.internal.RetracerImpl;
 
 @Keep
 public class PartitionMappingSupplierAsync
@@ -80,7 +79,7 @@ public class PartitionMappingSupplierAsync
   }
 
   @Override
-  public RetracerImpl createRetracer(
+  public Retracer createRetracer(
       DiagnosticsHandler diagnosticsHandler, MappingPartitionFromKeySupplier supplier) {
     return createRetracerFromPartitionSupplier(diagnosticsHandler, supplier);
   }
