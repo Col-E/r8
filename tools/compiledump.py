@@ -154,11 +154,6 @@ def make_parser():
     help='Run compilation in specified mode',
     choices=['debug', 'release'],
     default=None)
-  parser.add_argument(
-    '--new-gradle',
-    help='Use the new gradle build (defaults to old build)',
-    default=False,
-    action='store_true')
   return parser
 
 def error(msg):
@@ -393,12 +388,7 @@ def determine_properties(build_properties):
 def download_distribution(version, args, temp):
   nolib = args.nolib
   if version == 'main':
-    if args.new_gradle:
-      return "%s:%s" % (
-        "d8_r8/main/build/libs/deps.jar",
-        "d8_r8/main/build/libs/r8.jar")
-    else:
-      return utils.R8_JAR if nolib else utils.R8LIB_JAR
+    return utils.R8_JAR if nolib else utils.R8LIB_JAR
   if version == 'source':
     return '%s:%s' % (utils.BUILD_JAVA_MAIN_DIR, utils.ALL_DEPS_JAR)
   name = 'r8.jar' if nolib else 'r8lib.jar'
