@@ -76,29 +76,6 @@ def run(tool, args, build=None, debug=True,
     time_consumer(duration)
   return result
 
-def run_in_tests(tool, args, build=None, debug=True, extra_args=None):
-  if build is None:
-    build, args = extract_build_from_args(args)
-  if build:
-    gradle.RunGradle([
-      'copyMavenDeps',
-      'compileTestJava',
-    ])
-  cmd = []
-  cmd.append(jdk.GetJavaExecutable())
-  if extra_args:
-    cmd.extend(extra_args)
-  if debug:
-    cmd.append('-ea')
-  cmd.extend(['-cp', ':'.join([
-    utils.BUILD_MAIN_DIR,
-    utils.BUILD_TEST_DIR,
-  ] + glob.glob('%s/*.jar' % utils.BUILD_DEPS_DIR))])
-  cmd.extend([tool])
-  cmd.extend(args)
-  utils.PrintCmd(cmd)
-  return subprocess.call(cmd)
-
 def extract_build_from_args(input_args):
   build = True
   args = []

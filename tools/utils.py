@@ -29,11 +29,9 @@ BUNDLETOOL_JAR = os.path.join(BUNDLETOOL_JAR_DIR, 'bundletool-all-1.11.0.jar')
 ANDROID_SDK = os.path.join(THIRD_PARTY, 'android_sdk')
 MEMORY_USE_TMP_FILE = 'memory_use.tmp'
 DEX_SEGMENTS_RESULT_PATTERN = re.compile('- ([^:]+): ([0-9]+)')
+
 BUILD = os.path.join(REPO_ROOT, 'build')
-BUILD_DEPS_DIR = os.path.join(BUILD, 'deps')
-BUILD_MAIN_DIR = os.path.join(BUILD, 'classes', 'main')
 BUILD_JAVA_MAIN_DIR = os.path.join(BUILD, 'classes', 'java', 'main')
-BUILD_TEST_DIR = os.path.join(BUILD, 'classes', 'test')
 LIBS = os.path.join(BUILD, 'libs')
 CUSTOM_CONVERSION_DIR = os.path.join(
     THIRD_PARTY, 'openjdk', 'custom_conversion')
