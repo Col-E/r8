@@ -34,12 +34,7 @@ public class CanonicalPositions {
     canonicalPositions =
         new HashMap<>(1 + (callerPosition == null ? 0 : 1) + expectedPositionsCount);
     if (preamblePosition == null) {
-      preamblePosition =
-          SyntheticPosition.builder()
-              .setLine(0)
-              .setMethod(method)
-              .setIsD8R8Synthesized(methodIsSynthesized)
-              .build();
+      preamblePosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
     }
     if (callerPosition != null) {
       this.callerPosition = getCanonical(callerPosition);
@@ -65,18 +60,6 @@ public class CanonicalPositions {
   public Position getCanonical(Position position) {
     Position canonical = canonicalPositions.putIfAbsent(position, position);
     return canonical != null ? canonical : position;
-  }
-
-  public Position canonicalizePositionWithCaller(Position position) {
-    if (position.isD8R8Synthesized() && callerPosition != null) {
-      assert !position.hasCallerPosition();
-      return getCanonical(Code.newInlineePosition(callerPosition, position, true));
-    }
-    return getCanonical(
-        position
-            .builderWithCopy()
-            .setCallerPosition(canonicalizeCallerPosition(position.getCallerPosition()))
-            .build());
   }
 
   /**

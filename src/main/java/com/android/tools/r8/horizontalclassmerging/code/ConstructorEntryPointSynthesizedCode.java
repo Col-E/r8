@@ -14,20 +14,27 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.function.Consumer;
 
 public class ConstructorEntryPointSynthesizedCode extends AbstractSynthesizedCode {
+  private final DexMethod newConstructor;
+  private final DexMethod originalMethod;
   private final DexField classIdField;
   private final Int2ReferenceSortedMap<DexMethod> typeConstructors;
 
   public ConstructorEntryPointSynthesizedCode(
-      Int2ReferenceSortedMap<DexMethod> typeConstructors, DexField classIdField) {
+      Int2ReferenceSortedMap<DexMethod> typeConstructors,
+      DexMethod newConstructor,
+      DexField classIdField,
+      DexMethod originalMethod) {
     this.typeConstructors = typeConstructors;
+    this.newConstructor = newConstructor;
     this.classIdField = classIdField;
+    this.originalMethod = originalMethod;
   }
 
   @Override
   public SourceCodeProvider getSourceCodeProvider() {
-    return (method, callerPosition) ->
+    return (ignored, callerPosition) ->
         new ConstructorEntryPoint(
-            typeConstructors, method.getReference(), classIdField, callerPosition);
+            typeConstructors, newConstructor, classIdField, callerPosition, originalMethod);
   }
 
   @Override

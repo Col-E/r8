@@ -51,7 +51,7 @@ public class MergedConstructorForwardingTest extends HorizontalClassMergingTestB
               assertThat(otherInitSubject, isPresent());
               assertThat(otherInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
 
-              MethodSubject printSubject = getUniqueDispatchBridgeMethod(aClassSubject);
+              MethodSubject printSubject = aClassSubject.method("void", "print$bridge");
               assertThat(printSubject, isPresent());
               assertThat(printSubject, readsInstanceField(classIdFieldSubject.getDexField()));
 

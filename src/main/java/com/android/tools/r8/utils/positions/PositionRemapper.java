@@ -77,9 +77,10 @@ public interface PositionRemapper {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public Pair<Position, Position> createRemappedPosition(Position position) {
       assert position.getMethod() != null;
-      if (position.getMethod().isIdenticalTo(previousMethod)) {
+      if (previousMethod == position.getMethod()) {
         assert previousSourceLine >= 0;
         if (position.getLine() > previousSourceLine
             && position.getLine() - previousSourceLine <= maxLineDelta) {

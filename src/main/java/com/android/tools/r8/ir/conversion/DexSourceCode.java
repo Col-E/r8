@@ -74,28 +74,29 @@ public class DexSourceCode implements SourceCode {
   private final CanonicalPositions canonicalPositions;
 
   private List<DexDebugEntry> debugEntries = null;
+  // In case of inlining the position of the invoke in the caller.
+  private final DexMethod originalMethod;
 
   public DexSourceCode(
       DexCode code,
       ProgramMethod method,
+      DexMethod originalMethod,
       Position callerPosition,
       DexItemFactory factory) {
     this.code = code;
     this.method = method;
-    DexMethod reference = method.getReference();
-    boolean d8R8Synthesized = method.getDefinition().isD8R8Synthesized();
+    this.originalMethod = originalMethod;
     EventBasedDebugInfo info = DexDebugInfo.convertToEventBased(code, factory);
     if (info != null) {
-      debugEntries = info.computeEntries(reference, d8R8Synthesized);
+      debugEntries = info.computeEntries(originalMethod);
     }
     canonicalPositions =
         new CanonicalPositions(
             callerPosition,
             debugEntries == null ? 0 : debugEntries.size(),
-            reference,
-            d8R8Synthesized,
-            DexDebugUtils.computePreamblePosition(reference, d8R8Synthesized, info)
-                .getFramePosition());
+            originalMethod,
+            method.getDefinition().isD8R8Synthesized(),
+            DexDebugUtils.computePreamblePosition(originalMethod, info).getFramePosition());
   }
 
   @Override
@@ -260,7 +261,17 @@ public class DexSourceCode implements SourceCode {
   }
 
   private Position getCanonicalPositionAppendCaller(DexDebugEntry entry) {
-    return canonicalPositions.canonicalizePositionWithCaller(entry.getPosition());
+    // If this instruction has already been inlined then the original method must be in the caller
+    // chain.
+    Position position = entry.getPosition();
+    // TODO(b/261971803): The original method should probably always be in the chain.
+    assert !position.hasCallerPosition() || position.hasMethodInChain(originalMethod);
+    return canonicalPositions.getCanonical(
+        position
+            .builderWithCopy()
+            .setCallerPosition(
+                canonicalPositions.canonicalizeCallerPosition(position.getCallerPosition()))
+            .build());
   }
 
   @Override

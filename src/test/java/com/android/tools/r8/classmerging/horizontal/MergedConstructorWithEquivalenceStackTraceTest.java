@@ -4,87 +4,36 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
-import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForLineNumbers;
+import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.naming.retrace.StackTrace;
-import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class MergedConstructorWithEquivalenceStackTraceTest extends HorizontalClassMergingTestBase {
+
+  private static StackTrace expectedStackTrace;
 
   public MergedConstructorWithEquivalenceStackTraceTest(TestParameters parameters) {
     super(parameters);
   }
 
-  private final String FILE_NAME =
-      ToolHelper.getSourceFileForTestClass(getClass()).getFileName().toString();
-
-  private StackTrace getExpectedStackTrace() {
-    return StackTrace.builder()
-        .add(
-            StackTraceLine.builder()
-                .setFileName(FILE_NAME)
-                .setClassName(typeName(Parent.class))
-                .setMethodName("<init>")
-                .build())
-        .add(
-            StackTraceLine.builder()
-                .setFileName(FILE_NAME)
-                .setClassName(typeName(A.class))
-                .setMethodName("<init>")
-                .build())
-        .add(
-            StackTraceLine.builder()
-                .setFileName(FILE_NAME)
-                .setClassName(typeName(Main.class))
-                .setMethodName("main")
-                .build())
-        .build();
-  }
-
-  // TODO(b/301920457): The constructors should be merged in such a way that the original stack can
-  //  be recovered.
-  private StackTrace getUnxpectedStackTrace() {
-    return StackTrace.builder()
-        .add(
-            StackTraceLine.builder()
-                .setFileName(FILE_NAME)
-                .setClassName(typeName(Parent.class))
-                .setMethodName("<init>")
-                .build())
-        .add(
-            StackTraceLine.builder()
-                .setFileName(FILE_NAME)
-                .setClassName(typeName(Main.class))
-                .setMethodName("main")
-                .build())
-        .build();
-  }
-
-  private void checkRetracedStackTrace(StackTrace expectedStackTrace, StackTrace stackTrace) {
-    assertThat(stackTrace, isSameExceptForLineNumbers(expectedStackTrace));
-    for (StackTraceLine line : stackTrace.getStackTraceLines()) {
-      assertTrue(line.lineNumber > 0);
-    }
-  }
-
-  @Test
-  public void testReference() throws Exception {
-    parameters.assumeJvmTestParameters();
+  @BeforeClass
+  public static void setup() throws Exception {
     // Get the expected stack trace by running on the JVM.
-    testForJvm(parameters)
-        .addTestClasspath()
-        .run(parameters.getRuntime(), Main.class)
-        .assertFailure()
-        .inspectStackTrace(actual -> checkRetracedStackTrace(getExpectedStackTrace(), actual));
+    expectedStackTrace =
+        testForJvm(getStaticTemp())
+            .addTestClasspath()
+            .run(CfRuntime.getSystemRuntime(), Main.class)
+            .assertFailure()
+            .map(StackTrace::extractFromJvm);
   }
 
   @Test
@@ -105,8 +54,17 @@ public class MergedConstructorWithEquivalenceStackTraceTest extends HorizontalCl
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
               assertThat(codeInspector.clazz(A.class), isPresent());
+              StackTrace expectedStackTraceWithMergedConstructor =
+                  StackTrace.builder()
+                      .add(expectedStackTrace)
+                      // TODO(b/124483578): Stack trace lines from the merging of equivalent
+                      //  constructors should retrace to the set of lines from each of the
+                      //  individual source constructors.
+                      .map(
+                          1, stackTraceLine -> stackTraceLine.builderOf().setLineNumber(-1).build())
+                      .build();
+              assertThat(stackTrace, isSame(expectedStackTraceWithMergedConstructor));
               assertThat(codeInspector.clazz(B.class), not(isPresent()));
-              checkRetracedStackTrace(getUnxpectedStackTrace(), stackTrace);
             });
   }
 

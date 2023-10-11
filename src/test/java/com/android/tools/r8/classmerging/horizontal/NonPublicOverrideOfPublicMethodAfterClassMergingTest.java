@@ -59,8 +59,7 @@ public class NonPublicOverrideOfPublicMethodAfterClassMergingTest extends TestBa
               ClassSubject iClassSubject = inspector.clazz(I.class);
               assertThat(iClassSubject, isPresent());
               assertThat(
-                  iClassSubject.uniqueMethodThatMatches(m -> !m.isInstanceInitializer()),
-                  allOf(isPresent(), isPublic()));
+                  iClassSubject.uniqueMethodWithOriginalName("m"), allOf(isPresent(), isPublic()));
 
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());

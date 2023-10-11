@@ -4,11 +4,10 @@
 
 package com.android.tools.r8.profile.art.completeness;
 
-import static com.android.tools.r8.synthesis.SyntheticItemsTestUtils.syntheticInvokeSpecialMethod;
-import static com.android.tools.r8.utils.codeinspector.CodeMatchers.isInvokeWithTarget;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -16,15 +15,13 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.profile.art.model.ExternalArtProfile;
 import com.android.tools.r8.profile.art.utils.ArtProfileInspector;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.CodeMatchers;
-import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
-import java.lang.reflect.Method;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -107,28 +104,20 @@ public class InvokeSpecialToVirtualMethodProfileRewritingTest extends TestBase {
 
   private void inspect(ArtProfileInspector profileInspector, CodeInspector inspector)
       throws Exception {
-    Method mMethod = Main.class.getDeclaredMethod("m");
     ClassSubject mainClassSubject = inspector.clazz(Main.class);
     assertThat(mainClassSubject, isPresent());
 
-    // Find the two methods named 'm'. Avoid encoding the order and inspect which is the caller.
-    List<FoundMethodSubject> methods =
-        mainClassSubject.allMethods(
-            m -> {
-              String originalName = m.getOriginalName();
-              return originalName.equals("m")
-                  || originalName.equals(syntheticInvokeSpecialMethod(mMethod).getMethodName());
-            });
-    assertEquals(2, methods.size());
-    FoundMethodSubject mMethodSubject = methods.get(0);
-    FoundMethodSubject mMovedMethodSubject = methods.get(1);
-    if (!mMethodSubject
-        .streamInstructions()
-        .anyMatch(isInvokeWithTarget(mMovedMethodSubject.getFinalReference()))) {
-      mMethodSubject = methods.get(1);
-      mMovedMethodSubject = methods.get(0);
-    }
-    assertThat(mMethodSubject, CodeMatchers.invokesMethod(mMovedMethodSubject));
+    MethodSubject mMethodSubject = mainClassSubject.uniqueMethodWithOriginalName("m");
+    assertThat(mMethodSubject, isPresent());
+
+    MethodSubject mMovedMethodSubject =
+        mainClassSubject.method(
+            SyntheticItemsTestUtils.syntheticInvokeSpecialMethod(
+                Main.class.getDeclaredMethod("m")));
+    assertThat(mMovedMethodSubject, isPresent());
+      assertNotEquals(
+          mMethodSubject.getProgramMethod().getName(),
+          mMovedMethodSubject.getProgramMethod().getName());
 
     // Verify residual profile contains private synthetic method when present.
     profileInspector

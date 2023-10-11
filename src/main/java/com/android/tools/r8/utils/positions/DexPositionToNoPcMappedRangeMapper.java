@@ -99,9 +99,8 @@ public class DexPositionToNoPcMappedRangeMapper {
         List<DexDebugEvent> processedEvents,
         DexItemFactory factory,
         int startLine,
-        DexMethod method,
-        boolean isD8R8Synthesized) {
-      super(startLine, method, isD8R8Synthesized);
+        DexMethod method) {
+      super(startLine, method);
       this.positionEventEmitter = positionEventEmitter;
       this.mappedPositions = mappedPositions;
       this.positionRemapper = positionRemapper;
@@ -190,9 +189,12 @@ public class DexPositionToNoPcMappedRangeMapper {
         getEventBasedDebugInfo(method.getDefinition(), dexCode, appView);
 
     List<DexDebugEvent> processedEvents = new ArrayList<>();
+
     PositionEventEmitter positionEventEmitter =
         new PositionEventEmitter(
-            application.dexItemFactory, method.getReference(), processedEvents);
+            application.dexItemFactory,
+            appView.graphLens().getOriginalMethodSignature(method.getReference()),
+            processedEvents);
 
     DexDebugPositionStateVisitor visitor =
         new DexDebugPositionStateVisitor(
@@ -202,8 +204,7 @@ public class DexPositionToNoPcMappedRangeMapper {
             processedEvents,
             appView.dexItemFactory(),
             debugInfo.startLine,
-            method.getReference(),
-            method.getDefinition().isD8R8Synthesized());
+            appView.graphLens().getOriginalMethodSignature(method.getReference()));
 
     DexDebugEvent[] events = debugInfo.events;
     for (DexDebugEvent event : events) {
@@ -218,7 +219,7 @@ public class DexPositionToNoPcMappedRangeMapper {
 
     assert !isIdentityMapping
         || visitor.inlinedOriginalPosition
-        || verifyIdentityMapping(method, debugInfo, optimizedDebugInfo);
+        || verifyIdentityMapping(debugInfo, optimizedDebugInfo);
 
     dexCode.setDebugInfo(optimizedDebugInfo);
     return mappedPositions;
@@ -241,39 +242,11 @@ public class DexPositionToNoPcMappedRangeMapper {
   }
 
   private static boolean verifyIdentityMapping(
-      ProgramMethod method,
-      EventBasedDebugInfo originalDebugInfo,
-      EventBasedDebugInfo optimizedDebugInfo) {
-    if (isTrivialSyntheticMethod(method, originalDebugInfo)) {
-      return true;
-    }
+      EventBasedDebugInfo originalDebugInfo, EventBasedDebugInfo optimizedDebugInfo) {
     assert optimizedDebugInfo.startLine == originalDebugInfo.startLine;
     assert optimizedDebugInfo.events.length == originalDebugInfo.events.length;
     for (int i = 0; i < originalDebugInfo.events.length; ++i) {
       assert optimizedDebugInfo.events[i].equals(originalDebugInfo.events[i]);
-    }
-    return true;
-  }
-
-  private static boolean isTrivialSyntheticMethod(
-      ProgramMethod method, EventBasedDebugInfo originalDebugInfo) {
-    if (!method.getDefinition().isD8R8Synthesized()) {
-      return false;
-    }
-    // A synthetic method may have different debug info but still be trivial if it holds that all
-    // the frames are just trivial frames for the synthetic method itself.
-    for (DexDebugEvent event : originalDebugInfo.events) {
-      if (event.isPositionFrame()) {
-        Position position = event.asSetPositionFrame().getPosition();
-        if (!method.getReference().isIdenticalTo(position.getMethod())
-            || !position.isD8R8Synthesized()
-            || position.hasCallerPosition()
-            || position.isOutline()
-            || position.isRemoveInnerFramesIfThrowingNpe()) {
-          // If the frame is not trivial then break and assert the usual identity property.
-          return false;
-        }
-      }
     }
     return true;
   }

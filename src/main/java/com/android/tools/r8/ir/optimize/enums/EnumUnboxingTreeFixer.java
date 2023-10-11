@@ -916,9 +916,8 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
             method, localUtilityClass, availableMethodSignatures, method.getReference());
     return method
         .getDefinition()
-        .toTypeSubstitutedMethodAsInlining(
+        .toTypeSubstitutedMethod(
             newMethod,
-            factory,
             builder ->
                 transformMethodForLocalUtility(builder, method)
                     .setCompilationState(method.getDefinition().getCompilationState()));
@@ -935,9 +934,8 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     DexEncodedMethod dexEncodedMethod =
         method
             .getDefinition()
-            .toTypeSubstitutedMethodAsInlining(
+            .toTypeSubstitutedMethod(
                 newMethod,
-                factory,
                 builder ->
                     transformMethodForLocalUtility(builder, method)
                         .modifyAccessFlags(MethodAccessFlags::unsetAbstract)
@@ -1018,9 +1016,8 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     RewrittenPrototypeDescription prototypeChanges =
         lensBuilder.moveAndMap(
             method.getReference(), newMethod, isStatic, isStatic, extraUnusedNullParameters);
-    return method.toTypeSubstitutedMethodAsInlining(
+    return method.toTypeSubstitutedMethod(
         newMethod,
-        factory,
         builder ->
             builder
                 .fixupOptimizationInfo(

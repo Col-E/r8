@@ -684,6 +684,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
             this,
             localVariables,
             method,
+            appView.graphLens().getOriginalMethodSignature(method.getReference()),
             callerPosition,
             origin,
             appView);
@@ -892,17 +893,8 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
 
   @Override
   public Code getCodeAsInlining(
-      DexMethod caller,
-      boolean isCallerD8R8Synthesized,
-      DexMethod callee,
-      boolean isCalleeD8R8Synthesized,
-      DexItemFactory factory) {
-    Position callerPosition =
-        SyntheticPosition.builder()
-            .setLine(0)
-            .setMethod(caller)
-            .setIsD8R8Synthesized(isCallerD8R8Synthesized)
-            .build();
+      DexMethod caller, DexMethod callee, DexItemFactory factory, boolean isCalleeD8R8Synthesized) {
+    Position callerPosition = SyntheticPosition.builder().setLine(0).setMethod(caller).build();
     List<CfInstruction> newInstructions = new ArrayList<>(instructions.size() + 2);
     CfLabel firstLabel;
     if (instructions.get(0).isLabel()) {
@@ -976,8 +968,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   @Override
-  public void forEachPosition(
-      DexMethod method, boolean isD8R8Synthesized, Consumer<Position> positionConsumer) {
+  public void forEachPosition(DexMethod method, Consumer<Position> positionConsumer) {
     for (CfInstruction instruction : getInstructions()) {
       if (instruction.isPosition()) {
         positionConsumer.accept(instruction.asPosition().getPosition());

@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
@@ -88,19 +87,6 @@ public class DefaultInstanceInitializerCode extends Code
     method.setCode(get().toCfCode(method, appView.dexItemFactory(), superType), appView);
   }
 
-  @Override
-  public Code getCodeAsInlining(
-      DexMethod caller,
-      boolean isCallerD8R8Synthesized,
-      DexMethod callee,
-      boolean isCalleeD8R8Synthesized,
-      DexItemFactory factory) {
-    // TODO(b/261971803): It is odd this code does not have an original position for the <init>.
-    //  See OverrideParentCollisionTest for a case hitting this inlining where callee is a
-    //  non-synthetic non-default <init> (it has argument String).
-    return this;
-  }
-
   @SuppressWarnings("ReferenceEquality")
   private static boolean hasDefaultInstanceInitializerCode(
       ProgramMethod method, AppView<?> appView) {
@@ -158,9 +144,10 @@ public class DefaultInstanceInitializerCode extends Code
       AppView<?> appView,
       Origin origin,
       MutableMethodConversionOptions conversionOptions) {
+    DexMethod originalMethod =
+        appView.graphLens().getOriginalMethodSignature(method.getReference());
     DefaultInstanceInitializerSourceCode source =
-        new DefaultInstanceInitializerSourceCode(
-            method.getReference(), method.getDefinition().isD8R8Synthesized());
+        new DefaultInstanceInitializerSourceCode(originalMethod);
     return IRBuilder.create(method, appView, source, origin).build(method, conversionOptions);
   }
 
@@ -174,9 +161,10 @@ public class DefaultInstanceInitializerCode extends Code
       Position callerPosition,
       Origin origin,
       RewrittenPrototypeDescription protoChanges) {
+    DexMethod originalMethod =
+        appView.graphLens().getOriginalMethodSignature(method.getReference());
     DefaultInstanceInitializerSourceCode source =
-        new DefaultInstanceInitializerSourceCode(
-            method.getReference(), method.getDefinition().isD8R8Synthesized(), callerPosition);
+        new DefaultInstanceInitializerSourceCode(originalMethod, callerPosition);
     return IRBuilder.createForInlining(
             method, appView, codeLens, source, origin, valueNumberGenerator, protoChanges)
         .build(context, MethodConversionOptions.nonConverting());
@@ -422,33 +410,25 @@ public class DefaultInstanceInitializerCode extends Code
 
   static class DefaultInstanceInitializerSourceCode extends SyntheticStraightLineSourceCode {
 
-    DefaultInstanceInitializerSourceCode(DexMethod method, boolean isD8R8Synthesized) {
-      this(method, isD8R8Synthesized, null);
+    DefaultInstanceInitializerSourceCode(DexMethod method) {
+      this(method, null);
     }
 
-    DefaultInstanceInitializerSourceCode(
-        DexMethod method, boolean isD8R8Synthesized, Position callerPosition) {
-      super(getInstructionBuilders(), getPosition(method, isD8R8Synthesized, callerPosition));
-    }
-
-    private static Position getPosition(
-        DexMethod method, boolean isD8R8Synthesized, Position callerPosition) {
-      SyntheticPosition calleePosition =
+    DefaultInstanceInitializerSourceCode(DexMethod method, Position callerPosition) {
+      super(
+          getInstructionBuilders(),
           SyntheticPosition.builder()
               .setLine(0)
               .setMethod(method)
-              .setIsD8R8Synthesized(isD8R8Synthesized)
-              .build();
-      return callerPosition == null
-          ? calleePosition
-          : Code.newInlineePosition(callerPosition, calleePosition, isD8R8Synthesized);
+              .setCallerPosition(callerPosition)
+              .build());
     }
 
     private static List<Consumer<IRBuilder>> getInstructionBuilders() {
       return ImmutableList.of(
           builder ->
               builder.add(
-                  InvokeDirect.builder()
+                  com.android.tools.r8.ir.code.InvokeDirect.builder()
                       .setMethod(
                           getParentConstructor(
                               builder.getProgramMethod(), builder.dexItemFactory()))
