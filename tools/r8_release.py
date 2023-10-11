@@ -403,11 +403,10 @@ def prepare_google3(args):
       download_file(options.version, 'r8lib-exclude-deps.jar', 'lib.jar')
       download_file(
           options.version, 'r8lib-exclude-deps.jar.map', 'lib.jar.map')
-      download_file(
-          options.version, 'r8lib-exclude-deps.jar.map', 'retrace_lib.jar.map')
       download_file(options.version, 'desugar_jdk_libs_configuration.jar',
                     'desugar_jdk_libs_configuration.jar')
       download_file(options.version, 'r8retrace-exclude-deps.jar', 'retrace_lib.jar')
+      download_file(options.version, 'r8retrace-exclude-deps.jar.map', 'retrace_lib.jar.map')
       g4_open('METADATA')
       metadata_path = os.path.join(third_party_r8, 'METADATA')
       match_count = 0
