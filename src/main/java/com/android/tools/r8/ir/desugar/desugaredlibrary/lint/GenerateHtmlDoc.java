@@ -62,11 +62,6 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
 
     StringBuilderWithIndent() {}
 
-    StringBuilderWithIndent indent(String indent) {
-      this.indent = indent;
-      return this;
-    }
-
     StringBuilderWithIndent appendLineStart(String lineStart) {
       builder.append(indent);
       builder.append(lineStart);
@@ -293,17 +288,12 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
 
   private static class HTMLBuilder extends StringBuilderWithIndent {
 
-    @SuppressWarnings("HidingField")
-    private String indent = "";
-
     private void increaseIndent() {
       indent += "  ";
-      indent(indent);
     }
 
     private void decreaseIndent() {
       indent = indent.substring(0, indent.length() - 2);
-      indent(indent);
     }
 
     HTMLBuilder appendTdPackage(String s) {
