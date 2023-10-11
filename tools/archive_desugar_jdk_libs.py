@@ -253,7 +253,10 @@ def write_sha1_for(file):
     file.write(hexdigest)
 
 def Undesugar(variant, maven_zip, version, undesugared_maven_zip):
-  gradle.RunGradle(['testJar', 'repackageTestDeps', '-Pno_internal'])
+  gradle.RunGradle([utils.GRADLE_TASK_R8,
+                    utils.GRADLE_TASK_TEST_JAR,
+                    utils.GRADLE_TASK_TEST_DEPS_JAR,
+                    '-Pno_internal'], new_gradle=True)
   with utils.TempDir() as tmp:
     with zipfile.ZipFile(maven_zip, 'r') as zip_ref:
       zip_ref.extractall(tmp)
@@ -270,7 +273,7 @@ def Undesugar(variant, maven_zip, version, undesugared_maven_zip):
     buildLibs = os.path.join(defines.REPO_ROOT, 'build', 'libs')
     cmd = [jdk.GetJavaExecutable(),
       '-cp',
-      '%s:%s:%s' % (os.path.join(buildLibs, 'r8_with_deps.jar'), os.path.join(buildLibs, 'r8tests.jar'), os.path.join(buildLibs, 'test_deps_all.jar')),
+      '%s:%s:%s' % (utils.R8_JAR, utils.R8_TESTS_JAR, utils.R8_TESTS_DEPS_JAR),
       'com.android.tools.r8.desugar.desugaredlibrary.jdk11.DesugaredLibraryJDK11Undesugarer',
       desugar_jdk_libs_jar,
       undesugared_jar]

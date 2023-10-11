@@ -53,6 +53,8 @@ GRADLE_TASK_RETRACE_NO_DEPS = ':test:retraceNoDeps'
 GRADLE_TASK_SOURCE_JAR = ':test:sourcesJar'
 GRADLE_TASK_SWISS_ARMY_KNIFE = ':main:swissArmyKnife'
 GRADLE_TASK_TEST = ':test:test'
+GRADLE_TASK_TEST_DEPS_JAR = ':test:allDepsJar'
+GRADLE_TASK_TEST_JAR = ':test:allTestsJar'
 
 D8 = 'd8'
 R8 = 'r8'

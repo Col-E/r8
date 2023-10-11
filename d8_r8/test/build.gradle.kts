@@ -50,7 +50,8 @@ tasks {
     from(java8TestJarTask.outputs.files.map(::zipTree))
     exclude("META-INF/*.kotlin_module")
     exclude("**/*.kotlin_metadata")
-    archiveFileName.set("all-tests.jar")
+    destinationDirectory.set(getRoot().resolveAll("build", "libs"))
+    archiveFileName.set("r8tests.jar")
   }
 
   val allDepsJar by registering(Jar::class) {
@@ -61,7 +62,8 @@ tasks {
     exclude("META-INF/*.kotlin_module")
     exclude("**/*.kotlin_metadata")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    archiveFileName.set("all-deps.jar")
+    destinationDirectory.set(getRoot().resolveAll("build", "libs"))
+    archiveFileName.set("test_deps_all.jar")
   }
 
   val allTestsJarRelocated by registering(Exec::class) {
