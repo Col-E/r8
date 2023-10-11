@@ -147,7 +147,9 @@ public class LineNumberOptimizer {
 
         for (ProgramMethod method : methods) {
           DexEncodedMethod definition = method.getDefinition();
+          DexMethod methodReference = method.getReference();
           if (methodName == method.getName()
+              && appView.graphLens().getOriginalMethodSignature(methodReference) == methodReference
               && !mustHaveResidualDebugInfo(appView.options(), definition)
               && !definition.isD8R8Synthesized()
               && methods.size() <= 1) {

@@ -213,12 +213,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   /**
    * Flags this method as no longer being obsolete.
    *
-   * <p>Example use case: The vertical class merger optimistically merges two classes before it is
+   * Example use case: The vertical class merger optimistically merges two classes before it is
    * guaranteed that the two classes can be merged. In this process, methods are moved from the
-   * source class to the target class using {@link #toTypeSubstitutedMethodAsInlining(DexMethod,
-   * DexItemFactory)}, which causes the original methods of the source class to become obsolete. If
-   * vertical class merging is aborted, the original methods of the source class needs to be marked
-   * as not being obsolete.
+   * source class to the target class using {@link #toTypeSubstitutedMethod(DexMethod)}, which
+   * causes the original methods of the source class to become obsolete. If vertical class merging
+   * is aborted, the original methods of the source class needs to be marked as not being obsolete.
    */
   public void unsetObsolete() {
     obsolete = false;
@@ -1125,6 +1124,16 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return new CfCode(getReference().holder, 3, locals, instructionBuilder.build());
   }
 
+  public DexEncodedMethod toTypeSubstitutedMethod(DexMethod method) {
+    checkIfObsolete();
+    return toTypeSubstitutedMethodHelper(method, isD8R8Synthesized(), null);
+  }
+
+  public DexEncodedMethod toTypeSubstitutedMethod(DexMethod method, Consumer<Builder> consumer) {
+    checkIfObsolete();
+    return toTypeSubstitutedMethodHelper(method, isD8R8Synthesized(), consumer);
+  }
+
   public DexEncodedMethod toTypeSubstitutedMethodAsInlining(
       DexMethod method, DexItemFactory factory) {
     checkIfObsolete();
@@ -1133,20 +1142,12 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public DexEncodedMethod toTypeSubstitutedMethodAsInlining(
       DexMethod method, DexItemFactory factory, Consumer<Builder> consumer) {
-    boolean isCallerD8R8Synthesized = true;
     return toTypeSubstitutedMethodHelper(
         method,
-        isCallerD8R8Synthesized,
+        true,
         builder -> {
           if (code != null) {
-            builder.setCode(
-                getCode()
-                    .getCodeAsInlining(
-                        method,
-                        isCallerD8R8Synthesized,
-                        getReference(),
-                        isD8R8Synthesized(),
-                        factory));
+            builder.setCode(getCode().getCodeAsInlining(method, this, factory));
           }
           if (consumer != null) {
             consumer.accept(builder);
@@ -1180,26 +1181,24 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return builder.build();
   }
 
-  public ProgramMethod toPrivateSyntheticMethod(
-      DexProgramClass holder, DexMethod method, DexItemFactory factory) {
+  @SuppressWarnings("ReferenceEquality")
+  public ProgramMethod toPrivateSyntheticMethod(DexProgramClass holder, DexMethod method) {
     assert !isStatic();
     assert !isPrivate();
-    assert getHolderType().isIdenticalTo(method.getHolderType());
+    assert getHolderType() == method.getHolderType();
     checkIfObsolete();
-    DexEncodedMethod newMethod =
-        toTypeSubstitutedMethodAsInlining(
-            method,
-            factory,
-            builder -> {
-              builder.modifyAccessFlags(
-                  accessFlags -> {
-                    accessFlags.setSynthetic();
-                    accessFlags.unsetProtected();
-                    accessFlags.unsetPublic();
-                    accessFlags.setPrivate();
-                  });
-            });
-    return new ProgramMethod(holder, newMethod);
+    return new ProgramMethod(
+        holder,
+        syntheticBuilder(this)
+            .setMethod(method)
+            .modifyAccessFlags(
+                accessFlags -> {
+                  accessFlags.setSynthetic();
+                  accessFlags.unsetProtected();
+                  accessFlags.unsetPublic();
+                  accessFlags.setPrivate();
+                })
+            .build());
   }
 
   public DexEncodedMethod toForwardingMethod(DexClass newHolder, AppView<?> definitions) {

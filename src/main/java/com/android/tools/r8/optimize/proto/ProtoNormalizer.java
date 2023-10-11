@@ -136,9 +136,8 @@ public class ProtoNormalizer {
                     // this should simply clear the optimization info, or replace it by a
                     // ThrowingMethodOptimizationInfo since we should never use the optimization
                     // info after this point.
-                    return method.toTypeSubstitutedMethodAsInlining(
+                    return method.toTypeSubstitutedMethod(
                         newMethodReference,
-                        dexItemFactory,
                         builder -> {
                           if (!prototypeChanges.isEmpty()) {
                             builder

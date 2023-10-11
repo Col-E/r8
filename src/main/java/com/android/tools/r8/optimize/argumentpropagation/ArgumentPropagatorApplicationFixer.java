@@ -102,9 +102,8 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
           }
 
           DexEncodedMethod replacement =
-              method.toTypeSubstitutedMethodAsInlining(
+              method.toTypeSubstitutedMethod(
                   methodReferenceAfterParameterRemoval,
-                  appView.dexItemFactory(),
                   builder -> {
                     if (graphLens.hasPrototypeChanges(methodReferenceAfterParameterRemoval)) {
                       RewrittenPrototypeDescription prototypeChanges =

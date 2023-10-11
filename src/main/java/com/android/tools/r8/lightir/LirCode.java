@@ -21,14 +21,12 @@ import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadata;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
-import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SourcePosition;
-import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
@@ -61,8 +59,6 @@ public class LirCode<EV> extends Code
 
   public abstract static class PositionEntry implements StructuralItem<PositionEntry> {
 
-    public static final PositionEntry[] EMPTY_ARRAY = new PositionEntry[0];
-
     private final int fromInstructionIndex;
 
     PositionEntry(int fromInstructionIndex) {
@@ -73,7 +69,7 @@ public class LirCode<EV> extends Code
       return fromInstructionIndex;
     }
 
-    public abstract Position getPosition(DexMethod method, boolean isD8R8Synthesized);
+    public abstract Position getPosition(DexMethod method);
 
     abstract int getOrder();
 
@@ -120,12 +116,8 @@ public class LirCode<EV> extends Code
     }
 
     @Override
-    public Position getPosition(DexMethod method, boolean isD8R8Synthesized) {
-      return (isD8R8Synthesized ? SyntheticPosition.builder() : SourcePosition.builder())
-          .setMethod(method)
-          .setIsD8R8Synthesized(isD8R8Synthesized)
-          .setLine(line)
-          .build();
+    public Position getPosition(DexMethod method) {
+      return SourcePosition.builder().setMethod(method).setLine(line).build();
     }
 
     @Override
@@ -153,7 +145,7 @@ public class LirCode<EV> extends Code
     }
 
     @Override
-    public Position getPosition(DexMethod method, boolean isD8R8Synthesized) {
+    public Position getPosition(DexMethod method) {
       return position;
     }
 
@@ -352,11 +344,8 @@ public class LirCode<EV> extends Code
   private Int2ReferenceMap<BytecodeInstructionMetadata> metadataMap;
 
   public static <V, EV> LirBuilder<V, EV> builder(
-      DexMethod method,
-      boolean isD8R8Synthesized,
-      LirEncodingStrategy<V, EV> strategy,
-      InternalOptions options) {
-    return new LirBuilder<>(method, isD8R8Synthesized, strategy, options);
+      DexMethod method, LirEncodingStrategy<V, EV> strategy, InternalOptions options) {
+    return new LirBuilder<>(method, strategy, options);
   }
 
   private static <EV> void specify(StructuralSpecification<LirCode<EV>, ?> spec) {
@@ -377,7 +366,7 @@ public class LirCode<EV> extends Code
   LirCode(
       IRMetadata irMetadata,
       LirConstant[] constants,
-      PositionEntry[] positionTable,
+      PositionEntry[] positions,
       int argumentCount,
       byte[] instructions,
       int instructionCount,
@@ -386,10 +375,9 @@ public class LirCode<EV> extends Code
       LirStrategyInfo<EV> strategyInfo,
       boolean useDexEstimationStrategy,
       Int2ReferenceMap<BytecodeInstructionMetadata> metadataMap) {
-    assert positionTable != null;
     this.irMetadata = irMetadata;
     this.constants = constants;
-    this.positionTable = positionTable;
+    this.positionTable = positions;
     this.argumentCount = argumentCount;
     this.instructions = instructions;
     this.instructionCount = instructionCount;
@@ -552,6 +540,7 @@ public class LirCode<EV> extends Code
         appView,
         callerPosition,
         protoChanges,
+        appView.graphLens().getOriginalMethodSignature(method.getReference()),
         conversionOptions);
   }
 
@@ -645,78 +634,9 @@ public class LirCode<EV> extends Code
     }
   }
 
-  public Position getPreamblePosition(DexMethod method, boolean isD8R8Synthesized) {
-    if (positionTable.length > 0 && positionTable[0].fromInstructionIndex == 0) {
-      return positionTable[0].getPosition(method, isD8R8Synthesized);
-    }
-    return SyntheticPosition.builder()
-        .setLine(0)
-        .setMethod(method)
-        .setIsD8R8Synthesized(isD8R8Synthesized)
-        .build();
-  }
-
-  public PositionEntry[] getPositionTableAsInlining(
-      Position callerPosition,
-      DexMethod callee,
-      boolean isCalleeD8R8Synthesized,
-      Consumer<Position> preamblePositionConsumer) {
-    // Fast path for moving a synthetic method with no actual line info.
-    if (isCalleeD8R8Synthesized && positionTable.length == 0) {
-      preamblePositionConsumer.accept(callerPosition);
-      return PositionEntry.EMPTY_ARRAY;
-    }
-    Position calleePreamble = getPreamblePosition(callee, isCalleeD8R8Synthesized);
-    CanonicalPositions canonicalPositions =
-        new CanonicalPositions(
-            callerPosition, positionTable.length, callee, isCalleeD8R8Synthesized, calleePreamble);
-    PositionEntry[] newPositionTable;
-    if (positionTable.length == 0) {
-      newPositionTable =
-          new PositionEntry[] {
-            new StructuredPositionEntry(0, canonicalPositions.getPreamblePosition())
-          };
-    } else {
-      newPositionTable = new PositionEntry[positionTable.length];
-      for (int i = 0; i < positionTable.length; i++) {
-        PositionEntry inlineeEntry = positionTable[i];
-        Position inlineePosition = inlineeEntry.getPosition(callee, isCalleeD8R8Synthesized);
-        newPositionTable[i] =
-            new StructuredPositionEntry(
-                inlineeEntry.getFromInstructionIndex(),
-                canonicalPositions.canonicalizePositionWithCaller(inlineePosition));
-      }
-    }
-    preamblePositionConsumer.accept(canonicalPositions.getPreamblePosition());
-    return newPositionTable;
-  }
-
   @Override
-  public Code getCodeAsInlining(
-      DexMethod caller,
-      boolean isCallerD8R8Synthesized,
-      DexMethod callee,
-      boolean isCalleeD8R8Synthesized,
-      DexItemFactory factory) {
-    Position callerPosition =
-        SyntheticPosition.builder().setLine(0).setMethod(caller).setIsD8R8Synthesized(true).build();
-    PositionEntry[] newPositionTable =
-        getPositionTableAsInlining(callerPosition, callee, isCalleeD8R8Synthesized, unused -> {});
-    if (Arrays.equals(positionTable, newPositionTable)) {
-      return this;
-    }
-    return new LirCode<>(
-        irMetadata,
-        constants,
-        newPositionTable,
-        argumentCount,
-        instructions,
-        instructionCount,
-        tryCatchTable,
-        debugLocalInfoTable,
-        strategyInfo,
-        useDexEstimationStrategy,
-        metadataMap);
+  public Code getCodeAsInlining(DexMethod caller, DexEncodedMethod callee, DexItemFactory factory) {
+    throw new Unimplemented();
   }
 
   @Override
@@ -742,10 +662,9 @@ public class LirCode<EV> extends Code
   }
 
   @Override
-  public void forEachPosition(
-      DexMethod method, boolean isD8R8Synthesized, Consumer<Position> positionConsumer) {
+  public void forEachPosition(DexMethod method, Consumer<Position> positionConsumer) {
     for (PositionEntry entry : positionTable) {
-      positionConsumer.accept(entry.getPosition(method, isD8R8Synthesized));
+      positionConsumer.accept(entry.getPosition(method));
     }
   }
 

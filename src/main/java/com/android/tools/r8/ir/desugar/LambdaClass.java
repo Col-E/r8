@@ -12,7 +12,6 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -676,8 +675,6 @@ public final class LambdaClass {
                     newAccessFlags.unsetPrivate();
                     // Always make the method public to provide access.
                     newAccessFlags.setPublic();
-                    Code code = encodedMethod.getCode();
-                    DexItemFactory factory = appView.dexItemFactory();
                     DexEncodedMethod newMethod =
                         DexEncodedMethod.syntheticBuilder()
                             .setMethod(callTarget)
@@ -686,12 +683,10 @@ public final class LambdaClass {
                             .setAnnotations(encodedMethod.annotations())
                             .setParameterAnnotations(encodedMethod.parameterAnnotationsList)
                             .setCode(
-                                code.getCodeAsInlining(
-                                    callTarget,
-                                    true,
-                                    encodedMethod.getReference(),
-                                    encodedMethod.isD8R8Synthesized(),
-                                    factory))
+                                encodedMethod
+                                    .getCode()
+                                    .getCodeAsInlining(
+                                        callTarget, encodedMethod, appView.dexItemFactory()))
                             .setApiLevelForDefinition(encodedMethod.getApiLevelForDefinition())
                             .setApiLevelForCode(encodedMethod.getApiLevelForCode())
                             .build();
@@ -775,8 +770,6 @@ public final class LambdaClass {
                     // its accessibility and make it virtual.
                     MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
                     newAccessFlags.unsetPrivate();
-                    Code code = encodedMethod.getCode();
-                    DexItemFactory factory = appView.dexItemFactory();
                     DexEncodedMethod newMethod =
                         DexEncodedMethod.syntheticBuilder()
                             .setMethod(callTarget)
@@ -785,12 +778,10 @@ public final class LambdaClass {
                             .setAnnotations(encodedMethod.annotations())
                             .setParameterAnnotations(encodedMethod.parameterAnnotationsList)
                             .setCode(
-                                code.getCodeAsInlining(
-                                    callTarget,
-                                    true,
-                                    encodedMethod.getReference(),
-                                    encodedMethod.isD8R8Synthesized(),
-                                    factory))
+                                encodedMethod
+                                    .getCode()
+                                    .getCodeAsInlining(
+                                        callTarget, encodedMethod, appView.dexItemFactory()))
                             .setApiLevelForDefinition(encodedMethod.getApiLevelForDefinition())
                             .setApiLevelForCode(encodedMethod.getApiLevelForCode())
                             .build();

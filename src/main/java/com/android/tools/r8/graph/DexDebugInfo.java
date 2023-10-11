@@ -239,8 +239,8 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
       return parameters.length;
     }
 
-    public List<DexDebugEntry> computeEntries(DexMethod method, boolean isD8R8Synthesized) {
-      DexDebugEntryBuilder builder = new DexDebugEntryBuilder(method, isD8R8Synthesized, startLine);
+    public List<DexDebugEntry> computeEntries(DexMethod method) {
+      DexDebugEntryBuilder builder = new DexDebugEntryBuilder(startLine, method);
       for (DexDebugEvent event : events) {
         event.accept(builder);
       }

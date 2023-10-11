@@ -39,11 +39,7 @@ public class IR2LirConverter<EV> {
     this.strategy = strategy;
     this.bytecodeMetadataProvider = bytecodeMetadataProvider;
     this.builder =
-        new LirBuilder<>(
-                irCode.context().getReference(),
-                irCode.context().getDefinition().isD8R8Synthesized(),
-                strategy,
-                options)
+        new LirBuilder<>(irCode.context().getReference(), strategy, options)
             .setMetadata(irCode.metadata())
             .prepareForBytecodeInstructionMetadata(bytecodeMetadataProvider.size());
   }

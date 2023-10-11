@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.Cmp;
@@ -81,6 +82,7 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Or;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.RecordFieldValues;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Return;
@@ -102,6 +104,7 @@ import com.android.tools.r8.ir.conversion.StringSwitchConverter;
 import com.android.tools.r8.lightir.LirBuilder.IntSwitchPayload;
 import com.android.tools.r8.lightir.LirBuilder.StringSwitchPayload;
 import com.android.tools.r8.lightir.LirCode.PositionEntry;
+import com.android.tools.r8.lightir.LirCode.StructuredPositionEntry;
 import com.android.tools.r8.lightir.LirCode.TryCatchTable;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.utils.ListUtils;
@@ -128,11 +131,12 @@ public class Lir2IRConverter {
       AppView<?> appView,
       Position callerPosition,
       RewrittenPrototypeDescription protoChanges,
+      DexMethod originalMethod,
       MutableMethodConversionOptions conversionOptions) {
     Parser<EV> parser =
         new Parser<>(
             lirCode,
-            method.getReference(),
+            originalMethod,
             method.getDefinition().isD8R8Synthesized(),
             appView,
             strategy,
@@ -164,7 +168,7 @@ public class Lir2IRConverter {
 
     private final AppView<?> appView;
     private final LirCode<EV> code;
-    private final DexMethod method;
+    private final DexMethod originalMethod;
     private final LirDecodingStrategy<Value, EV> strategy;
     private final NumberGenerator basicBlockNumberGenerator = new NumberGenerator();
     private final RewrittenPrototypeDescription protoChanges;
@@ -184,7 +188,7 @@ public class Lir2IRConverter {
 
     public Parser(
         LirCode<EV> code,
-        DexMethod method,
+        DexMethod originalMethod,
         boolean isD8R8Synthesized,
         AppView<?> appView,
         LirDecodingStrategy<Value, EV> strategy,
@@ -193,7 +197,7 @@ public class Lir2IRConverter {
       super(code);
       this.appView = appView;
       this.code = code;
-      this.method = method;
+      this.originalMethod = originalMethod;
       this.strategy = strategy;
       this.protoChanges = protoChanges;
       assert protoChanges != null;
@@ -201,14 +205,43 @@ public class Lir2IRConverter {
         buildForInlining = false;
         positionTable = code.getPositionTable();
         // Recreate the preamble position. This is active for arguments and code with no positions.
-        currentPosition = code.getPreamblePosition(method, isD8R8Synthesized);
+        currentPosition = SyntheticPosition.builder().setLine(0).setMethod(originalMethod).build();
       } else {
         buildForInlining = true;
-        positionTable =
-            code.getPositionTableAsInlining(
-                callerPosition, method, isD8R8Synthesized, preamble -> currentPosition = preamble);
+        PositionEntry[] inlineePositions = code.getPositionTable();
+        Position inlineePreamble = null;
+        if (inlineePositions.length > 0 && inlineePositions[0].getFromInstructionIndex() == 0) {
+          inlineePreamble = inlineePositions[0].getPosition(originalMethod);
+        }
+        CanonicalPositions canonicalPositions =
+            new CanonicalPositions(
+                callerPosition,
+                inlineePositions.length,
+                originalMethod,
+                isD8R8Synthesized,
+                inlineePreamble);
+        currentPosition = canonicalPositions.getPreamblePosition();
+        positionTable = new PositionEntry[inlineePositions.length];
+        for (int i = 0; i < inlineePositions.length; i++) {
+          PositionEntry inlineeEntry = inlineePositions[i];
+          Position inlineePosition = inlineeEntry.getPosition(originalMethod);
+          positionTable[i] =
+              new StructuredPositionEntry(
+                  inlineeEntry.getFromInstructionIndex(),
+                  canonicalPositions.getCanonical(
+                      inlineePosition
+                          .builderWithCopy()
+                          .setCallerPosition(
+                              canonicalPositions.canonicalizeCallerPosition(
+                                  inlineePosition.getCallerPosition()))
+                          .build()));
+        }
       }
-      entryPosition = currentPosition;
+      if (positionTable.length > 0 && positionTable[0].getFromInstructionIndex() == 0) {
+        entryPosition = positionTable[0].getPosition(originalMethod);
+      } else {
+        entryPosition = currentPosition;
+      }
     }
 
     @Override
@@ -242,9 +275,7 @@ public class Lir2IRConverter {
     private void ensureCurrentPosition() {
       if (nextPositionEntry != null
           && nextPositionEntry.getFromInstructionIndex() <= nextInstructionIndex) {
-        currentPosition =
-            nextPositionEntry.getPosition(
-                method, entryPosition.getOutermostCaller().isD8R8Synthesized());
+        currentPosition = nextPositionEntry.getPosition(originalMethod);
         advanceNextPositionEntry();
       }
     }
@@ -470,6 +501,7 @@ public class Lir2IRConverter {
 
     private Argument internalAddArgument(Value dest, boolean isBooleanType) {
       assert currentBlock != null;
+      assert currentPosition.isSyntheticPosition() || buildForInlining;
       // Arguments are not included in the "instructions" so this does not call "addInstruction"
       // which would otherwise advance the state.
       Argument argument = new Argument(dest, currentBlock.size(), isBooleanType);

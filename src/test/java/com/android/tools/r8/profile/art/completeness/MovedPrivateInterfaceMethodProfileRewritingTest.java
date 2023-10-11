@@ -132,17 +132,11 @@ public class MovedPrivateInterfaceMethodProfileRewritingTest extends TestBase {
           inspector.clazz(SyntheticItemsTestUtils.syntheticCompanionClass(I.class));
       assertThat(companionClassSubject, isPresent());
 
-      String mMethodOnI = typeName(I.class) + ".m";
-      String mMethodNameOnICC =
-          SyntheticItemsTestUtils.syntheticPrivateInterfaceMethodAsCompanionMethod(
-                  I.class.getDeclaredMethod("m"))
-              .getMethodName();
       MethodSubject privateInterfaceMethodSubject =
-          companionClassSubject.uniqueMethodThatMatches(
-              m -> {
-                String originalName = m.getOriginalName();
-                return originalName.equals(mMethodOnI) || originalName.equals(mMethodNameOnICC);
-              });
+          companionClassSubject.uniqueMethodWithOriginalName(
+              SyntheticItemsTestUtils.syntheticPrivateInterfaceMethodAsCompanionMethod(
+                      I.class.getDeclaredMethod("m"))
+                  .getMethodName());
       assertThat(privateInterfaceMethodSubject, isPresent());
 
       profileInspector

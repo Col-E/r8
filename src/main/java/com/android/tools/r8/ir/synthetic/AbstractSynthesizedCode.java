@@ -10,8 +10,6 @@ import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.lens.GraphLens;
@@ -53,7 +51,7 @@ public abstract class AbstractSynthesizedCode extends Code {
   }
 
   @Override
-  public final IRCode buildInliningIR(
+  public IRCode buildInliningIR(
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
@@ -71,18 +69,6 @@ public abstract class AbstractSynthesizedCode extends Code {
             valueNumberGenerator,
             protoChanges)
         .build(context, MethodConversionOptions.nonConverting());
-  }
-
-  @Override
-  public final Code getCodeAsInlining(
-      DexMethod caller,
-      boolean isCallerD8R8Synthesized,
-      DexMethod callee,
-      boolean isCalleeD8R8Synthesized,
-      DexItemFactory factory) {
-    // This code object is synthesized so "inlining" just "strips" the callee position.
-    assert isCalleeD8R8Synthesized;
-    return this;
   }
 
   @Override
