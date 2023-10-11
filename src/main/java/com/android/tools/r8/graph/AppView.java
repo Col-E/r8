@@ -53,7 +53,6 @@ import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.shaking.ProguardCompatibilityActions;
 import com.android.tools.r8.shaking.RootSetUtils.MainDexRootSet;
 import com.android.tools.r8.shaking.RootSetUtils.RootSet;
-import com.android.tools.r8.shaking.VerticalClassMerger;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.InternalOptions;
@@ -976,7 +975,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       throws ExecutionException {
     rewriteWithLensAndApplication(
         lens, application, executorService, timing, withClassHierarchy(), lens.getPrevious());
-    assert verifyMovedMethodsHaveOriginalMethodPosition();
   }
 
   private static void rewriteWithLensAndApplication(
@@ -1284,41 +1282,5 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public String getPrunedClassSourceFileInfo(DexType dexType) {
     return sourceFileForPrunedTypes.get(dexType);
-  }
-
-  public boolean verifyMovedMethodsHaveOriginalMethodPosition() {
-    DirectMappedDexApplication application = app().asDirect();
-    application
-        .classesWithDeterministicOrder()
-        .forEach(
-            clazz ->
-                clazz.forEachProgramMethod(
-                    method -> {
-                      DexEncodedMethod definition = method.getDefinition();
-                      Code code = definition.getCode();
-                      if (code == null) {
-                        return;
-                      }
-                      if (code.isCfCode() || code.isDexCode() || code.isLirCode()) {
-                        assert verifyOriginalMethodInPosition(code, method);
-                      } else {
-                        assert code.isDefaultInstanceInitializerCode()
-                            || code.isThrowNullCode()
-                            || code instanceof VerticalClassMerger.SynthesizedBridgeCode;
-                      }
-                    }));
-    return true;
-  }
-
-  private static boolean verifyOriginalMethodInPosition(Code code, ProgramMethod context) {
-    DexMethod thisMethod = context.getReference();
-    code.forEachPosition(
-        context.getReference(),
-        context.getDefinition().isD8R8Synthesized(),
-        position -> {
-          DexMethod outerCaller = position.getOutermostCaller().getMethod();
-          assert thisMethod.isIdenticalTo(outerCaller);
-        });
-    return true;
   }
 }

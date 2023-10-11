@@ -276,21 +276,13 @@ public class LirBuilder<V, EV> {
   }
 
   public LirBuilder(
-      DexMethod method,
-      boolean isD8R8Synthesized,
-      LirEncodingStrategy<V, EV> strategy,
-      InternalOptions options) {
+      DexMethod method, LirEncodingStrategy<V, EV> strategy, InternalOptions options) {
     useDexEstimationStrategy = options.isGeneratingDex();
     factory = options.dexItemFactory();
     constants = new Reference2IntOpenHashMap<>();
     positionTable = new ArrayList<>();
     this.strategy = strategy;
-    currentPosition =
-        SyntheticPosition.builder()
-            .setLine(0)
-            .setMethod(method)
-            .setIsD8R8Synthesized(isD8R8Synthesized)
-            .build();
+    currentPosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
     flushedPosition = currentPosition;
   }
 

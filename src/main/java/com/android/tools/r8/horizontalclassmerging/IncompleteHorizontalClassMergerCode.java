@@ -11,8 +11,6 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.IRCode;
@@ -36,18 +34,6 @@ public abstract class IncompleteHorizontalClassMergerCode extends Code {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ProgramMethod method,
       HorizontalClassMergerGraphLens lens);
-
-  @Override
-  public final Code getCodeAsInlining(
-      DexMethod caller,
-      boolean isCallerD8R8Synthesized,
-      DexMethod callee,
-      boolean isCalleeD8R8Synthesized,
-      DexItemFactory factory) {
-    // This code object is synthesized so "inlining" just "strips" the callee position.
-    assert isCalleeD8R8Synthesized;
-    return this;
-  }
 
   // Implement Code.
 

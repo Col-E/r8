@@ -17,8 +17,10 @@ import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
@@ -26,6 +28,7 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GenericSignatureContextBuilder;
 import com.android.tools.r8.graph.GenericSignatureCorrectnessHelper;
 import com.android.tools.r8.graph.ProgramDefinition;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
@@ -777,6 +780,8 @@ public class R8 {
       }
       appView.appInfo().notifyMinifierFinished();
 
+      assert verifyMovedMethodsHaveOriginalMethodPosition(appView, getDirectApp(appView));
+
       // If a method filter is present don't produce output since the application is likely partial.
       if (options.hasMethodsFilter()) {
         System.out.println("Finished compilation with method filter: ");
@@ -835,8 +840,6 @@ public class R8 {
         writeAndroidResources(
             options.androidResourceProvider, options.androidResourceConsumer, appView.reporter());
       }
-
-      assert appView.verifyMovedMethodsHaveOriginalMethodPosition();
 
       // Generate the resulting application resources.
       writeApplication(appView, inputApp, executorService);
@@ -941,6 +944,57 @@ public class R8 {
         options,
         timing,
         executorService);
+  }
+
+  @SuppressWarnings("ReferenceEquality")
+  private static boolean verifyMovedMethodsHaveOriginalMethodPosition(
+      AppView<?> appView, DirectMappedDexApplication application) {
+    application
+        .classesWithDeterministicOrder()
+        .forEach(
+            clazz ->
+                clazz.forEachProgramMethod(
+                    method -> {
+                      DexMethod originalMethod =
+                          appView.graphLens().getOriginalMethodSignature(method.getReference());
+                      if (originalMethod != method.getReference()) {
+                        DexEncodedMethod definition = method.getDefinition();
+                        Code code = definition.getCode();
+                        if (code == null) {
+                          return;
+                        }
+                        if (code.isCfCode() || code.isDexCode()) {
+                          assert verifyOriginalMethodInPosition(code, originalMethod, method);
+                        } else {
+                          assert code.isDefaultInstanceInitializerCode() || code.isThrowNullCode();
+                        }
+                      }
+                    }));
+    return true;
+  }
+
+  @SuppressWarnings({"ComplexBooleanConstant", "ReferenceEquality"})
+  private static boolean verifyOriginalMethodInPosition(
+      Code code, DexMethod originalMethod, ProgramMethod context) {
+    code.forEachPosition(
+        originalMethod,
+        position -> {
+          if (position.isOutlineCaller()) {
+            // Check the outlined positions for the original method
+            position
+                .getOutlinePositions()
+                .forEach(
+                    (ignored, outlinePosition) -> {
+                      assert outlinePosition.hasMethodInChain(originalMethod);
+                    });
+          } else if (context.getDefinition().isD8R8Synthesized()) {
+            // TODO(b/261971803): Enable assert.
+            assert true || position.hasMethodInChain(originalMethod);
+          } else {
+            assert position.getOutermostCaller().getMethod() == originalMethod;
+          }
+        });
+    return true;
   }
 
   private AppView<AppInfoWithLiveness> runEnqueuer(

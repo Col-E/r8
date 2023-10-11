@@ -181,15 +181,8 @@ public class LazyCfCode extends Code {
   }
 
   @Override
-  public Code getCodeAsInlining(
-      DexMethod caller,
-      boolean isCallerD8R8Synthesized,
-      DexMethod callee,
-      boolean isCalleeD8R8Synthesized,
-      DexItemFactory factory) {
-    return asCfCode()
-        .getCodeAsInlining(
-            caller, isCallerD8R8Synthesized, callee, isCalleeD8R8Synthesized, factory);
+  public Code getCodeAsInlining(DexMethod caller, DexEncodedMethod callee, DexItemFactory factory) {
+    return asCfCode().getCodeAsInlining(caller, callee, factory);
   }
 
   public static class DebugParsingOptions {

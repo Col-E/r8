@@ -124,8 +124,7 @@ public class VirtualMethodMerger {
             group.getTarget().getType(),
             classMethodsBuilder::isFresh);
 
-    DexEncodedMethod encodedMethod =
-        oldMethod.getDefinition().toTypeSubstitutedMethodAsInlining(method, dexItemFactory);
+    DexEncodedMethod encodedMethod = oldMethod.getDefinition().toTypeSubstitutedMethod(method);
     MethodAccessFlags flags = encodedMethod.getAccessFlags();
     flags.unsetProtected();
     flags.unsetPublic();
@@ -236,9 +235,8 @@ public class VirtualMethodMerger {
       newMethod =
           representative
               .getDefinition()
-              .toTypeSubstitutedMethodAsInlining(
+              .toTypeSubstitutedMethod(
                   newMethodReference,
-                  dexItemFactory,
                   builder -> builder.setIsLibraryMethodOverrideIfKnown(isLibraryMethodOverride));
     }
 

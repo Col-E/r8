@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
@@ -153,12 +152,10 @@ public class NonVirtualOverrideTest extends TestBase {
       CodeInspector inspector = compiled.inspector();
       ClassSubject classSubject = inspector.clazz(B.class.getName());
       assertThat(classSubject, isPresentAndRenamed());
+      assertThat(classSubject.method("void", "m1", ImmutableList.of()), isPresent());
       assertThat(classSubject.method("void", "m2", ImmutableList.of()), isAbsent());
       assertThat(classSubject.method("void", "m3", ImmutableList.of()), isAbsent());
       assertThat(classSubject.method("void", "m4", ImmutableList.of()), isAbsent());
-      assertThat(classSubject.uniqueInstanceInitializer(), isPresent());
-      // The remaining method is the private method corresponding to m1 to ensure IAE.
-      assertEquals(2, classSubject.allMethods().size());
     }
   }
 

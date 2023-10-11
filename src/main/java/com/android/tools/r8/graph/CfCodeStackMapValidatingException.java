@@ -16,7 +16,10 @@ public class CfCodeStackMapValidatingException {
     if (appView.enableWholeProgramOptimizations()) {
       sb.append(" In later version of R8, the method may be assumed not reachable.");
     }
-    return new CfCodeDiagnostics(method.getOrigin(), method.getReference(), sb.toString());
+    return new CfCodeDiagnostics(
+        method.getOrigin(),
+        appView.graphLens().getOriginalMethodSignature(method.getReference()),
+        sb.toString());
   }
 
   public static CfCodeDiagnostics multipleFramesForLabel(ProgramMethod method, AppView<?> appView) {
@@ -24,7 +27,10 @@ public class CfCodeStackMapValidatingException {
     if (appView.enableWholeProgramOptimizations()) {
       sb.append(" In later version of R8, the method may be assumed not reachable.");
     }
-    return new CfCodeDiagnostics(method.getOrigin(), method.getReference(), sb.toString());
+    return new CfCodeDiagnostics(
+        method.getOrigin(),
+        appView.graphLens().getOriginalMethodSignature(method.getReference()),
+        sb.toString());
   }
 
   public static CfCodeDiagnostics noFramesForMethodWithJumps(
@@ -34,7 +40,10 @@ public class CfCodeStackMapValidatingException {
     if (appView.enableWholeProgramOptimizations()) {
       sb.append(" In later version of R8, the method may be assumed not reachable.");
     }
-    return new CfCodeDiagnostics(method.getOrigin(), method.getReference(), sb.toString());
+    return new CfCodeDiagnostics(
+        method.getOrigin(),
+        appView.graphLens().getOriginalMethodSignature(method.getReference()),
+        sb.toString());
   }
 
   public static CfCodeDiagnostics invalidTryCatchRange(
@@ -48,7 +57,10 @@ public class CfCodeStackMapValidatingException {
     if (appView.enableWholeProgramOptimizations()) {
       sb.append(" In later version of R8, the method may be assumed not reachable.");
     }
-    return new CfCodeDiagnostics(method.getOrigin(), method.getReference(), sb.toString());
+    return new CfCodeDiagnostics(
+        method.getOrigin(),
+        appView.graphLens().getOriginalMethodSignature(method.getReference()),
+        sb.toString());
   }
 
   public static CfCodeDiagnostics invalidStackMapForInstruction(
@@ -68,6 +80,9 @@ public class CfCodeStackMapValidatingException {
     if (appView.enableWholeProgramOptimizations()) {
       sb.append(" In later version of R8, the method may be assumed not reachable.");
     }
-    return new CfCodeDiagnostics(method.getOrigin(), method.getReference(), sb.toString());
+    return new CfCodeDiagnostics(
+        method.getOrigin(),
+        appView.graphLens().getOriginalMethodSignature(method.getReference()),
+        sb.toString());
   }
 }

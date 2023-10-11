@@ -351,11 +351,7 @@ public class DexCode extends Code
 
   @Override
   public Code getCodeAsInlining(
-      DexMethod caller,
-      boolean isCallerD8R8Synthesized,
-      DexMethod callee,
-      boolean isCalleeD8R8Synthesized,
-      DexItemFactory factory) {
+      DexMethod caller, DexMethod callee, DexItemFactory factory, boolean isCalleeD8R8Synthesized) {
     return new DexCode(
         registerSize,
         incomingRegisterSize,
@@ -400,8 +396,7 @@ public class DexCode extends Code
     //    => Insert a default event and potentially advance line.
     // 4) There is no SET_POSITION_FRAME and no default event setting a position for PC 0..
     //    => Insert a SET_POSITION_FRAME and a default event and potentially advance line.
-    PositionInfo positionInfo =
-        computePreamblePosition(callee, isCalleeD8R8Synthesized, eventBasedInfo);
+    PositionInfo positionInfo = computePreamblePosition(callee, eventBasedInfo);
     DexDebugEvent[] oldEvents = eventBasedInfo.events;
     boolean adjustStartPosition =
         !positionInfo.hasLinePositionAtPcZero() && debugInfo.getStartLine() > 0;
@@ -542,6 +537,7 @@ public class DexCode extends Code
         new DexSourceCode(
             this,
             method,
+            appView.graphLens().getOriginalMethodSignature(method.getReference()),
             null,
             appView.dexItemFactory());
     return IRBuilder.create(method, appView, source, origin).build(method, conversionOptions);
@@ -562,6 +558,7 @@ public class DexCode extends Code
         new DexSourceCode(
             this,
             method,
+            appView.graphLens().getOriginalMethodSignature(method.getReference()),
             callerPosition,
             appView.dexItemFactory());
     return IRBuilder.createForInlining(
@@ -878,8 +875,7 @@ public class DexCode extends Code
   }
 
   @Override
-  public void forEachPosition(
-      DexMethod method, boolean isD8R8Synthesized, Consumer<Position> positionConsumer) {
+  public void forEachPosition(DexMethod method, Consumer<Position> positionConsumer) {
     if (getDebugInfo() == null || getDebugInfo().isPcBasedInfo()) {
       return;
     }

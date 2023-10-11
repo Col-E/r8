@@ -48,6 +48,7 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
   private final DexField classIdField;
   private final int extraNulls;
   private final DexMethod originalMethodReference;
+  private final DexMethod syntheticMethodReference;
 
   private final Map<DexField, InstanceFieldInitializationInfo> instanceFieldAssignmentsPre;
   private final Map<DexField, InstanceFieldInitializationInfo> instanceFieldAssignmentsPost;
@@ -59,6 +60,7 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
       DexField classIdField,
       int extraNulls,
       DexMethod originalMethodReference,
+      DexMethod syntheticMethodReference,
       Map<DexField, InstanceFieldInitializationInfo> instanceFieldAssignmentsPre,
       Map<DexField, InstanceFieldInitializationInfo> instanceFieldAssignmentsPost,
       DexMethod parentConstructor,
@@ -66,6 +68,7 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
     this.classIdField = classIdField;
     this.extraNulls = extraNulls;
     this.originalMethodReference = originalMethodReference;
+    this.syntheticMethodReference = syntheticMethodReference;
     this.instanceFieldAssignmentsPre = instanceFieldAssignmentsPre;
     this.instanceFieldAssignmentsPost = instanceFieldAssignmentsPost;
     this.parentConstructor = parentConstructor;
@@ -87,13 +90,16 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
     IntBox maxStack = new IntBox();
     ImmutableList.Builder<CfInstruction> instructionBuilder = ImmutableList.builder();
 
-    Position preamblePosition =
+    // Set position.
+    Position callerPosition =
+        SyntheticPosition.builder().setLine(0).setMethod(syntheticMethodReference).build();
+    Position calleePosition =
         SyntheticPosition.builder()
             .setLine(0)
-            .setMethod(method.getReference())
-            .setIsD8R8Synthesized(method.getDefinition().isD8R8Synthesized())
+            .setMethod(originalMethodReference)
+            .setCallerPosition(callerPosition)
             .build();
-    CfPosition position = new CfPosition(new CfLabel(), preamblePosition);
+    CfPosition position = new CfPosition(new CfLabel(), calleePosition);
     instructionBuilder.add(position);
     instructionBuilder.add(position.getLabel());
 

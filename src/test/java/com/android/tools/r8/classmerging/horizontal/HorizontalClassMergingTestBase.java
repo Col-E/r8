@@ -12,7 +12,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.horizontalclassmerging.ClassMerger;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
-import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -28,10 +27,6 @@ public abstract class HorizontalClassMergingTestBase extends TestBase {
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
-  }
-
-  public static MethodSubject getUniqueDispatchBridgeMethod(ClassSubject clazz) {
-    return clazz.uniqueMethodThatMatches(m -> m.isVirtual() && m.isCompilerSynthesized());
   }
 
   protected FieldSubject classMergerClassIdField(ClassSubject classSubject) {

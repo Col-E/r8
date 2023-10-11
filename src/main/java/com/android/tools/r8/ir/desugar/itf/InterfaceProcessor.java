@@ -204,11 +204,7 @@ public final class InterfaceProcessor {
         definition
             .getCode()
             .getCodeAsInlining(
-                companion.getReference(),
-                companion.getDefinition().isD8R8Synthesized(),
-                method.getReference(),
-                method.getDefinition().isD8R8Synthesized(),
-                appView.dexItemFactory());
+                companion.getReference(), method.getDefinition(), appView.dexItemFactory());
     if (!definition.isStatic()) {
       DexEncodedMethod.setDebugInfoWithFakeThisParameter(
           code, companion.getReference().getArity(), appView);

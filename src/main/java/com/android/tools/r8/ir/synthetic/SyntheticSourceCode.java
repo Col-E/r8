@@ -45,6 +45,11 @@ public abstract class SyntheticSourceCode implements SourceCode {
   private final Position position;
 
   protected SyntheticSourceCode(DexType receiver, DexMethod method, Position callerPosition) {
+    this(receiver, method, callerPosition, method);
+  }
+
+  protected SyntheticSourceCode(
+      DexType receiver, DexMethod method, Position callerPosition, DexMethod originalMethod) {
     assert method != null;
     this.receiver = receiver;
     this.method = method;
@@ -59,16 +64,14 @@ public abstract class SyntheticSourceCode implements SourceCode {
     for (int i = 0; i < paramCount; i++) {
       this.paramRegisters[i] = nextRegister(ValueType.fromDexType(params[i]));
     }
-    // If there is a caller position that is the position of this synthetic code, otherwise
-    // build up a synthetic position.
-    this.position =
-        callerPosition != null
-            ? callerPosition
-            : SyntheticPosition.builder()
-                .setLine(0)
-                .setMethod(method)
-                .setIsD8R8Synthesized(true)
-                .build();
+
+    position =
+        SyntheticPosition.builder()
+            .setLine(0)
+            .setMethod(originalMethod)
+            .setCallerPosition(callerPosition)
+            .setIsD8R8Synthesized(true)
+            .build();
   }
 
   protected final void add(Consumer<IRBuilder> constructor) {

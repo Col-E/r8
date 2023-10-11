@@ -253,9 +253,7 @@ public class InstanceInitializerMerger {
             classMethodsBuilder::isFresh);
 
     DexEncodedMethod encodedMethod =
-        instanceInitializer
-            .getDefinition()
-            .toTypeSubstitutedMethodAsInlining(method, dexItemFactory);
+        instanceInitializer.getDefinition().toTypeSubstitutedMethod(method);
     encodedMethod.getMutableOptimizationInfo().markForceInline();
     encodedMethod.getAccessFlags().unsetConstructor();
     encodedMethod.getAccessFlags().unsetPublic();
@@ -272,19 +270,26 @@ public class InstanceInitializerMerger {
   }
 
   private Code getNewCode(
+      DexMethod newMethodReference,
+      DexMethod syntheticMethodReference,
       boolean needsClassId,
       int extraNulls) {
     if (hasInstanceInitializerDescription()) {
       return instanceInitializerDescription.createCfCode(
           getOriginalMethodReference(),
+          syntheticMethodReference,
           group,
           needsClassId,
           extraNulls);
     }
-    assert useSyntheticMethod();
+    if (!useSyntheticMethod()) {
+      return getRepresentative().getDefinition().getCode();
+    }
     return new ConstructorEntryPointSynthesizedCode(
         createClassIdToInstanceInitializerMap(),
-        group.hasClassIdField() ? group.getClassIdField() : null);
+        newMethodReference,
+        group.hasClassIdField() ? group.getClassIdField() : null,
+        syntheticMethodReference);
   }
 
   private boolean isSingleton() {
@@ -376,23 +381,24 @@ public class InstanceInitializerMerger {
     }
 
     DexEncodedMethod representativeMethod = representative.getDefinition();
-
-    DexEncodedMethod newInstanceInitializer;
-    if (!hasInstanceInitializerDescription() && !useSyntheticMethod()) {
-      newInstanceInitializer =
-          representativeMethod.toTypeSubstitutedMethodAsInlining(
-              newMethodReference, dexItemFactory);
-    } else {
-      newInstanceInitializer =
-          DexEncodedMethod.syntheticBuilder()
-              .setMethod(newMethodReference)
-              .setAccessFlags(getNewAccessFlags())
-              .setCode(getNewCode(needsClassId, extraUnusedNullParameters.size()))
-              .setClassFileVersion(getNewClassFileVersion())
-              .setApiLevelForDefinition(representativeMethod.getApiLevelForDefinition())
-              .setApiLevelForCode(representativeMethod.getApiLevelForCode())
-              .build();
-    }
+    boolean useSynthethicBuilder = useSyntheticMethod() || representativeMethod.isD8R8Synthesized();
+    DexEncodedMethod newInstanceInitializer =
+        (useSynthethicBuilder ? DexEncodedMethod.syntheticBuilder() : DexEncodedMethod.builder())
+            .setMethod(newMethodReference)
+            .setAccessFlags(
+                useSynthethicBuilder
+                    ? getNewAccessFlags()
+                    : representative.getAccessFlags().withPublic())
+            .setCode(
+                getNewCode(
+                    newMethodReference,
+                    syntheticMethodReference,
+                    needsClassId,
+                    extraUnusedNullParameters.size()))
+            .setClassFileVersion(getNewClassFileVersion())
+            .setApiLevelForDefinition(representativeMethod.getApiLevelForDefinition())
+            .setApiLevelForCode(representativeMethod.getApiLevelForCode())
+            .build();
     classMethodsBuilder.addDirectMethod(newInstanceInitializer);
 
     if (mode.isFinal()) {

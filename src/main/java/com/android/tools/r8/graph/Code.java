@@ -191,53 +191,55 @@ public abstract class Code extends CachedHashValueDexItem {
     return true;
   }
 
+  public Code getCodeAsInlining(DexMethod caller, DexEncodedMethod callee, DexItemFactory factory) {
+    return getCodeAsInlining(caller, callee.getReference(), factory, callee.isD8R8Synthesized());
+  }
+
   public Code getCodeAsInlining(
-      DexMethod caller,
-      boolean isCallerD8R8Synthesized,
-      DexMethod callee,
-      boolean isCalleeD8R8Synthesized,
-      DexItemFactory factory) {
+      DexMethod caller, DexMethod callee, DexItemFactory factory, boolean isCalleeD8R8Synthesized) {
     throw new Unreachable();
   }
 
   public static Position newInlineePosition(
-      Position callerPosition, Position calleePosition, boolean isCalleeD8R8Synthesized) {
-    Position outermostCallee = calleePosition.getOutermostCaller();
-    // If the callee is not synthetic, then just append the frame.
-    assert outermostCallee.isD8R8Synthesized() == isCalleeD8R8Synthesized;
+      Position callerPosition, Position oldPosition, boolean isCalleeD8R8Synthesized) {
+    Position outermostCaller = oldPosition.getOutermostCaller();
     if (!isCalleeD8R8Synthesized) {
-      assert !outermostCallee.isOutline();
-      return calleePosition.withOutermostCallerPosition(callerPosition);
+      return removeSameMethodAndLineZero(oldPosition, callerPosition);
     }
     // We can replace the position since the callee was synthesized by the compiler, however, if
     // the position carries special information we need to copy it.
-    if (!outermostCallee.isOutline() && !outermostCallee.isRemoveInnerFramesIfThrowingNpe()) {
-      return calleePosition.replacePosition(outermostCallee, callerPosition);
+    if (!outermostCaller.isOutline() && !outermostCaller.isRemoveInnerFramesIfThrowingNpe()) {
+      return oldPosition.replacePosition(outermostCaller, callerPosition);
     }
-
     assert !callerPosition.isOutline();
-    assert !callerPosition.hasCallerPosition();
-    // Copy the callee frame to ensure transfer of the outline key if present.
-    PositionBuilder<?, ?> newCallerBuilder =
-        outermostCallee.builderWithCopy().setMethod(callerPosition.getMethod());
-    // If the callee is an outline, the line must be that of the outline to maintain the positions.
-    if (outermostCallee.isOutline()) {
-      // This does not implement inlining an outline. The cases this hits should always be a full
-      // "move as inlining" to be correct.
-      assert callerPosition.isD8R8Synthesized();
-      assert callerPosition.getLine() == 0;
-    } else {
-      newCallerBuilder.setLine(outermostCallee.getLine());
-    }
-    // Transfer other info from the caller.
+    PositionBuilder<?, ?> positionBuilder =
+        outermostCaller
+            .builderWithCopy()
+            .setMethod(callerPosition.getMethod())
+            .setLine(callerPosition.getLine());
     if (callerPosition.isRemoveInnerFramesIfThrowingNpe()) {
-      newCallerBuilder.setRemoveInnerFramesIfThrowingNpe(true);
+      positionBuilder.setRemoveInnerFramesIfThrowingNpe(true);
     }
-    return calleePosition.replacePosition(outermostCallee, newCallerBuilder.build());
+    return oldPosition.replacePosition(outermostCaller, positionBuilder.build());
   }
 
-  public void forEachPosition(
-      DexMethod method, boolean isD8R8Synthesized, Consumer<Position> positionConsumer) {
+  @Deprecated()
+  @SuppressWarnings("ReferenceEquality")
+  // TODO(b/261971803): When having complete control over the positions we should not need this.
+  private static Position removeSameMethodAndLineZero(
+      Position calleePosition, Position callerPosition) {
+    Position outermostCaller = calleePosition.getOutermostCaller();
+    if (outermostCaller.getLine() == 0) {
+      while (callerPosition != null
+          && outermostCaller.getMethod() == callerPosition.getMethod()
+          && callerPosition.getLine() == 0) {
+        callerPosition = callerPosition.getCallerPosition();
+      }
+    }
+    return calleePosition.withOutermostCallerPosition(callerPosition);
+  }
+
+  public void forEachPosition(DexMethod method, Consumer<Position> positionConsumer) {
     // Intentionally empty. Override where we have fully build CF or DEX code.
   }
 }
