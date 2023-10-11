@@ -47,7 +47,7 @@ public class StrictMethodMergingTest extends HorizontalClassMergingTestBase {
               assertThat(aClassSubject, isPresent());
 
               MethodSubject synchronizedMethodSubject =
-                  aClassSubject.uniqueMethodWithOriginalName("m$bridge");
+                  getUniqueDispatchBridgeMethod(aClassSubject);
               assertThat(synchronizedMethodSubject, isPresent());
               assertTrue(synchronizedMethodSubject.getAccessFlags().isStrict());
 
@@ -55,7 +55,7 @@ public class StrictMethodMergingTest extends HorizontalClassMergingTestBase {
               assertThat(cClassSubject, isPresent());
 
               MethodSubject unsynchronizedMethodSubject =
-                  cClassSubject.uniqueMethodWithOriginalName("m$bridge");
+                  getUniqueDispatchBridgeMethod(cClassSubject);
               assertThat(unsynchronizedMethodSubject, isPresent());
               assertFalse(unsynchronizedMethodSubject.getAccessFlags().isStrict());
             })

@@ -27,7 +27,6 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.CanonicalPositions;
@@ -210,7 +209,6 @@ public class CfSourceCode implements SourceCode {
       CfCode code,
       List<CfCode.LocalVariableInfo> localVariables,
       ProgramMethod method,
-      DexMethod originalMethod,
       Position callerPosition,
       Origin origin,
       AppView<?> appView) {
@@ -234,7 +232,7 @@ public class CfSourceCode implements SourceCode {
         new CanonicalPositions(
             callerPosition,
             cfPositionCount,
-            originalMethod,
+            method.getReference(),
             method.getDefinition().isD8R8Synthesized(),
             code.getPreamblePosition());
     internalOutputMode = appView.options().getInternalOutputMode();
@@ -904,11 +902,6 @@ public class CfSourceCode implements SourceCode {
   }
 
   public Position getCanonicalPosition(Position position) {
-    return canonicalPositions.getCanonical(
-        position
-            .builderWithCopy()
-            .setCallerPosition(
-                canonicalPositions.canonicalizeCallerPosition(position.getCallerPosition()))
-            .build());
+    return canonicalPositions.canonicalizePositionWithCaller(position);
   }
 }

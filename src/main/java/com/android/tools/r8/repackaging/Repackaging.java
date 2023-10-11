@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.InnerClassAttribute;
@@ -114,6 +115,11 @@ public class Repackaging {
           @Override
           protected boolean isLegitimateToHaveEmptyMappings() {
             return true;
+          }
+
+          @Override
+          public <T extends DexReference> boolean isSimpleRenaming(T from, T to) {
+            return getPrevious().isSimpleRenaming(from, to);
           }
         };
     DirectMappedDexApplication newApplication =

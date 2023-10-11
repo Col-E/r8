@@ -41,9 +41,8 @@ public class ConstructorEntryPoint extends SyntheticSourceCode {
       Int2ReferenceSortedMap<DexMethod> typeConstructors,
       DexMethod newConstructor,
       DexField classIdField,
-      Position callerPosition,
-      DexMethod originalMethod) {
-    super(newConstructor.holder, newConstructor, callerPosition, originalMethod);
+      Position callerPosition) {
+    super(newConstructor.holder, newConstructor, callerPosition);
 
     this.typeConstructors = typeConstructors;
     this.classIdField = classIdField;

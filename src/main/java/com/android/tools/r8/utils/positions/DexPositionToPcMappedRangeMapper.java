@@ -45,7 +45,8 @@ public class DexPositionToPcMappedRangeMapper {
     DexDebugEventVisitor visitor =
         new DexDebugPositionState(
             debugInfo.startLine,
-            appView.graphLens().getOriginalMethodSignature(method.getReference())) {
+            method.getReference(),
+            method.getDefinition().isD8R8Synthesized()) {
           @Override
           public void visit(Default defaultEvent) {
             super.visit(defaultEvent);

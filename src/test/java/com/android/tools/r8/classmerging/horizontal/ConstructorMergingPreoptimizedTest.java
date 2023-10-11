@@ -61,7 +61,7 @@ public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTe
               assertThat(otherInitSubject, isPresent());
               assertThat(otherInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
 
-              MethodSubject printSubject = aClassSubject.method("void", "print$bridge");
+              MethodSubject printSubject = getUniqueDispatchBridgeMethod(aClassSubject);
               assertThat(printSubject, isPresent());
               assertThat(printSubject, readsInstanceField(classIdFieldSubject.getDexField()));
 

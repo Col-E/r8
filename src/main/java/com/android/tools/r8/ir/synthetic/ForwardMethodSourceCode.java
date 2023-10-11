@@ -28,7 +28,6 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
 
     private DexType receiver;
     private DexMethod method;
-    private DexMethod originalMethod;
     private DexType targetReceiver;
     private DexMethod target;
     private InvokeType invokeType;
@@ -38,7 +37,6 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
 
     public Builder(DexMethod method) {
       this.method = method;
-      this.originalMethod = method;
     }
 
     public Builder setReceiver(DexType receiver) {
@@ -48,11 +46,6 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
 
     public Builder setMethod(DexMethod method) {
       this.method = method;
-      return this;
-    }
-
-    public Builder setOriginalMethod(DexMethod originalMethod) {
-      this.originalMethod = originalMethod;
       return this;
     }
 
@@ -90,7 +83,6 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
       return new ForwardMethodSourceCode(
           receiver,
           method,
-          originalMethod,
           targetReceiver,
           target,
           invokeType,
@@ -111,7 +103,6 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
   ForwardMethodSourceCode(
       DexType receiver,
       DexMethod method,
-      DexMethod originalMethod,
       DexType targetReceiver,
       DexMethod target,
       InvokeType invokeType,
@@ -119,7 +110,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
       boolean isInterface,
       boolean castResult,
       boolean extraNullParameter) {
-    super(receiver, method, callerPosition, originalMethod);
+    super(receiver, method, callerPosition);
     assert (targetReceiver == null) == (invokeType == InvokeType.STATIC);
 
     this.target = target;

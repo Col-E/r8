@@ -37,13 +37,13 @@ public class DexDebugUtils {
   }
 
   public static PositionInfo computePreamblePosition(
-      DexMethod method, EventBasedDebugInfo debugInfo) {
+      DexMethod method, boolean isD8R8Synthesized, EventBasedDebugInfo debugInfo) {
     if (debugInfo == null) {
       return PositionInfo.builder().build();
     }
     Box<Position> existingPositionFrame = new Box<>();
     DexDebugPositionState visitor =
-        new DexDebugPositionState(debugInfo.startLine, method) {
+        new DexDebugPositionState(debugInfo.startLine, method, isD8R8Synthesized) {
           @Override
           public void visit(SetPositionFrame setPositionFrame) {
             super.visit(setPositionFrame);

@@ -340,7 +340,8 @@ public class FoundMethodSubject extends MethodSubject {
     }
     Object2IntMap<InstructionSubject> lineNumberTable = new Object2IntOpenHashMap<>();
     DexDebugPositionState state =
-        new DexDebugPositionState(info.startLine, getMethod().getReference());
+        new DexDebugPositionState(
+            info.startLine, getMethod().getReference(), getMethod().isD8R8Synthesized());
     Iterator<DexDebugEvent> iterator = Arrays.asList(info.events).iterator();
     for (DexInstruction insn : code.instructions) {
       int offset = insn.getOffset();
@@ -445,5 +446,11 @@ public class FoundMethodSubject extends MethodSubject {
         reference.getReturnType().getTypeName(),
         getDefaultMethodPrefix() + reference.getMethodName(),
         p);
+  }
+
+  @Override
+  public boolean isCompilerSynthesized() {
+    MemberNaming naming = clazz.getMethodMappingInfo(dexMethod);
+    return naming.isCompilerSynthesized();
   }
 }

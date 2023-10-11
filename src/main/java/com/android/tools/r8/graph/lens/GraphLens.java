@@ -678,16 +678,8 @@ public abstract class GraphLens {
                 + "` back to original program";
       }
       for (DexEncodedMethod method : clazz.methods()) {
-        if (method.isD8R8Synthesized()) {
-          // Methods synthesized by D8/R8 may not be mapped.
-          continue;
-        }
-        DexMethod originalMethod = getOriginalMethodSignature(method.getReference());
-        assert originalMethods.contains(originalMethod)
-            : "Method could not be mapped back: "
-                + method.toSourceString()
-                + ", originalMethod: "
-                + originalMethod.toSourceString();
+        // Methods synthesized by D8/R8 are not mapped, but all non-synthesized must be originals.
+        assert method.isD8R8Synthesized() || originalMethods.contains(method.getReference());
       }
     }
 
