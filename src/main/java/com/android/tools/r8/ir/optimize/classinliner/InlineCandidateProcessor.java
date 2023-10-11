@@ -69,7 +69,6 @@ import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ArrayUtils;
-import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.SetUtils;
@@ -755,6 +754,7 @@ final class InlineCandidateProcessor {
   private void removeFieldReadsFromStaticGet(IRCode code, AffectedValues affectedValues) {
     Set<BasicBlock> seen = Sets.newIdentityHashSet();
     Set<Instruction> users = eligibleInstance.uniqueUsers();
+    Map<InstanceGet, Instruction[]> pendingReplacements = new IdentityHashMap<>();
     for (Instruction user : users) {
       if (!user.hasBlock()) {
         continue;
@@ -775,7 +775,11 @@ final class InlineCandidateProcessor {
         if (instruction.isInstanceGet()) {
           if (instruction.hasUsedOutValue()) {
             replaceFieldReadFromStaticGet(
-                code, instructionIterator, user.asInstanceGet(), affectedValues);
+                code,
+                instructionIterator,
+                user.asInstanceGet(),
+                affectedValues,
+                pendingReplacements);
           } else {
             instructionIterator.removeOrReplaceByDebugLocalRead();
           }
@@ -794,13 +798,36 @@ final class InlineCandidateProcessor {
                 + user);
       }
     }
+
+    if (!pendingReplacements.isEmpty()) {
+      BasicBlockIterator blocks = code.listIterator();
+      while (blocks.hasNext()) {
+        BasicBlock block = blocks.next();
+        InstructionListIterator instructionIterator = block.listIterator(code);
+        while (instructionIterator.hasNext()) {
+          Instruction instruction = instructionIterator.next();
+          Instruction[] replacementInstructions = pendingReplacements.get(instruction);
+          if (replacementInstructions == null) {
+            continue;
+          }
+          assert replacementInstructions.length > 1;
+          Instruction replacement = ArrayUtils.last(replacementInstructions);
+          instruction.outValue().replaceUsers(replacement.outValue(), affectedValues);
+          instructionIterator.removeOrReplaceByDebugLocalRead();
+          instructionIterator =
+              instructionIterator.addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+                  code, blocks, replacementInstructions, appView.options());
+        }
+      }
+    }
   }
 
   private void replaceFieldReadFromStaticGet(
       IRCode code,
       InstructionListIterator instructionIterator,
       InstanceGet fieldRead,
-      AffectedValues affectedValues) {
+      AffectedValues affectedValues,
+      Map<InstanceGet, Instruction[]> pendingReplacements) {
     DexField fieldReference = fieldRead.getField();
     DexClass holder = appView.definitionFor(fieldReference.getHolderType(), method);
     DexEncodedField field = fieldReference.lookupOnClass(holder);
@@ -827,12 +854,7 @@ final class InlineCandidateProcessor {
       for (Instruction instruction : materializingInstructions) {
         instruction.setPosition(fieldRead.getPosition(), appView.options());
       }
-      BasicBlockIterator blocks = code.listIterator();
-      IteratorUtils.nextUntil(blocks, b -> b == fieldRead.getBlock());
-      fieldRead.outValue().replaceUsers(replacement.outValue(), affectedValues);
-      instructionIterator.removeOrReplaceByDebugLocalRead();
-      instructionIterator.addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
-          code, blocks, materializingInstructions, appView.options());
+      pendingReplacements.put(fieldRead, materializingInstructions);
     }
   }
 
