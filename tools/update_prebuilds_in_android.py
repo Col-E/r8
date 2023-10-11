@@ -117,10 +117,11 @@ def main_download(hash, maps, targets, target_root, version, keepanno=False):
 
 def main_build(maps, max_memory_size, targets, target_root):
   jar_targets = JAR_TARGETS_MAP[targets]
-  gradle_args = map(lambda t: t[0], jar_targets)
+  gradle_args = [utils.GRADLE_TASK_R8LIB if targets == 'lib'
+                 else utils.GRADLE_TASK_R8]
   if max_memory_size:
     gradle_args.append('-Dorg.gradle.jvmargs=-Xmx' + max_memory_size)
-  gradle.RunGradle(gradle_args)
+  gradle.RunGradle(gradle_args, new_gradle=True)
   copy_jar_targets(utils.LIBS, target_root, jar_targets, maps)
   copy_other_targets(utils.GENERATED_LICENSE_DIR, target_root)
 
