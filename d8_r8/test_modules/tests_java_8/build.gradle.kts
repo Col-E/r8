@@ -90,6 +90,14 @@ tasks {
     dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
   }
 
+  withType<JavaExec> {
+    if (name.endsWith("main()")) {
+      // IntelliJ pass the main execution through a stream which is
+      // not compatible with gradle configuration cache.
+      notCompatibleWithConfigurationCache("JavaExec created by IntelliJ")
+    }
+  }
+
   withType<KotlinCompile> {
     enabled = false
   }

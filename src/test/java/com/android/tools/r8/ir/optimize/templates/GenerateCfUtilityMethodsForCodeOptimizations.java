@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.TestDataSourceSet;
 import com.android.tools.r8.cfmethodgeneration.MethodGenerationBase;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.FileUtils;
@@ -58,6 +59,7 @@ public class GenerateCfUtilityMethodsForCodeOptimizations extends MethodGenerati
   }
 
   public static void main(String[] args) throws Exception {
+    setUpSystemPropertiesForMain(TestDataSourceSet.TESTS_JAVA_8);
     new GenerateCfUtilityMethodsForCodeOptimizations(
             getTestParameters().withNoneRuntime().build().iterator().next())
         .generateMethodsAndWriteThemToFile();
