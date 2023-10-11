@@ -97,6 +97,78 @@ public abstract class AbstractValue {
         "Abstract value " + this + " does not have a known array length.");
   }
 
+  public boolean isSingleBoxedPrimitive() {
+    return false;
+  }
+
+  public SingleBoxedNumberValue asSingleBoxedPrimitive() {
+    return null;
+  }
+
+  public boolean isSingleBoxedBoolean() {
+    return false;
+  }
+
+  public SingleBoxedBooleanValue asSingleBoxedBoolean() {
+    return null;
+  }
+
+  public boolean isSingleBoxedByte() {
+    return false;
+  }
+
+  public SingleBoxedByteValue asSingleBoxedByte() {
+    return null;
+  }
+
+  public boolean isSingleBoxedChar() {
+    return false;
+  }
+
+  public SingleBoxedCharValue asSingleBoxedChar() {
+    return null;
+  }
+
+  public boolean isSingleBoxedDouble() {
+    return false;
+  }
+
+  public SingleBoxedDoubleValue asSingleBoxedDouble() {
+    return null;
+  }
+
+  public boolean isSingleBoxedFloat() {
+    return false;
+  }
+
+  public SingleBoxedFloatValue asSingleBoxedFloat() {
+    return null;
+  }
+
+  public boolean isSingleBoxedLong() {
+    return false;
+  }
+
+  public SingleBoxedLongValue asSingleBoxedLong() {
+    return null;
+  }
+
+  public boolean isSingleBoxedInteger() {
+    return false;
+  }
+
+  public SingleBoxedIntegerValue asSingleBoxedInteger() {
+    return null;
+  }
+
+  public boolean isSingleBoxedShort() {
+    return false;
+  }
+
+  public SingleBoxedShortValue asSingleBoxedShort() {
+    return null;
+  }
+
   public boolean isSingleConstValue() {
     return false;
   }
@@ -118,6 +190,10 @@ public abstract class AbstractValue {
   }
 
   public SingleFieldValue asSingleFieldValue() {
+    return null;
+  }
+
+  public SingleNullValue asSingleNullValue() {
     return null;
   }
 

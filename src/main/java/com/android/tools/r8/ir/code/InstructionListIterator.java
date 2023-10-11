@@ -27,6 +27,18 @@ import java.util.function.UnaryOperator;
 public interface InstructionListIterator
     extends InstructionIterator, ListIterator<Instruction>, PreviousUntilIterator<Instruction> {
 
+  default void addAll(Instruction[] instructions) {
+    for (Instruction instruction : instructions) {
+      add(instruction);
+    }
+  }
+
+  InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Instruction[] instructions,
+      InternalOptions options);
+
   BasicBlock addThrowingInstructionToPossiblyThrowingBlock(
       IRCode code,
       ListIterator<BasicBlock> blockIterator,

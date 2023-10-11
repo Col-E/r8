@@ -1279,8 +1279,12 @@ public class DexItemFactory {
 
     public final DexField TYPE = createField(boxedCharType, classType, "TYPE");
 
+    public final DexMethod charValue =
+        createMethod(boxedCharType, createProto(charType), "charValue");
     public final DexMethod toString =
         createMethod(boxedCharType, createProto(stringType), "toString");
+    public final DexMethod valueOf =
+        createMethod(boxedCharType, createProto(boxedCharType, charType), "valueOf");
 
     private CharMembers() {}
 
@@ -1294,8 +1298,12 @@ public class DexItemFactory {
 
     public final DexField TYPE = createField(boxedFloatType, classType, "TYPE");
 
+    public final DexMethod floatValue =
+        createMethod(boxedFloatType, createProto(floatType), "floatValue");
     public final DexMethod toString =
         createMethod(boxedFloatType, createProto(stringType), "toString");
+    public final DexMethod valueOf =
+        createMethod(boxedFloatType, createProto(boxedFloatType, floatType), "valueOf");
 
     private FloatMembers() {}
 
@@ -1457,14 +1465,16 @@ public class DexItemFactory {
 
     public final DexField TYPE = createField(boxedLongType, classType, "TYPE");
 
-    public final DexMethod compare;
+    public final DexMethod compare =
+        createMethod(boxedLongType, createProto(intType, longType, longType), "compare");
+    public final DexMethod longValue =
+        createMethod(boxedLongType, createProto(longType), "longValue");
     public final DexMethod toString =
         createMethod(boxedLongType, createProto(stringType), "toString");
+    public final DexMethod valueOf =
+        createMethod(boxedLongType, createProto(boxedLongType, longType), "valueOf");
 
-    private LongMembers() {
-      compare = createMethod(boxedLongDescriptor,
-          createString("compare"), intDescriptor, new DexString[]{longDescriptor, longDescriptor});
-    }
+    private LongMembers() {}
 
     @Override
     public void forEachFinalField(Consumer<DexField> consumer) {
@@ -1481,19 +1491,16 @@ public class DexItemFactory {
 
     public final DexField TYPE = createField(boxedDoubleType, classType, "TYPE");
 
-    public final DexMethod isNaN;
-
+    public final DexMethod doubleValue =
+        createMethod(boxedDoubleType, createProto(doubleType), "doubleValue");
+    public final DexMethod isNaN =
+        createMethod(boxedDoubleType, createProto(booleanType, doubleType), "isNaN");
     public final DexMethod toString =
         createMethod(boxedDoubleType, createProto(stringType), "toString");
+    public final DexMethod valueOf =
+        createMethod(boxedDoubleType, createProto(boxedDoubleType, doubleType), "valueOf");
 
-    private DoubleMembers() {
-      isNaN =
-          createMethod(
-              boxedDoubleDescriptor,
-              createString("isNaN"),
-              booleanDescriptor,
-              new DexString[] {doubleDescriptor});
-    }
+    private DoubleMembers() {}
 
     @Override
     public DexField getTypeField() {
@@ -1505,8 +1512,11 @@ public class DexItemFactory {
 
     public final DexField TYPE = createField(boxedIntType, classType, "TYPE");
 
+    public final DexMethod intValue = createMethod(boxedIntType, createProto(intType), "intValue");
     public final DexMethod toString =
         createMethod(boxedIntType, createProto(stringType), "toString");
+    public final DexMethod valueOf =
+        createMethod(boxedIntType, createProto(boxedIntType, intType), "valueOf");
 
     @Override
     public void forEachFinalField(Consumer<DexField> consumer) {
@@ -2129,8 +2139,12 @@ public class DexItemFactory {
 
     public final DexField TYPE = createField(boxedShortType, classType, "TYPE");
 
+    public final DexMethod shortValue =
+        createMethod(boxedShortType, createProto(shortType), "shortValue");
     public final DexMethod toString =
         createMethod(boxedShortType, createProto(stringType), "toString");
+    public final DexMethod valueOf =
+        createMethod(boxedShortType, createProto(boxedShortType, shortType), "valueOf");
 
     private ShortMembers() {}
 

@@ -33,6 +33,11 @@ public class SingleNumberValue extends SingleConstValue
   }
 
   @Override
+  public boolean hasSingleMaterializingInstruction() {
+    return true;
+  }
+
+  @Override
   public boolean maybeContainsInt(int value) {
     return value == getIntValue();
   }
@@ -150,16 +155,32 @@ public class SingleNumberValue extends SingleConstValue
   }
 
   @Override
-  public Instruction createMaterializingInstruction(
+  public Instruction[] createMaterializingInstructions(
       AppView<?> appView,
       ProgramMethod context,
       NumberGenerator valueNumberGenerator,
       TypeAndLocalInfoSupplier info) {
-    TypeElement type = info.getOutType();
-    assert type.isPrimitiveType() : type;
-    DebugLocalInfo localInfo = info.getLocalInfo();
+    ConstNumber materializingInstruction =
+        createMaterializingInstruction(valueNumberGenerator, info);
+    return new Instruction[] {materializingInstruction};
+  }
+
+  public ConstNumber createMaterializingInstruction(
+      NumberGenerator valueNumberGenerator, TypeAndLocalInfoSupplier info) {
+    return createMaterializingInstruction(
+        valueNumberGenerator, info.getOutType(), info.getLocalInfo());
+  }
+
+  public ConstNumber createMaterializingInstruction(
+      NumberGenerator valueNumberGenerator, TypeElement type) {
+    return createMaterializingInstruction(valueNumberGenerator, type, null);
+  }
+
+  public ConstNumber createMaterializingInstruction(
+      NumberGenerator valueNumberGenerator, TypeElement type, DebugLocalInfo localInfo) {
+    assert type.isPrimitiveType();
     Value returnedValue = new Value(valueNumberGenerator.next(), type, localInfo);
-    return new ConstNumber(returnedValue, value);
+    return ConstNumber.builder().setOutValue(returnedValue).setValue(value).build();
   }
 
   @Override

@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
 import com.android.tools.r8.ir.code.AliasedValueConfiguration;
 import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
@@ -67,6 +68,8 @@ import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.SetUtils;
@@ -815,9 +818,22 @@ final class InlineCandidateProcessor {
       throw reportUnknownFieldReadFromSingleton(fieldRead);
     }
 
-    Instruction replacement =
-        singleConstValue.createMaterializingInstruction(appView, code, fieldRead);
-    instructionIterator.replaceCurrentInstruction(replacement, affectedValues);
+    Instruction[] materializingInstructions =
+        singleConstValue.createMaterializingInstructions(appView, code, fieldRead);
+    Instruction replacement = ArrayUtils.last(materializingInstructions);
+    if (materializingInstructions.length == 1) {
+      instructionIterator.replaceCurrentInstruction(replacement, affectedValues);
+    } else {
+      for (Instruction instruction : materializingInstructions) {
+        instruction.setPosition(fieldRead.getPosition(), appView.options());
+      }
+      BasicBlockIterator blocks = code.listIterator();
+      IteratorUtils.nextUntil(blocks, b -> b == fieldRead.getBlock());
+      fieldRead.outValue().replaceUsers(replacement.outValue(), affectedValues);
+      instructionIterator.removeOrReplaceByDebugLocalRead();
+      instructionIterator.addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+          code, blocks, materializingInstructions, appView.options());
+    }
   }
 
   private RuntimeException reportUnknownFieldReadFromSingleton(InstanceGet fieldRead) {

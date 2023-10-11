@@ -39,6 +39,11 @@ public abstract class SingleFieldValue extends SingleValue {
     this.field = field;
   }
 
+  @Override
+  public boolean hasSingleMaterializingInstruction() {
+    return true;
+  }
+
   public DexField getField() {
     return field;
   }
@@ -83,7 +88,7 @@ public abstract class SingleFieldValue extends SingleValue {
   public abstract int hashCode();
 
   @Override
-  public Instruction createMaterializingInstruction(
+  public Instruction[] createMaterializingInstructions(
       AppView<?> appView,
       ProgramMethod context,
       NumberGenerator valueNumberGenerator,
@@ -93,7 +98,8 @@ public abstract class SingleFieldValue extends SingleValue {
         || !appView.enableWholeProgramOptimizations()
         || type.isBasedOnMissingClass(appView.withClassHierarchy());
     Value outValue = new Value(valueNumberGenerator.next(), type, info.getLocalInfo());
-    return new StaticGet(outValue, field);
+    StaticGet staticGet = new StaticGet(outValue, field);
+    return new Instruction[] {staticGet};
   }
 
   @Override

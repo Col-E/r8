@@ -18,6 +18,8 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class SingleValue extends AbstractValue implements InstanceFieldInitializationInfo {
 
+  public abstract boolean hasSingleMaterializingInstruction();
+
   @Override
   public boolean isNonTrivial() {
     return true;
@@ -37,12 +39,13 @@ public abstract class SingleValue extends AbstractValue implements InstanceField
    * Note that calls to this method should generally be guarded by {@link
    * #isMaterializableInContext}.
    */
-  public final Instruction createMaterializingInstruction(
+  public final Instruction[] createMaterializingInstructions(
       AppView<?> appView, IRCode code, TypeAndLocalInfoSupplier info) {
-    return createMaterializingInstruction(appView, code.context(), code.valueNumberGenerator, info);
+    return createMaterializingInstructions(
+        appView, code.context(), code.valueNumberGenerator, info);
   }
 
-  public abstract Instruction createMaterializingInstruction(
+  public abstract Instruction[] createMaterializingInstructions(
       AppView<?> appView,
       ProgramMethod context,
       NumberGenerator valueNumberGenerator,

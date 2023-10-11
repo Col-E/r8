@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
+import com.android.tools.r8.ir.optimize.library.LibraryOptimizationInfoCollection;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -255,10 +256,16 @@ public abstract class InvokeMethod extends Invoke {
       AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
     assert hasOutValue();
     DexClassAndMethod method = lookupSingleTarget(appView, context);
-    if (method != null) {
-      return method.getDefinition().getOptimizationInfo().getAbstractReturnValue();
+    if (method == null) {
+      return UnknownValue.getInstance();
     }
-    return UnknownValue.getInstance();
+    return LibraryOptimizationInfoCollection.getAbstractReturnValueOrDefault(
+        appView,
+        this,
+        method,
+        context,
+        abstractValueSupplier,
+        method.getDefinition().getOptimizationInfo().getAbstractReturnValue());
   }
 
   @SuppressWarnings("ReferenceEquality")

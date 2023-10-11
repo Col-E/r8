@@ -21,6 +21,8 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ArrayUtils;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -56,18 +58,18 @@ public class ArgumentPropagatorIROptimizer {
 
       // If the argument is constant, then materialize the constant and replace all uses of the
       // argument by the newly materialized constant.
-      // TODO(b/190154391): Constant arguments should instead be removed from the enclosing method
-      //  signature, and this should assert that the argument does not have a single materializable
-      //  value.
       AbstractValue abstractValue = optimizationInfo.getAbstractArgumentValue(argument.getIndex());
       if (abstractValue.isSingleValue()) {
         SingleValue singleValue = abstractValue.asSingleValue();
         if (singleValue.isMaterializableInContext(appView, code.context())) {
-          Instruction replacement =
-              singleValue.createMaterializingInstruction(appView, code, argument);
-          replacement.setPosition(argument.getPosition());
+          Instruction[] materializingInstructions =
+              singleValue.createMaterializingInstructions(appView, code, argument);
+          for (Instruction instruction : materializingInstructions) {
+            instruction.setPosition(argument.getPosition(), appView.options());
+          }
+          Instruction replacement = ArrayUtils.last(materializingInstructions);
           argumentValue.replaceUsers(replacement.outValue(), affectedValues);
-          instructionsToAdd.add(replacement);
+          Collections.addAll(instructionsToAdd, materializingInstructions);
           continue;
         }
       }

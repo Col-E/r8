@@ -31,8 +31,18 @@ public class SingleNullValue extends SingleConstValue {
   }
 
   @Override
+  public boolean hasSingleMaterializingInstruction() {
+    return true;
+  }
+
+  @Override
   public boolean isNull() {
     return true;
+  }
+
+  @Override
+  public SingleNullValue asSingleNullValue() {
+    return this;
   }
 
   @Override
@@ -51,14 +61,20 @@ public class SingleNullValue extends SingleConstValue {
   }
 
   @Override
-  public Instruction createMaterializingInstruction(
+  public Instruction[] createMaterializingInstructions(
       AppView<?> appView,
       ProgramMethod context,
-      NumberGenerator valueNumberGenerator,
+      NumberGenerator numberGenerator,
       TypeAndLocalInfoSupplier info) {
+    ConstNumber materializingInstruction = createMaterializingInstruction(numberGenerator, info);
+    return new Instruction[] {materializingInstruction};
+  }
+
+  public ConstNumber createMaterializingInstruction(
+      NumberGenerator numberGenerator, TypeAndLocalInfoSupplier info) {
     assert info.getOutType().isReferenceType() : info.getOutType();
     DebugLocalInfo localInfo = info.getLocalInfo();
-    Value returnedValue = new Value(valueNumberGenerator.next(), TypeElement.getNull(), localInfo);
+    Value returnedValue = new Value(numberGenerator.next(), TypeElement.getNull(), localInfo);
     return new ConstNumber(returnedValue, 0);
   }
 

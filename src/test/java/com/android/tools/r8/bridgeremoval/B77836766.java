@@ -24,19 +24,18 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class B77836766 extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
-  }
-
-  public B77836766(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   /**
@@ -127,16 +126,13 @@ public class B77836766 extends TestBase {
         "new " + cls1.name,
         "dup",
         "invokespecial " + cls1.name + "/<init>()V",
-        "astore_0",
-        "aload_0",
         "ldc \"Hello\"",
         "invokevirtual " + cls1.name + "/foo(Ljava/lang/String;)V",
         "new " + cls2Class.name,
         "dup",
         "invokespecial " + cls2Class.name + "/<init>()V",
-        "astore_0",
         "aload_0",
-        "iconst_0",
+        "arraylength",
         "invokestatic java/lang/Integer/valueOf(I)Ljava/lang/Integer;",
         "invokevirtual " + cls2Class.name + "/foo(Ljava/lang/Integer;)V",
         "return");
@@ -260,16 +256,13 @@ public class B77836766 extends TestBase {
         "new " + derivedIntegerClass.name,
         "dup",
         "invokespecial " + derivedIntegerClass.name + "/<init>()V",
-        "astore_0",
         "aload_0",
-        "iconst_0",
+        "arraylength",
         "invokestatic java/lang/Integer/valueOf(I)Ljava/lang/Integer;",
         "invokevirtual " + derivedIntegerClass.name + "/foo(Ljava/lang/Integer;)V",
         "new " + cls2.name,
         "dup",
         "invokespecial " + cls2.name + "/<init>()V",
-        "astore_0",
-        "aload_0",
         "ldc \"Bar\"",
         "invokevirtual " + cls2.name + "/bar(Ljava/lang/String;)V",
         "return");
@@ -372,20 +365,16 @@ public class B77836766 extends TestBase {
         "new " + baseCls.name,
         "dup",
         "invokespecial " + baseCls.name + "/<init>()V",
-        "astore_0",
         "aload_0",
-        "iconst_0",
+        "arraylength",
         "invokestatic java/lang/Integer/valueOf(I)Ljava/lang/Integer;",
         "invokevirtual " + baseCls.name + "/foo(Ljava/lang/Integer;)V",
         "new " + subCls.name,
         "dup",
         "invokespecial " + subCls.name + "/<init>()V",
-        "astore_0",
-        "aload_0",
         "ldc \"Bar\"",
         "invokevirtual " + subCls.name + "/bar(Ljava/lang/String;)V",
-        "return"
-    );
+        "return");
 
     testForR8(parameters.getBackend())
         .addProgramClassFileData(jasminBuilder.buildClasses())
@@ -461,20 +450,16 @@ public class B77836766 extends TestBase {
         "new " + cls.name,
         "dup",
         "invokespecial " + cls.name + "/<init>()V",
-        "astore_0",
         "aload_0",
-        "iconst_0",
+        "arraylength",
         "invokestatic java/lang/Integer/valueOf(I)Ljava/lang/Integer;",
         "invokevirtual " + cls.name + "/foo(Ljava/lang/Integer;)V",
         "new " + cls.name,
         "dup",
         "invokespecial " + cls.name + "/<init>()V",
-        "astore_0",
-        "aload_0",
         "ldc \"Bar\"",
         "invokevirtual " + cls.name + "/bar(Ljava/lang/String;)V",
-        "return"
-    );
+        "return");
 
     testForR8(parameters.getBackend())
         .addProgramClassFileData(jasminBuilder.buildClasses())

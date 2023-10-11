@@ -197,6 +197,15 @@ public class RegisterMoveSchedulerTest {
     }
 
     @Override
+    public InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+        IRCode code,
+        BasicBlockIterator blockIterator,
+        Instruction[] instructions,
+        InternalOptions options) {
+      throw new Unimplemented();
+    }
+
+    @Override
     public BasicBlock addThrowingInstructionToPossiblyThrowingBlock(
         IRCode code,
         ListIterator<BasicBlock> blockIterator,

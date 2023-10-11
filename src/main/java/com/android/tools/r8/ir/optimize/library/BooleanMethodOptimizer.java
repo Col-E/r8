@@ -6,10 +6,11 @@ package com.android.tools.r8.ir.optimize.library;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.SingleBoxedBooleanValue;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.ConstString;
@@ -17,7 +18,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Set;
@@ -38,7 +38,6 @@ public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollectio
   }
 
   @Override
-  @SuppressWarnings("ReferenceEquality")
   public void optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
@@ -47,47 +46,42 @@ public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollectio
       DexClassAndMethod singleTarget,
       Set<Value> affectedValues,
       Set<BasicBlock> blocksToRemove) {
-    if (singleTarget.getReference() == dexItemFactory.booleanMembers.booleanValue) {
+    DexMethod singleTargetReference = singleTarget.getReference();
+    if (singleTargetReference.isIdenticalTo(dexItemFactory.booleanMembers.booleanValue)) {
       optimizeBooleanValue(code, instructionIterator, invoke);
-    } else if (singleTarget.getReference() == dexItemFactory.booleanMembers.parseBoolean) {
+    } else if (singleTargetReference.isIdenticalTo(dexItemFactory.booleanMembers.parseBoolean)) {
       optimizeParseBoolean(code, instructionIterator, invoke);
-    } else if (singleTarget.getReference() == dexItemFactory.booleanMembers.valueOf) {
+    } else if (singleTargetReference.isIdenticalTo(dexItemFactory.booleanMembers.valueOf)) {
       optimizeValueOf(code, instructionIterator, invoke, affectedValues);
     }
   }
 
-  @SuppressWarnings("ReferenceEquality")
   private void optimizeBooleanValue(
-      IRCode code, InstructionListIterator instructionIterator, InvokeMethod invoke) {
-    Value argument = invoke.arguments().get(0).getAliasedValue();
-    if (!argument.isPhi()) {
-      Instruction definition = argument.definition;
-      if (definition.isStaticGet()) {
-        StaticGet staticGet = definition.asStaticGet();
-        DexField field = staticGet.getField();
-        if (field == dexItemFactory.booleanMembers.TRUE) {
-          instructionIterator.replaceCurrentInstructionWithConstInt(code, 1);
-        } else if (field == dexItemFactory.booleanMembers.FALSE) {
-          instructionIterator.replaceCurrentInstructionWithConstInt(code, 0);
-        }
-      }
+      IRCode code, InstructionListIterator instructionIterator, InvokeMethod booleanValueInvoke) {
+    // Optimize Boolean.valueOf(b).booleanValue() into b.
+    AbstractValue abstractValue =
+        booleanValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
+    if (abstractValue.isSingleBoxedBoolean()) {
+      SingleBoxedBooleanValue singleBoxedBoolean = abstractValue.asSingleBoxedBoolean();
+      instructionIterator.replaceCurrentInstruction(
+          singleBoxedBoolean
+              .toPrimitive(appView.abstractValueFactory())
+              .createMaterializingInstruction(
+                  code.valueNumberGenerator, singleBoxedBoolean.getPrimitiveType()));
     }
   }
 
   private void optimizeParseBoolean(
       IRCode code, InstructionListIterator instructionIterator, InvokeMethod invoke) {
-    Value argument = invoke.arguments().get(0).getAliasedValue();
-    if (!argument.isPhi()) {
-      Instruction definition = argument.definition;
-      if (definition.isConstString()) {
-        ConstString constString = definition.asConstString();
-        if (!constString.instructionInstanceCanThrow(appView, code.context())) {
-          String value = StringUtils.toLowerCase(constString.getValue().toString());
-          if (value.equals("true")) {
-            instructionIterator.replaceCurrentInstructionWithConstInt(code, 1);
-          } else if (value.equals("false")) {
-            instructionIterator.replaceCurrentInstructionWithConstInt(code, 0);
-          }
+    Value argument = invoke.getFirstArgument().getAliasedValue();
+    if (argument.isDefinedByInstructionSatisfying(Instruction::isConstString)) {
+      ConstString constString = argument.getDefinition().asConstString();
+      if (!constString.instructionInstanceCanThrow(appView, code.context())) {
+        String value = StringUtils.toLowerCase(constString.getValue().toString());
+        if (value.equals("true")) {
+          instructionIterator.replaceCurrentInstructionWithConstInt(code, 1);
+        } else if (value.equals("false")) {
+          instructionIterator.replaceCurrentInstructionWithConstInt(code, 0);
         }
       }
     }
@@ -98,7 +92,8 @@ public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollectio
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       Set<Value> affectedValues) {
-    Value argument = invoke.arguments().get(0);
+    // Optimize Boolean.valueOf(b) into Boolean.FALSE or Boolean.TRUE.
+    Value argument = invoke.getFirstOperand();
     AbstractValue abstractValue = argument.getAbstractValue(appView, code.context());
     if (abstractValue.isSingleNumberValue()) {
       instructionIterator.replaceCurrentInstructionWithStaticGet(

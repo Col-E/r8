@@ -37,6 +37,11 @@ public class SingleDexItemBasedStringValue extends SingleConstValue {
     this.nameComputationInfo = nameComputationInfo;
   }
 
+  @Override
+  public boolean hasSingleMaterializingInstruction() {
+    return true;
+  }
+
   public DexReference getItem() {
     return item;
   }
@@ -76,26 +81,19 @@ public class SingleDexItemBasedStringValue extends SingleConstValue {
   }
 
   @Override
-  public Instruction createMaterializingInstruction(
+  public Instruction[] createMaterializingInstructions(
       AppView<?> appView,
       ProgramMethod context,
-      NumberGenerator valueNumberGenerator,
+      NumberGenerator numberGenerator,
       TypeAndLocalInfoSupplier info) {
-    TypeElement typeLattice = info.getOutType();
-    DebugLocalInfo debugLocalInfo = info.getLocalInfo();
-    assert typeLattice.isClassType();
-    assert appView
-        .isSubtype(appView.dexItemFactory().stringType, typeLattice.asClassType().getClassType())
-        .isTrue();
-    Value returnedValue =
-        new Value(
-            valueNumberGenerator.next(),
-            stringClassType(appView, definitelyNotNull()),
-            debugLocalInfo);
-    DexItemBasedConstString instruction =
+    DebugLocalInfo localInfo = info.getLocalInfo();
+    TypeElement stringType = stringClassType(appView, definitelyNotNull());
+    assert stringType.lessThanOrEqual(info.getOutType(), appView);
+    Value returnedValue = new Value(numberGenerator.next(), stringType, localInfo);
+    DexItemBasedConstString constString =
         new DexItemBasedConstString(returnedValue, item, nameComputationInfo);
-    assert !instruction.instructionInstanceCanThrow(appView, context);
-    return instruction;
+    assert !constString.instructionInstanceCanThrow(appView, context);
+    return new Instruction[] {constString};
   }
 
   @Override

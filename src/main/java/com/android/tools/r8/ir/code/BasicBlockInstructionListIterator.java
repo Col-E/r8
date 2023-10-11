@@ -134,6 +134,60 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   @Override
+  public InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Instruction[] instructions,
+      InternalOptions options) {
+    InstructionListIterator iterator = this;
+    if (!block.hasCatchHandlers()) {
+      iterator.addAll(instructions);
+      return iterator;
+    }
+    int i = 0;
+    if (!block.canThrow()) {
+      // Add all non-throwing instructions up until the first throwing instruction.
+      for (; i < instructions.length; i++) {
+        Instruction materializingInstruction = instructions[i];
+        if (!materializingInstruction.instructionTypeCanThrow()) {
+          iterator.add(materializingInstruction);
+        } else {
+          break;
+        }
+      }
+      // Add the first throwing instruction without splitting the block.
+      if (i < instructions.length) {
+        assert instructions[i].instructionTypeCanThrow();
+        iterator.add(instructions[i]);
+        i++;
+      }
+    }
+    for (; i < instructions.length; i++) {
+      BasicBlock splitBlock = iterator.splitCopyCatchHandlers(code, blockIterator, options);
+      BasicBlock previousBlock = blockIterator.positionAfterPreviousBlock(splitBlock);
+      assert previousBlock == splitBlock;
+      iterator = splitBlock.listIterator(code);
+      // Add all non-throwing instructions up until the next throwing instruction to the split
+      // block.
+      for (; i < instructions.length; i++) {
+        Instruction materializingInstruction = instructions[i];
+        if (!materializingInstruction.instructionTypeCanThrow()) {
+          iterator.add(materializingInstruction);
+        } else {
+          break;
+        }
+      }
+      // Add the current throwing instruction to the split block.
+      if (i < instructions.length) {
+        assert instructions[i].instructionTypeCanThrow();
+        iterator.add(instructions[i]);
+        i++;
+      }
+    }
+    return iterator;
+  }
+
+  @Override
   public BasicBlock addThrowingInstructionToPossiblyThrowingBlock(
       IRCode code,
       ListIterator<BasicBlock> blockIterator,

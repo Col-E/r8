@@ -111,6 +111,7 @@ import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.argumentpropagation.lenscoderewriter.NullCheckInserter;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.verticalclassmerging.InterfaceTypeToClassTypeLensCodeRewriterHelper;
@@ -118,6 +119,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -442,7 +444,7 @@ public class LensCodeRewriter {
                   }
                 }
 
-                Instruction constantReturnMaterializingInstruction = null;
+                Instruction[] constantReturnMaterializingInstructions = null;
                 if (invoke.hasOutValue()) {
                   if (invoke.hasUnusedOutValue()) {
                     invoke.clearOutValue();
@@ -463,9 +465,11 @@ public class LensCodeRewriter {
                         };
                     assert prototypeChanges.verifyConstantReturnAccessibleInContext(
                         appView.withLiveness(), method, graphLens);
-                    constantReturnMaterializingInstruction =
+                    constantReturnMaterializingInstructions =
                         prototypeChanges.getConstantReturn(
                             appView.withLiveness(), code, invoke.getPosition(), typeAndLocalInfo);
+                    Instruction constantReturnMaterializingInstruction =
+                        ArrayUtils.last(constantReturnMaterializingInstructions);
                     if (invoke.outValue().hasLocalInfo()) {
                       constantReturnMaterializingInstruction
                           .outValue()
@@ -523,13 +527,15 @@ public class LensCodeRewriter {
                               extraArgumentType,
                               ignore -> {
                                 finalIterator.previous();
-                                Instruction instruction =
-                                    singleConstValue.createMaterializingInstruction(
+                                Instruction[] instructions =
+                                    singleConstValue.createMaterializingInstructions(
                                         appView,
                                         code,
                                         TypeAndLocalInfoSupplier.create(
                                             parameter.getTypeElement(appView, extraArgumentType),
                                             null));
+                                assert instructions.length == 1;
+                                Instruction instruction = instructions[0];
                                 assert !instruction.instructionTypeCanThrow();
                                 instruction.setPosition(
                                     options.debug ? invoke.getPosition() : Position.none());
@@ -572,15 +578,21 @@ public class LensCodeRewriter {
                   affectedPhis.addAll(newOutValue.uniquePhiUsers());
                 }
 
-                if (constantReturnMaterializingInstruction != null) {
+                if (constantReturnMaterializingInstructions != null) {
                   if (block.hasCatchHandlers()) {
                     // Split the block to ensure no instructions after throwing instructions.
-                    iterator
-                        .split(code, blocks)
-                        .listIterator(code)
-                        .add(constantReturnMaterializingInstruction);
+                    for (Instruction instruction : constantReturnMaterializingInstructions) {
+                      // Split the block and reset the block iterator.
+                      BasicBlock splitBlock =
+                          iterator.splitCopyCatchHandlers(code, blocks, appView.options());
+                      BasicBlock previousBlock = blocks.previousUntil(splitBlock);
+                      assert previousBlock == splitBlock;
+                      blocks.next();
+                      iterator = splitBlock.listIterator(code);
+                      iterator.add(instruction);
+                    }
                   } else {
-                    iterator.add(constantReturnMaterializingInstruction);
+                    iterator.addAll(constantReturnMaterializingInstructions);
                   }
                 }
               }
@@ -1011,7 +1023,8 @@ public class LensCodeRewriter {
       AffectedValues affectedValues,
       List<Instruction> argumentPostlude,
       Set<UnusedArgument> unusedArguments) {
-    Instruction replacement;
+    Instruction[] replacement;
+    Position position;
     if (removedArgumentInfo.hasSingleValue()) {
       SingleValue singleValue = removedArgumentInfo.getSingleValue();
       TypeElement type =
@@ -1019,19 +1032,23 @@ public class LensCodeRewriter {
               ? TypeElement.getNull()
               : removedArgumentInfo.getType().toTypeElement(appView);
       replacement =
-          singleValue.createMaterializingInstruction(
+          singleValue.createMaterializingInstructions(
               appView, code, TypeAndLocalInfoSupplier.create(type, argument.getLocalInfo()));
-      replacement.setPosition(
-          SourcePosition.builder().setLine(0).setMethod(originalMethodReference).build());
+      position = SourcePosition.builder().setLine(0).setMethod(originalMethodReference).build();
     } else {
       TypeElement unusedArgumentType = removedArgumentInfo.getType().toTypeElement(appView);
-      replacement = new UnusedArgument(code.createValue(unusedArgumentType));
-      replacement.setPosition(Position.none());
-      unusedArguments.add(replacement.asUnusedArgument());
+      UnusedArgument unusedArgument = new UnusedArgument(code.createValue(unusedArgumentType));
+      unusedArguments.add(unusedArgument);
+      replacement = new Instruction[] {unusedArgument};
+      position = Position.none();
     }
-    argument.outValue().replaceUsers(replacement.outValue(), affectedValues);
-    affectedPhis.addAll(replacement.outValue().uniquePhiUsers());
-    argumentPostlude.add(replacement);
+    for (Instruction instruction : replacement) {
+      instruction.setPosition(position, options);
+    }
+    Value replacementValue = ArrayUtils.last(replacement).outValue();
+    argument.outValue().replaceUsers(replacementValue, affectedValues);
+    affectedPhis.addAll(replacementValue.uniquePhiUsers());
+    Collections.addAll(argumentPostlude, replacement);
     instructionIterator.removeOrReplaceByDebugLocalRead();
   }
 

@@ -47,6 +47,7 @@ import com.android.tools.r8.ir.optimize.RedundantFieldLoadAndStoreElimination.Re
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
@@ -302,9 +303,11 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
 
       @Override
       public void eliminateRedundantRead(InstructionListIterator it, Instruction redundant) {
-        affectedValues.addAll(redundant.outValue().affectedValues());
-        it.replaceCurrentInstruction(
-            value.createMaterializingInstruction(appView.withClassHierarchy(), code, redundant));
+        Instruction[] materializingInstructions =
+            value.createMaterializingInstructions(appView.withClassHierarchy(), code, redundant);
+        assert materializingInstructions.length == 1;
+        Instruction materializingInstruction = ArrayUtils.first(materializingInstructions);
+        it.replaceCurrentInstruction(materializingInstruction, affectedValues);
         hasChanged = true;
       }
 
@@ -558,7 +561,8 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
               }
             } else if (info.isSingleValue()) {
               SingleValue value = info.asSingleValue();
-              if (value.isMaterializableInContext(appViewWithLiveness, method)) {
+              if (value.hasSingleMaterializingInstruction()
+                  && value.isMaterializableInContext(appViewWithLiveness, method)) {
                 Value object = invoke.getReceiver().getAliasedValue();
                 FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
                 if (field.isFinalOrEffectivelyFinal(appViewWithLiveness)) {
@@ -857,7 +861,8 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
             if (appViewWithLiveness.appInfo().mayPropagateValueFor(appViewWithLiveness, field)
                 && fieldValue.isSingleValue()) {
               SingleValue singleFieldValue = fieldValue.asSingleValue();
-              if (singleFieldValue.isMaterializableInContext(appViewWithLiveness, method)) {
+              if (singleFieldValue.hasSingleMaterializingInstruction()
+                  && singleFieldValue.isMaterializableInContext(appViewWithLiveness, method)) {
                 activeState.putFinalOrEffectivelyFinalInstanceField(
                     new FieldAndObject(field, value), new MaterializableValue(singleFieldValue));
               }

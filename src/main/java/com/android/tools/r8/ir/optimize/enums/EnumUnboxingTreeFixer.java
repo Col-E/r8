@@ -406,13 +406,26 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
               for (ExtraParameter extraParameter :
                   lookupResult.getPrototypeChanges().getExtraParameters()) {
                 SingleConstValue singleConstValue = extraParameter.getValue(appView);
-                Instruction materializingInstruction =
-                    singleConstValue.createMaterializingInstruction(
-                        appView,
-                        code,
-                        TypeAndLocalInfoSupplier.create(
-                            extraParameter.getType(appView.dexItemFactory()).toTypeElement(appView),
-                            null));
+                assert singleConstValue.isNull() || singleConstValue.isSingleNumberValue();
+                Instruction materializingInstruction;
+                if (singleConstValue.isNull()) {
+                  assert extraParameter.getType(appView.dexItemFactory()).isNullValueType();
+                  materializingInstruction =
+                      singleConstValue
+                          .asSingleNullValue()
+                          .createMaterializingInstruction(
+                              code.valueNumberGenerator,
+                              TypeAndLocalInfoSupplier.create(TypeElement.getNull()));
+                } else {
+                  assert extraParameter.getType(appView.dexItemFactory()).isIntType();
+                  assert singleConstValue.isSingleNumberValue();
+                  materializingInstruction =
+                      singleConstValue
+                          .asSingleNumberValue()
+                          .createMaterializingInstruction(
+                              code.valueNumberGenerator,
+                              TypeAndLocalInfoSupplier.create(TypeElement.getInt()));
+                }
                 materializingInstruction.setPosition(Position.none());
                 instructionIterator.previous();
                 instructionIterator.add(materializingInstruction);

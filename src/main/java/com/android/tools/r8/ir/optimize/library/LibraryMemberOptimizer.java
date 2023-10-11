@@ -46,8 +46,14 @@ public class LibraryMemberOptimizer implements CodeOptimization {
     timing.begin("Register optimizers");
     register(new BooleanMethodOptimizer(appView));
     register(new ByteMethodOptimizer(appView));
+    register(new CharacterMethodOptimizer(appView));
+    register(new DoubleMethodOptimizer(appView));
+    register(new FloatMethodOptimizer(appView));
+    register(new IntegerMethodOptimizer(appView));
+    register(new LongMethodOptimizer(appView));
     register(new ObjectMethodOptimizer(appView));
     register(new ObjectsMethodOptimizer(appView));
+    register(new ShortMethodOptimizer(appView));
     register(new StringBuilderMethodOptimizer(appView));
     register(new StringMethodOptimizer(appView));
     if (appView.enableWholeProgramOptimizations()) {

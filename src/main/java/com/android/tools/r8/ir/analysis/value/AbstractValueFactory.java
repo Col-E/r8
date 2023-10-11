@@ -26,6 +26,42 @@ public class AbstractValueFactory {
   private ConcurrentHashMap<Integer, KnownLengthArrayState> knownArrayLengthStates =
       new ConcurrentHashMap<>();
 
+  public SingleBoxedBooleanValue createBoxedBooleanFalse() {
+    return SingleBoxedBooleanValue.getFalseInstance();
+  }
+
+  public SingleBoxedBooleanValue createBoxedBooleanTrue() {
+    return SingleBoxedBooleanValue.getTrueInstance();
+  }
+
+  public SingleBoxedByteValue createBoxedByte(int value) {
+    return new SingleBoxedByteValue(value);
+  }
+
+  public SingleBoxedCharValue createBoxedChar(int value) {
+    return new SingleBoxedCharValue(value);
+  }
+
+  public SingleBoxedDoubleValue createBoxedDouble(long value) {
+    return new SingleBoxedDoubleValue(value);
+  }
+
+  public SingleBoxedFloatValue createBoxedFloat(int value) {
+    return new SingleBoxedFloatValue(value);
+  }
+
+  public SingleBoxedIntegerValue createBoxedInteger(int value) {
+    return new SingleBoxedIntegerValue(value);
+  }
+
+  public SingleBoxedLongValue createBoxedLong(long value) {
+    return new SingleBoxedLongValue(value);
+  }
+
+  public SingleBoxedShortValue createBoxedShort(int value) {
+    return new SingleBoxedShortValue(value);
+  }
+
   public SingleConstValue createDefaultValue(DexType type) {
     assert type.isPrimitiveType() || type.isReferenceType();
     return type.isPrimitiveType() ? createZeroValue() : createNullValue(type);

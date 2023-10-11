@@ -46,6 +46,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstance
 import com.android.tools.r8.ir.optimize.enums.classification.CheckNotNullEnumUnboxerMethodClassification;
 import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodClassification;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -115,16 +116,18 @@ public class EnumUnboxingRewriter {
           assert rewrittenTypeInfo
               .getSingleValue()
               .isMaterializableInContext(appView, code.context());
-          Instruction materializingInstruction =
+          Instruction[] materializingInstructions =
               rewrittenTypeInfo
                   .getSingleValue()
-                  .createMaterializingInstruction(
+                  .createMaterializingInstructions(
                       appView,
                       code,
                       TypeAndLocalInfoSupplier.create(
                           rewrittenTypeInfo.getNewType().toTypeElement(appView),
                           next.getLocalInfo()));
-          materializingInstruction.setPosition(next.getPosition());
+          assert materializingInstructions.length == 1;
+          Instruction materializingInstruction = ArrayUtils.first(materializingInstructions);
+          materializingInstruction.setPosition(next.getPosition(), options);
           extraConstants.add(materializingInstruction);
           affectedPhis.addAll(next.outValue().uniquePhiUsers());
           next.outValue().replaceUsers(materializingInstruction.outValue());

@@ -36,6 +36,11 @@ public class SingleConstClassValue extends SingleConstValue {
   }
 
   @Override
+  public boolean hasSingleMaterializingInstruction() {
+    return true;
+  }
+
+  @Override
   public boolean isSingleConstClassValue() {
     return true;
   }
@@ -65,25 +70,18 @@ public class SingleConstClassValue extends SingleConstValue {
   }
 
   @Override
-  public Instruction createMaterializingInstruction(
+  public Instruction[] createMaterializingInstructions(
       AppView<?> appView,
       ProgramMethod context,
-      NumberGenerator valueNumberGenerator,
+      NumberGenerator numberGenerator,
       TypeAndLocalInfoSupplier info) {
-    TypeElement typeLattice = info.getOutType();
-    DebugLocalInfo debugLocalInfo = info.getLocalInfo();
-    assert typeLattice.isClassType();
-    assert appView
-        .isSubtype(appView.dexItemFactory().classType, typeLattice.asClassType().getClassType())
-        .isTrue();
-    Value returnedValue =
-        new Value(
-            valueNumberGenerator.next(),
-            classClassType(appView, definitelyNotNull()),
-            debugLocalInfo);
-    ConstClass instruction = new ConstClass(returnedValue, type);
-    assert !instruction.instructionMayHaveSideEffects(appView, context);
-    return instruction;
+    DebugLocalInfo localInfo = info.getLocalInfo();
+    TypeElement classType = classClassType(appView, definitelyNotNull());
+    assert classType.lessThanOrEqual(info.getOutType(), appView);
+    Value returnedValue = new Value(numberGenerator.next(), classType, localInfo);
+    ConstClass constClass = new ConstClass(returnedValue, type);
+    assert !constClass.instructionMayHaveSideEffects(appView, context);
+    return new Instruction[] {constClass};
   }
 
   @Override

@@ -63,7 +63,6 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
   MutableFieldOptimizationInfo setAbstractValue(
       AbstractValue abstractValue, DexEncodedField field) {
     assert !abstractValue.isNull() || field.getType().isReferenceType();
-    assert !abstractValue.isSingleNumberValue() || field.getType().isPrimitiveType();
     return setAbstractValue(abstractValue);
   }
 

@@ -37,13 +37,13 @@ public class D8MemberValuePropagation extends MemberValuePropagation<AppInfo> {
   }
 
   @Override
-  void rewriteInstanceGet(
+  InstructionListIterator rewriteInstanceGet(
       IRCode code,
       Set<Value> affectedValues,
       BasicBlockIterator blocks,
       InstructionListIterator iterator,
       InstanceGet current) {
-    // Intentionally empty.
+    return iterator;
   }
 
   @Override
@@ -52,18 +52,18 @@ public class D8MemberValuePropagation extends MemberValuePropagation<AppInfo> {
   }
 
   @Override
-  void rewriteInvokeMethod(
+  InstructionListIterator rewriteInvokeMethod(
       IRCode code,
       ProgramMethod context,
       Set<Value> affectedValues,
       BasicBlockIterator blocks,
       InstructionListIterator iterator,
       InvokeMethod invoke) {
-    // Intentionally empty.
+    return iterator;
   }
 
   @Override
-  void rewriteStaticGet(
+  InstructionListIterator rewriteStaticGet(
       IRCode code,
       Set<Value> affectedValues,
       BasicBlockIterator blocks,
@@ -71,6 +71,7 @@ public class D8MemberValuePropagation extends MemberValuePropagation<AppInfo> {
       StaticGet current) {
     AssumeInfo assumeInfo = appView.getAssumeInfoCollection().get(current.getField());
     applyAssumeInfo(code, affectedValues, blocks, iterator, current, assumeInfo);
+    return iterator;
   }
 
   @Override

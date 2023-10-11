@@ -8,10 +8,11 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.SingleBoxedByteValue;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
@@ -19,9 +20,11 @@ import java.util.Set;
 
 public class ByteMethodOptimizer extends StatelessLibraryMethodModelCollection {
 
+  private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
 
   ByteMethodOptimizer(AppView<?> appView) {
+    this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
   }
 
@@ -31,7 +34,6 @@ public class ByteMethodOptimizer extends StatelessLibraryMethodModelCollection {
   }
 
   @Override
-  @SuppressWarnings("ReferenceEquality")
   public void optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
@@ -40,23 +42,23 @@ public class ByteMethodOptimizer extends StatelessLibraryMethodModelCollection {
       DexClassAndMethod singleTarget,
       Set<Value> affectedValues,
       Set<BasicBlock> blocksToRemove) {
-    if (singleTarget.getReference() == dexItemFactory.byteMembers.byteValue) {
-      optimizeByteValue(instructionIterator, invoke);
+    if (singleTarget.getReference().isIdenticalTo(dexItemFactory.byteMembers.byteValue)) {
+      optimizeByteValue(code, instructionIterator, invoke);
     }
   }
 
-  @SuppressWarnings("ReferenceEquality")
   private void optimizeByteValue(
-      InstructionListIterator instructionIterator, InvokeMethod byteValueInvoke) {
+      IRCode code, InstructionListIterator instructionIterator, InvokeMethod byteValueInvoke) {
     // Optimize Byte.valueOf(b).byteValue() into b.
-    Value argument = byteValueInvoke.getFirstArgument().getAliasedValue();
-    if (!argument.isPhi()) {
-      Instruction definition = argument.getDefinition();
-      if (definition.isInvokeStatic()
-          && definition.asInvokeStatic().getInvokedMethod() == dexItemFactory.byteMembers.valueOf) {
-        byteValueInvoke.outValue().replaceUsers(definition.asInvokeStatic().getFirstArgument());
-        instructionIterator.removeOrReplaceByDebugLocalRead();
-      }
+    AbstractValue abstractValue =
+        byteValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
+    if (abstractValue.isSingleBoxedByte()) {
+      SingleBoxedByteValue singleBoxedByte = abstractValue.asSingleBoxedByte();
+      instructionIterator.replaceCurrentInstruction(
+          singleBoxedByte
+              .toPrimitive(appView.abstractValueFactory())
+              .createMaterializingInstruction(
+                  code.valueNumberGenerator, singleBoxedByte.getPrimitiveType()));
     }
   }
 }

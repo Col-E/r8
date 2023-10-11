@@ -661,7 +661,6 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
 
   void setAbstractReturnValue(AbstractValue value, DexEncodedMethod method) {
     assert !value.isNull() || method.getReturnType().isReferenceType();
-    assert !value.isSingleNumberValue() || method.getReturnType().isPrimitiveType();
     setAbstractReturnValue(value);
   }
 

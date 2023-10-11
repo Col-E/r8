@@ -37,6 +37,7 @@ import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.IteratorUtils;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -96,8 +97,14 @@ public abstract class MemberValuePropagation<T extends AppInfo> {
           case INVOKE_STATIC:
           case INVOKE_SUPER:
           case INVOKE_VIRTUAL:
-            rewriteInvokeMethod(
-                code, context, affectedValues, blockIterator, iterator, current.asInvokeMethod());
+            iterator =
+                rewriteInvokeMethod(
+                    code,
+                    context,
+                    affectedValues,
+                    blockIterator,
+                    iterator,
+                    current.asInvokeMethod());
             break;
           case STATIC_GET:
             rewriteStaticGet(code, affectedValues, blockIterator, iterator, current.asStaticGet());
@@ -119,7 +126,7 @@ public abstract class MemberValuePropagation<T extends AppInfo> {
       InstructionListIterator iterator,
       ArrayGet arrayGet);
 
-  abstract void rewriteInstanceGet(
+  abstract InstructionListIterator rewriteInstanceGet(
       IRCode code,
       Set<Value> affectedValues,
       BasicBlockIterator blocks,
@@ -129,7 +136,7 @@ public abstract class MemberValuePropagation<T extends AppInfo> {
   abstract void rewriteInstancePut(
       IRCode code, InstructionListIterator iterator, InstancePut current);
 
-  abstract void rewriteInvokeMethod(
+  abstract InstructionListIterator rewriteInvokeMethod(
       IRCode code,
       ProgramMethod context,
       Set<Value> affectedValues,
@@ -137,7 +144,7 @@ public abstract class MemberValuePropagation<T extends AppInfo> {
       InstructionListIterator iterator,
       InvokeMethod invoke);
 
-  abstract void rewriteStaticGet(
+  abstract InstructionListIterator rewriteStaticGet(
       IRCode code,
       Set<Value> affectedValues,
       BasicBlockIterator blocks,
@@ -167,11 +174,18 @@ public abstract class MemberValuePropagation<T extends AppInfo> {
     }
 
     // Insert replacement if any.
-    Instruction replacement = createReplacementFromAssumeInfo(assumeInfo, code, current);
-    if (replacement == null) {
+    Instruction[] replacementInstructions =
+        createReplacementFromAssumeInfo(assumeInfo, code, current);
+    if (replacementInstructions == null) {
       return false;
     }
 
+    if (replacementInstructions.length > 1) {
+      assert false;
+      return false;
+    }
+
+    Instruction replacement = ArrayUtils.first(replacementInstructions);
     affectedValues.addAll(current.outValue().affectedValues());
     if (assumeInfo.isSideEffectFree()) {
       iterator.replaceCurrentInstruction(replacement);
@@ -212,7 +226,7 @@ public abstract class MemberValuePropagation<T extends AppInfo> {
     return true;
   }
 
-  private Instruction createReplacementFromAssumeInfo(
+  private Instruction[] createReplacementFromAssumeInfo(
       AssumeInfo assumeInfo, IRCode code, Instruction instruction) {
     if (assumeInfo.getAssumeValue().isUnknown()) {
       return null;
@@ -222,7 +236,7 @@ public abstract class MemberValuePropagation<T extends AppInfo> {
     if (assumeValue.isSingleValue()) {
       SingleValue singleValue = assumeValue.asSingleValue();
       if (singleValue.isMaterializableInContext(appView, code.context())) {
-        return singleValue.createMaterializingInstruction(appView, code, instruction);
+        return singleValue.createMaterializingInstructions(appView, code, instruction);
       }
     }
 

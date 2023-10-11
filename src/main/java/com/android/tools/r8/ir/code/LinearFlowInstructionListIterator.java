@@ -189,6 +189,16 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
   }
 
   @Override
+  public InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Instruction[] instructions,
+      InternalOptions options) {
+    return currentBlockIterator.addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+        code, blockIterator, instructions, options);
+  }
+
+  @Override
   public BasicBlock addThrowingInstructionToPossiblyThrowingBlock(
       IRCode code,
       ListIterator<BasicBlock> blockIterator,

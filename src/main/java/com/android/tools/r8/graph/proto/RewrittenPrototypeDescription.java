@@ -157,17 +157,19 @@ public class RewrittenPrototypeDescription {
    *
    * <p>Note that the current implementation always returns null at this point.
    */
-  public Instruction getConstantReturn(
+  public Instruction[] getConstantReturn(
       AppView<AppInfoWithLiveness> appView,
       IRCode code,
       Position position,
       TypeAndLocalInfoSupplier info) {
     assert rewrittenReturnInfo != null;
     assert rewrittenReturnInfo.hasSingleValue();
-    Instruction instruction =
-        rewrittenReturnInfo.getSingleValue().createMaterializingInstruction(appView, code, info);
-    instruction.setPosition(position);
-    return instruction;
+    Instruction[] instructions =
+        rewrittenReturnInfo.getSingleValue().createMaterializingInstructions(appView, code, info);
+    for (Instruction instruction : instructions) {
+      instruction.setPosition(position, appView.options());
+    }
+    return instructions;
   }
 
   public boolean verifyConstantReturnAccessibleInContext(
