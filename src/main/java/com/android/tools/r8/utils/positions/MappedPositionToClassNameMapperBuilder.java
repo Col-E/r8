@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.OutlineCallerPosition;
+import com.android.tools.r8.ir.code.Position.OutlinePosition;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNaming;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
@@ -224,10 +225,6 @@ public class MappedPositionToClassNameMapperBuilder {
         PositionRemapper positionRemapper,
         boolean canUseDexPc) {
       DexEncodedMethod definition = method.getDefinition();
-      DexMethod originalMethod =
-          appView.graphLens().getOriginalMethodSignatureForMapping(method.getReference());
-      MethodSignature originalSignature =
-          MethodSignature.fromDexMethod(originalMethod, originalMethod.holder != originalType);
 
       OneShotCollectionConsumer<MappingInformation> methodSpecificMappingInformation =
           OneShotCollectionConsumer.wrap(new ArrayList<>());
@@ -236,13 +233,25 @@ public class MappedPositionToClassNameMapperBuilder {
       // classes in the library. Additionally, this is one place where it is helpful for developers
       // to also get reported synthesized frames since stubbing can change control-flow and
       // exceptions.
-      if (isD8R8Synthesized(method, mappedPositions)
-          && !appView.getSyntheticItems().isGlobalSyntheticClass(method.getHolder())) {
+      boolean canStripOuterFrame = canStripOuterFrame(method, mappedPositions);
+      boolean residualIsD8R8Synthesized =
+          method.getDefinition().isD8R8Synthesized()
+              && !appView.getSyntheticItems().isGlobalSyntheticClass(method.getHolder())
+              // TODO(b/302509457): Currently we can only represent moves on methods that have code
+              //  and thus positions. For methods with no code, use the lens to find the original.
+              && method.getDefinition().hasCode();
+      if (residualIsD8R8Synthesized && !canStripOuterFrame) {
         methodSpecificMappingInformation.add(CompilerSynthesizedMappingInformation.getInstance());
       }
 
       DexMethod residualMethod =
           appView.getNamingLens().lookupMethod(method.getReference(), appView.dexItemFactory());
+      MethodSignature residualSignature = MethodSignature.fromDexMethod(residualMethod);
+
+      DexMethod originalMethod =
+          appView.graphLens().getOriginalMethodSignatureForMapping(method.getReference());
+      MethodSignature originalSignature =
+          MethodSignature.fromDexMethod(originalMethod, originalMethod.holder != originalType);
 
       MapVersion mapFileVersion = appView.options().getMapFileVersion();
       if (isIdentityMapping(
@@ -257,13 +266,32 @@ public class MappedPositionToClassNameMapperBuilder {
             || appView.isCfByteCodePassThrough(definition);
         return this;
       }
-      MethodSignature residualSignature = MethodSignature.fromDexMethod(residualMethod);
 
-      if (ResidualSignatureMappingInformation.isSupported(mapFileVersion)
-          && (!originalSignature.type.equals(residualSignature.type)
-              || !Arrays.equals(originalSignature.parameters, residualSignature.parameters))) {
-        methodSpecificMappingInformation.add(
-            ResidualMethodSignatureMappingInformation.fromDexMethod(residualMethod));
+      if (ResidualSignatureMappingInformation.isSupported(mapFileVersion)) {
+        boolean isSame = true;
+        if (canStripOuterFrame) {
+          for (MappedPosition mappedPosition : mappedPositions) {
+            Position outerMostAfterStrip = mappedPosition.getPosition();
+            while (outerMostAfterStrip.getCallerPosition().hasCallerPosition()) {
+              outerMostAfterStrip = outerMostAfterStrip.getCallerPosition();
+            }
+            MethodSignature positionSignature =
+                MethodSignature.fromDexMethod(outerMostAfterStrip.getMethod());
+            if (!positionSignature.type.equals(residualSignature.type)
+                || !Arrays.equals(positionSignature.parameters, residualSignature.parameters)) {
+              isSame = false;
+              break;
+            }
+          }
+        } else {
+          isSame =
+              originalSignature.type.equals(residualSignature.type)
+                  && Arrays.equals(originalSignature.parameters, residualSignature.parameters);
+        }
+        if (!isSame) {
+          methodSpecificMappingInformation.add(
+              ResidualMethodSignatureMappingInformation.fromDexMethod(residualMethod));
+        }
       }
 
       MemberNaming memberNaming = new MemberNaming(originalSignature, residualSignature);
@@ -293,11 +321,11 @@ public class MappedPositionToClassNameMapperBuilder {
                   });
 
       // Check if mapped position is an outline
-      DexMethod outlineMethod = getOutlineMethod(mappedPositions.get(0).getPosition());
-      if (outlineMethod != null) {
+      DexMethod outlineMethodKey = getOutlineMethodKey(mappedPositions);
+      if (outlineMethodKey != null) {
         outlinesToFix
             .computeIfAbsent(
-                outlineMethod,
+                outlineMethodKey,
                 outline -> new OutlineFixupBuilder(computeMappedMethod(outline, appView)))
             .setMappedPositionsOutline(mappedPositions);
         methodSpecificMappingInformation.add(OutlineMappingInformation.builder().build());
@@ -348,6 +376,11 @@ public class MappedPositionToClassNameMapperBuilder {
         Range originalRange =
             nonCardinalRangeCache.get(firstPosition.getLine(), lastPosition.getLine());
 
+        boolean hasSyntheticOuterFrameAndNonSyntheticInner =
+            residualIsD8R8Synthesized && firstPosition.hasCallerPosition();
+        assert !hasSyntheticOuterFrameAndNonSyntheticInner
+            || firstPosition.getOutermostCaller().isD8R8Synthesized();
+
         MappedRange lastMappedRange =
             getMappedRangesForPosition(
                 appView,
@@ -358,7 +391,8 @@ public class MappedPositionToClassNameMapperBuilder {
                 obfuscatedRange,
                 originalRange,
                 prunedInlinedClasses,
-                cardinalRangeCache);
+                cardinalRangeCache,
+                canStripOuterFrame);
         // firstPosition will contain a potential outline caller.
         if (firstPosition.isOutlineCaller()) {
           outlineCallerPositions.putIfAbsent(firstPosition.asOutlineCaller(), lastMappedRange);
@@ -395,7 +429,8 @@ public class MappedPositionToClassNameMapperBuilder {
                               placeHolderLineToBeFixed, placeHolderLineToBeFixed),
                           nonCardinalRangeCache.get(position.getLine(), position.getLine()),
                           prunedInlinedClasses,
-                          cardinalRangeCache);
+                          cardinalRangeCache,
+                          canStripOuterFrame);
                   maxPc.set(lastRange.minifiedRange.to);
                 });
         outlinesToFix
@@ -409,10 +444,40 @@ public class MappedPositionToClassNameMapperBuilder {
       return this;
     }
 
-    private boolean isD8R8Synthesized(ProgramMethod method, List<MappedPosition> mappedPositions) {
-      return method.getDefinition().isD8R8Synthesized()
-          || (!mappedPositions.isEmpty()
-              && mappedPositions.get(0).getPosition().isD8R8Synthesized());
+    private boolean canStripOuterFrame(ProgramMethod method, List<MappedPosition> mappedPositions) {
+      assert verifySyntheticPositions(method, mappedPositions);
+      if (!method.getDefinition().isD8R8Synthesized() || mappedPositions.isEmpty()) {
+        return false;
+      }
+      for (MappedPosition mappedPosition : mappedPositions) {
+        Position position = mappedPosition.getPosition();
+        if (!position.hasCallerPosition()) {
+          // At least one position only has the synthetic method as its frame, so we can't strip it.
+          return false;
+        }
+        if (position.isOutline() || position.isOutlineCaller()) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    private boolean verifySyntheticPositions(
+        ProgramMethod method, List<MappedPosition> mappedPositions) {
+      DexMethod thisMethod = method.getReference();
+      boolean d8R8Synthesized = method.getDefinition().isD8R8Synthesized();
+      for (MappedPosition mappedPosition : mappedPositions) {
+        Position position = mappedPosition.getPosition();
+        while (position.hasCallerPosition()) {
+          assert !position.isOutline();
+          assert !position.isD8R8Synthesized();
+          position = position.getCallerPosition();
+        }
+        DexMethod outerCaller = position.getMethod();
+        assert thisMethod.isIdenticalTo(outerCaller);
+        assert d8R8Synthesized == position.isD8R8Synthesized();
+      }
+      return true;
     }
 
     private MethodReference computeMappedMethod(DexMethod current, AppView<?> appView) {
@@ -432,13 +497,15 @@ public class MappedPositionToClassNameMapperBuilder {
         Range obfuscatedRange,
         Range originalLine,
         Map<DexType, String> prunedInlineHolder,
-        CardinalPositionRangeAllocator cardinalRangeCache) {
+        CardinalPositionRangeAllocator cardinalRangeCache,
+        boolean canStripOuterFrame) {
       MappedRange lastMappedRange = null;
       int inlineFramesCount = -1;
       do {
-        if (position.isD8R8Synthesized() && position.hasCallerPosition()) {
-          position = position.getCallerPosition();
-          continue;
+        if (canStripOuterFrame && !position.hasCallerPosition()) {
+          assert position.isD8R8Synthesized();
+          assert lastMappedRange != null;
+          break;
         }
         inlineFramesCount += 1;
         DexType holderType = position.getMethod().getHolderType();
@@ -473,16 +540,15 @@ public class MappedPositionToClassNameMapperBuilder {
       return lastMappedRange;
     }
 
-    private DexMethod getOutlineMethod(Position mappedPosition) {
-      if (mappedPosition.isOutline()) {
-        return mappedPosition.getMethod();
+    private DexMethod getOutlineMethodKey(List<MappedPosition> mappedPositions) {
+      for (MappedPosition mappedPosition : mappedPositions) {
+        Position position = mappedPosition.getPosition().getOutermostCaller();
+        if (position.isOutline()) {
+          OutlinePosition outline = (OutlinePosition) position;
+          return outline.getOutlineMethodKey();
+        }
       }
-      Position caller = mappedPosition.getCallerPosition();
-      if (caller == null) {
-        return null;
-      }
-      Position outermostCaller = caller.getOutermostCaller();
-      return outermostCaller.isOutline() ? outermostCaller.getMethod() : null;
+      return null;
     }
 
     @SuppressWarnings("ReferenceEquality")

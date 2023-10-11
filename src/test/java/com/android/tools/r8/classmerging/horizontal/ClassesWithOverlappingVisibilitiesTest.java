@@ -43,14 +43,14 @@ public class ClassesWithOverlappingVisibilitiesTest extends HorizontalClassMergi
 
               ClassSubject bClassSubject = codeInspector.clazz(B.class);
               assertThat(bClassSubject, isPresent());
-              methodSubject = bClassSubject.method("void", "foo$bridge");
+              methodSubject = getUniqueDispatchBridgeMethod(bClassSubject);
               assertThat(methodSubject, isPackagePrivate());
 
               assertThat(codeInspector.clazz(C.class), isAbsent());
 
               ClassSubject dClassSubject = codeInspector.clazz(D.class);
               assertThat(dClassSubject, isPresent());
-              methodSubject = dClassSubject.method("void", "foo$bridge");
+              methodSubject = getUniqueDispatchBridgeMethod(dClassSubject);
               assertThat(methodSubject, isPublic());
 
               ClassSubject eClassSubject = codeInspector.clazz(E.class);

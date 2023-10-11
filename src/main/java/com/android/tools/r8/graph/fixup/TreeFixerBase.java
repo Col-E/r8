@@ -258,12 +258,12 @@ public abstract class TreeFixerBase {
   }
 
   /** Fixup a method definition. */
-  @SuppressWarnings("ReferenceEquality")
   public DexEncodedMethod fixupMethod(DexEncodedMethod method) {
     DexMethod methodReference = method.getReference();
     DexMethod newMethodReference = fixupMethodReference(methodReference);
-    if (newMethodReference != methodReference) {
-      return recordMethodChange(method, method.toTypeSubstitutedMethod(newMethodReference));
+    if (!methodReference.isIdenticalTo(newMethodReference)) {
+      return recordMethodChange(
+          method, method.toTypeSubstitutedMethodAsInlining(newMethodReference, dexItemFactory));
     }
     return method;
   }

@@ -67,7 +67,6 @@ import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.InvokeType;
-import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
@@ -1014,7 +1013,9 @@ public class VerticalClassMerger {
                   virtualMethod.getProto().prependParameter(source.getType(), dexItemFactory),
                   dexItemFactory.createGloballyFreshMemberString(resultingMethodBaseName));
           assert availableMethodSignatures.test(resultingMethodReference);
-          resultingMethod = virtualMethod.toTypeSubstitutedMethod(resultingMethodReference);
+          resultingMethod =
+              virtualMethod.toTypeSubstitutedMethodAsInlining(
+                  resultingMethodReference, dexItemFactory);
           makeStatic(resultingMethod);
         } else {
           // This virtual method could be called directly from a sub class via an invoke-super in-
@@ -1443,7 +1444,6 @@ public class VerticalClassMerger {
       SynthesizedBridgeCode code =
           new SynthesizedBridgeCode(
               newMethod,
-              appView.graphLens().getOriginalMethodSignature(method.getReference()),
               invocationTarget.getReference(),
               invocationTarget.isStatic()
                   ? STATIC
@@ -1562,7 +1562,8 @@ public class VerticalClassMerger {
         count++;
       } while (!availableMethodSignatures.test(newSignature));
 
-      DexEncodedMethod result = method.toTypeSubstitutedMethod(newSignature);
+      DexEncodedMethod result =
+          method.toTypeSubstitutedMethodAsInlining(newSignature, appView.dexItemFactory());
       result.getMutableOptimizationInfo().markForceInline();
       deferredRenamings.map(method.getReference(), result.getReference());
       deferredRenamings.recordMove(method.getReference(), result.getReference());
@@ -1616,7 +1617,7 @@ public class VerticalClassMerger {
           throw new Unreachable();
       }
 
-      return method.toTypeSubstitutedMethod(newSignature);
+      return method.toTypeSubstitutedMethodAsInlining(newSignature, appView.dexItemFactory());
     }
 
     private DexEncodedField renameFieldIfNeeded(
@@ -2242,22 +2243,19 @@ public class VerticalClassMerger {
     public void registerTypeReference(DexType type) {}
   }
 
-  protected static class SynthesizedBridgeCode extends AbstractSynthesizedCode {
+  public static class SynthesizedBridgeCode extends AbstractSynthesizedCode {
 
     private DexMethod method;
-    private DexMethod originalMethod;
     private DexMethod invocationTarget;
     private InvokeType type;
     private final boolean isInterface;
 
     public SynthesizedBridgeCode(
         DexMethod method,
-        DexMethod originalMethod,
         DexMethod invocationTarget,
         InvokeType type,
         boolean isInterface) {
       this.method = method;
-      this.originalMethod = originalMethod;
       this.invocationTarget = invocationTarget;
       this.type = type;
       this.isInterface = isInterface;
@@ -2285,20 +2283,12 @@ public class VerticalClassMerger {
           ForwardMethodSourceCode.builder(method);
       forwardSourceCodeBuilder
           .setReceiver(method.holder)
-          .setOriginalMethod(originalMethod)
           .setTargetReceiver(type.isStatic() ? null : method.holder)
           .setTarget(invocationTarget)
           .setInvokeType(type)
           .setIsInterface(isInterface);
       return (context, callerPosition) -> {
-        SyntheticPosition caller =
-            SyntheticPosition.builder()
-                .setLine(0)
-                .setMethod(method)
-                .setIsD8R8Synthesized(true)
-                .setCallerPosition(callerPosition)
-                .build();
-        return forwardSourceCodeBuilder.build(context, caller);
+        return forwardSourceCodeBuilder.build(context, callerPosition);
       };
     }
 

@@ -317,7 +317,10 @@ public class AccessModifier {
       lensBuilder.recordMove(method.getReference(), newMethodReference);
       method =
           new ProgramMethod(
-              holder, method.getDefinition().toTypeSubstitutedMethod(newMethodReference));
+              holder,
+              method
+                  .getDefinition()
+                  .toTypeSubstitutedMethodAsInlining(newMethodReference, appView.dexItemFactory()));
     }
     if (method.getAccessFlags().isPromotedFromPrivateToPublic()
         && method.getAccessFlags().belongsToVirtualPool()) {

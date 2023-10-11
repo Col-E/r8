@@ -32,7 +32,6 @@ public class LambdaInStacktraceTest extends TestBase {
           "lambda$main$1(" + fileName + ")",
           "main(" + fileName + ")");
 
-  // TODO(b/187491007): The "call" frame should have a file name.
   static final String EXPECTED_D8 =
       StringUtils.lines(
           "getStacktraceWithFileNames(" + fileName + ")",
@@ -42,17 +41,6 @@ public class LambdaInStacktraceTest extends TestBase {
           "getStacktraceWithFileNames(" + fileName + ")",
           "lambda$main$1(" + fileName + ")",
           "call(D8$$SyntheticClass)",
-          "main(" + fileName + ")");
-
-  static final String EXPECTED_D8_ANDROID_O =
-      StringUtils.lines(
-          "getStacktraceWithFileNames(" + fileName + ")",
-          "lambda$main$0(" + fileName + ")",
-          "call(NULL)",
-          "main(" + fileName + ")",
-          "getStacktraceWithFileNames(" + fileName + ")",
-          "lambda$main$1(" + fileName + ")",
-          "call(NULL)",
           "main(" + fileName + ")");
 
   private final TestParameters parameters;
@@ -88,7 +76,7 @@ public class LambdaInStacktraceTest extends TestBase {
         .addInnerClasses(LambdaInStacktraceTest.class)
         .setMinApi(parameters)
         .run(parameters.getRuntime(), TestRunner.class, Boolean.toString(isDalvik))
-        .assertSuccessWithOutput(isAndroidOOrLater ? EXPECTED_D8_ANDROID_O : EXPECTED_D8);
+        .assertSuccessWithOutput(EXPECTED_D8);
   }
 
   @Test

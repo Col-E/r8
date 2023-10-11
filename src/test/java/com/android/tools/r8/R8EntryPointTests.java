@@ -19,7 +19,11 @@ import java.util.concurrent.Executors;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class R8EntryPointTests extends TestBase {
 
   private static final String MAPPING = "mapping.txt";
@@ -30,6 +34,15 @@ public class R8EntryPointTests extends TestBase {
       Paths.get(ToolHelper.EXAMPLES_DIR, "minification",  "keep-rules.txt");
 
   private Path testFlags;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return TestParameters.builder().withNoneRuntime().build();
+  }
+
+  public R8EntryPointTests(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Before
   public void setup() throws IOException {

@@ -341,14 +341,12 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
-    @SuppressWarnings("ReferenceEquality")
     public boolean equals(Object other) {
       if (!(other instanceof NewInstanceOutlineInstruction)) {
         return false;
       }
       NewInstanceOutlineInstruction o = (NewInstanceOutlineInstruction) other;
-      boolean result = clazz == o.clazz;
-      return result;
+      return clazz.isIdenticalTo(o.clazz);
     }
 
     @Override
@@ -397,9 +395,8 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
-    @SuppressWarnings("ReferenceEquality")
     public boolean needsLensRewriting(GraphLens currentGraphLens) {
-      return currentGraphLens.lookupType(clazz) != clazz;
+      return !clazz.isIdenticalTo(currentGraphLens.lookupType(clazz));
     }
   }
 
@@ -449,13 +446,12 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
-    @SuppressWarnings("ReferenceEquality")
     public boolean equals(Object other) {
       if (!(other instanceof InvokeOutlineInstruction)) {
         return false;
       }
       InvokeOutlineInstruction o = (InvokeOutlineInstruction) other;
-      return method == o.method
+      return method.isIdenticalTo(o.method)
           && invokeType == o.invokeType
           && hasOutValue == o.hasOutValue
           && Objects.equals(proto, o.proto);
@@ -542,9 +538,8 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
-    @SuppressWarnings("ReferenceEquality")
     public boolean needsLensRewriting(GraphLens currentGraphLens) {
-      return currentGraphLens.getRenamedMethodSignature(method) != method;
+      return !method.isIdenticalTo(currentGraphLens.getRenamedMethodSignature(method));
     }
   }
 
@@ -1255,8 +1250,9 @@ public class OutlinerImpl extends Outliner {
         argumentsMapIndex = 0;
         OutlineCallerPositionBuilder positionBuilder =
             OutlineCallerPosition.builder()
-                .setMethod(appView.graphLens().getOriginalMethodSignature(method.getReference()))
+                .setMethod(method.getReference())
                 .setOutlineCallee(outlineMethod)
+                .setIsD8R8Synthesized(method.getDefinition().isD8R8Synthesized())
                 // We set the line number to 0 here and rely on the LineNumberOptimizer to
                 // set a new disjoint line.
                 .setLine(0);
@@ -1739,11 +1735,10 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
-    @SuppressWarnings("ReferenceEquality")
     public void buildInstruction(
         IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
       if (instructionIndex == outline.templateInstructions.size()) {
-        if (outline.returnType == dexItemFactory.voidType) {
+        if (outline.returnType.isVoidType()) {
           builder.addReturn();
         } else {
           builder.addReturn(outline.argumentCount());
@@ -1790,7 +1785,11 @@ public class OutlinerImpl extends Outliner {
     public Position getCurrentPosition() {
       // Always build positions for outlinee - each callsite will only build a position map for
       // instructions that are actually throwing.
-      return OutlinePosition.builder().setLine(position).setMethod(method).build();
+      return OutlinePosition.builder(method)
+          .setLine(position)
+          .setMethod(method)
+          .setIsD8R8Synthesized(true)
+          .build();
     }
 
     @Override
