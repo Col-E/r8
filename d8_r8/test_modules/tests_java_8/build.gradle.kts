@@ -17,8 +17,6 @@ java {
   sourceSets.test.configure {
     java {
       srcDir(root.resolveAll("src", "test", "java"))
-      // Generated art tests
-      srcDir(root.resolveAll("build", "generated", "test", "java"))
     }
   }
 
@@ -81,20 +79,10 @@ fun testDependencies() : FileCollection {
 }
 
 tasks {
-  val createArtTests by registering(Exec::class) {
-    val outputDir = getRoot().resolveAll("build", "generated", "test", "java", "com", "android", "tools", "r8", "art")
-    val createArtTestsScript = getRoot().resolveAll("tools", "create_art_tests.py")
-    inputs.file(createArtTestsScript)
-    inputs.dir(getRoot().resolveAll("tests", "2017-10-04"))
-    outputs.dir(outputDir)
-    workingDir(getRoot())
-    commandLine(createArtTestsScript)
-  }
   "compileTestJava" {
     dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
   }
   withType<JavaCompile> {
-    dependsOn(createArtTests)
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
     dependsOn(gradle.includedBuild("resourceshrinker").task(":jar"))
     dependsOn(gradle.includedBuild("main").task(":compileJava"))
