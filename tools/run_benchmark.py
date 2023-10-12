@@ -13,6 +13,12 @@ import gradle
 import jdk
 import utils
 
+GOLEM_BUILD_TARGETS_TESTS = [
+    utils.GRADLE_TASK_ALL_TESTS_WITH_APPLY_MAPPING_JAR,
+    utils.GRADLE_TASK_TEST_DEPS_JAR
+]
+GOLEM_BUILD_TARGETS = [utils.GRADLE_TASK_R8LIB] + GOLEM_BUILD_TARGETS_TESTS
+
 def get_golem_resource_path(benchmark):
   return os.path.join('benchmarks', benchmark)
 
@@ -77,11 +83,8 @@ def main(argv, temp):
     r8jar = utils.R8_JAR
     testjars = [utils.R8_TESTS_JAR, utils.R8_TESTS_DEPS_JAR]
   else:
-    testBuildTargets = [
-        utils.GRADLE_TASK_ALL_TESTS_WITH_APPLY_MAPPING_JAR,
-        utils.GRADLE_TASK_TEST_DEPS_JAR
-    ]
-    buildTargets = [utils.GRADLE_TASK_R8LIB] + testBuildTargets
+    testBuildTargets = GOLEM_BUILD_TARGETS_TESTS
+    buildTargets = GOLEM_BUILD_TARGETS
     r8jar = utils.R8LIB_JAR
     testjars = [
         os.path.join(utils.R8LIB_TESTS_JAR),
