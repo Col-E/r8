@@ -89,7 +89,7 @@ tasks {
     inputs.dir(getRoot().resolveAll("tests", "2017-10-04"))
     outputs.dir(outputDir)
     workingDir(getRoot())
-    commandLine(createArtTestsScript)
+    commandLine("python3", createArtTestsScript)
   }
   "compileTestJava" {
     dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
