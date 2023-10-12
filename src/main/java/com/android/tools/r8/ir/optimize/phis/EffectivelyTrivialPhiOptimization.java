@@ -96,8 +96,7 @@ public class EffectivelyTrivialPhiOptimization {
       TypeElement materializedValueType = phiType;
       if (singleValue.isSingleBoxedPrimitive()) {
         materializedValueType = singleValue.asSingleBoxedPrimitive().getBoxedPrimitiveType(appView);
-      }
-      if (singleValue.isSingleFieldValue()) {
+      } else if (singleValue.isSingleFieldValue()) {
         SingleFieldValue singleFieldValue = singleValue.asSingleFieldValue();
         materializedValueType = singleFieldValue.getField().getTypeElement(appView);
       } else if (phiType.isReferenceType() && singleValue.isNull()) {
