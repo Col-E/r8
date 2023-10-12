@@ -51,13 +51,14 @@ public class BackportedMethodList {
       StringUtils.joinLines(
           "Usage: BackportedMethodList [options]",
           " Options are:",
-          "  --output <file>         # Output result in <file>.",
-          "  --min-api <number>      # Minimum Android API level for the application",
-          "  --desugared-lib <file>  # Desugared library configuration (JSON from the",
-          "                          # configuration)",
-          "  --lib <file>            # The compilation SDK library (android.jar)",
-          "  --version               # Print the version of BackportedMethodList.",
-          "  --help                  # Print this message.");
+          "  --output <file>          # Output result in <file>.",
+          "  --min-api <number>       # Minimum Android API level for the application",
+          "  --desugared-lib <file>   # Desugared library configuration (JSON from the",
+          "                           # configuration)",
+          "  --lib <file>             # The compilation SDK library (android.jar)",
+          "  --android-platform-build # Compilation of platform code",
+          "  --version                # Print the version of BackportedMethodList.",
+          "  --help                   # Print this message.");
 
   public static void run(BackportedMethodListCommand command) throws CompilationFailedException {
     if (command.isPrintHelp()) {
@@ -82,6 +83,9 @@ public class BackportedMethodList {
     if (jsonSource != null) {
       builder.setDesugarLibrarySpecification(
           StringResource.fromString(jsonSource, Origin.unknown()));
+    }
+    if (command.isAndroidPlatformBuild()) {
+      builder.setAndroidPlatformBuild();
     }
     return builder
         .setMinApi(command.getMinApiLevel())

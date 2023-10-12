@@ -43,6 +43,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -59,23 +60,26 @@ public class SupportedClassesGenerator {
   private final DirectMappedDexApplication appForMax;
   private final AndroidApiLevel minApi;
   private final SupportedClasses.Builder builder = SupportedClasses.builder();
+  private final boolean androidPlatformBuild;
   private final boolean addBackports;
 
   public SupportedClassesGenerator(
       InternalOptions options, Collection<ClassFileResourceProvider> androidJar)
       throws IOException {
-    this(options, androidJar, AndroidApiLevel.B, false);
+    this(options, androidJar, AndroidApiLevel.B, false, false);
   }
 
   public SupportedClassesGenerator(
       InternalOptions options,
       Collection<ClassFileResourceProvider> androidJar,
       AndroidApiLevel minApi,
+      boolean androidPlatformBuild,
       boolean addBackports)
       throws IOException {
     this.options = options;
     this.appForMax = createAppForMax(androidJar);
     this.minApi = minApi;
+    this.androidPlatformBuild = androidPlatformBuild;
     this.addBackports = addBackports;
   }
 
@@ -155,8 +159,7 @@ public class SupportedClassesGenerator {
       AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
 
       // This should depend only on machine specification and min api.
-      List<DexMethod> backports =
-          BackportedMethodRewriter.generateListOfBackportedMethods(appForMax, options);
+      List<DexMethod> backports = generateListOfBackportedMethods();
 
       int finalApi = api;
       builder.forEachClassAndMethod(
@@ -279,8 +282,7 @@ public class SupportedClassesGenerator {
     DirectMappedDexApplication implementationApplication =
         new ApplicationReader(implementation, options, Timing.empty()).read().toDirect();
 
-    List<DexMethod> backports =
-        BackportedMethodRewriter.generateListOfBackportedMethods(appForMax, options);
+    List<DexMethod> backports = generateListOfBackportedMethods();
 
     for (DexProgramClass clazz : implementationApplication.classes()) {
       // All emulated interfaces static and default methods are supported.
@@ -364,6 +366,13 @@ public class SupportedClassesGenerator {
       extraMethods.sort(Comparator.naturalOrder());
       builder.setExtraMethods(extraMethods);
     }
+  }
+
+  private List<DexMethod> generateListOfBackportedMethods() throws IOException {
+    if (androidPlatformBuild) {
+      return ImmutableList.of();
+    }
+    return BackportedMethodRewriter.generateListOfBackportedMethods(appForMax, options);
   }
 
   private void registerMethod(

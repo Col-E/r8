@@ -15,6 +15,7 @@ import com.android.tools.r8.ParseFlagPrinter;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.StringResource;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
@@ -38,6 +39,7 @@ public class DesugaredMethodsListCommand {
   private final Collection<ProgramResourceProvider> desugarLibraryImplementation;
   private final StringConsumer outputConsumer;
   private final Collection<ClassFileResourceProvider> library;
+  private final boolean androidPlatformBuild;
 
   DesugaredMethodsListCommand(
       int minApi,
@@ -45,7 +47,8 @@ public class DesugaredMethodsListCommand {
       StringResource desugarLibrarySpecification,
       Collection<ProgramResourceProvider> desugarLibraryImplementation,
       StringConsumer outputConsumer,
-      Collection<ClassFileResourceProvider> library) {
+      Collection<ClassFileResourceProvider> library,
+      boolean androidPlatformBuild) {
     this.help = false;
     this.version = false;
     this.minApi = minApi;
@@ -54,6 +57,7 @@ public class DesugaredMethodsListCommand {
     this.desugarLibraryImplementation = desugarLibraryImplementation;
     this.outputConsumer = outputConsumer;
     this.library = library;
+    this.androidPlatformBuild = androidPlatformBuild;
   }
 
   DesugaredMethodsListCommand(boolean help, boolean version) {
@@ -65,10 +69,15 @@ public class DesugaredMethodsListCommand {
     this.desugarLibraryImplementation = null;
     this.outputConsumer = null;
     this.library = null;
+    this.androidPlatformBuild = false;
   }
 
   public int getMinApi() {
     return minApi;
+  }
+
+  public boolean isAndroidPlatformBuild() {
+    return androidPlatformBuild;
   }
 
   public StringResource getDesugarLibrarySpecification() {
@@ -124,6 +133,7 @@ public class DesugaredMethodsListCommand {
 
     private boolean help = false;
     private boolean version = false;
+    private boolean androidPlatformBuild = false;
 
     public Builder(DiagnosticsHandler diagnosticsHandler) {
       this.reporter = new Reporter(diagnosticsHandler);
@@ -177,6 +187,11 @@ public class DesugaredMethodsListCommand {
       return this;
     }
 
+    public Builder setAndroidPlatformBuild() {
+      this.androidPlatformBuild = true;
+      return this;
+    }
+
     public DesugaredMethodsListCommand build() {
       // The min-api level defaults to 1, it's always present.
       // If desugarLibraryImplementation is empty, this generates only the backported method list.
@@ -185,8 +200,12 @@ public class DesugaredMethodsListCommand {
         return new DesugaredMethodsListCommand(help, version);
       }
 
+      if (androidPlatformBuild && !desugarLibraryImplementation.isEmpty()) {
+        reporter.error("With platform build desugared library is not allowed.");
+      }
+
       if (desugarLibrarySpecification != null && library.isEmpty()) {
-        reporter.error("With desugared library configuration a library is required");
+        reporter.error("With desugared library configuration a library is required.");
       }
 
       if (!desugarLibraryImplementation.isEmpty() && desugarLibrarySpecification == null) {
@@ -213,7 +232,8 @@ public class DesugaredMethodsListCommand {
           desugarLibrarySpecification,
           desugarLibraryImplementation,
           outputConsumer,
-          library);
+          library,
+          androidPlatformBuild);
     }
   }
 
@@ -227,6 +247,7 @@ public class DesugaredMethodsListCommand {
           .add(ParseFlagInfoImpl.getVersion("DesugaredMethods"))
           .add(ParseFlagInfoImpl.getHelp())
           .add(ParseFlagInfoImpl.getDesugaredLib())
+          .add(ParseFlagInfoImpl.getAndroidPlatformBuild())
           .add(
               ParseFlagInfoImpl.flag1(
                   "--desugared-lib-jar", "<file>", "Specify desugared library jar."))
@@ -246,6 +267,9 @@ public class DesugaredMethodsListCommand {
         } else if (arg.equals("--version")) {
           builder.setVersion();
           continue;
+        } else if (arg.equals("--android-platform-build")) {
+          builder.setAndroidPlatformBuild();
+          continue;
         }
         String argValue = args[i + 1].trim();
         if (arg.equals("--min-api")) {
@@ -259,6 +283,8 @@ public class DesugaredMethodsListCommand {
           builder.setOutputPath(Paths.get(argValue));
         } else if (arg.equals("--lib")) {
           builder.addLibrary(new ArchiveClassFileProvider(Paths.get(argValue)));
+        } else {
+          throw new Unreachable("Unsupported argument " + arg);
         }
       }
 

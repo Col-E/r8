@@ -31,10 +31,12 @@ import java.util.concurrent.ExecutorService;
 public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
 
   private final AndroidApiLevel minApi;
+  private final boolean androidPlatformBuild;
   private final StringConsumer outputConsumer;
 
   DesugaredMethodsList(
       int minApi,
+      boolean androidPlatformBuild,
       Reporter reporter,
       StringResource desugarConfiguration,
       Collection<ProgramResourceProvider> desugarImplementation,
@@ -42,6 +44,7 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
       Collection<ClassFileResourceProvider> androidJar) {
     super(reporter, desugarConfiguration, desugarImplementation, null, androidJar);
     this.minApi = AndroidApiLevel.getAndroidApiLevel(minApi);
+    this.androidPlatformBuild = androidPlatformBuild;
     this.outputConsumer = outputConsumer;
   }
 
@@ -61,6 +64,7 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
           () -> {
             new DesugaredMethodsList(
                     command.getMinApi(),
+                    command.isAndroidPlatformBuild(),
                     command.getReporter(),
                     command.getDesugarLibrarySpecification(),
                     command.getDesugarLibraryImplementation(),
@@ -78,7 +82,7 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
     AndroidApiLevel compilationLevel =
         desugaredLibrarySpecification.getRequiredCompilationApiLevel();
     SupportedClasses supportedMethods =
-        new SupportedClassesGenerator(options, androidJar, minApi, true)
+        new SupportedClassesGenerator(options, androidJar, minApi, androidPlatformBuild, true)
             .run(desugaredLibraryImplementation, desugaredLibrarySpecificationResource);
     System.out.println(
         "Generating lint files for "
