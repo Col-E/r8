@@ -264,7 +264,6 @@ public class DesugaredMethodsListCommand {
           .build();
     }
 
-    @SuppressWarnings("IncrementInForLoopAndHeader")
     public DesugaredMethodsListCommand parse(String[] args, DiagnosticsHandler handler)
         throws IOException {
       DesugaredMethodsListCommand.Builder builder = DesugaredMethodsListCommand.builder(handler);
@@ -282,8 +281,7 @@ public class DesugaredMethodsListCommand {
           builder.setAndroidPlatformBuild();
           continue;
         }
-        i++;
-        if (i >= args.length) {
+        if (++i >= args.length) {
           handler.error(new StringDiagnostic("Missing value for arg " + arg));
           break;
         }
