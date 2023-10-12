@@ -74,19 +74,19 @@ tasks {
 
     val license = getRoot().resolveAll("build", "generatedLicense", "LICENSE")
     outputs.files(license)
+    val dependencies = mutableListOf<String>()
+    configurations
+      .findByName("runtimeClasspath")!!
+      .resolvedConfiguration
+      .resolvedArtifacts
+      .forEach {
+        val identifier = it.id.componentIdentifier
+        if (identifier is ModuleComponentIdentifier) {
+          dependencies.add("${identifier.group}:${identifier.module}")
+        }
+      }
 
     doLast {
-      val dependencies = mutableListOf<String>()
-      configurations
-        .findByName("runtimeClasspath")!!
-        .resolvedConfiguration
-        .resolvedArtifacts
-        .forEach {
-          val identifier = it.id.componentIdentifier
-          if (identifier is ModuleComponentIdentifier) {
-            dependencies.add("${identifier.group}:${identifier.module}")
-          }
-      }
       val libraryLicenses = libraryLicense.readText()
       dependencies.forEach {
         if (!libraryLicenses.contains("- artifact: $it")) {
