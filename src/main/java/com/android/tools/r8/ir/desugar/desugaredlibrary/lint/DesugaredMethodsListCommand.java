@@ -264,6 +264,7 @@ public class DesugaredMethodsListCommand {
           .build();
     }
 
+    @SuppressWarnings("IncrementInForLoopAndHeader")
     public DesugaredMethodsListCommand parse(String[] args, DiagnosticsHandler handler)
         throws IOException {
       DesugaredMethodsListCommand.Builder builder = DesugaredMethodsListCommand.builder(handler);
