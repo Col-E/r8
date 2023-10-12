@@ -268,6 +268,7 @@ public class ToolHelper {
       Paths.get(LIBS_DIR, "r8_with_relocated_deps_17.jar");
   public static final Path R8LIB_JAR = Paths.get(LIBS_DIR, "r8lib.jar");
   public static final Path R8LIB_MAP = Paths.get(LIBS_DIR, "r8lib.jar.map");
+  public static final Path R8LIB_MAP_PARTITIONED = Paths.get(LIBS_DIR, "r8lib.jar_map.zip");
   public static final Path R8LIB_EXCLUDE_DEPS_JAR = Paths.get(LIBS_DIR, "r8lib-exclude-deps.jar");
   public static final Path R8LIB_EXCLUDE_DEPS_MAP =
       Paths.get(LIBS_DIR, "r8lib-exclude-deps.jar.map");

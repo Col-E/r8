@@ -537,6 +537,10 @@ public class IRConverter {
       options.testing.irModifier.accept(code, appView);
     }
 
+    if (options.testing.forceThrowInConvert) {
+      throw new RuntimeException("Forcing compilation failure for testing");
+    }
+
     if (lensCodeRewriter != null) {
       timing.begin("Lens rewrite");
       lensCodeRewriter.rewrite(code, context, methodProcessor);

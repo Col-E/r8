@@ -542,6 +542,10 @@ object ThirdPartyDeps {
     "retrace-binary-compatibility",
     Paths.get("third_party", "retrace", "binary_compatibility").toFile(),
     Paths.get("third_party", "retrace", "binary_compatibility.tar.gz.sha1").toFile())
+  val retracePartitionFormats = ThirdPartyDependency(
+    "retrace-partition-formats",
+    Paths.get("third_party", "retrace", "partition_formats").toFile(),
+    Paths.get("third_party", "retrace", "partition_formats.tar.gz.sha1").toFile())
   val retraceInternal = ThirdPartyDependency(
     "retrace-internal",
     Paths.get("third_party", "retrace_internal").toFile(),

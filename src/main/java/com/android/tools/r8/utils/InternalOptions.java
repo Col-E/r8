@@ -2235,6 +2235,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean forceInvokeRangeForInvokeCustom = false;
 
+    public boolean forceThrowInConvert =
+        System.getProperty("com.android.tools.r8.testing.forceThrowInConvert") != null;
+
     private DeterminismChecker getDeterminismChecker() {
       // Lazily read the env-var so that it can be set after options init.
       if (determinismChecker == null && !hasReadCheckDeterminism) {
