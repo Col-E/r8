@@ -243,7 +243,7 @@ tasks {
     val main = r8WithRelocatedDepsTask.outputs.files.singleFile
     val testDeps = allDepsJar.get().outputs.files.singleFile
     inputs.files(listOf(r8, allTests, pgConf, lib, main, testDeps))
-    val output = file(Paths.get("build", "libs", "all-tests-relocated-applymapping.jar"))
+    val output = getRoot().resolveAll("build", "libs", "r8libtestdeps-cf.jar")
     outputs.file(output)
     commandLine = baseCompilerCommandLine(
       r8,
