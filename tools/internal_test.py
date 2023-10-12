@@ -109,10 +109,13 @@ def compile_with_memory_min_command(app_data):
       '--max-memory=%s' % int(record['oom-threshold'] * 0.85)
   ]
 
-# TODO(b/210982978): Enable testing of min xmx again
-TEST_COMMANDS = [
+CLEAN_COMMANDS = [
     # Make sure we have a clean build to not be polluted by old test files
     ['tools/gradle.py', 'clean', '--new-gradle'],
+]
+
+# TODO(b/210982978): Enable testing of min xmx again
+TEST_COMMANDS = [
     # Run test.py internal testing.
     ['tools/test.py', '--only_internal', '--slow_tests',
      '--java_max_memory_size=8G'],
@@ -354,12 +357,13 @@ def execute(cmd, archive, env=None):
     return exitcode
 
 def run_once(archive):
-  failed = False
   git_hash = utils.get_HEAD_sha1()
   log('Running once with hash %s' % git_hash)
   env = os.environ.copy()
   # Bot does not have a lot of memory.
   env['R8_GRADLE_CORES_PER_FORK'] = '5'
+  if archive:
+    [execute(cmd, archive, env) for cmd in CLEAN_COMMANDS]
   failed = any([execute(cmd, archive, env) for cmd in TEST_COMMANDS])
   # Gradle daemon occasionally leaks memory, stop it.
   gradle.RunGradle(['--stop'], new_gradle=True)
