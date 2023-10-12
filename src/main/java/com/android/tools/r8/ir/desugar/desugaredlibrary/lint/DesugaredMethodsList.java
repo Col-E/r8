@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.lint;
 
-import static java.lang.Integer.parseInt;
-
-import com.android.tools.r8.ArchiveClassFileProvider;
-import com.android.tools.r8.ArchiveProgramResourceProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.Keep;
@@ -15,14 +11,12 @@ import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.Version;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -61,17 +55,16 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
     try {
       ExceptionUtils.withD8CompilationHandler(
           command.getReporter(),
-          () -> {
-            new DesugaredMethodsList(
-                    command.getMinApi(),
-                    command.isAndroidPlatformBuild(),
-                    command.getReporter(),
-                    command.getDesugarLibrarySpecification(),
-                    command.getDesugarLibraryImplementation(),
-                    command.getOutputConsumer(),
-                    command.getLibrary())
-                .run();
-          });
+          () ->
+              new DesugaredMethodsList(
+                      command.getMinApi(),
+                      command.isAndroidPlatformBuild(),
+                      command.getReporter(),
+                      command.getDesugarLibrarySpecification(),
+                      command.getDesugarLibraryImplementation(),
+                      command.getOutputConsumer(),
+                      command.getLibrary())
+                  .run());
     } finally {
       executorService.shutdown();
     }
@@ -105,37 +98,18 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
     outputConsumer.finished(options.reporter);
   }
 
-  private static StringResource getSpecificationArg(String arg) {
-    return arg == null ? null : StringResource.fromFile(Paths.get(arg));
+  public static void run(String[] args) throws CompilationFailedException, IOException {
+    run(DesugaredMethodsListCommand.parse(args));
   }
 
-  private static Collection<ProgramResourceProvider> getImplementationArg(String arg) {
-    if (arg == null) {
-      return ImmutableList.of();
-    }
-    return ImmutableList.of(ArchiveProgramResourceProvider.fromArchive(Paths.get(arg)));
-  }
-
-  public static void main(String[] args) throws Exception {
-    if (args.length == 4 || args.length == 5) {
-      DesugaredMethodsListCommand.Builder builder =
-          DesugaredMethodsListCommand.builder(new Reporter())
-              .setMinApi(parseInt(args[0]))
-              .setDesugarLibrarySpecification(getSpecificationArg(args[1]))
-              .setOutputPath(Paths.get(args[3]));
-      for (ProgramResourceProvider programResourceProvider : getImplementationArg(args[2])) {
-        builder.addDesugarLibraryImplementation(programResourceProvider);
-      }
-      builder.addLibrary(new ArchiveClassFileProvider(Paths.get(args[4])));
-      DesugaredMethodsList.run(builder.build());
-      return;
-    }
-    throw new RuntimeException(
-        StringUtils.joinLines(
-            "Invalid invocation.",
-            "Usage: DesugaredMethodList <min-api> <desugar configuration> "
-                + "<desugar implementation> <output file> <android jar path for Android "
-                + MAX_TESTED_ANDROID_API_LEVEL
-                + " or higher>"));
+  public static void main(String[] args) {
+    ExceptionUtils.withMainProgramHandler(
+        () -> {
+          try {
+            run(args);
+          } catch (IOException e) {
+            throw new CompilationError(e.getMessage(), e);
+          }
+        });
   }
 }

@@ -106,10 +106,15 @@ public class DesugaredMethodsListTest extends DesugaredLibraryTestBase {
     AndroidApiLevel minApi = parameters.getRuntime().asDex().getMinApiLevel();
     DesugaredMethodsList.main(
         new String[] {
+          "--min-api",
           String.valueOf(minApi.getLevel()),
+          "--desugared-lib",
           libraryDesugaringSpecification.getSpecification().toString(),
+          "--desugared-lib-jar",
           jdkLibJar.toString(),
+          "--output",
           output.toString(),
+          "--lib",
           ToolHelper.getAndroidJar(AndroidApiLevel.U).toString()
         });
     checkFileContent(minApi, output, true, true);
@@ -154,10 +159,11 @@ public class DesugaredMethodsListTest extends DesugaredLibraryTestBase {
     AndroidApiLevel minApi = parameters.getRuntime().asDex().getMinApiLevel();
     DesugaredMethodsList.main(
         new String[] {
+          "--min-api",
           String.valueOf(minApi.getLevel()),
-          null,
-          null,
+          "--output",
           output.toString(),
+          "--lib",
           ToolHelper.getAndroidJar(AndroidApiLevel.U).toString()
         });
     checkFileContent(minApi, output, true, false);

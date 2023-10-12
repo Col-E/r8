@@ -18,6 +18,7 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -70,6 +71,15 @@ public class DesugaredMethodsListCommand {
     this.outputConsumer = null;
     this.library = null;
     this.androidPlatformBuild = false;
+  }
+
+  public static DesugaredMethodsListCommand parse(String[] args) throws IOException {
+    return parse(args, new Reporter());
+  }
+
+  public static DesugaredMethodsListCommand parse(String[] args, Reporter reporter)
+      throws IOException {
+    return new DesugaredMethodsListCommandParser().parse(args, reporter);
   }
 
   public int getMinApi() {
@@ -205,12 +215,12 @@ public class DesugaredMethodsListCommand {
       }
 
       if (desugarLibrarySpecification != null && library.isEmpty()) {
-        reporter.error("With desugared library configuration a library is required.");
+        reporter.error("With desugared library specification a library is required.");
       }
 
       if (!desugarLibraryImplementation.isEmpty() && desugarLibrarySpecification == null) {
         reporter.error(
-            "desugarLibrarySpecification is required when desugared library implementation is"
+            "The desugar library specification is required when desugared library implementation is"
                 + " present.");
       }
 
@@ -257,7 +267,7 @@ public class DesugaredMethodsListCommand {
     public DesugaredMethodsListCommand parse(String[] args, DiagnosticsHandler handler)
         throws IOException {
       DesugaredMethodsListCommand.Builder builder = DesugaredMethodsListCommand.builder(handler);
-      for (int i = 0; i < args.length; i += 2) {
+      for (int i = 0; i < args.length; i++) {
         String arg = args[i].trim();
         if (arg.length() == 0) {
           continue;
@@ -271,7 +281,12 @@ public class DesugaredMethodsListCommand {
           builder.setAndroidPlatformBuild();
           continue;
         }
-        String argValue = args[i + 1].trim();
+        i++;
+        if (i >= args.length) {
+          handler.error(new StringDiagnostic("Missing value for arg " + arg));
+          break;
+        }
+        String argValue = args[i].trim();
         if (arg.equals("--min-api")) {
           builder.setMinApi(Integer.parseInt(argValue));
         } else if (arg.equals("--desugared-lib")) {
