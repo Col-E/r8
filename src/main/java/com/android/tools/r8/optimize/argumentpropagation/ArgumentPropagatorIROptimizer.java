@@ -64,9 +64,6 @@ public class ArgumentPropagatorIROptimizer {
         if (singleValue.isMaterializableInContext(appView, code.context())) {
           Instruction[] materializingInstructions =
               singleValue.createMaterializingInstructions(appView, code, argument);
-          for (Instruction instruction : materializingInstructions) {
-            instruction.setPosition(argument.getPosition(), appView.options());
-          }
           Instruction replacement = ArrayUtils.last(materializingInstructions);
           argumentValue.replaceUsers(replacement.outValue(), affectedValues);
           Collections.addAll(instructionsToAdd, materializingInstructions);

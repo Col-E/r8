@@ -47,8 +47,7 @@ public class DexItemBasedConstString extends ConstInstruction {
   }
 
   public static DexItemBasedConstString copyOf(IRCode code, DexItemBasedConstString original) {
-    Value newValue =
-        new Value(code.valueNumberGenerator.next(), original.getOutType(), original.getLocalInfo());
+    Value newValue = code.createValue(original.getOutType(), original.getLocalInfo());
     return copyOf(newValue, original);
   }
 

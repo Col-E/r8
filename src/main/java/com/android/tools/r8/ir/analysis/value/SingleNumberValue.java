@@ -14,9 +14,9 @@ import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.NumberGenerator;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
-import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.MaterializingInstructionsInfo;
+import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.ValueFactory;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ArrayUtils;
@@ -158,29 +158,31 @@ public class SingleNumberValue extends SingleConstValue
   public Instruction[] createMaterializingInstructions(
       AppView<?> appView,
       ProgramMethod context,
-      NumberGenerator valueNumberGenerator,
-      TypeAndLocalInfoSupplier info) {
+      ValueFactory valueFactory,
+      MaterializingInstructionsInfo info) {
     ConstNumber materializingInstruction =
-        createMaterializingInstruction(valueNumberGenerator, info);
+        createMaterializingInstruction(appView, valueFactory, info);
     return new Instruction[] {materializingInstruction};
   }
 
   public ConstNumber createMaterializingInstruction(
-      NumberGenerator valueNumberGenerator, TypeAndLocalInfoSupplier info) {
+      AppView<?> appView, ValueFactory valueFactory, MaterializingInstructionsInfo info) {
     return createMaterializingInstruction(
-        valueNumberGenerator, info.getOutType(), info.getLocalInfo());
+        appView, valueFactory, info.getOutType(), info.getLocalInfo(), info.getPosition());
   }
 
   public ConstNumber createMaterializingInstruction(
-      NumberGenerator valueNumberGenerator, TypeElement type) {
-    return createMaterializingInstruction(valueNumberGenerator, type, null);
-  }
-
-  public ConstNumber createMaterializingInstruction(
-      NumberGenerator valueNumberGenerator, TypeElement type, DebugLocalInfo localInfo) {
+      AppView<?> appView,
+      ValueFactory valueFactory,
+      TypeElement type,
+      DebugLocalInfo localInfo,
+      Position position) {
     assert type.isPrimitiveType();
-    Value returnedValue = new Value(valueNumberGenerator.next(), type, localInfo);
-    return ConstNumber.builder().setOutValue(returnedValue).setValue(value).build();
+    return ConstNumber.builder()
+        .setFreshOutValue(valueFactory, type, localInfo)
+        .setPositionForNonThrowingInstruction(position, appView.options())
+        .setValue(value)
+        .build();
   }
 
   @Override

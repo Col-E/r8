@@ -1538,10 +1538,7 @@ public class BasicBlock {
         TypeElement.fromDexType(guard, Nullability.definitelyNotNull(), appView);
     BasicBlock block = new BasicBlock();
     MoveException moveException =
-        new MoveException(
-            new Value(code.valueNumberGenerator.next(), guardTypeLattice, null),
-            guard,
-            appView.options());
+        new MoveException(code.createValue(guardTypeLattice), guard, appView.options());
     moveException.setPosition(position);
     Throw throwInstruction = new Throw(moveException.outValue);
     throwInstruction.setPosition(position);
@@ -1868,8 +1865,7 @@ public class BasicBlock {
       newBlock.setNumber(code.getNextBlockNumber());
       newPredecessors.add(newBlock);
       if (hasMoveException) {
-        Value value =
-            new Value(code.valueNumberGenerator.next(), exceptionTypeLattice, move.getLocalInfo());
+        Value value = code.createValue(exceptionTypeLattice, move.getLocalInfo());
         values.add(value);
         MoveException newMove = new MoveException(value, exceptionType, options);
         newBlock.add(newMove, code);

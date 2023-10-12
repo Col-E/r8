@@ -10,8 +10,8 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeStatic;
-import com.android.tools.r8.ir.code.NumberGenerator;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
+import com.android.tools.r8.ir.code.MaterializingInstructionsInfo;
+import com.android.tools.r8.ir.code.ValueFactory;
 
 public class SingleBoxedDoubleValue extends SingleBoxedNumberValue {
 
@@ -25,18 +25,20 @@ public class SingleBoxedDoubleValue extends SingleBoxedNumberValue {
   public Instruction[] createMaterializingInstructions(
       AppView<?> appView,
       ProgramMethod context,
-      NumberGenerator numberGenerator,
-      TypeAndLocalInfoSupplier info) {
+      ValueFactory valueFactory,
+      MaterializingInstructionsInfo info) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     ConstNumber constNumber =
         ConstNumber.builder()
-            .setFreshOutValue(numberGenerator, getPrimitiveType())
+            .setFreshOutValue(valueFactory, getPrimitiveType())
+            .setPositionForNonThrowingInstruction(info.getPosition(), appView.options())
             .setValue(value)
             .build();
     InvokeStatic invokeStatic =
         InvokeStatic.builder()
-            .setFreshOutValue(numberGenerator, getBoxedPrimitiveType(appView), info.getLocalInfo())
+            .setFreshOutValue(valueFactory, getBoxedPrimitiveType(appView), info.getLocalInfo())
             .setMethod(dexItemFactory.doubleMembers.valueOf)
+            .setPosition(info.getPosition())
             .setSingleArgument(constNumber.outValue())
             .build();
     return new Instruction[] {constNumber, invokeStatic};

@@ -48,17 +48,20 @@ public class IntegerMethodOptimizer extends StatelessLibraryMethodModelCollectio
   }
 
   private void optimizeIntegerValue(
-      IRCode code, InstructionListIterator instructionIterator, InvokeMethod integerValueInvoke) {
+      IRCode code, InstructionListIterator instructionIterator, InvokeMethod intValueInvoke) {
     // Optimize Integer.valueOf(i).intValue() into i.
     AbstractValue abstractValue =
-        integerValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
+        intValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
     if (abstractValue.isSingleBoxedInteger()) {
-      SingleBoxedIntegerValue singleBoxedInteger = abstractValue.asSingleBoxedInteger();
-      instructionIterator.replaceCurrentInstruction(
-          singleBoxedInteger
-              .toPrimitive(appView.abstractValueFactory())
-              .createMaterializingInstruction(
-                  code.valueNumberGenerator, singleBoxedInteger.getPrimitiveType()));
+      if (intValueInvoke.hasOutValue()) {
+        SingleBoxedIntegerValue singleBoxedInteger = abstractValue.asSingleBoxedInteger();
+        instructionIterator.replaceCurrentInstruction(
+            singleBoxedInteger
+                .toPrimitive(appView.abstractValueFactory())
+                .createMaterializingInstruction(appView, code, intValueInvoke));
+      } else {
+        instructionIterator.removeOrReplaceByDebugLocalRead();
+      }
     }
   }
 }

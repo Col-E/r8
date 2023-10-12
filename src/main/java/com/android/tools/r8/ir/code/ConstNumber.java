@@ -65,8 +65,7 @@ public class ConstNumber extends ConstInstruction {
   }
 
   public static ConstNumber copyOf(IRCode code, ConstNumber original) {
-    Value newValue =
-        new Value(code.valueNumberGenerator.next(), original.getOutType(), original.getLocalInfo());
+    Value newValue = code.createValue(original.getOutType(), original.getLocalInfo());
     return copyOf(newValue, original);
   }
 
@@ -366,6 +365,11 @@ public class ConstNumber extends ConstInstruction {
     @Override
     public Builder self() {
       return this;
+    }
+
+    @Override
+    protected boolean verifyInstructionTypeCannotThrow() {
+      return true;
     }
   }
 }

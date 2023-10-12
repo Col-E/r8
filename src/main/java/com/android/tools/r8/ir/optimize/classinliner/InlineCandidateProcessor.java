@@ -851,9 +851,6 @@ final class InlineCandidateProcessor {
     if (materializingInstructions.length == 1) {
       instructionIterator.replaceCurrentInstruction(replacement, affectedValues);
     } else {
-      for (Instruction instruction : materializingInstructions) {
-        instruction.setPosition(fieldRead.getPosition(), appView.options());
-      }
       pendingReplacements.put(fieldRead, materializingInstructions);
     }
   }

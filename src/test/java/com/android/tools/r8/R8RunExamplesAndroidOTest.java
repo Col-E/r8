@@ -128,7 +128,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 10, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 11, "lambdadesugaring"))
         .run(Paths.get(ToolHelper.THIRD_PARTY_DIR, "examplesAndroidOLegacy"));
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
@@ -167,7 +167,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 10, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 11, "lambdadesugaring"))
         .run(Paths.get(ToolHelper.THIRD_PARTY_DIR, "examplesAndroidOLegacy"));
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")

@@ -53,12 +53,15 @@ public class FloatMethodOptimizer extends StatelessLibraryMethodModelCollection 
     AbstractValue abstractValue =
         floatValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
     if (abstractValue.isSingleBoxedFloat()) {
-      SingleBoxedFloatValue singleBoxedFloat = abstractValue.asSingleBoxedFloat();
-      instructionIterator.replaceCurrentInstruction(
-          singleBoxedFloat
-              .toPrimitive(appView.abstractValueFactory())
-              .createMaterializingInstruction(
-                  code.valueNumberGenerator, singleBoxedFloat.getPrimitiveType()));
+      if (floatValueInvoke.hasOutValue()) {
+        SingleBoxedFloatValue singleBoxedFloat = abstractValue.asSingleBoxedFloat();
+        instructionIterator.replaceCurrentInstruction(
+            singleBoxedFloat
+                .toPrimitive(appView.abstractValueFactory())
+                .createMaterializingInstruction(appView, code, floatValueInvoke));
+      } else {
+        instructionIterator.removeOrReplaceByDebugLocalRead();
+      }
     }
   }
 }

@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.lens.GraphLens;
@@ -13,9 +12,8 @@ import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.NumberGenerator;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
-import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.MaterializingInstructionsInfo;
+import com.android.tools.r8.ir.code.ValueFactory;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
@@ -64,18 +62,20 @@ public class SingleNullValue extends SingleConstValue {
   public Instruction[] createMaterializingInstructions(
       AppView<?> appView,
       ProgramMethod context,
-      NumberGenerator numberGenerator,
-      TypeAndLocalInfoSupplier info) {
-    ConstNumber materializingInstruction = createMaterializingInstruction(numberGenerator, info);
+      ValueFactory valueFactory,
+      MaterializingInstructionsInfo info) {
+    ConstNumber materializingInstruction =
+        createMaterializingInstruction(appView, valueFactory, info);
     return new Instruction[] {materializingInstruction};
   }
 
   public ConstNumber createMaterializingInstruction(
-      NumberGenerator numberGenerator, TypeAndLocalInfoSupplier info) {
+      AppView<?> appView, ValueFactory valueFactory, MaterializingInstructionsInfo info) {
     assert info.getOutType().isReferenceType() : info.getOutType();
-    DebugLocalInfo localInfo = info.getLocalInfo();
-    Value returnedValue = new Value(numberGenerator.next(), TypeElement.getNull(), localInfo);
-    return new ConstNumber(returnedValue, 0);
+    return ConstNumber.builder()
+        .setFreshOutValue(valueFactory, TypeElement.getNull(), info.getLocalInfo())
+        .setPositionForNonThrowingInstruction(info.getPosition(), appView.options())
+        .build();
   }
 
   @Override

@@ -53,12 +53,15 @@ public class ShortMethodOptimizer extends StatelessLibraryMethodModelCollection 
     AbstractValue abstractValue =
         shortValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
     if (abstractValue.isSingleBoxedShort()) {
-      SingleBoxedShortValue singleBoxedShort = abstractValue.asSingleBoxedShort();
-      instructionIterator.replaceCurrentInstruction(
-          singleBoxedShort
-              .toPrimitive(appView.abstractValueFactory())
-              .createMaterializingInstruction(
-                  code.valueNumberGenerator, singleBoxedShort.getPrimitiveType()));
+      if (shortValueInvoke.hasOutValue()) {
+        SingleBoxedShortValue singleBoxedShort = abstractValue.asSingleBoxedShort();
+        instructionIterator.replaceCurrentInstruction(
+            singleBoxedShort
+                .toPrimitive(appView.abstractValueFactory())
+                .createMaterializingInstruction(appView, code, shortValueInvoke));
+      } else {
+        instructionIterator.removeOrReplaceByDebugLocalRead();
+      }
     }
   }
 }

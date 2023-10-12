@@ -47,8 +47,7 @@ public class StaticGet extends FieldInstruction implements FieldGet, StaticField
   }
 
   public static StaticGet copyOf(IRCode code, StaticGet original) {
-    Value newValue =
-        new Value(code.valueNumberGenerator.next(), original.getOutType(), original.getLocalInfo());
+    Value newValue = code.createValue(original.getOutType(), original.getLocalInfo());
     return copyOf(newValue, original);
   }
 

@@ -8,9 +8,9 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.NumberGenerator;
+import com.android.tools.r8.ir.code.MaterializingInstructionsInfo;
 import com.android.tools.r8.ir.code.StaticGet;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
+import com.android.tools.r8.ir.code.ValueFactory;
 import com.android.tools.r8.utils.BooleanUtils;
 
 public class SingleBoxedBooleanValue extends SingleBoxedNumberValue {
@@ -36,14 +36,15 @@ public class SingleBoxedBooleanValue extends SingleBoxedNumberValue {
   public Instruction[] createMaterializingInstructions(
       AppView<?> appView,
       ProgramMethod context,
-      NumberGenerator numberGenerator,
-      TypeAndLocalInfoSupplier info) {
+      ValueFactory valueFactory,
+      MaterializingInstructionsInfo info) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     StaticGet staticGet =
         StaticGet.builder()
-            .setFreshOutValue(numberGenerator, getBoxedPrimitiveType(appView), info.getLocalInfo())
+            .setFreshOutValue(valueFactory, getBoxedPrimitiveType(appView), info.getLocalInfo())
             .setField(
                 value ? dexItemFactory.booleanMembers.TRUE : dexItemFactory.booleanMembers.FALSE)
+            .setPosition(info.getPosition())
             .build();
     return new Instruction[] {staticGet};
   }

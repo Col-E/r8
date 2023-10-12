@@ -17,8 +17,8 @@ import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.NumberGenerator;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
+import com.android.tools.r8.ir.code.MaterializingInstructionsInfo;
+import com.android.tools.r8.ir.code.ValueFactory;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
@@ -69,13 +69,14 @@ public class SingleStringValue extends SingleConstValue {
   public Instruction[] createMaterializingInstructions(
       AppView<?> appView,
       ProgramMethod context,
-      NumberGenerator numberGenerator,
-      TypeAndLocalInfoSupplier info) {
+      ValueFactory valueFactory,
+      MaterializingInstructionsInfo info) {
     TypeElement stringType = stringClassType(appView, definitelyNotNull());
     assert stringType.lessThanOrEqual(info.getOutType(), appView);
     ConstString constString =
         ConstString.builder()
-            .setFreshOutValue(numberGenerator, stringType, info.getLocalInfo())
+            .setFreshOutValue(valueFactory, stringType, info.getLocalInfo())
+            .setPosition(info.getPosition())
             .setValue(string)
             .build();
     assert !constString.instructionInstanceCanThrow(appView, context);

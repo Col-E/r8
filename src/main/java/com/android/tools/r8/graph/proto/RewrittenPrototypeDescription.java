@@ -17,8 +17,7 @@ import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
+import com.android.tools.r8.ir.code.MaterializingInstructionsInfo;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -158,18 +157,12 @@ public class RewrittenPrototypeDescription {
    * <p>Note that the current implementation always returns null at this point.
    */
   public Instruction[] getConstantReturn(
-      AppView<AppInfoWithLiveness> appView,
-      IRCode code,
-      Position position,
-      TypeAndLocalInfoSupplier info) {
+      AppView<AppInfoWithLiveness> appView, IRCode code, MaterializingInstructionsInfo info) {
     assert rewrittenReturnInfo != null;
     assert rewrittenReturnInfo.hasSingleValue();
-    Instruction[] instructions =
-        rewrittenReturnInfo.getSingleValue().createMaterializingInstructions(appView, code, info);
-    for (Instruction instruction : instructions) {
-      instruction.setPosition(position, appView.options());
-    }
-    return instructions;
+    return rewrittenReturnInfo
+        .getSingleValue()
+        .createMaterializingInstructions(appView, code, info);
   }
 
   public boolean verifyConstantReturnAccessibleInContext(

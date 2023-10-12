@@ -53,12 +53,15 @@ public class ByteMethodOptimizer extends StatelessLibraryMethodModelCollection {
     AbstractValue abstractValue =
         byteValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
     if (abstractValue.isSingleBoxedByte()) {
-      SingleBoxedByteValue singleBoxedByte = abstractValue.asSingleBoxedByte();
-      instructionIterator.replaceCurrentInstruction(
-          singleBoxedByte
-              .toPrimitive(appView.abstractValueFactory())
-              .createMaterializingInstruction(
-                  code.valueNumberGenerator, singleBoxedByte.getPrimitiveType()));
+      if (byteValueInvoke.hasOutValue()) {
+        SingleBoxedByteValue singleBoxedByte = abstractValue.asSingleBoxedByte();
+        instructionIterator.replaceCurrentInstruction(
+            singleBoxedByte
+                .toPrimitive(appView.abstractValueFactory())
+                .createMaterializingInstruction(appView, code, byteValueInvoke));
+      } else {
+        instructionIterator.removeOrReplaceByDebugLocalRead();
+      }
     }
   }
 }

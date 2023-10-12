@@ -7,17 +7,17 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 
-public interface TypeAndLocalInfoSupplier {
+public interface MaterializingInstructionsInfo {
+
   DebugLocalInfo getLocalInfo();
 
   TypeElement getOutType();
 
-  static TypeAndLocalInfoSupplier create(TypeElement type) {
-    return create(type, null);
-  }
+  Position getPosition();
 
-  static TypeAndLocalInfoSupplier create(TypeElement type, DebugLocalInfo local) {
-    return new TypeAndLocalInfoSupplier() {
+  static MaterializingInstructionsInfo create(
+      TypeElement type, DebugLocalInfo local, Position position) {
+    return new MaterializingInstructionsInfo() {
 
       @Override
       public DebugLocalInfo getLocalInfo() {
@@ -27,6 +27,11 @@ public interface TypeAndLocalInfoSupplier {
       @Override
       public TypeElement getOutType() {
         return type;
+      }
+
+      @Override
+      public Position getPosition() {
+        return position;
       }
     };
   }

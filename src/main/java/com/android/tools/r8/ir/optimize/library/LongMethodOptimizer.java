@@ -53,12 +53,15 @@ public class LongMethodOptimizer extends StatelessLibraryMethodModelCollection {
     AbstractValue abstractValue =
         longValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
     if (abstractValue.isSingleBoxedLong()) {
-      SingleBoxedLongValue singleBoxedLong = abstractValue.asSingleBoxedLong();
-      instructionIterator.replaceCurrentInstruction(
-          singleBoxedLong
-              .toPrimitive(appView.abstractValueFactory())
-              .createMaterializingInstruction(
-                  code.valueNumberGenerator, singleBoxedLong.getPrimitiveType()));
+      if (longValueInvoke.hasOutValue()) {
+        SingleBoxedLongValue singleBoxedLong = abstractValue.asSingleBoxedLong();
+        instructionIterator.replaceCurrentInstruction(
+            singleBoxedLong
+                .toPrimitive(appView.abstractValueFactory())
+                .createMaterializingInstruction(appView, code, longValueInvoke));
+      } else {
+        instructionIterator.removeOrReplaceByDebugLocalRead();
+      }
     }
   }
 }

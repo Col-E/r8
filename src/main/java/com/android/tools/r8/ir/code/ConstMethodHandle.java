@@ -44,8 +44,7 @@ public class ConstMethodHandle extends ConstInstruction {
   }
 
   public static ConstMethodHandle copyOf(IRCode code, ConstMethodHandle original) {
-    Value newValue =
-        new Value(code.valueNumberGenerator.next(), original.getOutType(), original.getLocalInfo());
+    Value newValue = code.createValue(original.getOutType(), original.getLocalInfo());
     return copyOf(newValue, original);
   }
 

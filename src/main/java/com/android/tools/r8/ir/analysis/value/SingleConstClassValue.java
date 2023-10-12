@@ -20,9 +20,8 @@ import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.NumberGenerator;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
-import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.MaterializingInstructionsInfo;
+import com.android.tools.r8.ir.code.ValueFactory;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
@@ -73,13 +72,17 @@ public class SingleConstClassValue extends SingleConstValue {
   public Instruction[] createMaterializingInstructions(
       AppView<?> appView,
       ProgramMethod context,
-      NumberGenerator numberGenerator,
-      TypeAndLocalInfoSupplier info) {
+      ValueFactory valueFactory,
+      MaterializingInstructionsInfo info) {
     DebugLocalInfo localInfo = info.getLocalInfo();
     TypeElement classType = classClassType(appView, definitelyNotNull());
     assert classType.lessThanOrEqual(info.getOutType(), appView);
-    Value returnedValue = new Value(numberGenerator.next(), classType, localInfo);
-    ConstClass constClass = new ConstClass(returnedValue, type);
+    ConstClass constClass =
+        ConstClass.builder()
+            .setFreshOutValue(valueFactory, classType, localInfo)
+            .setPosition(info.getPosition())
+            .setType(type)
+            .build();
     assert !constClass.instructionMayHaveSideEffects(appView, context);
     return new Instruction[] {constClass};
   }

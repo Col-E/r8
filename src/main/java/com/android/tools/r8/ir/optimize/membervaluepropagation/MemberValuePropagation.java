@@ -31,7 +31,6 @@ import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
@@ -192,7 +191,6 @@ public abstract class MemberValuePropagation<T extends AppInfo> {
       return true;
     }
     BasicBlock block = current.getBlock();
-    Position position = current.getPosition();
     if (current.hasOutValue()) {
       assert replacement.outValue() != null;
       current.outValue().replaceUsers(replacement.outValue());
@@ -204,7 +202,6 @@ public abstract class MemberValuePropagation<T extends AppInfo> {
       iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
           appView, code, staticGet.getField().holder);
     }
-    replacement.setPosition(position);
     if (block.hasCatchHandlers()) {
       BasicBlock splitBlock = iterator.split(code, blocks);
       splitBlock.listIterator(code).add(replacement);

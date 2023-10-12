@@ -53,12 +53,15 @@ public class CharacterMethodOptimizer extends StatelessLibraryMethodModelCollect
     AbstractValue abstractValue =
         charValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
     if (abstractValue.isSingleBoxedChar()) {
-      SingleBoxedCharValue singleBoxedChar = abstractValue.asSingleBoxedChar();
-      instructionIterator.replaceCurrentInstruction(
-          singleBoxedChar
-              .toPrimitive(appView.abstractValueFactory())
-              .createMaterializingInstruction(
-                  code.valueNumberGenerator, singleBoxedChar.getPrimitiveType()));
+      if (charValueInvoke.hasOutValue()) {
+        SingleBoxedCharValue singleBoxedChar = abstractValue.asSingleBoxedChar();
+        instructionIterator.replaceCurrentInstruction(
+            singleBoxedChar
+                .toPrimitive(appView.abstractValueFactory())
+                .createMaterializingInstruction(appView, code, charValueInvoke));
+      } else {
+        instructionIterator.removeOrReplaceByDebugLocalRead();
+      }
     }
   }
 }

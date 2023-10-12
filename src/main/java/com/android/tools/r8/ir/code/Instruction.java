@@ -46,7 +46,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 public abstract class Instruction
-    implements AbstractInstruction, InstructionOrPhi, TypeAndLocalInfoSupplier {
+    implements AbstractInstruction, InstructionOrPhi, MaterializingInstructionsInfo {
 
   protected Value outValue = null;
   protected final List<Value> inValues = new ArrayList<>();
@@ -81,6 +81,7 @@ public abstract class Instruction
     return position != null;
   }
 
+  @Override
   public final Position getPosition() {
     assert position != null;
     return position;
@@ -1702,8 +1703,24 @@ public abstract class Instruction
       return self();
     }
 
+    public B setPositionForNonThrowingInstruction(Position position, InternalOptions options) {
+      assert verifyInstructionTypeCannotThrow();
+      if (options.debug) {
+        return setPosition(position);
+      } else {
+        return setPosition(Position.none());
+      }
+    }
+
     public B setPosition(Instruction other) {
       return setPosition(other.getPosition());
+    }
+
+    protected boolean verifyInstructionTypeCannotThrow() {
+      // Intentionally implemented as throw new Unreachable(). Instruction builders that allow using
+      // setPositionForNonThrowingInstruction(Position, InternalOptions) must explicitly override
+      // this method and return true.
+      throw new Unreachable();
     }
   }
 }

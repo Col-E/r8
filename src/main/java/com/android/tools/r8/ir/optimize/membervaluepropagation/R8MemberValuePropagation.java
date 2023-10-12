@@ -28,7 +28,6 @@ import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
@@ -83,19 +82,17 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
     }
 
     BasicBlock block = arrayGet.getBlock();
-    Position position = arrayGet.getPosition();
 
     // All usages are replaced by the replacement value.
     ConstNumber replacement =
         appView
             .abstractValueFactory()
             .createNullValue(memberType)
-            .createMaterializingInstruction(code.valueNumberGenerator, arrayGet);
+            .createMaterializingInstruction(appView, code, arrayGet);
     affectedValues.addAll(arrayGet.outValue().affectedValues());
     arrayGet.outValue().replaceUsers(replacement.outValue());
 
     // Insert the definition of the replacement.
-    replacement.setPosition(position);
     if (block.hasCatchHandlers()) {
       iterator
           .splitCopyCatchHandlers(code, blocks, appView.options())
@@ -171,14 +168,8 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
     if (abstractReturnValue.isSingleValue()) {
       SingleValue singleReturnValue = abstractReturnValue.asSingleValue();
       if (singleReturnValue.isMaterializableInContext(appView, context)) {
-        Position position = invoke.getPosition();
-
         Instruction[] materializingInstructions =
             singleReturnValue.createMaterializingInstructions(appView, code, invoke);
-        for (Instruction instruction : materializingInstructions) {
-          instruction.setPosition(position, appView.options());
-        }
-
         Instruction replacement = ArrayUtils.last(materializingInstructions);
         invoke.moveDebugValues(replacement);
         invoke.outValue().replaceUsers(replacement.outValue(), affectedValues);
@@ -310,14 +301,10 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
       }
       if (singleValue.isMaterializableInContext(appView, code.context())) {
         ProgramMethod context = code.context();
-        Position position = current.getPosition();
 
         // All usages are replaced by the replacement value.
         Instruction[] materializingInstructions =
             singleValue.createMaterializingInstructions(appView, code, current);
-        for (Instruction instruction : materializingInstructions) {
-          instruction.setPosition(position, appView.options());
-        }
 
         Instruction replacement = ArrayUtils.last(materializingInstructions);
         current.outValue().replaceUsers(replacement.outValue(), affectedValues);

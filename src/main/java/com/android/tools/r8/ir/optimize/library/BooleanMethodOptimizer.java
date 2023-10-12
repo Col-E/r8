@@ -62,12 +62,15 @@ public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollectio
     AbstractValue abstractValue =
         booleanValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
     if (abstractValue.isSingleBoxedBoolean()) {
-      SingleBoxedBooleanValue singleBoxedBoolean = abstractValue.asSingleBoxedBoolean();
-      instructionIterator.replaceCurrentInstruction(
-          singleBoxedBoolean
-              .toPrimitive(appView.abstractValueFactory())
-              .createMaterializingInstruction(
-                  code.valueNumberGenerator, singleBoxedBoolean.getPrimitiveType()));
+      if (booleanValueInvoke.hasOutValue()) {
+        SingleBoxedBooleanValue singleBoxedBoolean = abstractValue.asSingleBoxedBoolean();
+        instructionIterator.replaceCurrentInstruction(
+            singleBoxedBoolean
+                .toPrimitive(appView.abstractValueFactory())
+                .createMaterializingInstruction(appView, code, booleanValueInvoke));
+      } else {
+        instructionIterator.removeOrReplaceByDebugLocalRead();
+      }
     }
   }
 

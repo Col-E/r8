@@ -17,8 +17,8 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.MaterializingInstructionsInfo;
 import com.android.tools.r8.ir.code.Phi;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.utils.ArrayUtils;
@@ -108,10 +108,10 @@ public class EffectivelyTrivialPhiOptimization {
       }
       Instruction[] materializingInstructions =
           singleValue.createMaterializingInstructions(
-              appView, code, TypeAndLocalInfoSupplier.create(materializedValueType));
-      for (Instruction instruction : materializingInstructions) {
-        instruction.setPosition(code.getEntryPosition(), appView.options());
-      }
+              appView,
+              code,
+              MaterializingInstructionsInfo.create(
+                  materializedValueType, null, code.getEntryPosition()));
       entryBlockIterator.addAll(materializingInstructions);
       Instruction replacement = ArrayUtils.last(materializingInstructions);
       replacementValue = replacement.outValue();

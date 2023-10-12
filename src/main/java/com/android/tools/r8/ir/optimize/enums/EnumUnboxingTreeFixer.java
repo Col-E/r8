@@ -42,11 +42,11 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.MaterializingInstructionsInfo;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticPut;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
@@ -414,8 +414,10 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
                       singleConstValue
                           .asSingleNullValue()
                           .createMaterializingInstruction(
-                              code.valueNumberGenerator,
-                              TypeAndLocalInfoSupplier.create(TypeElement.getNull()));
+                              appView,
+                              code,
+                              MaterializingInstructionsInfo.create(
+                                  TypeElement.getNull(), null, Position.none()));
                 } else {
                   assert extraParameter.getType(appView.dexItemFactory()).isIntType();
                   assert singleConstValue.isSingleNumberValue();
@@ -423,10 +425,11 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
                       singleConstValue
                           .asSingleNumberValue()
                           .createMaterializingInstruction(
-                              code.valueNumberGenerator,
-                              TypeAndLocalInfoSupplier.create(TypeElement.getInt()));
+                              appView,
+                              code,
+                              MaterializingInstructionsInfo.create(
+                                  TypeElement.getInt(), null, Position.none()));
                 }
-                materializingInstruction.setPosition(Position.none());
                 instructionIterator.previous();
                 instructionIterator.add(materializingInstruction);
                 rewrittenArguments.add(materializingInstruction.outValue());

@@ -53,12 +53,15 @@ public class DoubleMethodOptimizer extends StatelessLibraryMethodModelCollection
     AbstractValue abstractValue =
         doubleValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
     if (abstractValue.isSingleBoxedDouble()) {
-      SingleBoxedDoubleValue singleBoxedDouble = abstractValue.asSingleBoxedDouble();
-      instructionIterator.replaceCurrentInstruction(
-          singleBoxedDouble
-              .toPrimitive(appView.abstractValueFactory())
-              .createMaterializingInstruction(
-                  code.valueNumberGenerator, singleBoxedDouble.getPrimitiveType()));
+      if (doubleValueInvoke.hasOutValue()) {
+        SingleBoxedDoubleValue singleBoxedDouble = abstractValue.asSingleBoxedDouble();
+        instructionIterator.replaceCurrentInstruction(
+            singleBoxedDouble
+                .toPrimitive(appView.abstractValueFactory())
+                .createMaterializingInstruction(appView, code, doubleValueInvoke));
+      } else {
+        instructionIterator.removeOrReplaceByDebugLocalRead();
+      }
     }
   }
 }
