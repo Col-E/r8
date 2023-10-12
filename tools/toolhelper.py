@@ -25,7 +25,7 @@ def run(tool, args, build=None, debug=True,
   if build:
     gradle.RunGradle([
         utils.GRADLE_TASK_R8LIB if tool.startswith('r8lib')
-        else utils.GRADLE_TASK_R8], new_gradle=True)
+        else utils.GRADLE_TASK_R8])
   if track_memory_file:
     cmd.extend(['tools/track_memory.sh', track_memory_file])
   cmd.append(jdk.GetJavaExecutable())

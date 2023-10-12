@@ -248,11 +248,9 @@ def generate_maven_zip(name, version, pom_file, jar_file, out):
     base_no_zip = out[0:len(out)-4]
     make_archive(base_no_zip, 'zip', tmp_dir)
 
-def generate_r8_maven_zip(out, version_file=None, skip_gradle_build=False,
-                          new_gradle=False):
+def generate_r8_maven_zip(out, version_file=None, skip_gradle_build=False):
   if not skip_gradle_build:
-    gradle.RunGradle([utils.GRADLE_TASK_R8LIB,
-                      '-Pno_internal'], new_gradle=True)
+    gradle.RunGradle([utils.GRADLE_TASK_R8LIB, '-Pno_internal'])
   version = determine_version()
   with utils.TempDir() as tmp_dir:
     file_copy = join(tmp_dir, 'copy_of_jar.jar')

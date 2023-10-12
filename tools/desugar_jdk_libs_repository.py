@@ -131,7 +131,7 @@ def run(args):
       implementation_maven_zip = 'desugar_jdk_libs_jdk11_nio.zip'
       release_archive_location = 'desugar_jdk_libs_nio'
   implementation_build_output = join('bazel-bin', implementation_maven_zip)
-  gradle.RunGradle([utils.GRADLE_TASK_R8], new_gradle=True)
+  gradle.RunGradle([utils.GRADLE_TASK_R8])
   with utils.TempDir() as tmp_dir:
     (name, configuration_version) = utils.desugar_configuration_name_and_version(configuration, False)
     if (args.release_version != None and args.release_version != configuration_version):

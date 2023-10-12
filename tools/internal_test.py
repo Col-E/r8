@@ -366,7 +366,7 @@ def run_once(archive):
     [execute(cmd, archive, env) for cmd in CLEAN_COMMANDS]
   failed = any([execute(cmd, archive, env) for cmd in TEST_COMMANDS])
   # Gradle daemon occasionally leaks memory, stop it.
-  gradle.RunGradle(['--stop'], new_gradle=True)
+  gradle.RunGradle(['--stop'])
   archive_status(1 if failed else 0)
   return failed
 

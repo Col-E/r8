@@ -162,7 +162,7 @@ def Run(options):
           utils.GRADLE_TASK_SOURCE_JAR,
           utils.GRADLE_TASK_SWISS_ARMY_KNIFE,
           '-Pno_internal'
-      ], new_gradle=True)
+      ])
 
     # Create maven release of the desuage_jdk_libs configuration. This require
     # an r8.jar with dependencies to have been built.

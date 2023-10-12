@@ -97,7 +97,7 @@ def main(argv, temp):
     r8jar = compiledump.download_distribution(options.version, options.nolib, temp)
 
   if not options.no_build:
-    gradle.RunGradle(buildTargets + ['-Pno_internal'], new_gradle=True)
+    gradle.RunGradle(buildTargets + ['-Pno_internal'])
 
   if not options.golem:
     # When running locally, change the working directory to be in 'temp'.

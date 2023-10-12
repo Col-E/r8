@@ -1208,14 +1208,13 @@ def main(argv):
     elif options.version == 'main':
       if not options.no_build:
         gradle.RunGradle([utils.GRADLE_TASK_RETRACE, utils.GRADLE_TASK_R8,
-                          '-Pno_internal'], new_gradle=True)
+                          '-Pno_internal'])
         build_r8lib = False
         for shrinker in options.shrinker:
           if is_minified_r8(shrinker):
             build_r8lib = True
         if build_r8lib:
-          gradle.RunGradle([utils.GRADLE_TASK_R8LIB, '-Pno_internal'],
-                           new_gradle=True)
+          gradle.RunGradle([utils.GRADLE_TASK_R8LIB, '-Pno_internal'])
       # Make a copy of r8.jar and r8lib.jar such that they stay the same for
       # the entire execution of this script.
       if 'r8-nolib' in options.shrinker or 'r8-nolib-full' in options.shrinker:

@@ -256,7 +256,7 @@ def Undesugar(variant, maven_zip, version, undesugared_maven_zip):
   gradle.RunGradle([utils.GRADLE_TASK_R8,
                     utils.GRADLE_TASK_TEST_JAR,
                     utils.GRADLE_TASK_TEST_DEPS_JAR,
-                    '-Pno_internal'], new_gradle=True)
+                    '-Pno_internal'])
   with utils.TempDir() as tmp:
     with zipfile.ZipFile(maven_zip, 'r') as zip_ref:
       zip_ref.extractall(tmp)
