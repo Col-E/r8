@@ -70,17 +70,20 @@ public class ClassFilePositionToMappedRangeMapper implements PositionToMappedRan
       // If a method with overloads does not have an actual position then map it to the implicit
       // preamble position.
       DexMethod reference = method.getReference();
-      DexMethod original = appView.graphLens().getOriginalMethodSignature(reference);
       CfPosition preamblePositionForOverload =
           new CfPosition(
               new CfLabel(),
               remapAndAdd(
-                  SyntheticPosition.builder().setMethod(original).setLine(0).build(),
+                  SyntheticPosition.builder()
+                      .setMethod(reference)
+                      .setLine(0)
+                      .setIsD8R8Synthesized(method.getDefinition().isD8R8Synthesized())
+                      .build(),
                   positionRemapper,
                   mappedPositions));
       List<CfInstruction> shiftedPositions = new ArrayList<>(oldInstructions.size() + 2);
-      shiftedPositions.add(preamblePositionForOverload);
       shiftedPositions.add(preamblePositionForOverload.getLabel());
+      shiftedPositions.add(preamblePositionForOverload);
       shiftedPositions.addAll(newInstructions);
       newInstructions = shiftedPositions;
     }

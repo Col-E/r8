@@ -55,6 +55,18 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
   }
 
   @Override
+  public Code getCodeAsInlining(
+      DexMethod caller,
+      boolean isCallerD8R8Synthesized,
+      DexMethod callee,
+      boolean isCalleeD8R8Synthesized,
+      DexItemFactory factory) {
+    // We don't maintain a position on the throwing stub. We may want to reconsider this as it
+    // would allow retracing to recover inlinings of this stub.
+    return this;
+  }
+
+  @Override
   public IRCode buildIR(
       ProgramMethod method,
       AppView<?> appView,
@@ -131,7 +143,7 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
 
   @Override
   public TryHandler[] getHandlers() {
-    return new TryHandler[0];
+    return TryHandler.EMPTY_ARRAY;
   }
 
   @Override
@@ -164,7 +176,7 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
 
   @Override
   public Try[] getTries() {
-    return new Try[0];
+    return Try.EMPTY_ARRAY;
   }
 
   @Override

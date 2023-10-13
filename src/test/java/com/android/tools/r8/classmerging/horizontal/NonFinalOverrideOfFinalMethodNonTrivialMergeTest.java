@@ -47,7 +47,7 @@ public class NonFinalOverrideOfFinalMethodNonTrivialMergeTest
               ClassSubject classSubject = inspector.clazz(A.class);
               assertThat(classSubject, isPresent());
 
-              MethodSubject methodSubject = classSubject.uniqueMethodWithOriginalName("foo$bridge");
+              MethodSubject methodSubject = getUniqueDispatchBridgeMethod(classSubject);
               assertThat(methodSubject, isPresent());
               assertFalse(methodSubject.isFinal());
             })

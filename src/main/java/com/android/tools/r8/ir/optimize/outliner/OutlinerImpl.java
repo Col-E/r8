@@ -1268,8 +1268,9 @@ public class OutlinerImpl extends Outliner {
         argumentsMapIndex = 0;
         OutlineCallerPositionBuilder positionBuilder =
             OutlineCallerPosition.builder()
-                .setMethod(appView.graphLens().getOriginalMethodSignature(method.getReference()))
+                .setMethod(method.getReference())
                 .setOutlineCallee(outlineMethod)
+                .setIsD8R8Synthesized(method.getDefinition().isD8R8Synthesized())
                 // We set the line number to 0 here and rely on the LineNumberOptimizer to
                 // set a new disjoint line.
                 .setLine(0);
@@ -1752,11 +1753,10 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
-    @SuppressWarnings("ReferenceEquality")
     public void buildInstruction(
         IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
       if (instructionIndex == outline.templateInstructions.size()) {
-        if (outline.returnType == dexItemFactory.voidType) {
+        if (outline.returnType.isVoidType()) {
           builder.addReturn();
         } else {
           builder.addReturn(outline.argumentCount());
@@ -1803,7 +1803,11 @@ public class OutlinerImpl extends Outliner {
     public Position getCurrentPosition() {
       // Always build positions for outlinee - each callsite will only build a position map for
       // instructions that are actually throwing.
-      return OutlinePosition.builder().setLine(position).setMethod(method).build();
+      return OutlinePosition.builder(method)
+          .setLine(position)
+          .setMethod(method)
+          .setIsD8R8Synthesized(true)
+          .build();
     }
 
     @Override

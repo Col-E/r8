@@ -28,7 +28,6 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
 
     private DexType receiver;
     private DexMethod method;
-    private DexMethod originalMethod;
     private DexType targetReceiver;
     private DexMethod target;
     private InvokeType invokeType;
@@ -38,7 +37,6 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
 
     public Builder(DexMethod method) {
       this.method = method;
-      this.originalMethod = method;
     }
 
     public Builder setReceiver(DexType receiver) {
@@ -48,11 +46,6 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
 
     public Builder setMethod(DexMethod method) {
       this.method = method;
-      return this;
-    }
-
-    public Builder setOriginalMethod(DexMethod originalMethod) {
-      this.originalMethod = originalMethod;
       return this;
     }
 
@@ -86,15 +79,14 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
       return this;
     }
 
-    public ForwardMethodSourceCode build(ProgramMethod context, Position callerPosition) {
+    public ForwardMethodSourceCode build(ProgramMethod context, Position position) {
       return new ForwardMethodSourceCode(
           receiver,
           method,
-          originalMethod,
           targetReceiver,
           target,
           invokeType,
-          callerPosition,
+          position,
           isInterface,
           castResult,
           extraNullParameter);
@@ -111,15 +103,14 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
   ForwardMethodSourceCode(
       DexType receiver,
       DexMethod method,
-      DexMethod originalMethod,
       DexType targetReceiver,
       DexMethod target,
       InvokeType invokeType,
-      Position callerPosition,
+      Position position,
       boolean isInterface,
       boolean castResult,
       boolean extraNullParameter) {
-    super(receiver, method, callerPosition, originalMethod);
+    super(receiver, method, position);
     assert (targetReceiver == null) == (invokeType == InvokeType.STATIC);
 
     this.target = target;

@@ -202,10 +202,12 @@ public class DexDebugEventBuilder {
         return;
       }
       startLine = position.getLine();
+      Position outermostCaller = position.getOutermostCaller();
       emittedPosition =
           SourcePosition.builder()
               .setLine(position.getLine())
-              .setMethod(position.getOutermostCaller().getMethod())
+              .setMethod(outermostCaller.getMethod())
+              .setIsD8R8Synthesized(outermostCaller.isD8R8Synthesized())
               .build();
     }
     assert emittedPc != pc;

@@ -696,4 +696,10 @@ public class FoundClassSubject extends ClassSubject {
     System.out.println(processResult.stdout);
     return processResult.stdout;
   }
+
+  public MemberNaming getMethodMappingInfo(DexEncodedMethod dexMethod) {
+    return mapping
+        .getNaming()
+        .lookup(MethodSignature.fromDexMethod(dexMethod.getReference(), false));
+  }
 }

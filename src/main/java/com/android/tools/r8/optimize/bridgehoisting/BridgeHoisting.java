@@ -263,7 +263,9 @@ public class BridgeHoisting {
     DexMethod newMethodReference =
         appView.dexItemFactory().createMethod(clazz.type, method.proto, method.name);
     DexEncodedMethod newMethod =
-        representative.getDefinition().toTypeSubstitutedMethod(newMethodReference);
+        representative
+            .getDefinition()
+            .toTypeSubstitutedMethodAsInlining(newMethodReference, appView.dexItemFactory());
     if (newMethod.getAccessFlags().isFinal()) {
       newMethod.getAccessFlags().demoteFromFinal();
     }
