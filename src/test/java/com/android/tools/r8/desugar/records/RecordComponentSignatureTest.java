@@ -4,10 +4,8 @@
 package com.android.tools.r8.desugar.records;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -51,11 +49,7 @@ public class RecordComponentSignatureTest extends TestBase {
           "TA;",
           "0");
   private static final String EXPECTED_RESULT_R8 =
-      StringUtils.lines(
-          "Jane Doe", "42", "Jane Doe", "42", "true", "1", "a", "java.lang.Object", "TA;", "0");
-  private static final String EXPECTED_RESULT_R8_NO_KEEP_SIGNATURE =
-      StringUtils.lines(
-          "Jane Doe", "42", "Jane Doe", "42", "true", "1", "a", "java.lang.Object", "null", "0");
+      StringUtils.lines("Jane Doe", "42", "Jane Doe", "42", "true", "0");
   private static final String EXPECTED_RESULT_DESUGARED =
       StringUtils.lines("Jane Doe", "42", "Jane Doe", "42", "Class.isRecord not present");
   private static final String EXPECTED_RESULT_DESUGARED_ART_14 =
@@ -160,8 +154,8 @@ public class RecordComponentSignatureTest extends TestBase {
             && parameters.getRuntime().asDex().getVersion().isNewerThanOrEqual(Version.V14_0_0);
     testForR8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
-        // TODO(b/231930852): Change to android.jar for Androud U when that contains
-        // java.lang.Record.
+        // TODO(b/231930852): Change to android.jar for Android U when that contains
+        //  java.lang.Record.
         .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
         .addKeepMainRule(MAIN_TYPE)
         .applyIf(keepSignatures, TestShrinkerBuilder::addKeepAttributeSignature)
@@ -171,31 +165,14 @@ public class RecordComponentSignatureTest extends TestBase {
             inspector -> {
               ClassSubject person = inspector.clazz("records.RecordWithSignature$Person");
               FieldSubject age = person.uniqueFieldWithOriginalName("age");
-              if (compilingForNativeRecordSupport) {
-                assertThat(age, isPresentAndRenamed());
-                assertEquals(1, person.getFinalRecordComponents().size());
-                assertEquals(
-                    age.getFinalName(), person.getFinalRecordComponents().get(0).getName());
-                assertTrue(
-                    person.getFinalRecordComponents().get(0).getType().is("java.lang.Object"));
-                if (keepSignatures) {
-                  assertEquals("TA;", person.getFinalRecordComponents().get(0).getSignature());
-                } else {
-                  assertNull(person.getFinalRecordComponents().get(0).getSignature());
-                }
-                assertEquals(0, person.getFinalRecordComponents().get(0).getAnnotations().size());
-              } else {
-                assertThat(age, isAbsent());
-                assertEquals(0, person.getFinalRecordComponents().size());
-              }
+              assertThat(age, isAbsent());
+              assertEquals(0, person.getFinalRecordComponents().size());
             })
         .run(parameters.getRuntime(), MAIN_TYPE)
         // No Art VM actually supports the java.lang.Record class.
         .applyIf(
             compilingForNativeRecordSupport,
-            r ->
-                r.assertSuccessWithOutput(
-                    keepSignatures ? EXPECTED_RESULT_R8 : EXPECTED_RESULT_R8_NO_KEEP_SIGNATURE),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_R8),
             r ->
                 r.assertSuccessWithOutput(
                     runningWithNativeRecordSupport
