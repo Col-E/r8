@@ -202,15 +202,15 @@ tasks {
   val assembleRetraceLibWithRelocatedDeps by registering(Exec::class) {
     dependsOn(assembleR8LibWithRelocatedDeps, mainDepsJarTask, r8WithRelocatedDepsTask)
     val mainDepsJar = mainDepsJarTask.getSingleOutputFile()
-    val r8LibWithRelocatedDeps = assembleR8LibWithRelocatedDeps.getSingleOutputFile()
+    val r8LibWithRelocatedDepsJar = assembleR8LibWithRelocatedDeps.getSingleOutputFile()
     val r8WithRelocatedDepsJar = r8WithRelocatedDepsTask.getSingleOutputFile()
-    inputs.files(mainDepsJar, r8LibWithRelocatedDeps, r8WithRelocatedDepsJar)
-    val inputMap = file("$r8LibWithRelocatedDeps.map")
+    inputs.files(mainDepsJar, r8LibWithRelocatedDepsJar, r8WithRelocatedDepsJar)
+    val inputMap = file("$r8LibWithRelocatedDepsJar.map")
     val outputJar = getRoot().resolveAll("build", "libs", "r8retrace.jar")
     outputs.file(outputJar)
     commandLine = createR8LibCommandLine(
       r8WithRelocatedDepsJar,
-      r8LibWithRelocatedDeps,
+      r8LibWithRelocatedDepsJar,
       outputJar,
       listOf(getRoot().resolveAll("src", "main", "keep_retrace.txt")),
       excludingDepsVariant = false,
@@ -387,7 +387,7 @@ tasks {
     testR8Lib(assembleR8LibNoDeps, unzipRewrittenTestsForR8LibNoDeps)
   }
 
-  val sourcesJar by registering(Jar::class) {
+  val packageSources by registering(Jar::class) {
     dependsOn(mainSourcesTask)
     dependsOn(resourceShrinkerSourcesTask)
     dependsOn(keepAnnoSourcesTask)
