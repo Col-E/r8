@@ -3,9 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import java.nio.file.Paths
-import org.gradle.api.logging.LogLevel.ERROR
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
 
 plugins {
@@ -45,165 +43,187 @@ tasks {
     }
   }
 
-  val allTestsJar by registering(Jar::class) {
+  val packageTests by registering(Jar::class) {
     dependsOn(java8TestJarTask)
     from(java8TestJarTask.outputs.files.map(::zipTree))
-    exclude("META-INF/*.kotlin_module")
-    exclude("**/*.kotlin_metadata")
+    exclude("META-INF/*.kotlin_module", "**/*.kotlin_metadata")
     destinationDirectory.set(getRoot().resolveAll("build", "libs"))
     archiveFileName.set("r8tests.jar")
   }
 
-  val allDepsJar by registering(Jar::class) {
-    dependsOn(java8TestsDepsJarTask)
-    dependsOn(bootstrapTestsDepsJarTask)
-    from(java8TestsDepsJarTask.outputs.getFiles().map(::zipTree))
+  val packageTestDeps by registering(Jar::class) {
+    dependsOn(bootstrapTestsDepsJarTask, java8TestsDepsJarTask)
     from(bootstrapTestsDepsJarTask.outputs.getFiles().map(::zipTree))
-    exclude("META-INF/*.kotlin_module")
-    exclude("**/*.kotlin_metadata")
+    from(java8TestsDepsJarTask.outputs.getFiles().map(::zipTree))
+    exclude("META-INF/*.kotlin_module", "**/*.kotlin_metadata")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     destinationDirectory.set(getRoot().resolveAll("build", "libs"))
     archiveFileName.set("test_deps_all.jar")
   }
 
-  val allTestsJarRelocated by registering(Exec::class) {
-    dependsOn(r8WithRelocatedDepsTask)
-    dependsOn(allTestsJar)
-    val r8 = r8WithRelocatedDepsTask.outputs.getFiles().getSingleFile()
-    val allTests = allTestsJar.get().outputs.files.getSingleFile()
-    inputs.files(listOf(r8, allTests))
-    val output = file(Paths.get("build", "libs", "all-tests-relocated.jar"))
-    outputs.file(output)
+  // When testing R8 lib with relocated deps we must relocate kotlinx.metadata in the tests, since
+  // types from kotlinx.metadata are used on the R8 main/R8 test boundary.
+  //
+  // This is not needed when testing R8 lib excluding deps since we simply include the deps on the
+  // classpath at runtime.
+  val relocateTestsForR8LibWithRelocatedDeps by registering(Exec::class) {
+    dependsOn(packageTests, r8WithRelocatedDepsTask)
+    val r8WithRelocatedDepsJar = r8WithRelocatedDepsTask.getSingleOutputFile()
+    val testJar = packageTests.getSingleOutputFile()
+    inputs.files(r8WithRelocatedDepsJar, testJar)
+    val outputJar = file(Paths.get("build", "libs", "r8tests-relocated.jar"))
+    outputs.file(outputJar)
     commandLine = baseCompilerCommandLine(
-      r8,
+      r8WithRelocatedDepsJar,
       "relocator",
       listOf("--input",
-             "$allTests",
+             "$testJar",
              "--output",
-             "$output",
+             "$outputJar",
              "--map",
              "kotlinx.metadata.**->com.android.tools.r8.jetbrains.kotlinx.metadata"))
   }
 
-  val r8LibNoDeps by registering(Exec::class) {
-    dependsOn(mainDepsJarTask)
-    dependsOn(r8WithRelocatedDepsTask)
-    val r8Compiler = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
-    val r8Jar = swissArmyKnifeTask.outputs.files.getSingleFile()
-    val deps = mainDepsJarTask.outputs.files.getSingleFile()
-    inputs.files(listOf(r8Compiler, r8Jar, deps))
-    val output = getRoot().resolveAll("build", "libs", "r8lib-exclude-deps.jar")
-    outputs.file(output)
-    commandLine = createR8LibCommandLine(
-      r8Compiler,
-      r8Jar,
-      output,
-      listOf(getRoot().resolveAll("src", "main", "keep.txt")),
-      true,
-      false,
-      listOf(deps))
-  }
-
-  val retraceNoDeps by registering(Exec::class) {
-    dependsOn(r8LibNoDeps)
-    val r8Compiler = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
-    val r8Jar = r8LibNoDeps.get().outputs.files.getSingleFile()
-    val deps = mainDepsJarTask.outputs.files.getSingleFile()
-    inputs.files(listOf(r8Compiler, r8Jar, deps))
-    val inputMap = file(r8Jar.toString() + ".map")
-    val output = getRoot().resolveAll("build", "libs", "r8retrace-exclude-deps.jar")
-    outputs.file(output)
-    commandLine = createR8LibCommandLine(
-      r8Compiler,
-      r8Jar,
-      output,
-      listOf(getRoot().resolveAll("src", "main", "keep_retrace.txt")),
-      true,
-      true,
-      listOf(deps),
-      listOf(),
-      inputMap)
-  }
-
-  val generateKeepRules by registering(Exec::class) {
-    dependsOn(r8WithRelocatedDepsTask)
-    dependsOn(mainDepsJarTask)
-    dependsOn(allTestsJarRelocated)
-    dependsOn(allDepsJar)
-    val r8 = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
-    val deps = mainDepsJarTask.outputs.files.getSingleFile()
-    val tests = allTestsJarRelocated.get().outputs.files.getSingleFile()
-    val testDeps = allDepsJar.get().outputs.files.getSingleFile()
-    inputs.files(listOf(r8, deps, tests, testDeps))
-    val output = file(Paths.get("build", "libs", "generated-keep-rules.txt"))
+  fun Exec.generateKeepRulesForR8Lib(
+          targetJarProvider: Task, testJarProvider: TaskProvider<*>, artifactName: String) {
+    dependsOn(
+            mainDepsJarTask,
+            packageTestDeps,
+            r8WithRelocatedDepsTask,
+            targetJarProvider,
+            testJarProvider)
+    val mainDepsJar = mainDepsJarTask.getSingleOutputFile()
+    val rtJar = resolve(ThirdPartyDeps.java8Runtime, "rt.jar").getSingleFile()
+    val r8WithRelocatedDepsJar = r8WithRelocatedDepsTask.getSingleOutputFile()
+    val targetJar = targetJarProvider.getSingleOutputFile()
+    val testDepsJar = packageTestDeps.getSingleOutputFile()
+    val testJar = testJarProvider.getSingleOutputFile()
+    inputs.files(mainDepsJar, rtJar, r8WithRelocatedDepsJar, targetJar, testDepsJar, testJar)
+    val output = file(Paths.get("build", "libs", artifactName))
     outputs.file(output)
     commandLine = baseCompilerCommandLine(
-      r8,
-      "tracereferences",
-      listOf(
-        "--keep-rules",
-        "--allowobfuscation",
-        "--lib",
-        "${getRoot().resolveAll("third_party", "openjdk", "openjdk-rt-1.8", "rt.jar")}",
-        "--lib",
-        "${deps}",
-        "--lib",
-        "$testDeps",
-        "--target",
-        "$r8",
-        "--source",
-        "$tests",
-        "--output",
-        "$output"))
+            r8WithRelocatedDepsJar,
+            "tracereferences",
+            listOf(
+                    "--keep-rules",
+                    "--allowobfuscation",
+                    "--lib",
+                    "$rtJar",
+                    "--lib",
+                    "$mainDepsJar",
+                    "--lib",
+                    "$testDepsJar",
+                    "--target",
+                    "$targetJar",
+                    "--source",
+                    "$testJar",
+                    "--output",
+                    "$output"))
   }
 
-  val r8LibWithRelocatedDeps by registering(Exec::class) {
-    dependsOn(generateKeepRules)
-    dependsOn(r8WithRelocatedDepsTask)
-    val r8 = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
-    val generatedKeepRules = generateKeepRules.get().outputs.files.getSingleFile()
-    val keepTxt = getRoot().resolveAll("src", "main", "keep.txt")
-    // TODO(b/294351878): Remove once enum issue is fixed
-    val keepResourceShrinkerTxt = getRoot().resolveAll("src", "main", "keep_r8resourceshrinker.txt")
-    inputs.files(listOf(r8, generatedKeepRules, keepTxt, keepResourceShrinkerTxt))
-    val output = getRoot().resolveAll("build", "libs", "r8lib.jar")
-    outputs.files(output)
-    commandLine = createR8LibCommandLine(
-      r8,
-      r8,
-      output,
-      listOf(keepTxt, generatedKeepRules, keepResourceShrinkerTxt),
-      false,
-      false)
+  val generateKeepRulesForR8LibWithRelocatedDeps by registering(Exec::class) {
+    generateKeepRulesForR8Lib(
+            r8WithRelocatedDepsTask,
+            relocateTestsForR8LibWithRelocatedDeps,
+            "generated-keep-rules-r8lib.txt")
   }
 
-  val retraceWithRelocatedDeps by registering(Exec::class) {
-    dependsOn(r8LibWithRelocatedDeps)
-    val r8Compiler = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
-    val r8Jar = r8LibWithRelocatedDeps.get().outputs.files.getSingleFile()
-    val deps = mainDepsJarTask.outputs.files.getSingleFile()
-    inputs.files(listOf(r8Compiler, r8Jar, deps))
-    val inputMap = file(r8Jar.toString() + ".map")
-    val output = getRoot().resolveAll("build", "libs", "r8retrace.jar")
-    outputs.file(output)
+  val generateKeepRulesForR8LibNoDeps by registering(Exec::class) {
+    generateKeepRulesForR8Lib(
+            swissArmyKnifeTask,
+            packageTests,
+            "generated-keep-rules-r8lib-exclude-deps.txt")
+  }
+
+  fun Exec.assembleR8Lib(
+          inputJarProvider: Task,
+          generatedKeepRulesProvider: TaskProvider<Exec>,
+          lib: List<File>,
+          artifactName: String) {
+    dependsOn(generatedKeepRulesProvider, inputJarProvider, r8WithRelocatedDepsTask)
+    val inputJar = inputJarProvider.getSingleOutputFile()
+    val r8WithRelocatedDepsJar = r8WithRelocatedDepsTask.getSingleOutputFile()
+    val keepRuleFiles = listOf(
+            getRoot().resolveAll("src", "main", "keep.txt"),
+            generatedKeepRulesProvider.getSingleOutputFile(),
+            // TODO(b/294351878): Remove once enum issue is fixed
+            getRoot().resolveAll("src", "main", "keep_r8resourceshrinker.txt"))
+    inputs.files(listOf(r8WithRelocatedDepsJar, inputJar).union(keepRuleFiles).union(lib))
+    val outputJar = getRoot().resolveAll("build", "libs", artifactName)
+    outputs.file(outputJar)
     commandLine = createR8LibCommandLine(
-      r8Compiler,
-      r8Jar,
-      output,
+            r8WithRelocatedDepsJar,
+            inputJar,
+            outputJar,
+            keepRuleFiles,
+            excludingDepsVariant = lib.isNotEmpty(),
+            debugVariant = false,
+            lib = lib)
+  }
+
+  val assembleR8LibNoDeps by registering(Exec::class) {
+    dependsOn(mainDepsJarTask)
+    val mainDepsJar = mainDepsJarTask.getSingleOutputFile()
+    assembleR8Lib(
+            swissArmyKnifeTask,
+            generateKeepRulesForR8LibNoDeps,
+            listOf(mainDepsJar),
+            "r8lib-exclude-deps.jar")
+  }
+
+  val assembleR8LibWithRelocatedDeps by registering(Exec::class) {
+    assembleR8Lib(
+            r8WithRelocatedDepsTask,
+            generateKeepRulesForR8LibWithRelocatedDeps,
+            listOf(),
+            "r8lib.jar")
+  }
+
+  val assembleRetraceLibNoDeps by registering(Exec::class) {
+    dependsOn(assembleR8LibNoDeps, mainDepsJarTask, r8WithRelocatedDepsTask)
+    val mainDepsJar = mainDepsJarTask.getSingleOutputFile()
+    val r8LibNoDepsJar = assembleR8LibNoDeps.getSingleOutputFile()
+    val r8WithRelocatedDepsJar = r8WithRelocatedDepsTask.getSingleOutputFile()
+    inputs.files(mainDepsJar, r8LibNoDepsJar, r8WithRelocatedDepsJar)
+    val inputMap = file("$r8LibNoDepsJar.map")
+    val outputJar = getRoot().resolveAll("build", "libs", "r8retrace-exclude-deps.jar")
+    outputs.file(outputJar)
+    commandLine = createR8LibCommandLine(
+            r8WithRelocatedDepsJar,
+            r8LibNoDepsJar,
+            outputJar,
+            listOf(getRoot().resolveAll("src", "main", "keep_retrace.txt")),
+            excludingDepsVariant = true,
+            debugVariant = true,
+            lib = listOf(mainDepsJar),
+            pgInputMap = inputMap)
+  }
+
+  val assembleRetraceLibWithRelocatedDeps by registering(Exec::class) {
+    dependsOn(assembleR8LibWithRelocatedDeps, mainDepsJarTask, r8WithRelocatedDepsTask)
+    val mainDepsJar = mainDepsJarTask.getSingleOutputFile()
+    val r8LibWithRelocatedDeps = assembleR8LibWithRelocatedDeps.getSingleOutputFile()
+    val r8WithRelocatedDepsJar = r8WithRelocatedDepsTask.getSingleOutputFile()
+    inputs.files(mainDepsJar, r8LibWithRelocatedDeps, r8WithRelocatedDepsJar)
+    val inputMap = file("$r8LibWithRelocatedDeps.map")
+    val outputJar = getRoot().resolveAll("build", "libs", "r8retrace.jar")
+    outputs.file(outputJar)
+    commandLine = createR8LibCommandLine(
+      r8WithRelocatedDepsJar,
+      r8LibWithRelocatedDeps,
+      outputJar,
       listOf(getRoot().resolveAll("src", "main", "keep_retrace.txt")),
-      false,
-      true,
-      listOf(),
-      listOf(),
-      inputMap)
+      excludingDepsVariant = false,
+      debugVariant = true,
+      pgInputMap = inputMap)
   }
 
   val resourceshrinkercli by registering(Exec::class) {
     dependsOn(r8WithRelocatedDepsTask)
-    val r8 = r8WithRelocatedDepsTask.outputs.files.getSingleFile()
+    val r8 = r8WithRelocatedDepsTask.getSingleOutputFile()
     val keepTxt = getRoot().resolveAll("src", "main", "resourceshrinker_cli.txt")
     val cliKeep = getRoot().resolveAll("src", "main", "keep_r8resourceshrinker.txt")
-    inputs.files(listOf(keepTxt, cliKeep))
+    inputs.files(keepTxt, cliKeep)
     val output = file(Paths.get("build", "libs", "resourceshrinkercli.jar"))
     outputs.file(output)
     commandLine = createR8LibCommandLine(
@@ -215,103 +235,156 @@ tasks {
       false)
   }
 
-  val allTestWithApplyMappingProguardConfiguration by registering {
-    dependsOn(r8LibWithRelocatedDeps)
-    val license = rootProject.buildDir.resolveAll("libs", "r8tests-keep.txt")
-    outputs.files(license)
+  fun Task.generateTestKeepRulesForR8Lib(
+          r8LibJarProvider: TaskProvider<Exec>, artifactName: String) {
+    dependsOn(r8LibJarProvider)
+    val r8LibJar = r8LibJarProvider.getSingleOutputFile()
+    inputs.files(r8LibJar)
+    val output = rootProject.buildDir.resolveAll("libs", artifactName)
+    outputs.files(output)
     doLast {
       // TODO(b/299065371): We should be able to take in the partition map output.
-      license.writeText(
-        """-keep class ** { *; }
+      output.writeText(
+              """-keep class ** { *; }
 -dontshrink
 -dontoptimize
 -keepattributes *
--applymapping ${r8LibWithRelocatedDeps.get().outputs.files.singleFile}.map
+-applymapping $r8LibJar.map
 """)
     }
   }
 
-  val allTestsWithApplyMapping by registering(Exec::class) {
-    dependsOn(allDepsJar)
-    dependsOn(allTestsJarRelocated)
-    dependsOn(r8WithRelocatedDepsTask)
-    dependsOn(allTestWithApplyMappingProguardConfiguration)
-    val r8 = r8WithRelocatedDepsTask.outputs.files.singleFile
-    val allTests = allTestsJarRelocated.get().outputs.files.singleFile
-    val pgConf = allTestWithApplyMappingProguardConfiguration.get().outputs.files.singleFile
-    val lib = resolve(ThirdPartyDeps.java8Runtime, "rt.jar").getSingleFile()
-    val main = r8WithRelocatedDepsTask.outputs.files.singleFile
-    val testDeps = allDepsJar.get().outputs.files.singleFile
-    inputs.files(listOf(r8, allTests, pgConf, lib, main, testDeps))
-    val output = getRoot().resolveAll("build", "libs", "r8libtestdeps-cf.jar")
-    outputs.file(output)
+  val generateTestKeepRulesR8LibWithRelocatedDeps by registering {
+    generateTestKeepRulesForR8Lib(assembleR8LibWithRelocatedDeps, "r8lib-tests-keep.txt")
+  }
+
+  val generateTestKeepRulesR8LibNoDeps by registering {
+    generateTestKeepRulesForR8Lib(assembleR8LibNoDeps, "r8lib-exclude-deps-tests-keep.txt")
+  }
+
+  fun Exec.rewriteTestsForR8Lib(
+          keepRulesFileProvider: TaskProvider<Task>,
+          testJarProvider: TaskProvider<*>,
+          artifactName: String) {
+    dependsOn(
+            keepRulesFileProvider,
+            packageTestDeps,
+            relocateTestsForR8LibWithRelocatedDeps,
+            r8WithRelocatedDepsTask,
+            testJarProvider)
+    val keepRulesFile = keepRulesFileProvider.getSingleOutputFile()
+    val rtJar = resolve(ThirdPartyDeps.java8Runtime, "rt.jar").getSingleFile()
+    val r8WithRelocatedDepsJar = r8WithRelocatedDepsTask.getSingleOutputFile()
+    val testDepsJar = packageTestDeps.getSingleOutputFile()
+    val testJar = testJarProvider.getSingleOutputFile()
+    inputs.files(keepRulesFile, rtJar, r8WithRelocatedDepsJar, testDepsJar, testJar)
+    val outputJar = getRoot().resolveAll("build", "libs", artifactName)
+    outputs.file(outputJar)
     commandLine = baseCompilerCommandLine(
-      r8,
-      "r8",
-      listOf(
-        "--classfile",
-        "--debug",
-        "--lib",
-        "$lib",
-        "--classpath",
-        "$main",
-        "--classpath",
-        "$testDeps",
-        "--output",
-        "$output",
-        "--pg-conf",
-        "$pgConf",
-        "$allTests"))
+            r8WithRelocatedDepsJar,
+            "r8",
+            listOf(
+                    "--classfile",
+                    "--debug",
+                    "--lib",
+                    "$rtJar",
+                    "--classpath",
+                    "$r8WithRelocatedDepsJar",
+                    "--classpath",
+                    "$testDepsJar",
+                    "--output",
+                    "$outputJar",
+                    "--pg-conf",
+                    "$keepRulesFile",
+                    "$testJar"))
+  }
+
+  val rewriteTestsForR8LibWithRelocatedDeps by registering(Exec::class) {
+    rewriteTestsForR8Lib(
+            generateTestKeepRulesR8LibWithRelocatedDeps,
+            relocateTestsForR8LibWithRelocatedDeps,
+            "r8libtestdeps-cf.jar")
+  }
+
+  val rewriteTestsForR8LibNoDeps by registering(Exec::class) {
+    rewriteTestsForR8Lib(
+            generateTestKeepRulesR8LibNoDeps,
+            packageTests,
+            "r8lib-exclude-deps-testdeps-cf.jar")
   }
 
   val unzipTests by registering(Copy::class) {
-    dependsOn(allTestsJar)
+    dependsOn(packageTests)
     val outputDir = file("${buildDir}/unpacked/test")
-    from(zipTree(allTestsJar.get().outputs.files.singleFile))
+    from(zipTree(packageTests.getSingleOutputFile()))
     into(outputDir)
   }
 
-  val unzipRewrittenTests by registering(Copy::class) {
-    dependsOn(allTestsWithApplyMapping)
-    val outputDir = file("${buildDir}/unpacked/rewrittentest")
-    from(zipTree(allTestsWithApplyMapping.get().outputs.files.singleFile))
+  fun Copy.unzipRewrittenTestsForR8Lib(
+          rewrittenTestJarProvider: TaskProvider<Exec>, outDirName: String) {
+    dependsOn(rewrittenTestJarProvider)
+    val outputDir = file("$buildDir/unpacked/$outDirName")
+    val rewrittenTestJar = rewrittenTestJarProvider.getSingleOutputFile()
+    from(zipTree(rewrittenTestJar))
     into(outputDir)
   }
 
-  val r8LibTest by registering(Test::class) {
+  val unzipRewrittenTestsForR8LibWithRelocatedDeps by registering(Copy::class) {
+    unzipRewrittenTestsForR8Lib(rewriteTestsForR8LibWithRelocatedDeps, "rewrittentests-r8lib")
+  }
+
+  val unzipRewrittenTestsForR8LibNoDeps by registering(Copy::class) {
+    unzipRewrittenTestsForR8Lib(
+            rewriteTestsForR8LibNoDeps, "rewrittentests-r8lib-exclude-deps")
+  }
+
+  fun Test.testR8Lib(r8Lib: TaskProvider<Exec>, unzipRewrittenTests: TaskProvider<Copy>) {
     println("NOTE: Number of processors " + Runtime.getRuntime().availableProcessors())
     println("NOTE: Max parallel forks " + maxParallelForks)
-    dependsOn(allDepsJar)
-    dependsOn(r8LibWithRelocatedDeps)
-    dependsOn(unzipTests)
-    dependsOn(unzipRewrittenTests)
-    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
+    dependsOn(
+            packageTestDeps,
+            r8Lib,
+            r8WithRelocatedDepsTask,
+            testsJava8SourceSetDependenciesTask,
+            unzipRewrittenTests,
+            unzipTests,
+            gradle.includedBuild("shared").task(":downloadDeps"))
     if (!project.hasProperty("no_internal")) {
       dependsOn(gradle.includedBuild("shared").task(":downloadDepsInternal"))
     }
-    dependsOn(testsJava8SourceSetDependenciesTask)
-    val r8LibJar = r8LibWithRelocatedDeps.get().outputs.files.singleFile
-    this.configure(isR8Lib = true, r8Jar = r8LibJar)
+    val r8LibJar = r8Lib.getSingleOutputFile()
+    val r8LibMappingFile = file(r8LibJar.toString() + ".map")
+    val r8WithRelocatedDepsJar = r8WithRelocatedDepsTask.getSingleOutputFile()
+    configure(isR8Lib = true, r8Jar = r8WithRelocatedDepsJar, r8LibMappingFile = r8LibMappingFile)
 
     // R8lib should be used instead of the main output and all the tests in r8 should be mapped and
     // exists in r8LibTestPath.
     classpath = files(
-      allDepsJar.get().outputs.files,
-      r8LibJar,
-      unzipRewrittenTests.get().outputs.files)
-    testClassesDirs = unzipRewrittenTests.get().outputs.files
-    systemProperty("TEST_DATA_LOCATION", unzipTests.get().outputs.files.singleFile)
-    systemProperty("KEEP_ANNO_JAVAC_BUILD_DIR", keepAnnoCompileTask.outputs.files.getAsPath())
+            packageTestDeps.get().getOutputs().getFiles(),
+            r8LibJar,
+            unzipRewrittenTests.get().getOutputs().getFiles())
+    testClassesDirs = unzipRewrittenTests.get().getOutputs().getFiles()
+    systemProperty("TEST_DATA_LOCATION", unzipTests.getSingleOutputFile())
+    systemProperty(
+            "KEEP_ANNO_JAVAC_BUILD_DIR", keepAnnoCompileTask.getOutputs().getFiles().getAsPath())
     systemProperty("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR",
-                   getRoot().resolveAll("build", "test", "examplesJava11", "classes"))
+            getRoot().resolveAll("build", "test", "examplesJava11", "classes"))
     systemProperty("R8_RUNTIME_PATH", r8LibJar)
     // TODO(b/270105162): This should change if running with retrace lib/r8lib.
     systemProperty("RETRACE_RUNTIME_PATH", r8LibJar)
-    systemProperty("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
+    systemProperty("R8_DEPS", mainDepsJarTask.getSingleOutputFile())
     systemProperty("com.android.tools.r8.artprofilerewritingcompletenesscheck", "true")
 
     reports.junitXml.outputLocation.set(getRoot().resolveAll("build", "test-results", "test"))
     reports.html.outputLocation.set(getRoot().resolveAll("build", "reports", "tests", "test"))
+  }
+
+  val testR8LibWithRelocatedDeps by registering(Test::class) {
+    testR8Lib(assembleR8LibWithRelocatedDeps, unzipRewrittenTestsForR8LibWithRelocatedDeps)
+  }
+
+  val testR8LibNoDeps by registering(Test::class) {
+    testR8Lib(assembleR8LibNoDeps, unzipRewrittenTestsForR8LibNoDeps)
   }
 
   val sourcesJar by registering(Jar::class) {
@@ -328,10 +401,18 @@ tasks {
 
   test {
     if (project.hasProperty("r8lib")) {
-      dependsOn(r8LibTest)
+      dependsOn(testR8LibWithRelocatedDeps)
+    } else if (project.hasProperty("r8lib_no_deps")) {
+      dependsOn(testR8LibNoDeps)
     } else {
       dependsOn(gradle.includedBuild("tests_java_8").task(":test"))
       dependsOn(gradle.includedBuild("tests_bootstrap").task(":test"))
     }
   }
 }
+
+fun Task.getSingleOutputFile(): File = getOutputs().getSingleOutputFile()
+
+fun TaskOutputs.getSingleOutputFile(): File = getFiles().getSingleFile()
+
+fun TaskProvider<*>.getSingleOutputFile(): File = get().getSingleOutputFile()
