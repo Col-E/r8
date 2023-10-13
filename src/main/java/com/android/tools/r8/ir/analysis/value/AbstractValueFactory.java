@@ -14,17 +14,26 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.objectstate.KnownLengthArrayState;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
+import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AbstractValueFactory {
 
-  private ConcurrentHashMap<DexType, SingleConstClassValue> singleConstClassValues =
+  private final TestingOptions testingOptions;
+
+  private final ConcurrentHashMap<DexType, SingleConstClassValue> singleConstClassValues =
       new ConcurrentHashMap<>();
-  private ConcurrentHashMap<Long, SingleNumberValue> singleNumberValues = new ConcurrentHashMap<>();
-  private ConcurrentHashMap<DexString, SingleStringValue> singleStringValues =
+  private final ConcurrentHashMap<Long, SingleNumberValue> singleNumberValues =
       new ConcurrentHashMap<>();
-  private ConcurrentHashMap<Integer, KnownLengthArrayState> knownArrayLengthStates =
+  private final ConcurrentHashMap<DexString, SingleStringValue> singleStringValues =
       new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Integer, KnownLengthArrayState> knownArrayLengthStates =
+      new ConcurrentHashMap<>();
+
+  public AbstractValueFactory(InternalOptions options) {
+    testingOptions = options.testing;
+  }
 
   public SingleBoxedBooleanValue createBoxedBooleanFalse() {
     return SingleBoxedBooleanValue.getFalseInstance();
@@ -71,10 +80,20 @@ public class AbstractValueFactory {
       int definitelySetBits, int definitelyUnsetBits) {
     if (definitelySetBits != 0 || definitelyUnsetBits != 0) {
       // If all bits are known, then create a single number value.
-      if ((definitelySetBits | definitelyUnsetBits) == ALL_BITS_SET_MASK) {
+      boolean allBitsSet = (definitelySetBits | definitelyUnsetBits) == ALL_BITS_SET_MASK;
+      // Account for the temporary hack in the Compose modeling where we create a
+      // DefiniteBitsNumberValue with set bits=0b1^32 and unset bits = 0b1^(31)0. This value is used
+      // to simulate the effect of `x | 1` in joins.
+      if (testingOptions.modelUnknownChangedAndDefaultArgumentsToComposableFunctions) {
+        boolean overlappingSetAndUnsetBits = (definitelySetBits & definitelyUnsetBits) != 0;
+        if (overlappingSetAndUnsetBits) {
+          allBitsSet = false;
+        }
+      }
+      if (allBitsSet) {
         return createUncheckedSingleNumberValue(definitelySetBits);
       }
-      return new DefiniteBitsNumberValue(definitelySetBits, definitelyUnsetBits);
+      return new DefiniteBitsNumberValue(definitelySetBits, definitelyUnsetBits, testingOptions);
     }
     return AbstractValue.unknown();
   }

@@ -51,6 +51,10 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
       return reference.apply(type -> TYPE, field -> FIELD, method -> METHOD);
     }
 
+    public boolean isMethod() {
+      return this == METHOD;
+    }
+
     public boolean isParameter() {
       return this == PARAMETER;
     }

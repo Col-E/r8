@@ -92,7 +92,7 @@ class CfOpenClosedInterfacesAnalysisHelper {
               assert false;
             }
           } else {
-            assert false;
+            assert array.isNullType();
           }
         },
         options);

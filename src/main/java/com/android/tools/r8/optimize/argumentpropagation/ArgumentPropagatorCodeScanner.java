@@ -67,6 +67,8 @@ public class ArgumentPropagatorCodeScanner {
 
   private final AppView<AppInfoWithLiveness> appView;
 
+  private final ArgumentPropagatorCodeScannerModeling modeling;
+
   private final MethodParameterFactory methodParameterFactory = new MethodParameterFactory();
 
   private final Set<DexMethod> monomorphicVirtualMethods = Sets.newIdentityHashSet();
@@ -91,6 +93,7 @@ public class ArgumentPropagatorCodeScanner {
       AppView<AppInfoWithLiveness> appView,
       ArgumentPropagatorReprocessingCriteriaCollection reprocessingCriteriaCollection) {
     this.appView = appView;
+    this.modeling = new ArgumentPropagatorCodeScannerModeling(appView);
     this.reprocessingCriteriaCollection = reprocessingCriteriaCollection;
   }
 
@@ -404,11 +407,11 @@ public class ArgumentPropagatorCodeScanner {
       parameterStates.add(
           computeParameterStateForNonReceiver(
               invoke,
+              singleTarget,
               argumentIndex,
               invoke.getArgument(argumentIndex),
               context,
-              existingMethodState,
-              methodReprocessingCriteria.getParameterReprocessingCriteria(argumentIndex)));
+              existingMethodState));
     }
 
     // We simulate that the return value is used for methods with void return type. This ensures
@@ -448,11 +451,18 @@ public class ArgumentPropagatorCodeScanner {
   @SuppressWarnings("UnusedVariable")
   private ParameterState computeParameterStateForNonReceiver(
       InvokeMethod invoke,
+      ProgramMethod singleTarget,
       int argumentIndex,
       Value argument,
       ProgramMethod context,
-      ConcreteMonomorphicMethodStateOrBottom existingMethodState,
-      ParameterReprocessingCriteria parameterReprocessingCriteria) {
+      ConcreteMonomorphicMethodStateOrBottom existingMethodState) {
+    ParameterState modeledState =
+        modeling.modelParameterStateForArgumentToFunction(
+            invoke, singleTarget, argumentIndex, argument);
+    if (modeledState != null) {
+      return modeledState;
+    }
+
     // Don't compute a state for this parameter if the stored state is already unknown.
     if (existingMethodState.isMonomorphic()
         && existingMethodState.asMonomorphic().getParameterState(argumentIndex).isUnknown()) {

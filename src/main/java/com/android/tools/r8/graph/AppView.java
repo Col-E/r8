@@ -38,6 +38,7 @@ import com.android.tools.r8.ir.optimize.library.LibraryMethodSideEffectModelColl
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
+import com.android.tools.r8.optimize.compose.ComposeReferences;
 import com.android.tools.r8.optimize.interfaces.collection.OpenClosedInterfacesCollection;
 import com.android.tools.r8.profile.art.ArtProfileCollection;
 import com.android.tools.r8.profile.startup.profile.StartupProfile;
@@ -105,7 +106,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   // Currently however the liveness may be downgraded thus loosing the computed keep info.
   private KeepInfoCollection keepInfo = null;
 
-  private final AbstractValueFactory abstractValueFactory = new AbstractValueFactory();
+  private ComposeReferences composeReferences = null;
+
+  private final AbstractValueFactory abstractValueFactory;
   private final AbstractValueConstantPropagationJoiner abstractValueConstantPropagationJoiner;
   private final AbstractValueFieldJoiner abstractValueFieldJoiner;
   private final AbstractValueParameterJoiner abstractValueParameterJoiner;
@@ -180,6 +183,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
         timing.time(
             "Compilation context", () -> CompilationContext.createInitialContext(options()));
     this.wholeProgramOptimizations = wholeProgramOptimizations;
+    abstractValueFactory = new AbstractValueFactory(options());
     abstractValueConstantPropagationJoiner = new AbstractValueConstantPropagationJoiner(this);
     if (enableWholeProgramOptimizations()) {
       abstractValueFieldJoiner = new AbstractValueFieldJoiner(withClassHierarchy());
@@ -508,6 +512,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   @Override
   public DexItemFactory dexItemFactory() {
     return appInfo.dexItemFactory();
+  }
+
+  public ComposeReferences getComposeReferences() {
+    assert testing().modelUnknownChangedAndDefaultArgumentsToComposableFunctions;
+    if (composeReferences == null) {
+      composeReferences = new ComposeReferences(dexItemFactory());
+    }
+    return composeReferences;
   }
 
   public boolean enableWholeProgramOptimizations() {

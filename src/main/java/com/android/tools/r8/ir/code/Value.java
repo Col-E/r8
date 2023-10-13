@@ -788,10 +788,26 @@ public class Value implements Comparable<Value> {
     boolean isConstant = definition != null && definition.isConstNumber();
     if (isConstant || hasLocalInfo()) {
       builder.append("(");
-      if (isConstant && definition.asConstNumber().outValue != null) {
+      if (isConstant && definition.asConstNumber().hasOutValue()) {
         ConstNumber constNumber = definition.asConstNumber();
         if (constNumber.getOutType().isSinglePrimitive()) {
-          builder.append((int) constNumber.getRawValue());
+          Value constNumberValue = constNumber.outValue();
+          int intValue = (int) constNumber.getRawValue();
+          boolean useBinaryRepresentation =
+              !constNumberValue.hasPhiUsers()
+                  && constNumberValue.uniqueUsers().stream()
+                      .allMatch(
+                          user ->
+                              user.isAnd()
+                                  || user.isOr()
+                                  || ((user.isShl() || user.isShr() || user.isUshr())
+                                      && constNumberValue == user.asShl().getFirstOperand())
+                                  || user.isXor());
+          if (useBinaryRepresentation) {
+            builder.append("0b").append(Integer.toBinaryString(intValue));
+          } else {
+            builder.append(intValue);
+          }
         } else {
           builder.append(constNumber.getRawValue());
         }
@@ -821,6 +837,12 @@ public class Value implements Comparable<Value> {
 
   public boolean isConstNumber() {
     return isConstant() && getConstInstruction().isConstNumber();
+  }
+
+  public boolean isConstNumber(long rawValue) {
+    return isConstant()
+        && getConstInstruction().isConstNumber()
+        && getConstInstruction().asConstNumber().getRawValue() == rawValue;
   }
 
   public boolean isConstBoolean(boolean value) {

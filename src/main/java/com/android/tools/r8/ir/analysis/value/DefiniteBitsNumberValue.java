@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import java.util.Objects;
 
@@ -16,8 +17,10 @@ public class DefiniteBitsNumberValue extends NonConstantNumberValue {
   private final int definitelySetBits;
   private final int definitelyUnsetBits;
 
-  public DefiniteBitsNumberValue(int definitelySetBits, int definitelyUnsetBits) {
-    assert (definitelySetBits & definitelyUnsetBits) == 0;
+  public DefiniteBitsNumberValue(
+      int definitelySetBits, int definitelyUnsetBits, TestingOptions testingOptions) {
+    assert (definitelySetBits & definitelyUnsetBits) == 0
+        || testingOptions.modelUnknownChangedAndDefaultArgumentsToComposableFunctions;
     this.definitelySetBits = definitelySetBits;
     this.definitelyUnsetBits = definitelyUnsetBits;
   }
