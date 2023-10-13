@@ -58,9 +58,7 @@ def PrintCmd(s):
 
 def EnsureGradle():
   utils.EnsureDepFromGoogleCloudStorage(
-    get_gradle(False), GRADLE_TGZ, GRADLE_SHA1, 'Gradle binary')
-  utils.EnsureDepFromGoogleCloudStorage(
-    get_gradle(True), GRADLE8_TGZ, GRADLE8_SHA1, 'Gradle binary')
+    get_gradle(), GRADLE8_TGZ, GRADLE8_SHA1, 'Gradle binary')
 
 def EnsureJdk():
   # Gradle in the new setup will use the jdks in the evaluation - fetch
