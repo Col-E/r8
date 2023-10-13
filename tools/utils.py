@@ -26,7 +26,6 @@ REPO_ROOT = defines.REPO_ROOT
 THIRD_PARTY = defines.THIRD_PARTY
 BUNDLETOOL_JAR_DIR = os.path.join(THIRD_PARTY, 'bundletool/bundletool-1.11.0')
 BUNDLETOOL_JAR = os.path.join(BUNDLETOOL_JAR_DIR, 'bundletool-all-1.11.0.jar')
-ANDROID_SDK = os.path.join(THIRD_PARTY, 'android_sdk')
 MEMORY_USE_TMP_FILE = 'memory_use.tmp'
 DEX_SEGMENTS_RESULT_PATTERN = re.compile('- ([^:]+): ([0-9]+)')
 
@@ -39,7 +38,6 @@ CUSTOM_CONVERSION_DIR = os.path.join(
     THIRD_PARTY, 'openjdk', 'custom_conversion')
 GENERATED_LICENSE_DIR = os.path.join(BUILD, 'generatedLicense')
 SRC_ROOT = os.path.join(REPO_ROOT, 'src', 'main', 'java')
-TEST_ROOT = os.path.join(REPO_ROOT, 'src', 'test', 'java')
 REPO_SOURCE = 'https://r8.googlesource.com/r8'
 
 GRADLE_TASK_CLEAN_TEST = ':test:cleanTest'
@@ -57,24 +55,11 @@ GRADLE_TASK_ALL_TESTS_WITH_APPLY_MAPPING_JAR = ':test:allTestsWithApplyMapping'
 GRADLE_TASK_TEST_DEPS_JAR = ':test:allDepsJar'
 GRADLE_TASK_TEST_JAR = ':test:allTestsJar'
 
-D8 = 'd8'
 R8 = 'r8'
 R8LIB = 'r8lib'
-R8LIB_NO_DEPS = 'r8LibNoDeps'
-R8RETRACE = 'R8Retrace'
-R8RETRACE_NO_DEPS = 'R8RetraceNoDeps'
-R8_SRC = 'sourceJar'
-LIBRARY_DESUGAR_CONVERSIONS =\
-  'download_deps_third_party_openjdk_custom_conversion'
-R8_TESTS_TARGET = 'TestJar'
-R8_TESTS_DEPS_TARGET = 'RepackageTestDeps'
-R8LIB_TESTS_TARGET = 'configureTestForR8Lib'
-R8LIB_TESTS_DEPS_TARGET = R8_TESTS_DEPS_TARGET
-KEEPANNO_ANNOTATIONS_TARGET = 'keepAnnoJar'
 
 ALL_DEPS_JAR = os.path.join(LIBS, 'deps_all.jar')
 R8_JAR = os.path.join(LIBS, 'r8.jar')
-R8_WITH_RELOCATED_DEPS_JAR = os.path.join(LIBS, 'r8_with_relocated_deps.jar')
 R8LIB_JAR = os.path.join(LIBS, 'r8lib.jar')
 R8LIB_MAP = '%s.map' % R8LIB_JAR
 R8_SRC_JAR = os.path.join(LIBS, 'r8-src.jar')
@@ -123,8 +108,7 @@ R8LIB_KEEP_RULES = os.path.join(REPO_ROOT, 'src/main/keep.txt')
 CF_SEGMENTS_TOOL = os.path.join(THIRD_PARTY, 'cf_segments')
 PINNED_R8_JAR = os.path.join(REPO_ROOT, 'third_party/r8/r8.jar')
 PINNED_PGR8_JAR = os.path.join(REPO_ROOT, 'third_party/r8/r8-pg6.0.1.jar')
-SAMPLE_LIBRARIES_SHA_FILE = os.path.join(
-    THIRD_PARTY, 'sample_libraries.tar.gz.sha1')
+
 OPENSOURCE_DUMPS_DIR = os.path.join(THIRD_PARTY, 'opensource-apps')
 INTERNAL_DUMPS_DIR = os.path.join(THIRD_PARTY, 'internal-apps')
 BAZEL_SHA_FILE = os.path.join(THIRD_PARTY, 'bazel.tar.gz.sha1')
@@ -133,7 +117,6 @@ JAVA8_SHA_FILE = os.path.join(THIRD_PARTY, 'openjdk', 'jdk8', 'linux-x86.tar.gz.
 JAVA11_SHA_FILE = os.path.join(THIRD_PARTY, 'openjdk', 'jdk-11', 'linux.tar.gz.sha1')
 DESUGAR_JDK_LIBS_11_SHA_FILE = os.path.join(THIRD_PARTY, 'openjdk', 'desugar_jdk_libs_11.tar.gz.sha1')
 IGNORE_WARNINGS_RULES = os.path.join(REPO_ROOT, 'src', 'test', 'ignorewarnings.rules')
-
 ANDROID_HOME_ENVIROMENT_NAME = "ANDROID_HOME"
 ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME = "ANDROID_TOOLS_VERSION"
 USER_HOME = os.path.expanduser('~')
@@ -147,10 +130,10 @@ def archive_file(name, gs_dir, src_file):
 
 def archive_value(name, gs_dir, value):
   with TempDir() as temp:
-    tempfile = os.path.join(temp, name);
-    with open(tempfile, 'w') as f:
+    temparchive = os.path.join(temp, name)
+    with open(temparchive, 'w') as f:
       f.write(str(value))
-    archive_file(name, gs_dir, tempfile)
+    archive_file(name, gs_dir, temparchive)
 
 def find_cloud_storage_file_from_options(name, options, orElse=None):
   # Import archive on-demand since archive depends on utils.
@@ -171,8 +154,6 @@ def find_cloud_storage_file_from_options(name, options, orElse=None):
 def find_r8_jar_from_options(options):
   return find_cloud_storage_file_from_options('r8.jar', options)
 
-def find_r8_lib_jar_from_options(options):
-  return find_cloud_storage_file_from_options('r8lib.jar', options)
 
 def find_hash_or_version_from_options(options):
   if options.tag:
@@ -300,30 +281,8 @@ def RunCmd(cmd, env_vars=None, quiet=False, fail=True, logging=True):
               exit_code or -1, cmd, output='\n'.join(stdout))
       return stdout
 
-def RunGradlew(
-    args, clean=True, stacktrace=True, use_daemon=False, env_vars=None,
-    quiet=False, fail=True, logging=True):
-  cmd = ['./gradlew']
-  if clean:
-    assert 'clean' not in args
-    cmd.append('clean')
-  if stacktrace:
-    assert '--stacktrace' not in args
-    cmd.append('--stacktrace')
-  if not use_daemon:
-    assert '--no-daemon' not in args
-    cmd.append('--no-daemon')
-  cmd.extend(args)
-  return RunCmd(cmd, env_vars=env_vars, quiet=quiet, fail=fail, logging=logging)
-
 def IsWindows():
   return defines.IsWindows()
-
-def IsLinux():
-  return defines.IsLinux()
-
-def IsOsX():
-  return defines.IsOsX()
 
 def EnsureDepFromGoogleCloudStorage(dep, tgz, sha1, msg):
   if (not os.path.exists(dep)
@@ -366,11 +325,6 @@ def get_sha1(filename):
       sha1.update(chunk)
   return sha1.hexdigest()
 
-def is_main():
-  remotes = subprocess.check_output(['git', 'branch', '-r', '--contains',
-                                     'HEAD']).decode('utf-8')
-  return 'origin/main' in remotes
-
 def get_HEAD_branch():
   result = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('utf-8')
   return result.strip()
@@ -396,15 +350,6 @@ def makedirs_if_needed(path):
 
 def get_gsutil():
   return 'gsutil.py' if os.name != 'nt' else 'gsutil.py.bat'
-
-def upload_dir_to_cloud_storage(directory, destination, is_html=False):
-  # Upload and make the content encoding right for viewing directly
-  cmd = [get_gsutil(), '-m', 'cp']
-  if is_html:
-    cmd += ['-z', 'html']
-  cmd += ['-R', directory, destination]
-  PrintCmd(cmd)
-  subprocess.check_call(cmd)
 
 def upload_file_to_cloud_storage(source, destination):
   cmd = [get_gsutil(), 'cp']
@@ -645,31 +590,11 @@ def get_android_jar_dir(api):
 def get_android_jar(api):
   return os.path.join(REPO_ROOT, ANDROID_JAR.format(api=api))
 
-def get_android_optional_jars(api):
-  android_optional_jars_dir = os.path.join(get_android_jar_dir(api), 'optional')
-  android_optional_jars = [
-    os.path.join(android_optional_jars_dir, 'android.test.base.jar'),
-    os.path.join(android_optional_jars_dir, 'android.test.mock.jar'),
-    os.path.join(android_optional_jars_dir, 'android.test.runner.jar'),
-    os.path.join(android_optional_jars_dir, 'org.apache.http.legacy.jar')
-  ]
-  return [
-      android_optional_jar for android_optional_jar in android_optional_jars
-      if os.path.isfile(android_optional_jar)]
-
 def is_bot():
   return 'SWARMING_BOT_ID' in os.environ
 
 def uncompressed_size(path):
   return sum(z.file_size for z in zipfile.ZipFile(path).infolist())
-
-def getR8Version(path):
-  cmd = [jdk.GetJavaExecutable(), '-cp', path, 'com.android.tools.r8.R8',
-        '--version']
-  output = subprocess.check_output(cmd, stderr = subprocess.STDOUT).decode('utf-8')
-  # output is of the form 'R8 <version> (with additional info)'
-  # so we split on '('; clean up tailing spaces; and strip off 'R8 '.
-  return output.split('(')[0].strip()[3:]
 
 def desugar_configuration_name_and_version(configuration, is_for_maven):
   name = 'desugar_jdk_libs_configuration'
