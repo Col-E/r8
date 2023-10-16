@@ -20,16 +20,14 @@ from string import Template
 import gradle
 import utils
 
-LICENSETEMPLATE = Template(
-"""
+LICENSETEMPLATE = Template("""
     <license>
       <name>$name</name>
       <url>$url</url>
       <distribution>repo</distribution>
     </license>""")
 
-R8_POMTEMPLATE = Template(
-"""<project
+R8_POMTEMPLATE = Template("""<project
     xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -68,8 +66,7 @@ R8_POMTEMPLATE = Template(
 </project>
 """)
 
-DESUGAR_CONFIGUATION_POMTEMPLATE = Template(
-"""<project
+DESUGAR_CONFIGUATION_POMTEMPLATE = Template("""<project
     xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -106,174 +103,189 @@ DESUGAR_CONFIGUATION_POMTEMPLATE = Template(
 </project>
 """)
 
+
 def parse_options(argv):
-  result = argparse.ArgumentParser()
-  result.add_argument('--out', help='The zip file to output')
-  group = result.add_mutually_exclusive_group()
-  group.add_argument('--desugar-configuration', action='store_true',
-                      help='Build desugar library configuration (original JDK-8)')
-  group.add_argument('--desugar-configuration-jdk8', action='store_true',
-                      help='Build desugar library configuration (original JDK-8)')
-  group.add_argument('--desugar-configuration-jdk11-legacy', action='store_true',
-                      help='Build desugar library configuration (JDK-11 legacy)')
-  group.add_argument('--desugar-configuration-jdk11-minimal', action='store_true',
-                      help='Build desugar library configuration (JDK-11 minimal)')
-  group.add_argument('--desugar-configuration-jdk11', action='store_true',
-                      help='Build desugar library configuration (JDK-11)')
-  group.add_argument('--desugar-configuration-jdk11-nio', action='store_true',
-                      help='Build desugar library configuration (JDK-11 nio)')
-  return result.parse_args(argv)
+    result = argparse.ArgumentParser()
+    result.add_argument('--out', help='The zip file to output')
+    group = result.add_mutually_exclusive_group()
+    group.add_argument(
+        '--desugar-configuration',
+        action='store_true',
+        help='Build desugar library configuration (original JDK-8)')
+    group.add_argument(
+        '--desugar-configuration-jdk8',
+        action='store_true',
+        help='Build desugar library configuration (original JDK-8)')
+    group.add_argument(
+        '--desugar-configuration-jdk11-legacy',
+        action='store_true',
+        help='Build desugar library configuration (JDK-11 legacy)')
+    group.add_argument(
+        '--desugar-configuration-jdk11-minimal',
+        action='store_true',
+        help='Build desugar library configuration (JDK-11 minimal)')
+    group.add_argument('--desugar-configuration-jdk11',
+                       action='store_true',
+                       help='Build desugar library configuration (JDK-11)')
+    group.add_argument('--desugar-configuration-jdk11-nio',
+                       action='store_true',
+                       help='Build desugar library configuration (JDK-11 nio)')
+    return result.parse_args(argv)
+
 
 def determine_version():
-  version_file = join(
-      utils.SRC_ROOT, 'com', 'android', 'tools', 'r8', 'Version.java')
-  with open(version_file, 'r') as file:
-    for line in file:
-      if 'final String LABEL ' in line:
-        result = line[line.find('"') + 1:]
-        result = result[:result.find('"')]
-        return result
-  raise Exception('Unable to determine version.')
+    version_file = join(utils.SRC_ROOT, 'com', 'android', 'tools', 'r8',
+                        'Version.java')
+    with open(version_file, 'r') as file:
+        for line in file:
+            if 'final String LABEL ' in line:
+                result = line[line.find('"') + 1:]
+                result = result[:result.find('"')]
+                return result
+    raise Exception('Unable to determine version.')
+
 
 def generate_library_licenses():
-  artifact_prefix = '- artifact: '
-  license_prefix = 'license: '
-  licenses = []
-  license_url_prefix = 'licenseUrl: '
-  license_urls = []
-  # The ./LIBRARY-LICENSE file is a simple yaml file, which for each dependency
-  # has the following information:
-  #
-  # - artifact: <maven artifact>  // in the form <group-id>:<artifact-id>:+
-  #   name: <name of dependency>
-  #   copyrightHolder: <name of copyright holder>
-  #   license: <license name>
-  #   licenseUrl: <url to license test>
-  #
-  # E.g. for Guava:
-  #
-  # - artifact: com.google.guava:guava:+
-  #   name: Guava Google Core Libraries for Java
-  #   copyrightHolder: The Guava Authors
-  #   license: The Apache Software License, Version 2.0
-  #   licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
-  #
-  # This file should always be up to date as the build will fail if it
-  # is does not have information for all dependencies.
-  with open('LIBRARY-LICENSE', 'r') as file:
-    name = None
-    url = None
-    for line in file:
-      trimmed = line.strip()
-      # Collect license name and url for each artifact. They must come in
-      # pairs for each artifact.
-      if trimmed.startswith(artifact_prefix):
-        assert not name
-        assert not url
-      if trimmed.startswith(license_prefix):
-        name = trimmed[len(license_prefix):]
-      if trimmed.startswith(license_url_prefix):
-        url = trimmed[len(license_url_prefix):]
-      # Licenses come in name/url pairs. When both are present add pair
-      # to collected licenses if either name or url has not been recorded yet,
-      # as some licenses with slightly different names point to the same url.
-      if name and url:
-        if (not name in licenses) or (not url in license_urls):
-          licenses.append(name)
-          license_urls.append(url)
+    artifact_prefix = '- artifact: '
+    license_prefix = 'license: '
+    licenses = []
+    license_url_prefix = 'licenseUrl: '
+    license_urls = []
+    # The ./LIBRARY-LICENSE file is a simple yaml file, which for each dependency
+    # has the following information:
+    #
+    # - artifact: <maven artifact>  // in the form <group-id>:<artifact-id>:+
+    #   name: <name of dependency>
+    #   copyrightHolder: <name of copyright holder>
+    #   license: <license name>
+    #   licenseUrl: <url to license test>
+    #
+    # E.g. for Guava:
+    #
+    # - artifact: com.google.guava:guava:+
+    #   name: Guava Google Core Libraries for Java
+    #   copyrightHolder: The Guava Authors
+    #   license: The Apache Software License, Version 2.0
+    #   licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+    #
+    # This file should always be up to date as the build will fail if it
+    # is does not have information for all dependencies.
+    with open('LIBRARY-LICENSE', 'r') as file:
         name = None
         url = None
-      assert len(licenses) == len(license_urls)
-  result = ''
-  for i in range(len(licenses)):
-    name = licenses[i]
-    url = license_urls[i]
-    result += LICENSETEMPLATE.substitute(name=name, url=url)
-  return result
+        for line in file:
+            trimmed = line.strip()
+            # Collect license name and url for each artifact. They must come in
+            # pairs for each artifact.
+            if trimmed.startswith(artifact_prefix):
+                assert not name
+                assert not url
+            if trimmed.startswith(license_prefix):
+                name = trimmed[len(license_prefix):]
+            if trimmed.startswith(license_url_prefix):
+                url = trimmed[len(license_url_prefix):]
+            # Licenses come in name/url pairs. When both are present add pair
+            # to collected licenses if either name or url has not been recorded yet,
+            # as some licenses with slightly different names point to the same url.
+            if name and url:
+                if (not name in licenses) or (not url in license_urls):
+                    licenses.append(name)
+                    license_urls.append(url)
+                name = None
+                url = None
+            assert len(licenses) == len(license_urls)
+    result = ''
+    for i in range(len(licenses)):
+        name = licenses[i]
+        url = license_urls[i]
+        result += LICENSETEMPLATE.substitute(name=name, url=url)
+    return result
+
 
 def write_default_r8_pom_file(pom_file, version):
-  write_pom_file(R8_POMTEMPLATE, pom_file, version)
+    write_pom_file(R8_POMTEMPLATE, pom_file, version)
 
-def write_pom_file(
-    template, pom_file, version, artifact_id=None, library_licenses=''):
-  version_pom = (
-      template.substitute(
-          artifactId=artifact_id,
-          version=version,
-          library_licenses=library_licenses)
-    if artifact_id else
-      template.substitute(
-          version=version, library_licenses=library_licenses))
-  with open(pom_file, 'w') as file:
-    file.write(version_pom)
+
+def write_pom_file(template,
+                   pom_file,
+                   version,
+                   artifact_id=None,
+                   library_licenses=''):
+    version_pom = (template.substitute(artifactId=artifact_id,
+                                       version=version,
+                                       library_licenses=library_licenses)
+                   if artifact_id else template.substitute(
+                       version=version, library_licenses=library_licenses))
+    with open(pom_file, 'w') as file:
+        file.write(version_pom)
+
 
 def hash_for(file, hash):
-  with open(file, 'rb') as f:
-    while True:
-      # Read chunks of 1MB
-      chunk = f.read(2 ** 20)
-      if not chunk:
-        break
-      hash.update(chunk)
-  return hash.hexdigest()
+    with open(file, 'rb') as f:
+        while True:
+            # Read chunks of 1MB
+            chunk = f.read(2**20)
+            if not chunk:
+                break
+            hash.update(chunk)
+    return hash.hexdigest()
+
 
 def write_md5_for(file):
-  hexdigest = hash_for(file, hashlib.md5())
-  with (open(file + '.md5', 'w')) as file:
-    file.write(hexdigest)
+    hexdigest = hash_for(file, hashlib.md5())
+    with (open(file + '.md5', 'w')) as file:
+        file.write(hexdigest)
+
 
 def write_sha1_for(file):
-  hexdigest = hash_for(file, hashlib.sha1())
-  with (open(file + '.sha1', 'w')) as file:
-    file.write(hexdigest)
+    hexdigest = hash_for(file, hashlib.sha1())
+    with (open(file + '.sha1', 'w')) as file:
+        file.write(hexdigest)
+
 
 def generate_maven_zip(name, version, pom_file, jar_file, out):
-  with utils.TempDir() as tmp_dir:
-    # Create the base maven version directory
-    version_dir = join(tmp_dir, utils.get_maven_path(name, version))
-    makedirs(version_dir)
-    # Write the pom file.
-    pom_file_location = join(version_dir, name + '-' + version + '.pom')
-    copyfile(pom_file, pom_file_location)
-    # Write the jar file.
-    jar_file_location = join(version_dir, name + '-' + version + '.jar')
-    copyfile(jar_file, jar_file_location)
-    # Create check sums.
-    write_md5_for(jar_file_location)
-    write_md5_for(pom_file_location)
-    write_sha1_for(jar_file_location)
-    write_sha1_for(pom_file_location)
-    # Zip it up - make_archive will append zip to the file, so remove.
-    assert out.endswith('.zip')
-    base_no_zip = out[0:len(out)-4]
-    make_archive(base_no_zip, 'zip', tmp_dir)
+    with utils.TempDir() as tmp_dir:
+        # Create the base maven version directory
+        version_dir = join(tmp_dir, utils.get_maven_path(name, version))
+        makedirs(version_dir)
+        # Write the pom file.
+        pom_file_location = join(version_dir, name + '-' + version + '.pom')
+        copyfile(pom_file, pom_file_location)
+        # Write the jar file.
+        jar_file_location = join(version_dir, name + '-' + version + '.jar')
+        copyfile(jar_file, jar_file_location)
+        # Create check sums.
+        write_md5_for(jar_file_location)
+        write_md5_for(pom_file_location)
+        write_sha1_for(jar_file_location)
+        write_sha1_for(pom_file_location)
+        # Zip it up - make_archive will append zip to the file, so remove.
+        assert out.endswith('.zip')
+        base_no_zip = out[0:len(out) - 4]
+        make_archive(base_no_zip, 'zip', tmp_dir)
+
 
 def generate_r8_maven_zip(out, version_file=None, skip_gradle_build=False):
-  if not skip_gradle_build:
-    gradle.RunGradle([utils.GRADLE_TASK_R8LIB, '-Pno_internal'])
-  version = determine_version()
-  with utils.TempDir() as tmp_dir:
-    file_copy = join(tmp_dir, 'copy_of_jar.jar')
-    copyfile(utils.R8LIB_JAR, file_copy)
+    if not skip_gradle_build:
+        gradle.RunGradle([utils.GRADLE_TASK_R8LIB, '-Pno_internal'])
+    version = determine_version()
+    with utils.TempDir() as tmp_dir:
+        file_copy = join(tmp_dir, 'copy_of_jar.jar')
+        copyfile(utils.R8LIB_JAR, file_copy)
 
-    if version_file:
-      with zipfile.ZipFile(file_copy, 'a') as zip:
-        zip.write(version_file, basename(version_file))
+        if version_file:
+            with zipfile.ZipFile(file_copy, 'a') as zip:
+                zip.write(version_file, basename(version_file))
 
-    # Generate the pom file.
-    pom_file = join(tmp_dir, 'r8.pom')
-    write_pom_file(
-        R8_POMTEMPLATE,
-        pom_file,
-        version,
-        library_licenses=generate_library_licenses())
-    # Write the maven zip file.
-    generate_maven_zip(
-        'r8',
-        version,
-        pom_file,
-        file_copy,
-        out)
+        # Generate the pom file.
+        pom_file = join(tmp_dir, 'r8.pom')
+        write_pom_file(R8_POMTEMPLATE,
+                       pom_file,
+                       version,
+                       library_licenses=generate_library_licenses())
+        # Write the maven zip file.
+        generate_maven_zip('r8', version, pom_file, file_copy, out)
+
 
 # Write the desugaring configuration of a jar file with the following content:
 #  java/
@@ -287,113 +299,107 @@ def generate_r8_maven_zip(out, version_file=None, skip_gradle_build=False):
 #        desugar.json
 #        lint/
 #          <lint files>
-def generate_jar_with_desugar_configuration(
-    configuration, implementation, conversions, destination):
-  with utils.TempDir() as tmp_dir:
-    # Add conversion classes.
-    with zipfile.ZipFile(conversions, 'r') as conversions_zip:
-      conversions_zip.extractall(tmp_dir)
+def generate_jar_with_desugar_configuration(configuration, implementation,
+                                            conversions, destination):
+    with utils.TempDir() as tmp_dir:
+        # Add conversion classes.
+        with zipfile.ZipFile(conversions, 'r') as conversions_zip:
+            conversions_zip.extractall(tmp_dir)
 
-    # Add configuration.
-    configuration_dir = join(tmp_dir, 'META-INF', 'desugar', 'd8')
-    makedirs(configuration_dir)
-    copyfile(configuration, join(configuration_dir, 'desugar.json'))
+        # Add configuration.
+        configuration_dir = join(tmp_dir, 'META-INF', 'desugar', 'd8')
+        makedirs(configuration_dir)
+        copyfile(configuration, join(configuration_dir, 'desugar.json'))
 
-    # Add lint configuartion.
-    lint_dir = join(configuration_dir, 'lint')
-    makedirs(lint_dir)
+        # Add lint configuartion.
+        lint_dir = join(configuration_dir, 'lint')
+        makedirs(lint_dir)
+        cmd = [
+            jdk.GetJavaExecutable(), '-cp', utils.R8_JAR,
+            'com.android.tools.r8.ir.desugar.desugaredlibrary.lint.GenerateDesugaredLibraryLintFiles',
+            configuration, implementation, lint_dir,
+            utils.get_android_jar(34)
+        ]
+        utils.PrintCmd(cmd)
+        subprocess.check_call(cmd)
+
+        # Add LICENSE file.
+        copyfile(join(utils.REPO_ROOT, 'LICENSE'), join(tmp_dir, 'LICENSE'))
+
+        make_archive(destination, 'zip', tmp_dir)
+        move(destination + '.zip', destination)
+
+
+def convert_desugar_configuration(configuration, conversions, implementation,
+                                  machine_configuration):
     cmd = [
-        jdk.GetJavaExecutable(),
-        '-cp',
-        utils.R8_JAR,
-        'com.android.tools.r8.ir.desugar.desugaredlibrary.lint.GenerateDesugaredLibraryLintFiles',
-        configuration,
-        implementation,
-        lint_dir,
-        utils.get_android_jar(34)]
-    utils.PrintCmd(cmd)
+        jdk.GetJavaExecutable(), '-cp', utils.R8_JAR,
+        'com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.DesugaredLibraryConverter',
+        configuration, implementation, conversions,
+        utils.get_android_jar(33), machine_configuration
+    ]
     subprocess.check_call(cmd)
 
-    # Add LICENSE file.
-    copyfile(join(utils.REPO_ROOT, 'LICENSE'), join(tmp_dir, 'LICENSE'))
-
-    make_archive(destination, 'zip', tmp_dir)
-    move(destination + '.zip', destination)
-
-def convert_desugar_configuration(
-    configuration, conversions, implementation, machine_configuration):
-  cmd = [jdk.GetJavaExecutable(),
-      '-cp',
-      utils.R8_JAR,
-      'com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.DesugaredLibraryConverter',
-      configuration,
-      implementation,
-      conversions,
-      utils.get_android_jar(33),
-      machine_configuration]
-  subprocess.check_call(cmd)
 
 # Generate the maven zip for the configuration to desugar desugar_jdk_libs.
-def generate_desugar_configuration_maven_zip(
-    out, configuration, implementation, conversions):
-  with utils.TempDir() as tmp_dir:
-    (name, version) = utils.desugar_configuration_name_and_version(configuration, False)
+def generate_desugar_configuration_maven_zip(out, configuration, implementation,
+                                             conversions):
+    with utils.TempDir() as tmp_dir:
+        (name, version) = utils.desugar_configuration_name_and_version(
+            configuration, False)
 
-    if (not version.startswith("1.")):
-      machine_configuration = join(tmp_dir, "machine.json")
-      convert_desugar_configuration(configuration, conversions, implementation, machine_configuration)
-      configuration = machine_configuration
+        if (not version.startswith("1.")):
+            machine_configuration = join(tmp_dir, "machine.json")
+            convert_desugar_configuration(configuration, conversions,
+                                          implementation, machine_configuration)
+            configuration = machine_configuration
 
-    # Generate the pom file.
-    pom_file = join(tmp_dir, 'desugar_configuration.pom')
-    write_pom_file(DESUGAR_CONFIGUATION_POMTEMPLATE, pom_file, version, artifact_id=name)
-    # Generate the jar with the configuration file.
-    jar_file = join(tmp_dir, 'desugar_configuration.jar')
-    generate_jar_with_desugar_configuration(
-        configuration,
-        implementation,
-        conversions,
-        jar_file)
-    # Write the maven zip file.
-    generate_maven_zip(name, version, pom_file, jar_file, out)
+        # Generate the pom file.
+        pom_file = join(tmp_dir, 'desugar_configuration.pom')
+        write_pom_file(DESUGAR_CONFIGUATION_POMTEMPLATE,
+                       pom_file,
+                       version,
+                       artifact_id=name)
+        # Generate the jar with the configuration file.
+        jar_file = join(tmp_dir, 'desugar_configuration.jar')
+        generate_jar_with_desugar_configuration(configuration, implementation,
+                                                conversions, jar_file)
+        # Write the maven zip file.
+        generate_maven_zip(name, version, pom_file, jar_file, out)
+
 
 def main(argv):
-  options = parse_options(argv)
-  if options.out == None:
-    raise Exception(
-        'Need to supply output zip with --out.')
-  if options.desugar_configuration or options.desugar_configuration_jdk8:
-    generate_desugar_configuration_maven_zip(
-      options.out,
-      utils.DESUGAR_CONFIGURATION,
-      utils.DESUGAR_IMPLEMENTATION,
-      utils.LIBRARY_DESUGAR_CONVERSIONS_LEGACY_ZIP)
-  elif options.desugar_configuration_jdk11_legacy:
-    generate_desugar_configuration_maven_zip(
-      options.out,
-      utils.DESUGAR_CONFIGURATION_JDK11_LEGACY,
-      utils.DESUGAR_IMPLEMENTATION_JDK11,
-      utils.LIBRARY_DESUGAR_CONVERSIONS_LEGACY_ZIP)
-  elif options.desugar_configuration_jdk11_minimal:
-    generate_desugar_configuration_maven_zip(
-      options.out,
-      utils.DESUGAR_CONFIGURATION_JDK11_MINIMAL,
-      utils.DESUGAR_IMPLEMENTATION_JDK11,
-      utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
-  elif options.desugar_configuration_jdk11:
-    generate_desugar_configuration_maven_zip(
-      options.out,
-      utils.DESUGAR_CONFIGURATION_JDK11,
-      utils.DESUGAR_IMPLEMENTATION_JDK11,
-      utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
-  elif options.desugar_configuration_jdk11_nio:
-    generate_desugar_configuration_maven_zip(
-      options.out,
-      utils.DESUGAR_CONFIGURATION_JDK11_NIO,
-      utils.DESUGAR_IMPLEMENTATION_JDK11,
-      utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
-  else:
-    generate_r8_maven_zip(options.out)
+    options = parse_options(argv)
+    if options.out == None:
+        raise Exception('Need to supply output zip with --out.')
+    if options.desugar_configuration or options.desugar_configuration_jdk8:
+        generate_desugar_configuration_maven_zip(
+            options.out, utils.DESUGAR_CONFIGURATION,
+            utils.DESUGAR_IMPLEMENTATION,
+            utils.LIBRARY_DESUGAR_CONVERSIONS_LEGACY_ZIP)
+    elif options.desugar_configuration_jdk11_legacy:
+        generate_desugar_configuration_maven_zip(
+            options.out, utils.DESUGAR_CONFIGURATION_JDK11_LEGACY,
+            utils.DESUGAR_IMPLEMENTATION_JDK11,
+            utils.LIBRARY_DESUGAR_CONVERSIONS_LEGACY_ZIP)
+    elif options.desugar_configuration_jdk11_minimal:
+        generate_desugar_configuration_maven_zip(
+            options.out, utils.DESUGAR_CONFIGURATION_JDK11_MINIMAL,
+            utils.DESUGAR_IMPLEMENTATION_JDK11,
+            utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
+    elif options.desugar_configuration_jdk11:
+        generate_desugar_configuration_maven_zip(
+            options.out, utils.DESUGAR_CONFIGURATION_JDK11,
+            utils.DESUGAR_IMPLEMENTATION_JDK11,
+            utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
+    elif options.desugar_configuration_jdk11_nio:
+        generate_desugar_configuration_maven_zip(
+            options.out, utils.DESUGAR_CONFIGURATION_JDK11_NIO,
+            utils.DESUGAR_IMPLEMENTATION_JDK11,
+            utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP)
+    else:
+        generate_r8_maven_zip(options.out)
+
 
 if __name__ == "__main__":
-  exit(main(sys.argv[1:]))
+    exit(main(sys.argv[1:]))

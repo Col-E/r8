@@ -7,4 +7,4 @@ import sys
 import toolhelper
 
 if __name__ == '__main__':
-  sys.exit(toolhelper.run('printseeds', sys.argv[1:]))
+    sys.exit(toolhelper.run('printseeds', sys.argv[1:]))

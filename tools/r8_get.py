@@ -7,26 +7,29 @@ import sys
 import argparse
 import compiledump
 
+
 def parse_arguments():
-  parser = argparse.ArgumentParser(
-      description = 'Helper to fetch r8.jar from cloudstorage.')
-  parser.add_argument(
-      '-v',
-      '--version',
-      help='Version or commit-hash to download '
-           '(e.g., 3.3.50 or 33ae86d80351efc4d632452331d06cb97e42f2a7).',
-      required=True)
-  parser.add_argument(
-      '--outdir',
-      help='Output directory to place the r8.jar in (default cwd).',
-      default=None)
-  return parser.parse_args()
+    parser = argparse.ArgumentParser(
+        description='Helper to fetch r8.jar from cloudstorage.')
+    parser.add_argument(
+        '-v',
+        '--version',
+        help='Version or commit-hash to download '
+        '(e.g., 3.3.50 or 33ae86d80351efc4d632452331d06cb97e42f2a7).',
+        required=True)
+    parser.add_argument(
+        '--outdir',
+        help='Output directory to place the r8.jar in (default cwd).',
+        default=None)
+    return parser.parse_args()
+
 
 def main():
-  args = parse_arguments()
-  outdir = args.outdir if args.outdir else ''
-  print(compiledump.download_distribution(args.version, True, outdir))
-  return 0
+    args = parse_arguments()
+    outdir = args.outdir if args.outdir else ''
+    print(compiledump.download_distribution(args.version, True, outdir))
+    return 0
+
 
 if __name__ == '__main__':
-  sys.exit(main())
+    sys.exit(main())
