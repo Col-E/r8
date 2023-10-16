@@ -1,4 +1,3 @@
-
 !third_party/chrome/*.sha1
 !third_party/gmail/*.sha1
 !third_party/gmscore/*.sha1
@@ -116,6 +115,8 @@ third_party/gmail/*
 third_party/gmscore/*
 third_party/google/google-java-format/1.14.0
 third_party/google/google-java-format/1.14.0.tar.gz
+third_party/google/yapf/20231013
+third_party/google/yapf/20231013.tar.gz
 third_party/google-java-format
 third_party/google-java-format.tar.gz
 third_party/goyt

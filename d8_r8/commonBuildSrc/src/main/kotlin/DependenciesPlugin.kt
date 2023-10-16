@@ -444,6 +444,10 @@ object ThirdPartyDeps {
     "google-java-format-1.14",
     Paths.get("third_party", "google", "google-java-format", "1.14.0").toFile(),
     Paths.get("third_party", "google", "google-java-format", "1.14.0.tar.gz.sha1").toFile())
+  val googleYapf_20231013 = ThirdPartyDependency(
+    "google-yapf-20231013",
+    Paths.get("third_party", "google", "yapf", "20231013").toFile(),
+    Paths.get("third_party", "google", "yapf", "20231013.tar.gz.sha1").toFile())
   val gson = ThirdPartyDependency(
     "gson",
     Paths.get("third_party", "gson", "gson-2.10.1").toFile(),
