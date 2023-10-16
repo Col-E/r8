@@ -62,7 +62,7 @@ class ToolsAttributeUsageRecorder(val rawResourcesPath: Path) : ResourceUsageRec
 
     private fun processResourceToolsAttributes(path: Path): Map<String, String> {
         val toolsAttributes = mutableMapOf<String, String>()
-        XmlUtils.getUtfReader(path).use { reader: Reader ->
+        XmlUtils.getUtfReader(path.toFile()).use { reader: Reader ->
             val factory = XMLInputFactory.newInstance()
             val xmlStreamReader = factory.createXMLStreamReader(reader)
 
