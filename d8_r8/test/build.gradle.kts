@@ -264,20 +264,23 @@ tasks {
 
   fun Exec.rewriteTestsForR8Lib(
           keepRulesFileProvider: TaskProvider<Task>,
+          r8JarProvider: Task,
           testJarProvider: TaskProvider<*>,
           artifactName: String) {
     dependsOn(
             keepRulesFileProvider,
             packageTestDeps,
             relocateTestsForR8LibWithRelocatedDeps,
+            r8JarProvider,
             r8WithRelocatedDepsTask,
             testJarProvider)
     val keepRulesFile = keepRulesFileProvider.getSingleOutputFile()
     val rtJar = resolve(ThirdPartyDeps.java8Runtime, "rt.jar").getSingleFile()
+    val r8Jar = r8JarProvider.getSingleOutputFile()
     val r8WithRelocatedDepsJar = r8WithRelocatedDepsTask.getSingleOutputFile()
     val testDepsJar = packageTestDeps.getSingleOutputFile()
     val testJar = testJarProvider.getSingleOutputFile()
-    inputs.files(keepRulesFile, rtJar, r8WithRelocatedDepsJar, testDepsJar, testJar)
+    inputs.files(keepRulesFile, rtJar, r8Jar, r8WithRelocatedDepsJar, testDepsJar, testJar)
     val outputJar = getRoot().resolveAll("build", "libs", artifactName)
     outputs.file(outputJar)
     commandLine = baseCompilerCommandLine(
@@ -289,7 +292,7 @@ tasks {
                     "--lib",
                     "$rtJar",
                     "--classpath",
-                    "$r8WithRelocatedDepsJar",
+                    "$r8Jar",
                     "--classpath",
                     "$testDepsJar",
                     "--output",
@@ -302,6 +305,7 @@ tasks {
   val rewriteTestsForR8LibWithRelocatedDeps by registering(Exec::class) {
     rewriteTestsForR8Lib(
             generateTestKeepRulesR8LibWithRelocatedDeps,
+            r8WithRelocatedDepsTask,
             relocateTestsForR8LibWithRelocatedDeps,
             "r8libtestdeps-cf.jar")
   }
@@ -309,6 +313,7 @@ tasks {
   val rewriteTestsForR8LibNoDeps by registering(Exec::class) {
     rewriteTestsForR8Lib(
             generateTestKeepRulesR8LibNoDeps,
+            swissArmyKnifeTask,
             packageTests,
             "r8lib-exclude-deps-testdeps-cf.jar")
   }
