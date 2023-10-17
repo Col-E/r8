@@ -5,16 +5,10 @@ package com.android.tools.r8.dex.container;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.ZipUtils;
-import com.google.common.io.ByteStreams;
-import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -22,7 +16,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class DexContainerFormatEmptyTest extends TestBase {
+public class DexContainerFormatEmptyTest extends DexContainerFormatTestBase {
 
   @Parameter() public TestParameters parameters;
 
@@ -58,11 +52,5 @@ public class DexContainerFormatEmptyTest extends TestBase {
             .compile()
             .writeToZip();
     assertEquals(0, unzipContent(outputFromDexing).size());
-  }
-
-  private List<byte[]> unzipContent(Path zip) throws IOException {
-    List<byte[]> result = new ArrayList<>();
-    ZipUtils.iter(zip, (entry, inputStream) -> result.add(ByteStreams.toByteArray(inputStream)));
-    return result;
   }
 }
