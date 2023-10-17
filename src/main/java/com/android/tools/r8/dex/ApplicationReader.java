@@ -345,6 +345,13 @@ public class ApplicationReader {
           }
         }
         if (!options.testing.dexContainerExperiment) {
+          if (dexReader.getDexVersion().isContainerDex()) {
+            throw new ResourceException(
+                input.getOrigin(),
+                "Experimental container DEX version "
+                    + dexReader.getDexVersion()
+                    + " is not supported");
+          }
           dexParsers.add(new DexParser<>(dexReader, PROGRAM, options));
         } else {
           addDexParsersForContainer(dexParsers, dexReader);

@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
+import com.android.tools.r8.ResourceShrinker.ReferenceChecker;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
@@ -1845,6 +1846,20 @@ public class ToolHelper {
       benchmarkResults.addRuntimeResult(end - start);
     }
     return compatSink.build();
+  }
+
+  public static void runLegacyResourceShrinker(
+      ResourceShrinker.Builder builder,
+      Consumer<InternalOptions> optionsConsumer,
+      ReferenceChecker callback)
+      throws IOException, CompilationFailedException, ExecutionException {
+    ResourceShrinker.Command command = builder.build();
+    InternalOptions options = command.getInternalOptions();
+    if (optionsConsumer != null) {
+      ExceptionUtils.withD8CompilationHandler(
+          options.reporter, () -> optionsConsumer.accept(options));
+    }
+    ResourceShrinker.runForTesting(command.getInputApp(), options, callback);
   }
 
   @Deprecated

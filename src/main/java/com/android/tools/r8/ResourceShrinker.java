@@ -476,10 +476,14 @@ final public class ResourceShrinker {
   @SuppressWarnings("RedundantThrows")
   public static void run(Command command, ReferenceChecker callback)
       throws IOException, ExecutionException {
-    AndroidApp inputApp = command.getInputApp();
+    runForTesting(command.getInputApp(), command.getInternalOptions(), callback);
+  }
+
+  public static void runForTesting(
+      AndroidApp inputApp, InternalOptions options, ReferenceChecker callback)
+      throws IOException, ExecutionException {
     Timing timing = new Timing("resource shrinker analyzer");
-    DexApplication dexApplication =
-        new ApplicationReader(inputApp, command.getInternalOptions(), timing).read();
+    DexApplication dexApplication = new ApplicationReader(inputApp, options, timing).read();
     for (DexProgramClass programClass : dexApplication.classes()) {
       new DexClassUsageVisitor(programClass, callback).visit();
     }
