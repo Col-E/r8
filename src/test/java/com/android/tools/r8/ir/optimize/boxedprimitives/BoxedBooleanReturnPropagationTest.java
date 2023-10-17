@@ -11,6 +11,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,9 +50,14 @@ public class BoxedBooleanReturnPropagationTest extends TestBase {
                   mainMethodSubject
                       .streamInstructions()
                       .anyMatch(instruction -> instruction.isConstNumber(1)));
+
+              MethodSubject nullTest =
+                  inspector.clazz(Main.class).uniqueMethodWithOriginalName("nullTest");
+              assertThat(nullTest, isPresent());
+              assertTrue(nullTest.streamInstructions().noneMatch(InstructionSubject::isIf));
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("false", "true");
+        .assertSuccessWithOutputLines("false", "true", "notnull", "notnull");
   }
 
   static class Main {
@@ -59,6 +65,21 @@ public class BoxedBooleanReturnPropagationTest extends TestBase {
     public static void main(String[] args) {
       System.out.println(getFalse().booleanValue());
       System.out.println(getTrue().booleanValue());
+      nullTest();
+    }
+
+    @NeverInline
+    static void nullTest() {
+      if (getFalse() == null) {
+        System.out.println("null");
+      } else {
+        System.out.println("notnull");
+      }
+      if (getTrue() == null) {
+        System.out.println("null");
+      } else {
+        System.out.println("notnull");
+      }
     }
 
     @NeverInline

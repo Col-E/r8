@@ -990,6 +990,7 @@ public class DexItemFactory {
               objectsMethods.requireNonNullWithMessage,
               objectsMethods.requireNonNullWithMessageSupplier,
               stringMembers.valueOf)
+          .addAll(boxedValueOfMethods())
           .addAll(stringBufferMethods.appendMethods)
           .addAll(stringBuilderMethods.appendMethods)
           .build();

@@ -90,15 +90,21 @@ public class LibraryOptimizationInfoInitializer {
   private void modelLibraryFields() {
     AbstractValueFactory abstractValueFactory = appView.abstractValueFactory();
     modelLibraryField(
-        dexItemFactory.booleanMembers.FALSE, abstractValueFactory.createBoxedBooleanFalse());
+        dexItemFactory.booleanMembers.FALSE,
+        abstractValueFactory.createBoxedBooleanFalse(),
+        DynamicType.definitelyNotNull());
     modelLibraryField(
-        dexItemFactory.booleanMembers.TRUE, abstractValueFactory.createBoxedBooleanTrue());
+        dexItemFactory.booleanMembers.TRUE,
+        abstractValueFactory.createBoxedBooleanTrue(),
+        DynamicType.definitelyNotNull());
   }
 
-  private void modelLibraryField(DexField field, AbstractValue abstractValue) {
+  private void modelLibraryField(
+      DexField field, AbstractValue abstractValue, DynamicType dynamicType) {
     DexEncodedField definition = lookupField(field);
     if (definition != null) {
       feedback.setAbstractFieldValue(abstractValue, definition);
+      feedback.markFieldHasDynamicType(definition, dynamicType);
     }
   }
 

@@ -11,6 +11,8 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ir.optimize.boxedprimitives.BoxedCharacterReturnPropagationTest.Main;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,9 +52,14 @@ public class BoxedDoubleReturnPropagationTest extends TestBase {
                       .streamInstructions()
                       .anyMatch(
                           instruction -> instruction.isConstNumber(Double.doubleToLongBits(1))));
+
+              MethodSubject nullTest =
+                  inspector.clazz(Main.class).uniqueMethodWithOriginalName("nullTest");
+              assertThat(nullTest, isPresent());
+              assertTrue(nullTest.streamInstructions().noneMatch(InstructionSubject::isIf));
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("0.0", "1.0");
+        .assertSuccessWithOutputLines("0.0", "1.0", "notnull", "notnull");
   }
 
   static class Main {
@@ -60,6 +67,21 @@ public class BoxedDoubleReturnPropagationTest extends TestBase {
     public static void main(String[] args) {
       System.out.println(getZero().doubleValue());
       System.out.println(getOne().doubleValue());
+      nullTest();
+    }
+
+    @NeverInline
+    static void nullTest() {
+      if (getZero() == null) {
+        System.out.println("null");
+      } else {
+        System.out.println("notnull");
+      }
+      if (getOne() == null) {
+        System.out.println("null");
+      } else {
+        System.out.println("notnull");
+      }
     }
 
     @NeverInline

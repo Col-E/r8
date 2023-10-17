@@ -23,12 +23,13 @@ public class ComputedBooleanMethodOptimizationInfoCollection
       DexClassAndMethod singleTarget,
       ProgramMethod context,
       AbstractValueSupplier abstractValueSupplier) {
-    if (singleTarget.getReference().isIdenticalTo(dexItemFactory.integerMembers.valueOf)) {
+    if (singleTarget.getReference().isIdenticalTo(dexItemFactory.booleanMembers.valueOf)) {
       AbstractValue operandValue =
           invoke.getFirstOperand().getAbstractValue(appView, context, abstractValueSupplier);
       if (operandValue.isSingleNumberValue()) {
-        return abstractValueFactory.createBoxedInteger(
-            operandValue.asSingleNumberValue().getIntValue());
+        return operandValue.asSingleNumberValue().getBooleanValue()
+            ? abstractValueFactory.createBoxedBooleanTrue()
+            : abstractValueFactory.createBoxedBooleanFalse();
       }
     }
     return AbstractValue.unknown();
