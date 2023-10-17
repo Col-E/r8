@@ -13,10 +13,9 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.ResourcePath;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.resourceshrinker.ResourceTracingImpl;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Collections;
 import java.util.List;
 
 public interface ResourceTracing {
@@ -54,19 +53,7 @@ public interface ResourceTracing {
   }
 
   static ResourceTracing getImpl() {
-    try {
-      Class<? extends ResourceTracing> implClass =
-          Class.forName("com.android.tools.r8.utils.resourceshrinker.ResourceTracingImpl")
-              .asSubclass(ResourceTracing.class);
-      return implClass.getConstructor().newInstance();
-    } catch (ClassNotFoundException
-        | NoSuchMethodException
-        | InstantiationException
-        | IllegalAccessException
-        | InvocationTargetException e) {
-      // Old gradle setup.
-      return new NoOpResourceTracingImpl();
-    }
+    return new ResourceTracingImpl();
   }
 
   static void copyProviderToConsumer(
@@ -104,32 +91,6 @@ public interface ResourceTracing {
     } finally {
       consumer.finished(diagnosticsHandler);
       provider.finished(diagnosticsHandler);
-    }
-  }
-
-  class NoOpResourceTracingImpl implements ResourceTracing {
-
-    private AndroidResourceProvider provider;
-    private AndroidResourceConsumer consumer;
-
-    @Override
-    public List<LiveMethod> traceResourceId(int id) {
-      return Collections.emptyList();
-    }
-
-    @Override
-    public void done(DiagnosticsHandler diagnosticsHandler) {
-      ResourceTracing.copyProviderToConsumer(diagnosticsHandler, provider, consumer);
-    }
-
-    @Override
-    public void setProvider(AndroidResourceProvider provider) {
-      this.provider = provider;
-    }
-
-    @Override
-    public void setConsumer(AndroidResourceConsumer consumer) {
-      this.consumer = consumer;
     }
   }
 }
