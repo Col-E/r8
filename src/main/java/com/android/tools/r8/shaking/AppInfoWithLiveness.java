@@ -1289,18 +1289,24 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       AppView<AppInfoWithLiveness> appView,
       InvokeType type,
       DexMethod target,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethod context,
       LibraryModeledPredicate modeledPredicate) {
     assert checkIfObsolete();
-    DexType holder = target.holder;
-    if (!holder.isClassType()) {
+    if (!target.getHolderType().isClassType()) {
       return null;
     }
     switch (type) {
-      case VIRTUAL:
-        return lookupSingleVirtualTarget(appView, target, context, false, modeledPredicate);
       case INTERFACE:
-        return lookupSingleVirtualTarget(appView, target, context, true, modeledPredicate);
+      case VIRTUAL:
+        return lookupSingleVirtualTarget(
+            appView,
+            target,
+            resolutionResult,
+            context,
+            type.isInterface(),
+            modeledPredicate,
+            DynamicType.unknown());
       case DIRECT:
         return lookupDirectTarget(target, context, appView);
       case STATIC:
@@ -1312,42 +1318,34 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     }
   }
 
-  public ProgramMethod lookupSingleProgramTarget(
-      AppView<AppInfoWithLiveness> appView,
-      InvokeType type,
-      DexMethod target,
-      ProgramMethod context,
-      LibraryModeledPredicate modeledPredicate) {
-    return DexClassAndMethod.asProgramMethodOrNull(
-        lookupSingleTarget(appView, type, target, context, modeledPredicate));
-  }
-
   /** For mapping invoke virtual instruction to single target method. */
-  public DexClassAndMethod lookupSingleVirtualTarget(
-      AppView<AppInfoWithLiveness> appView,
-      DexMethod method,
-      ProgramMethod context,
-      boolean isInterface) {
-    assert checkIfObsolete();
-    return lookupSingleVirtualTarget(appView, method, context, isInterface, type -> false);
-  }
-
-  /** For mapping invoke virtual instruction to single target method. */
-  public DexClassAndMethod lookupSingleVirtualTarget(
+  public DexClassAndMethod lookupSingleVirtualTargetForTesting(
       AppView<AppInfoWithLiveness> appView,
       DexMethod method,
       ProgramMethod context,
       boolean isInterface,
-      LibraryModeledPredicate modeledPredicate) {
+      LibraryModeledPredicate modeledPredicate,
+      DynamicType dynamicReceiverType) {
     assert checkIfObsolete();
-    return lookupSingleVirtualTarget(
-        appView, method, context, isInterface, modeledPredicate, DynamicType.unknown());
+    SingleResolutionResult<?> resolutionResult =
+        appView.appInfo().resolveMethodLegacy(method, isInterface).asSingleResolution();
+    if (resolutionResult != null) {
+      return lookupSingleVirtualTarget(
+          appView,
+          method,
+          resolutionResult,
+          context,
+          isInterface,
+          modeledPredicate,
+          dynamicReceiverType);
+    }
+    return null;
   }
 
-  @SuppressWarnings("ReferenceEquality")
   public DexClassAndMethod lookupSingleVirtualTarget(
       AppView<AppInfoWithLiveness> appView,
       DexMethod method,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethod context,
       boolean isInterface,
       LibraryModeledPredicate modeledPredicate,
@@ -1382,16 +1380,15 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         return null;
       }
     }
-    SingleResolutionResult<?> resolution =
-        resolveMethodOnLegacy(initialResolutionHolder, method).asSingleResolution();
-    if (resolution == null
-        || resolution.isAccessibleForVirtualDispatchFrom(context.getHolder(), appView).isFalse()) {
+    if (resolutionResult
+        .isAccessibleForVirtualDispatchFrom(context.getHolder(), appView)
+        .isFalse()) {
       return null;
     }
     // If the method is modeled, return the resolution.
-    DexClassAndMethod resolvedMethod = resolution.getResolutionPair();
-    if (modeledPredicate.isModeled(resolution.getResolvedHolder().getType())) {
-      if (resolution.getResolvedHolder().isFinal()
+    DexClassAndMethod resolvedMethod = resolutionResult.getResolutionPair();
+    if (modeledPredicate.isModeled(resolutionResult.getResolvedHolder().getType())) {
+      if (resolutionResult.getResolvedHolder().isFinal()
           || (resolvedMethod.getAccessFlags().isFinal()
               && resolvedMethod.getAccessFlags().isPublic())) {
         singleTargetLookupCache.addToCache(refinedReceiverType, method, resolvedMethod);
@@ -1402,7 +1399,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         getMethodTargetFromExactRuntimeInformation(
             refinedReceiverType,
             dynamicReceiverType.getDynamicLowerBoundType(),
-            resolution,
+            resolutionResult,
             refinedReceiverClass);
     if (exactTarget != null) {
       // We are not caching single targets here because the cache does not include the
@@ -1416,7 +1413,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       singleTargetLookupCache.addNoSingleTargetToCache(refinedReceiverType, method);
       return null;
     }
-    DexClass resolvedHolder = resolution.getResolvedHolder();
+    DexClass resolvedHolder = resolutionResult.getResolvedHolder();
     // TODO(b/148769279): Disable lookup single target on lambda's for now.
     if (resolvedHolder.isInterface()
         && resolvedHolder.isProgramClass()
@@ -1439,7 +1436,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       }
     }
     LookupResultSuccess lookupResult =
-        resolution
+        resolutionResult
             .lookupVirtualDispatchTargets(
                 context.getHolder(),
                 appView,

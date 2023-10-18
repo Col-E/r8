@@ -10,4 +10,8 @@ import com.android.tools.r8.graph.DexType;
 public interface LibraryModeledPredicate {
 
   boolean isModeled(DexType type);
+
+  static LibraryModeledPredicate alwaysFalse() {
+    return type -> false;
+  }
 }

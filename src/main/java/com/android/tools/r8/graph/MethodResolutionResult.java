@@ -411,6 +411,7 @@ public abstract class MethodResolutionResult
                 .lookupSingleVirtualTarget(
                     appViewWithLiveness,
                     invokedMethod,
+                    this,
                     context,
                     invoke.getInterfaceBit(),
                     appView,

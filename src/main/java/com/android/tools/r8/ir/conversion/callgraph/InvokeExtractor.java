@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.conversion.callgraph;
 
+import static com.android.tools.r8.graph.DexClassAndMethod.asProgramMethodOrNull;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -77,20 +79,28 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
             .lookupMethod(originalMethod, context.getReference(), originalType, getCodeLens());
     DexMethod method = result.getReference();
     InvokeType type = result.getType();
-    if (type == InvokeType.INTERFACE || type == InvokeType.VIRTUAL) {
+    MethodResolutionResult resolutionResult =
+        type.isInterface() || type.isVirtual()
+            ? appViewWithLiveness.appInfo().resolveMethodLegacy(method, type.isInterface())
+            : appViewWithLiveness.appInfo().unsafeResolveMethodDueToDexFormatLegacy(method);
+    if (!resolutionResult.isSingleResolution()) {
+      return;
+    }
+    if (type.isInterface() || type.isVirtual()) {
       // For virtual and interface calls add all potential targets that could be called.
-      MethodResolutionResult resolutionResult =
-          appViewWithLiveness.appInfo().resolveMethodLegacy(method, type == InvokeType.INTERFACE);
-      DexClassAndMethod target = resolutionResult.getResolutionPair();
-      if (target != null) {
-        processInvokeWithDynamicDispatch(type, target, context);
-      }
+      processInvokeWithDynamicDispatch(type, resolutionResult.getResolutionPair(), context);
     } else {
       ProgramMethod singleTarget =
-          appViewWithLiveness
-              .appInfo()
-              .lookupSingleProgramTarget(
-                  appViewWithLiveness, type, method, context, appViewWithLiveness);
+          asProgramMethodOrNull(
+              appViewWithLiveness
+                  .appInfo()
+                  .lookupSingleTarget(
+                      appViewWithLiveness,
+                      type,
+                      method,
+                      resolutionResult.asSingleResolution(),
+                      context,
+                      appViewWithLiveness));
       if (singleTarget != null) {
         processSingleTarget(singleTarget, context);
       }

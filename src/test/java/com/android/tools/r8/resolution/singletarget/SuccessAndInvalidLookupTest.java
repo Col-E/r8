@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.optimize.interfaces.collection.NonEmptyOpenClosedInterfacesCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.LibraryModeledPredicate;
 import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -59,13 +60,13 @@ public class SuccessAndInvalidLookupTest extends TestBase {
         DynamicTypeWithUpperBound.create(appView, typeA.toTypeElement(appView));
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     DexClassAndMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(
-            appView, fooA, mainMethod, false, t -> false, dynamicTypeA);
+        appInfo.lookupSingleVirtualTargetForTesting(
+            appView, fooA, mainMethod, false, LibraryModeledPredicate.alwaysFalse(), dynamicTypeA);
     assertNotNull(singleTarget);
     assertEquals(fooA, singleTarget.getReference());
     DexClassAndMethod invalidSingleTarget =
-        appInfo.lookupSingleVirtualTarget(
-            appView, fooA, mainMethod, true, t -> false, dynamicTypeA);
+        appInfo.lookupSingleVirtualTargetForTesting(
+            appView, fooA, mainMethod, true, LibraryModeledPredicate.alwaysFalse(), dynamicTypeA);
     assertNull(invalidSingleTarget);
   }
 
@@ -92,13 +93,13 @@ public class SuccessAndInvalidLookupTest extends TestBase {
     DexMethod fooI = buildNullaryVoidMethod(I.class, "foo", appInfo.dexItemFactory());
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     DexClassAndMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(
-            appView, fooI, mainMethod, true, t -> false, dynamicTypeA);
+        appInfo.lookupSingleVirtualTargetForTesting(
+            appView, fooI, mainMethod, true, LibraryModeledPredicate.alwaysFalse(), dynamicTypeA);
     assertNotNull(singleTarget);
     assertEquals(fooA, singleTarget.getReference());
     DexClassAndMethod invalidSingleTarget =
-        appInfo.lookupSingleVirtualTarget(
-            appView, fooI, mainMethod, false, t -> false, dynamicTypeA);
+        appInfo.lookupSingleVirtualTargetForTesting(
+            appView, fooI, mainMethod, false, LibraryModeledPredicate.alwaysFalse(), dynamicTypeA);
     assertNull(invalidSingleTarget);
   }
 

@@ -17,7 +17,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.LibraryModeledPredicate;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Assert;
@@ -134,7 +136,13 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
     assertEquals(methodOnBReference, resolved.getReference());
     assertFalse(resolutionResult.isVirtualTarget());
     DexClassAndMethod singleVirtualTarget =
-        appInfo.lookupSingleVirtualTarget(appView, methodOnBReference, methodOnB, false);
+        appInfo.lookupSingleVirtualTargetForTesting(
+            appView,
+            methodOnBReference,
+            methodOnB,
+            false,
+            LibraryModeledPredicate.alwaysFalse(),
+            DynamicType.unknown());
     Assert.assertNull(singleVirtualTarget);
   }
 
