@@ -127,6 +127,8 @@ public class GlobalSyntheticsGenerator {
               createGlobalSynthetics(appView, timing, executorService);
               timing.end();
 
+              assert GlobalSyntheticsGeneratorVerifier.verifyExpectedClassesArePresent(appView);
+
               ApplicationWriter.create(appView, options.getMarker()).write(executorService, app);
             } catch (ExecutionException e) {
               throw unwrapExecutionException(e);

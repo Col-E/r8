@@ -27,6 +27,7 @@ import com.android.tools.r8.utils.codeinspector.EnumUnboxingInspector;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -93,7 +94,9 @@ public abstract class TestCompilerBuilder<
 
   private Optional<Integer> isAndroidBuildVersionAdded = null;
 
-  private static final Map<Integer, Set<String>> allowedGlobalSynthetics =
+  private static final Map<Integer, Set<String>> allGlobalSynthetics = new ConcurrentHashMap<>();
+
+  private static final Map<Integer, Set<String>> definiteGlobalSynthetics =
       new ConcurrentHashMap<>();
 
   LibraryDesugaringTestConfiguration libraryDesugaringTestConfiguration =
@@ -270,17 +273,22 @@ public abstract class TestCompilerBuilder<
         && (isD8TestBuilder() || isR8TestBuilder())
         && !isBenchmarkRunner) {
       int minApiLevel = builder.getMinApiLevel();
-      allowedGlobalSynthetics.computeIfAbsent(
-          minApiLevel, TestCompilerBuilder::computeAllGlobalSynthetics);
       Consumer<InternalOptions> previousConsumer = optionsConsumer;
       optionsConsumer =
           options -> {
             options.testing.globalSyntheticCreatedCallback =
                 programClass -> {
-                  assertTrue(
-                      allowedGlobalSynthetics
-                          .get(minApiLevel)
-                          .contains(programClass.getType().toDescriptorString()));
+                  String descriptor = programClass.getType().toDescriptorString();
+                  boolean isGlobalSynthetic =
+                      definiteGlobalSynthetics
+                              .computeIfAbsent(
+                                  minApiLevel, computeDefiniteGlobalSynthetics(options))
+                              .contains(descriptor)
+                          || allGlobalSynthetics
+                              .computeIfAbsent(
+                                  minApiLevel, TestCompilerBuilder::computeAllGlobalSynthetics)
+                              .contains(descriptor);
+                  assertTrue(isGlobalSynthetic);
                 };
             if (previousConsumer != null) {
               previousConsumer.accept(options);
@@ -602,6 +610,16 @@ public abstract class TestCompilerBuilder<
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private static Function<Integer, Set<String>> computeDefiniteGlobalSynthetics(
+      InternalOptions options) {
+    return minApiLevel -> {
+      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+      GlobalSyntheticsGeneratorVerifier.forEachExpectedClass(
+          options.dexItemFactory(), minApiLevel, type -> builder.add(type.toDescriptorString()));
+      return builder.build();
+    };
   }
 
   private static class ChainedStringConsumer implements StringConsumer {
