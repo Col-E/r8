@@ -14,7 +14,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -64,7 +64,7 @@ public class InstantiatedLowerBoundTest extends TestBase {
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     TypeElement latticeA = typeA.toTypeElement(appView);
     ClassTypeElement latticeB = typeB.toTypeElement(appView).asClassType();
-    DexEncodedMethod singleTarget =
+    DexClassAndMethod singleTarget =
         appInfo.lookupSingleVirtualTarget(
             appView,
             fooA,
@@ -97,7 +97,7 @@ public class InstantiatedLowerBoundTest extends TestBase {
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     TypeElement latticeA = typeA.toTypeElement(appView);
     ClassTypeElement latticeB = typeB.toTypeElement(appView).asClassType();
-    DexEncodedMethod singleTarget =
+    DexClassAndMethod singleTarget =
         appInfo.lookupSingleVirtualTarget(
             appView,
             fooA,
@@ -153,7 +153,7 @@ public class InstantiatedLowerBoundTest extends TestBase {
     assertEquals(expected, actual);
     TypeElement latticeA = typeA.toTypeElement(appView);
     ClassTypeElement latticeC = typeC.toTypeElement(appView).asClassType();
-    DexEncodedMethod singleTarget =
+    DexClassAndMethod singleTarget =
         appInfo.lookupSingleVirtualTarget(
             appView,
             fooA,

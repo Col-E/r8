@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.dex.code.DexInvokeSuper;
@@ -17,7 +16,6 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
-import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -106,19 +104,6 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   @Override
   public InvokeSuper asInvokeSuper() {
     return this;
-  }
-
-  @Override
-  public DexClassAndMethod lookupSingleTarget(
-      AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType) {
-    if (appView.appInfo().hasLiveness() && context != null) {
-      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      AppInfoWithLiveness appInfo = appViewWithLiveness.appInfo();
-      if (appInfo.isSubtype(context.getHolderType(), getInvokedMethod().holder)) {
-        return appInfo.lookupSuperTarget(getInvokedMethod(), context, appViewWithLiveness);
-      }
-    }
-    return null;
   }
 
   @Override

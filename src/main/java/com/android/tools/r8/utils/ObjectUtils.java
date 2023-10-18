@@ -16,6 +16,11 @@ public class ObjectUtils {
     return orElse;
   }
 
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean identical(Object a, Object b) {
+    return a == b;
+  }
+
   public static <S, T> T mapNotNull(S object, Function<? super S, ? extends T> fn) {
     if (object != null) {
       return fn.apply(object);

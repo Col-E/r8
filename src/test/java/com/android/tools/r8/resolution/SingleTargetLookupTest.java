@@ -11,7 +11,7 @@ import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.TestAppViewBuilder;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LookupResult;
@@ -195,7 +195,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
     ProgramMethod context =
         appInfo.definitionForProgramType(reference.holder).getProgramDefaultInitializer();
     Assert.assertNotNull(appInfo.resolveMethodOnClassHolderLegacy(reference).getSingleTarget());
-    DexEncodedMethod singleVirtualTarget =
+    DexClassAndMethod singleVirtualTarget =
         appInfo.lookupSingleVirtualTarget(appView, reference, context, false);
     if (singleTargetHolderOrNull == null) {
       Assert.assertNull(singleVirtualTarget);

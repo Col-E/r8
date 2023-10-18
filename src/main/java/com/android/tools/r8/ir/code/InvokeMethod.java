@@ -11,11 +11,13 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DispatchTargetLookupResult;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
@@ -121,11 +123,53 @@ public abstract class InvokeMethod extends Invoke {
     return appView.appInfo().resolveMethod(method, getInterfaceBit());
   }
 
-  // In subclasses, e.g., invoke-virtual or invoke-super, use a narrower receiver type by using
-  // receiver type and calling context---the holder of the method where the current invocation is.
-  // TODO(b/140204899): Refactor lookup methods to be defined in a single place.
-  public abstract DexClassAndMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context);
+  public MethodResolutionResult resolveMethod(AppView<?> appView, ProgramMethod context) {
+    if (appView.hasClassHierarchy()) {
+      return resolveMethod(appView.withClassHierarchy());
+    }
+    if (method.getHolderType().isIdenticalTo(context.getHolderType())) {
+      DexClass resolutionHolder = context.getHolder();
+      DexEncodedMethod lookupResult = resolutionHolder.lookupMethod(method);
+      if (lookupResult != null) {
+        return MethodResolutionResult.createSingleResolutionResult(
+            resolutionHolder, resolutionHolder, lookupResult);
+      }
+    }
+    if (appView.libraryMethodOptimizer().isModeled(method.getHolderType())) {
+      DexClassAndMethod lookupResult = appView.definitionFor(method);
+      if (lookupResult != null) {
+        DexClass resolutionHolder = lookupResult.getHolder();
+        return MethodResolutionResult.createSingleResolutionResult(
+            resolutionHolder, resolutionHolder, lookupResult.getDefinition());
+      }
+    }
+    return MethodResolutionResult.unknown();
+  }
 
+  /**
+   * In subclasses, e.g., invoke-virtual or invoke-super, use a narrower receiver type by using
+   * receiver type and calling context---the resolutionHolder of the method where the current
+   * invocation is.
+   *
+   * @deprecated Use {@link SingleResolutionResult#lookupDispatchTarget}.
+   */
+  @Deprecated
+  public final DexClassAndMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
+    MethodResolutionResult resolutionResult = resolveMethod(appView, context);
+    if (resolutionResult.isSingleResolution()) {
+      DispatchTargetLookupResult lookupResult =
+          resolutionResult.asSingleResolution().lookupDispatchTarget(appView, this, context);
+      if (lookupResult.isSingleResult()) {
+        return lookupResult.asSingleResult().getSingleDispatchTarget();
+      }
+    }
+    return null;
+  }
+
+  /**
+   * @deprecated Use {@link SingleResolutionResult#lookupDispatchTarget}.
+   */
+  @Deprecated
   public final ProgramMethod lookupSingleProgramTarget(AppView<?> appView, ProgramMethod context) {
     return DexClassAndMethod.asProgramMethodOrNull(lookupSingleTarget(appView, context));
   }
@@ -269,12 +313,12 @@ public abstract class InvokeMethod extends Invoke {
   }
 
   @SuppressWarnings("ReferenceEquality")
-  boolean verifyD8LookupResult(
-      DexEncodedMethod hierarchyResult, DexEncodedMethod lookupDirectTargetOnItself) {
+  public boolean verifyD8LookupResult(
+      DexClassAndMethod hierarchyResult, DexClassAndMethod lookupDirectTargetOnItself) {
     if (lookupDirectTargetOnItself == null) {
       return true;
     }
-    assert lookupDirectTargetOnItself == hierarchyResult;
+    assert lookupDirectTargetOnItself.isStructurallyEqualTo(hierarchyResult);
     return true;
   }
 

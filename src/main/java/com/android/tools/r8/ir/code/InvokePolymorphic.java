@@ -9,7 +9,6 @@ import com.android.tools.r8.dex.code.DexInvokePolymorphic;
 import com.android.tools.r8.dex.code.DexInvokePolymorphicRange;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
@@ -132,12 +131,6 @@ public class InvokePolymorphic extends InvokeMethod {
   @Override
   public InvokePolymorphic asInvokePolymorphic() {
     return this;
-  }
-
-  @Override
-  public DexClassAndMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
-    // TODO(herhut): Implement lookup target for invokePolymorphic.
-    return null;
   }
 
   @Override

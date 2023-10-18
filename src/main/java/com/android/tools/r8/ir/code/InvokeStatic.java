@@ -3,16 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.graph.DexEncodedMethod.asDexClassAndMethodOrNull;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.dex.code.DexInvokeStatic;
 import com.android.tools.r8.dex.code.DexInvokeStaticRange;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
@@ -114,31 +111,6 @@ public class InvokeStatic extends InvokeMethod {
   @Override
   public InvokeStatic asInvokeStatic() {
     return this;
-  }
-
-  @Override
-  public DexClassAndMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
-    DexMethod invokedMethod = getInvokedMethod();
-    DexEncodedMethod result;
-    if (appView.appInfo().hasLiveness()) {
-      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      AppInfoWithLiveness appInfo = appViewWithLiveness.appInfo();
-      result = appInfo.lookupStaticTarget(invokedMethod, context, appViewWithLiveness);
-      assert verifyD8LookupResult(
-          result, appInfo.lookupStaticTargetOnItself(invokedMethod, context));
-    } else {
-      // Allow optimizing static library invokes in D8.
-      DexClass clazz = appView.definitionForHolder(getInvokedMethod());
-      if (clazz != null
-          && (clazz.isLibraryClass() || appView.libraryMethodOptimizer().isModeled(clazz.type))) {
-        result = clazz.lookupMethod(getInvokedMethod());
-      } else {
-        // In D8, we can treat invoke-static instructions as having a single target if the invoke is
-        // targeting a method in the enclosing class.
-        result = appView.appInfo().lookupStaticTargetOnItself(invokedMethod, context);
-      }
-    }
-    return asDexClassAndMethodOrNull(result, appView);
   }
 
   @Override

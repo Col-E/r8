@@ -226,14 +226,13 @@ public class AppInfo implements DexDefinitionSupplier {
    * @param context the method the invoke is contained in, i.e., the caller.
    * @return The actual target for {@code method} if on the holder, or {@code null}.
    */
-  @SuppressWarnings("ReferenceEquality")
-  public final DexEncodedMethod lookupStaticTargetOnItself(
+  public final DexClassAndMethod lookupStaticTargetOnItself(
       DexMethod method, ProgramMethod context) {
-    if (method.holder != context.getHolderType()) {
+    if (!method.getHolderType().isIdenticalTo(context.getHolderType())) {
       return null;
     }
-    DexEncodedMethod singleTarget = context.getHolder().lookupDirectMethod(method);
-    if (singleTarget != null && singleTarget.isStatic()) {
+    DexClassAndMethod singleTarget = context.getHolder().lookupDirectClassMethod(method);
+    if (singleTarget != null && singleTarget.getAccessFlags().isStatic()) {
       return singleTarget;
     }
     return null;
@@ -246,14 +245,13 @@ public class AppInfo implements DexDefinitionSupplier {
    * @param context the method the invoke is contained in, i.e., the caller.
    * @return The actual target for {@code method} if on the holder, or {@code null}.
    */
-  @SuppressWarnings("ReferenceEquality")
-  public final DexEncodedMethod lookupDirectTargetOnItself(
+  public final DexClassAndMethod lookupDirectTargetOnItself(
       DexMethod method, ProgramMethod context) {
-    if (method.holder != context.getHolderType()) {
+    if (!method.getHolderType().isIdenticalTo(context.getHolderType())) {
       return null;
     }
-    DexEncodedMethod singleTarget = context.getHolder().lookupDirectMethod(method);
-    if (singleTarget != null && !singleTarget.isStatic()) {
+    DexClassAndMethod singleTarget = context.getHolder().lookupDirectClassMethod(method);
+    if (singleTarget != null && !singleTarget.getAccessFlags().isStatic()) {
       return singleTarget;
     }
     return null;

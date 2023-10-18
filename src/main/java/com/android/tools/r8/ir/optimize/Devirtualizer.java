@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DispatchTargetLookupResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -127,20 +128,24 @@ public class Devirtualizer {
           // Check if the instruction can be rewritten to invoke-virtual. This allows inlining of
           // the enclosing method into contexts outside the current class.
           if (options.testing.enableInvokeSuperToInvokeVirtualRewriting) {
-            DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
-            if (singleTarget != null) {
-              DexMethod invokedMethod = invoke.getInvokedMethod();
-              DexClassAndMethod newSingleTarget =
-                  InvokeVirtual.lookupSingleTarget(
-                      appView,
-                      context,
-                      invoke.getReceiver().getDynamicType(appView),
-                      invokedMethod);
-              if (newSingleTarget != null
-                  && newSingleTarget.getReference() == singleTarget.getReference()) {
-                it.replaceCurrentInstruction(
-                    new InvokeVirtual(invokedMethod, invoke.outValue(), invoke.arguments()));
-                continue;
+            SingleResolutionResult<?> resolutionResult =
+                invoke.resolveMethod(appView).asSingleResolution();
+            if (resolutionResult != null) {
+              DispatchTargetLookupResult lookupResult =
+                  resolutionResult.lookupDispatchTarget(appView, invoke, context);
+              if (lookupResult.isSingleResult()
+                  && !lookupResult.getSingleDispatchTarget().getHolder().isInterface()) {
+                DexMethod invokedMethod = invoke.getInvokedMethod();
+                DispatchTargetLookupResult newLookupResult =
+                    resolutionResult.lookupVirtualDispatchTarget(
+                        appView, invoke, invoke.getReceiver().getDynamicType(appView), context);
+                if (lookupResult
+                    .getSingleDispatchTarget()
+                    .isStructurallyEqualTo(newLookupResult.getSingleDispatchTarget())) {
+                  it.replaceCurrentInstruction(
+                      new InvokeVirtual(invokedMethod, invoke.outValue(), invoke.arguments()));
+                  continue;
+                }
               }
             }
           }

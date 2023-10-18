@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -64,24 +63,6 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return decider.computeForInvokeWithReceiver(
         this, singleTarget, reason, whyAreYouNotInliningReporter);
-  }
-
-  @Override
-  public final DexClassAndMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
-    DynamicType dynamicReceiverType =
-        appView.hasLiveness()
-            ? getReceiver().getDynamicType(appView.withLiveness())
-            : DynamicType.unknown();
-    return lookupSingleTarget(appView, context, dynamicReceiverType);
-  }
-
-  public abstract DexClassAndMethod lookupSingleTarget(
-      AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType);
-
-  public final ProgramMethod lookupSingleProgramTarget(
-      AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType) {
-    return DexClassAndMethod.asProgramMethodOrNull(
-        lookupSingleTarget(appView, context, dynamicReceiverType));
   }
 
   /**

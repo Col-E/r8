@@ -13,7 +13,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -58,12 +58,12 @@ public class SuccessAndInvalidLookupTest extends TestBase {
     DynamicType dynamicTypeA =
         DynamicTypeWithUpperBound.create(appView, typeA.toTypeElement(appView));
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
-    DexEncodedMethod singleTarget =
+    DexClassAndMethod singleTarget =
         appInfo.lookupSingleVirtualTarget(
             appView, fooA, mainMethod, false, t -> false, dynamicTypeA);
     assertNotNull(singleTarget);
     assertEquals(fooA, singleTarget.getReference());
-    DexEncodedMethod invalidSingleTarget =
+    DexClassAndMethod invalidSingleTarget =
         appInfo.lookupSingleVirtualTarget(
             appView, fooA, mainMethod, true, t -> false, dynamicTypeA);
     assertNull(invalidSingleTarget);
@@ -91,12 +91,12 @@ public class SuccessAndInvalidLookupTest extends TestBase {
         DynamicTypeWithUpperBound.create(appView, typeA.toTypeElement(appView));
     DexMethod fooI = buildNullaryVoidMethod(I.class, "foo", appInfo.dexItemFactory());
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
-    DexEncodedMethod singleTarget =
+    DexClassAndMethod singleTarget =
         appInfo.lookupSingleVirtualTarget(
             appView, fooI, mainMethod, true, t -> false, dynamicTypeA);
     assertNotNull(singleTarget);
     assertEquals(fooA, singleTarget.getReference());
-    DexEncodedMethod invalidSingleTarget =
+    DexClassAndMethod invalidSingleTarget =
         appInfo.lookupSingleVirtualTarget(
             appView, fooI, mainMethod, false, t -> false, dynamicTypeA);
     assertNull(invalidSingleTarget);

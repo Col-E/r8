@@ -499,6 +499,10 @@ public abstract class DexClass extends DexDefinition
     return field != null ? DexClassAndField.create(this, field) : null;
   }
 
+  public DexClassAndMethod lookupDirectClassMethod(DexMethod method) {
+    return toClassMethodOrNull(lookupDirectMethod(method));
+  }
+
   /** Find direct method in this class matching {@param method}. */
   public DexEncodedMethod lookupDirectMethod(DexMethod method) {
     return methodCollection.getDirectMethod(method);
@@ -507,6 +511,10 @@ public abstract class DexClass extends DexDefinition
   /** Find direct method in this class matching {@param predicate}. */
   public DexEncodedMethod lookupDirectMethod(Predicate<DexEncodedMethod> predicate) {
     return methodCollection.getDirectMethod(predicate);
+  }
+
+  public DexClassAndMethod lookupVirtualClassMethod(DexMethod method) {
+    return toClassMethodOrNull(lookupVirtualMethod(method));
   }
 
   /** Find virtual method in this class matching {@param method}. */

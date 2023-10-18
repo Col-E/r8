@@ -11,6 +11,7 @@ import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -132,7 +133,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
     DexEncodedMethod resolved = resolutionResult.getSingleTarget();
     assertEquals(methodOnBReference, resolved.getReference());
     assertFalse(resolutionResult.isVirtualTarget());
-    DexEncodedMethod singleVirtualTarget =
+    DexClassAndMethod singleVirtualTarget =
         appInfo.lookupSingleVirtualTarget(appView, methodOnBReference, methodOnB, false);
     Assert.assertNull(singleVirtualTarget);
   }

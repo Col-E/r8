@@ -38,7 +38,9 @@ public abstract class DexClassAndMethod extends DexClassAndMember<DexEncodedMeth
 
   @SuppressWarnings("ReferenceEquality")
   public boolean isStructurallyEqualTo(DexClassAndMethod other) {
-    return getDefinition() == other.getDefinition() && getHolder() == other.getHolder();
+    return other != null
+        && getDefinition() == other.getDefinition()
+        && getHolder() == other.getHolder();
   }
 
   @Override

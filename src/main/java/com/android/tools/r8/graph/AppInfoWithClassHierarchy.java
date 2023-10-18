@@ -627,14 +627,14 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @return The actual target for {@code method} or {@code null} if none found.
    */
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexEncodedMethod lookupStaticTarget(
+  public DexClassAndMethod lookupStaticTarget(
       DexMethod method,
       DexProgramClass context,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     return lookupStaticTarget(method, context, appView, appView.appInfo());
   }
 
-  public DexEncodedMethod lookupStaticTarget(
+  public DexClassAndMethod lookupStaticTarget(
       DexMethod method,
       DexProgramClass context,
       AppView<?> appView,
@@ -645,14 +645,14 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexEncodedMethod lookupStaticTarget(
+  public DexClassAndMethod lookupStaticTarget(
       DexMethod method,
       ProgramMethod context,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     return lookupStaticTarget(method, context.getHolder(), appView);
   }
 
-  public DexEncodedMethod lookupStaticTarget(
+  public DexClassAndMethod lookupStaticTarget(
       DexMethod method,
       ProgramMethod context,
       AppView<?> appView,
@@ -713,14 +713,14 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @return The actual target for {@code method} or {@code null} if none found.
    */
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexEncodedMethod lookupDirectTarget(
+  public DexClassAndMethod lookupDirectTarget(
       DexMethod method,
       DexProgramClass context,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     return lookupDirectTarget(method, context, appView, appView.appInfo());
   }
 
-  public DexEncodedMethod lookupDirectTarget(
+  public DexClassAndMethod lookupDirectTarget(
       DexMethod method,
       DexProgramClass context,
       AppView<?> appView,
@@ -731,14 +731,14 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexEncodedMethod lookupDirectTarget(
+  public DexClassAndMethod lookupDirectTarget(
       DexMethod method,
       ProgramMethod context,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     return lookupDirectTarget(method, context, appView, appView.appInfo());
   }
 
-  public DexEncodedMethod lookupDirectTarget(
+  public DexClassAndMethod lookupDirectTarget(
       DexMethod method,
       ProgramMethod context,
       AppView<?> appView,

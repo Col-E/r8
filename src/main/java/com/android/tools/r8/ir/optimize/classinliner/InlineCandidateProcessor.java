@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DispatchTargetLookupResult;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.FieldResolutionResult.SingleProgramFieldResolutionResult;
 import com.android.tools.r8.graph.LibraryMethod;
@@ -491,12 +492,34 @@ final class InlineCandidateProcessor {
             continue;
           }
 
-          DynamicType exactReceiverType =
-              DynamicType.createExact(
-                  ClassTypeElement.create(
-                      eligibleClass.getType(), Nullability.definitelyNotNull(), appView));
+          SingleResolutionResult<?> resolutionResult =
+              invoke.resolveMethod(appView).asSingleResolution();
+          if (resolutionResult == null) {
+            throw new IllegalClassInlinerStateException();
+          }
+
+          DispatchTargetLookupResult dispatchTargetLookupResult;
+          if (invoke.isInvokeDirect() || invoke.isInvokeSuper()) {
+            dispatchTargetLookupResult =
+                resolutionResult.lookupDispatchTarget(appView, invoke, method);
+          } else {
+            DynamicType exactReceiverType =
+                DynamicType.createExact(
+                    ClassTypeElement.create(
+                        eligibleClass.getType(), Nullability.definitelyNotNull(), appView));
+            dispatchTargetLookupResult =
+                resolutionResult.lookupVirtualDispatchTarget(
+                    appView, invoke, exactReceiverType, method);
+          }
+          if (!dispatchTargetLookupResult.isSingleResult()) {
+            throw new IllegalClassInlinerStateException();
+          }
+
           ProgramMethod singleTarget =
-              invoke.lookupSingleProgramTarget(appView, method, exactReceiverType);
+              dispatchTargetLookupResult
+                  .asSingleResult()
+                  .getSingleDispatchTarget()
+                  .asProgramMethod();
           if (singleTarget == null || !indirectMethodCallsOnInstance.contains(singleTarget)) {
             throw new IllegalClassInlinerStateException();
           }
