@@ -15,4 +15,8 @@ tasks {
     dependsOn(gradle.includedBuild("library_desugar").task(":clean"))
     dependsOn(gradle.includedBuild("test").task(":clean"))
   }
+
+  val r8 by registering() {
+    dependsOn(gradle.includedBuild("main").task(":r8WithRelocatedDeps"))
+  }
 }
