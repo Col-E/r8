@@ -35,6 +35,9 @@ following URL:
 The prebuilt JARs have been processed by R8, and for each build the corresponding
 mapping file is located together with the prebuild under the name `r8lib.jar.map`.
 
+To get prebuilds which has not been processed by R8 replace `r8lib.jar` with `r8.jar`
+in the URLs above.
+
 The Google Cloud Storage bucket r8-releases can also be used as a simple
 Maven repository using the following in a Gradle build file:
 
@@ -149,6 +152,40 @@ the `--help` option.
 
 R8 is not command line compatible with ProGuard, for instance keep rules cannot be passed
 on the command line, but have to be passed in a file using the `--pg-conf` option.
+
+## <a name="replacing-r8-in-agp"></a>Replacing R8 in Android Gradle plugin
+
+Android Gradle plugin (AGP) ships with R8 embedded (as part of the `builder.jar` from
+`com.android.tools.build:builder:<agp version>` on https://maven.google.com).
+
+To override the embedded version with a prebuilt R8 with version `<version>`, merge
+the following into the top level `settings.gradle` or `settings.gradle.kts`:
+```
+pluginManagement {
+    buildscript {
+        repositories {
+            mavenCentral()
+            maven {
+                url = uri("https://storage.googleapis.com/r8-releases/raw")
+            }
+        }
+        dependencies {
+            classpath("com.android.tools:r8:<version>")
+        }
+    }
+}
+```
+To override the embedded version with a downloaded or freshly built `<path>/r8.jar` merge
+the following into the top level `settings.gradle` or `settings.gradle.kts`:
+```
+pluginManagement {
+    buildscript {
+        dependencies {
+            classpath(files("<path>/r8.jar"))
+        }
+    }
+}
+```
 
 ## Testing
 
