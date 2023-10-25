@@ -51,7 +51,7 @@ fun downloadFromGoogleStorage(outputDir : File) {
   process.waitFor()
   if (process.exitValue() != 0) {
     throw GradleException(
-      "Bootstrapping dependencies_new download failed:\n"
+      "Bootstrapping ${outputDir} download failed:\n"
         + "${String(process.getErrorStream().readAllBytes(),
                     java.nio.charset.StandardCharsets.UTF_8)}\n"
         + String(process.getInputStream().readAllBytes(),
@@ -68,6 +68,7 @@ fun downloadFromGoogleStorage(outputDir : File) {
 val thirdParty = getRepoRoot().resolve("third_party")
 downloadFromGoogleStorage(thirdParty.resolve("dependencies"))
 downloadFromGoogleStorage(thirdParty.resolve("dependencies_new"))
+downloadFromGoogleStorage(thirdParty.resolve("dependencies_plugin"))
 
 pluginManagement {
   repositories {

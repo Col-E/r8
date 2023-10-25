@@ -5,7 +5,7 @@
 pluginManagement {
   repositories {
     maven {
-      url = uri("file:../../third_party/dependencies")
+      url = uri("file:../../third_party/dependencies_plugin")
     }
     maven {
       url = uri("file:../../third_party/dependencies_new")

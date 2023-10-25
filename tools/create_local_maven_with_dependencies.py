@@ -11,13 +11,13 @@ import sys
 
 import utils
 
-# The local_maven_repository_generator orderes the repositories by name, so
+# The local_maven_repository_generator orders the repositories by name, so
 # prefix with X- to control the order, as many dependencies are present
-# in several repositories.
+# in several repositories. Save A- for additional local repository.
 REPOSITORIES = [
-    'A-Google=https://maven.google.com/',
-    'B-Maven Central=https://repo1.maven.org/maven2/',
-    "C-Gradle Plugins=https://plugins.gradle.org/m2/",
+    'B-Google=https://maven.google.com/',
+    'C-Maven Central=https://repo1.maven.org/maven2/',
+    "D-Gradle Plugins=https://plugins.gradle.org/m2/",
 ]
 
 ANDRDID_SUPPORT_VERSION = '25.4.0'
@@ -97,6 +97,11 @@ NEW_DEPENDENCIES = [
         version=PROTOBUF_VERSION),
 ]
 
+PLUGIN_DEPENDENCIES = [
+  'org.spdx.sbom:org.spdx.sbom.gradle.plugin:0.2.0-r8-patch01',
+  # See https://github.com/FasterXML/jackson-core/issues/999.
+  'ch.randelshofer:fastdoubleparser:0.8.0',
+]
 
 def dependencies_tar(dependencies_path):
     return os.path.join(os.path.dirname(dependencies_path),
@@ -143,32 +148,89 @@ def parse_options():
         required=True,
         help='Path to a studio-main checkout (to get the tool '
         '//tools/base/bazel:local_maven_repository_generator_cli)')
+    result.add_argument(
+        '--plugin-deps',
+        '--plugin_deps',
+        default=False,
+        action='store_true',
+        help='Build repository Gradle plugin dependncies')
+    result.add_argument(
+        '--include-maven-local',
+        '--include_maven_local',
+        metavar=('<path>'),
+        default=False,
+        help='Path to maven local repository to include as dependency source')
+    result.add_argument(
+        '--no-upload',
+        '--no_upload',
+        default=False,
+        action='store_true',
+        help="Don't upload to Google CLoud Storage")
     return result.parse_args()
 
+
+def set_utime(path):
+    os.utime(path, (0, 0))
+    for root, dirs, files in os.walk(path):
+      for f in files:
+          os.utime(os.path.join(root, f), (0, 0))
+      for d in dirs:
+          os.utime(os.path.join(root, d), (0, 0))
 
 def main():
     args = parse_options()
 
-    dependencies_path = os.path.join(utils.THIRD_PARTY, 'dependencies')
-    print("Downloading to " + dependencies_path)
-    remove_local_maven_repository(dependencies_path)
-    create_local_maven_repository(args, dependencies_path, REPOSITORIES,
-                                  BUILD_DEPENDENCIES + TEST_DEPENDENCIES)
+    repositories = REPOSITORIES
+    if args.include_maven_local:
+        # Add the local repository as the first for it to take precedence.
+        # Use A- prefix as current local_maven_repository_generator orderes by name.
+        repositories = ['A-Local=file://%s' % args.include_maven_local] + REPOSITORIES
 
-    dependencies_new_path = os.path.join(utils.THIRD_PARTY, 'dependencies_new')
-    print("Downloading to " + dependencies_new_path)
-    remove_local_maven_repository(dependencies_new_path)
-    create_local_maven_repository(args, dependencies_new_path, REPOSITORIES,
-                                  NEW_DEPENDENCIES)
+    dependencies = []
 
-    print("Uploading to Google Cloud Storage:")
-    with utils.ChangedWorkingDirectory(utils.THIRD_PARTY):
-        for dependency in ['dependencies', 'dependencies_new']:
-            cmd = [
-                'upload_to_google_storage.py', '-a', '--bucket', 'r8-deps',
-                dependency
-            ]
-            subprocess.check_call(cmd)
+    if args.plugin_deps:
+        dependencies_plugin_path = os.path.join(utils.THIRD_PARTY, 'dependencies_plugin')
+        remove_local_maven_repository(dependencies_plugin_path)
+        print("Downloading to " + dependencies_plugin_path)
+        create_local_maven_repository(
+            args, dependencies_plugin_path, repositories, PLUGIN_DEPENDENCIES)
+        set_utime(dependencies_plugin_path)
+        dependencies.append('dependencies_plugin')
+    else:
+        dependencies_path = os.path.join(utils.THIRD_PARTY, 'dependencies')
+        remove_local_maven_repository(dependencies_path)
+        print("Downloading to " + dependencies_path)
+        create_local_maven_repository(
+            args, dependencies_path, repositories, BUILD_DEPENDENCIES + TEST_DEPENDENCIES)
+        set_utime(dependencies_path)
+        dependencies.append('dependencies')
+        dependencies_new_path = os.path.join(utils.THIRD_PARTY, 'dependencies_new')
+        remove_local_maven_repository(dependencies_new_path)
+        print("Downloading to " + dependencies_new_path)
+        create_local_maven_repository(
+           args, dependencies_new_path, repositories, NEW_DEPENDENCIES)
+        set_utime(dependencies_new_path)
+        dependencies.append('dependencies_new')
+
+    upload_cmds = []
+    for dependency in dependencies:
+        upload_cmds.append([
+            'upload_to_google_storage.py',
+            '-a',
+            '--bucket',
+            'r8-deps',
+            dependency])
+
+    if not args.no_upload:
+        print("Uploading to Google Cloud Storage:")
+        with utils.ChangedWorkingDirectory(utils.THIRD_PARTY):
+            for cmd in upload_cmds:
+                subprocess.check_call(cmd)
+    else:
+        print("Not uploading to Google Cloud Storage. "
+            + "Run the following commands in %s to do so manually" % utils.THIRD_PARTY)
+        for cmd in upload_cmds:
+            print(" ".join(cmd))
 
 
 if __name__ == '__main__':

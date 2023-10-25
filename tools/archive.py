@@ -222,6 +222,12 @@ def Run(options):
         default_pom_file = os.path.join(temp, 'r8.pom')
         create_maven_release.write_default_r8_pom_file(default_pom_file,
                                                        version)
+        gradle.RunGradle([
+            ':main:spdxSbom',
+            '-PspdxVersion=' + version,
+            '-PspdxRevision=' + GetGitHash()
+        ])
+
         for_archiving = [
             utils.R8_JAR, utils.R8LIB_JAR, utils.R8LIB_JAR + '.map',
             utils.R8LIB_JAR + '_map.zip', utils.R8_FULL_EXCLUDE_DEPS_JAR,
@@ -237,7 +243,9 @@ def Run(options):
             utils.R8RETRACE_JAR + '_map.zip', utils.R8RETRACE_EXCLUDE_DEPS_JAR,
             utils.R8RETRACE_EXCLUDE_DEPS_JAR + '.map',
             utils.R8RETRACE_EXCLUDE_DEPS_JAR + '_map.zip',
-            utils.KEEPANNO_ANNOTATIONS_JAR, utils.GENERATED_LICENSE
+            utils.KEEPANNO_ANNOTATIONS_JAR,
+            utils.GENERATED_LICENSE,
+            'd8_r8/main/build/spdx/r8.spdx.json'
         ]
         for file in for_archiving:
             file_name = os.path.basename(file)
