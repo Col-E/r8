@@ -28,6 +28,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GenericSignatureContextBuilder;
 import com.android.tools.r8.graph.GenericSignatureCorrectnessHelper;
+import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.SubtypingInfo;
@@ -256,6 +257,7 @@ public class R8 {
 
   @SuppressWarnings("DefaultCharset")
   private void run(AndroidApp inputApp, ExecutorService executorService) throws IOException {
+    timing.begin("Run prelude");
     assert options.programConsumer != null;
     if (options.quiet) {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));
@@ -277,21 +279,32 @@ public class R8 {
       System.out.println("R8 is running with max memory:" + runtime.maxMemory());
     }
     options.prepareForReportingLibraryAndProgramDuplicates();
+    timing.end();
     try {
       AppView<AppInfoWithClassHierarchy> appView;
       {
+        timing.begin("Read app");
         ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
-        DirectMappedDexApplication application = applicationReader.read(executorService).toDirect();
+        LazyLoadedDexApplication lazyLoaded = applicationReader.read(executorService);
+        timing.begin("To direct app");
+        DirectMappedDexApplication application = lazyLoaded.toDirect();
+        timing.end();
+        timing.end();
         options.loadMachineDesugaredLibrarySpecification(timing, application);
+        timing.begin("Read main dex classes");
         MainDexInfo mainDexInfo = applicationReader.readMainDexClassesForR8(application);
+        timing.end();
         // Now that the dex-application is fully loaded, close any internal archive providers.
-        inputApp.closeInternalArchiveProviders();
-
+        timing.time("Close providers", () -> inputApp.closeInternalArchiveProviders());
+        timing.begin("Create AppView");
         appView = AppView.createForR8(application, mainDexInfo);
-        appView.setAppServices(AppServices.builder(appView).build());
-        SyntheticItems.collectSyntheticInputs(appView);
+        timing.end();
+        timing.time(
+            "Set app services", () -> appView.setAppServices(AppServices.builder(appView).build()));
+        timing.time(
+            "Collect synthetic inputs", () -> SyntheticItems.collectSyntheticInputs(appView));
       }
-
+      timing.begin("Register references and more setup");
       assert ArtProfileCompletenessChecker.verify(appView);
 
       // Check for potentially having pass-through of Cf-code for kotlin libraries.
@@ -330,7 +343,7 @@ public class R8 {
                 .rebuildWithClassHierarchy(
                     appView.getSyntheticItems().commit(appView.appInfo().app())));
       }
-
+      timing.end();
       timing.begin("Strip unused code");
       timing.begin("Before enqueuer");
       RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder =
@@ -445,7 +458,7 @@ public class R8 {
       } finally {
         timing.end();
       }
-
+      timing.begin("Run center tasks");
       assert appView.appInfo().hasLiveness();
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
 
@@ -560,7 +573,7 @@ public class R8 {
       timing.begin("AppliedGraphLens construction");
       appView.setGraphLens(new AppliedGraphLens(appView));
       timing.end();
-
+      timing.end();
       if (options.shouldRerunEnqueuer()) {
         timing.begin("Post optimization code stripping");
         try {
@@ -688,7 +701,7 @@ public class R8 {
                       converter, executorService, timing));
         }
       }
-
+      timing.begin("Run postlude");
       performFinalMainDexTracing(appView, executorService);
 
       if (appView.appInfo().hasLiveness()) {
@@ -857,6 +870,8 @@ public class R8 {
       }
 
       assert appView.verifyMovedMethodsHaveOriginalMethodPosition();
+      timing.end();
+
       // Generate the resulting application resources.
       writeApplication(appView, inputApp, executorService);
 
