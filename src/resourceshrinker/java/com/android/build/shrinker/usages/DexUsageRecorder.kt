@@ -56,7 +56,7 @@ class DexUsageRecorder(val root: Path) : ResourceUsageRecorder {
     }
 }
 
-class DexFileAnalysisCallback(
+private class DexFileAnalysisCallback(
         private val path: Path,
         private val model: ResourceShrinkerModel
 ) : AnalysisCallback {

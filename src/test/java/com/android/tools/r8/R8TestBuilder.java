@@ -9,7 +9,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.proguardConfigur
 
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
-import com.android.tools.r8.androidresources.AndroidResourceTestingUtils.AndroidTestResource;
 import com.android.tools.r8.benchmarks.BenchmarkResults;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
@@ -17,7 +16,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.keepanno.KeepEdgeAnnotationsTest;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.profile.art.ArtProfileConsumer;
 import com.android.tools.r8.profile.art.ArtProfileProvider;
 import com.android.tools.r8.profile.art.model.ExternalArtProfile;
@@ -83,7 +81,6 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   private final List<Path> mainDexRulesFiles = new ArrayList<>();
   private final List<String> applyMappingMaps = new ArrayList<>();
   private final List<Path> features = new ArrayList<>();
-  private Path resourceShrinkerOutput = null;
   private PartitionMapConsumer partitionMapConsumer = null;
 
   @Override
@@ -144,7 +141,6 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     }
 
     class Box {
-
       private List<ProguardConfigurationRule> syntheticProguardRules;
       private ProguardConfiguration proguardConfiguration;
     }
@@ -170,8 +166,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
             graphConsumer,
             getMinApiLevel(),
             features,
-            residualArtProfiles,
-            resourceShrinkerOutput);
+            residualArtProfiles);
     switch (allowedDiagnosticMessages) {
       case ALL:
         compileResult.getDiagnosticMessages().assertAllDiagnosticsMatch(new IsAnything<>());
@@ -871,27 +866,6 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T setPartitionMapConsumer(PartitionMapConsumer partitionMapConsumer) {
     this.partitionMapConsumer = partitionMapConsumer;
-    return self();
-  }
-
-  public T addAndroidResources(AndroidTestResource testResource) throws IOException {
-    return addAndroidResources(
-        testResource, getState().getNewTempFile("resourceshrinkeroutput.zip"));
-  }
-
-  public T addAndroidResources(AndroidTestResource testResource, Path output) throws IOException {
-    addResourceShrinkerProviderAndConsumer(testResource.getResourceZip(), output);
-    return addProgramClassFileData(testResource.getRClass().getClassFileData());
-  }
-
-  private T addResourceShrinkerProviderAndConsumer(Path resources, Path output) throws IOException {
-    resourceShrinkerOutput = output;
-    getBuilder()
-        .setAndroidResourceProvider(
-            new ArchiveProtoAndroidResourceProvider(resources, new PathOrigin(resources)));
-    getBuilder()
-        .setAndroidResourceConsumer(
-            new ArchiveProtoAndroidResourceConsumer(resourceShrinkerOutput));
     return self();
   }
 }

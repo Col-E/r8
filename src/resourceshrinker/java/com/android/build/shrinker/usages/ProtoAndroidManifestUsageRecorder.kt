@@ -34,25 +34,25 @@ class ProtoAndroidManifestUsageRecorder(private val manifest: Path) : ResourceUs
         recordUsagesFromNode(root, model)
     }
 
-}
-fun recordUsagesFromNode(node: XmlNode, model: ResourceShrinkerModel) {
-    // Records only resources from element attributes that have reference items with resolved
-    // ids or names.
-    if (!node.hasElement()) {
-        return
-    }
-    node.element.attributeList.asSequence()
-        .filter { it.hasCompiledItem() }
-        .map { it.compiledItem }
-        .filter { it.hasRef() }
-        .map { it.ref }
-        .flatMap {
-            // If resource id is available prefer this id to name.
-            when {
-                it.id != 0 -> listOfNotNull(model.resourceStore.getResource(it.id))
-                else -> model.resourceStore.getResourcesFromUrl("@${it.name}")
-            }.asSequence()
+    private fun recordUsagesFromNode(node: XmlNode, model: ResourceShrinkerModel) {
+        // Records only resources from element attributes that have reference items with resolved
+        // ids or names.
+        if (!node.hasElement()) {
+            return
         }
-        .forEach { ResourceUsageModel.markReachable(it) }
-    node.element.childList.forEach { recordUsagesFromNode(it, model) }
+        node.element.attributeList.asSequence()
+            .filter { it.hasCompiledItem() }
+            .map { it.compiledItem }
+            .filter { it.hasRef() }
+            .map { it.ref }
+            .flatMap {
+                // If resource id is available prefer this id to name.
+                when {
+                    it.id != 0 -> listOfNotNull(model.resourceStore.getResource(it.id))
+                    else -> model.resourceStore.getResourcesFromUrl("@${it.name}")
+                }.asSequence()
+            }
+            .forEach { ResourceUsageModel.markReachable(it) }
+        node.element.childList.forEach { recordUsagesFromNode(it, model) }
+    }
 }
