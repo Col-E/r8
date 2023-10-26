@@ -7,6 +7,7 @@ import com.android.tools.r8.utils.ArchiveBuilder;
 import com.android.tools.r8.utils.OutputBuilder;
 import java.nio.file.Path;
 
+@Keep
 public class ArchiveProtoAndroidResourceConsumer implements AndroidResourceConsumer {
   private final OutputBuilder outputBuilder;
 
