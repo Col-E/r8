@@ -16,7 +16,8 @@ JAR_TARGETS_MAP = {
     'lib': [(utils.R8LIB, 'r8'),],
 }
 
-OTHER_TARGETS = ["LICENSE"]
+OTHER_TARGETS = ['LICENSE']
+SBOM_TARGETS = ['r8.spdx.json']
 KEEPANNO_JAR = 'keepanno-annotations.jar'
 
 
@@ -65,7 +66,7 @@ def copy_targets(root, target_root, srcs, dests, maps=False):
                 print('Copying: ' + src + '.map -> ' + dest + '.map')
                 copyfile(src + '.map', dest + '.map')
         else:
-            print('WARNING: Not copying ' + src + ' -> ' + dest + ', as' +
+            print('WARNING: Not copying ' + src + ' -> ' + dest + ', as ' +
                   dest + ' does not exist already')
 
 
@@ -75,8 +76,8 @@ def copy_jar_targets(root, target_root, jar_targets, maps):
     copy_targets(root, target_root, srcs, dests, maps=maps)
 
 
-def copy_other_targets(root, target_root):
-    copy_targets(root, target_root, OTHER_TARGETS, OTHER_TARGETS)
+def copy_other_targets(root, target_root, other_targets):
+    copy_targets(root, target_root, other_targets, other_targets)
 
 
 def download_hash(root, commit_hash, target, quiet=False):
@@ -96,9 +97,16 @@ def download_target(root, target, hash_or_version, is_hash, quiet=False):
 
 
 def main_download(hash, maps, targets, target_root, version, keepanno=False):
+    sbom_targets = []
+    if version:
+        semver = utils.check_basic_semver_version(version, allowPrerelease=True)
+        # Generation of SBOM started from version 8.3.13-dev.
+        if semver.larger_than(utils.SemanticVersion(8, 3, 12, 'dev')):
+            sbom_targets = SBOM_TARGETS
+
     jar_targets = JAR_TARGETS_MAP[targets]
     final_targets = list(map(
-        (lambda t: t[0] + '.jar'), jar_targets)) + OTHER_TARGETS
+        (lambda t: t[0] + '.jar'), jar_targets)) + OTHER_TARGETS + sbom_targets
     with utils.TempDir() as root:
         for target in final_targets:
             if hash:
@@ -110,12 +118,12 @@ def main_download(hash, maps, targets, target_root, version, keepanno=False):
             else:
                 assert version
                 download_version(root, version, target)
-                if maps and target not in OTHER_TARGETS:
+                if maps and target not in (OTHER_TARGETS + sbom_targets):
                     download_version(root, version, target + '.map')
                 if keepanno:
                     download_version(root, version, KEEPANNO_JAR)
         copy_jar_targets(root, target_root, jar_targets, maps)
-        copy_other_targets(root, target_root)
+        copy_other_targets(root, target_root, OTHER_TARGETS + sbom_targets)
         if keepanno:
             copy_targets(root, target_root, [KEEPANNO_JAR], [KEEPANNO_JAR])
 
@@ -129,7 +137,7 @@ def main_build(maps, max_memory_size, targets, target_root):
         gradle_args.append('-Dorg.gradle.jvmargs=-Xmx' + max_memory_size)
     gradle.RunGradle(gradle_args)
     copy_jar_targets(utils.LIBS, target_root, jar_targets, maps)
-    copy_other_targets(utils.GENERATED_LICENSE_DIR, target_root)
+    copy_other_targets(utils.GENERATED_LICENSE_DIR, target_root, OTHER_TARGETS)
 
 
 def main(args):
