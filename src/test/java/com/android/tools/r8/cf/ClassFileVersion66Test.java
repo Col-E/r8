@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.cf;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -34,8 +33,7 @@ public class ClassFileVersion66Test extends TestBase {
     this.parameters = parameters;
   }
 
-  // TODO(b/301189814): Update ASM once it has a release with v22 support.
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void test() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(transformer(TestClass.class).setVersion(CfVersion.V22).transform())

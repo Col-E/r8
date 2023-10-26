@@ -10,7 +10,7 @@ import subprocess
 import sys
 import utils
 
-ASM_VERSION = '9.5'
+ASM_VERSION = '9.6'
 ASM_JAR = os.path.join(utils.DEPENDENCIES_DIR, 'org', 'ow2', 'asm', 'asm',
                        ASM_VERSION, 'asm-' + ASM_VERSION + '.jar')
 ASM_UTIL_JAR = os.path.join(utils.DEPENDENCIES_DIR, 'org', 'ow2', 'asm',
