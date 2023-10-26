@@ -7,6 +7,9 @@ import static com.android.tools.r8.profile.art.ArtProfileCompletenessChecker.Com
 import static com.android.tools.r8.utils.AssertionUtils.forTesting;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
+import com.android.build.shrinker.r8integration.LegacyResourceShrinker;
+import com.android.build.shrinker.r8integration.LegacyResourceShrinker.ShrinkerResult;
+import com.android.tools.r8.DexIndexedConsumer.ForwardingConsumer;
 import com.android.tools.r8.androidapi.ApiReferenceStubber;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryKeepRuleGenerator;
 import com.android.tools.r8.dex.ApplicationReader;
@@ -75,6 +78,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfOpenClosedInterfacesA
 import com.android.tools.r8.optimize.proto.ProtoNormalizer;
 import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemover;
 import com.android.tools.r8.origin.CommandLineOrigin;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileCompletenessChecker;
 import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.repackaging.Repackaging;
@@ -105,9 +109,11 @@ import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.ResourceTracing;
+import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SelfRetraceTest;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
@@ -118,6 +124,8 @@ import com.google.common.io.ByteStreams;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -125,6 +133,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
+import javax.xml.parsers.ParserConfigurationException;
+import org.xml.sax.SAXException;
 
 /**
  * The R8 compiler.
@@ -830,17 +840,29 @@ public class R8 {
 
       new DesugaredLibraryKeepRuleGenerator(appView).runIfNecessary(timing);
 
+      List<Pair<Integer, byte[]>> dexFileContent = new ArrayList<>();
       if (options.androidResourceProvider != null && options.androidResourceConsumer != null) {
-        // Currently this is simply a pass through of all resources.
-        writeAndroidResources(
-            options.androidResourceProvider, options.androidResourceConsumer, appView.reporter());
+        options.programConsumer =
+            new ForwardingConsumer((DexIndexedConsumer) options.programConsumer) {
+              @Override
+              public void accept(
+                  int fileIndex,
+                  ByteDataView data,
+                  Set<String> descriptors,
+                  DiagnosticsHandler handler) {
+                dexFileContent.add(new Pair<>(fileIndex, data.copyByteData()));
+                super.accept(fileIndex, data, descriptors, handler);
+              }
+            };
       }
 
       assert appView.verifyMovedMethodsHaveOriginalMethodPosition();
-
       // Generate the resulting application resources.
       writeApplication(appView, inputApp, executorService);
 
+      if (options.androidResourceProvider != null && options.androidResourceConsumer != null) {
+        shrinkResources(dexFileContent);
+      }
       assert appView.getDontWarnConfiguration().validate(options);
 
       options.printWarnings();
@@ -856,14 +878,68 @@ public class R8 {
     }
   }
 
-  private void writeAndroidResources(
-      AndroidResourceProvider androidResourceProvider,
-      AndroidResourceConsumer androidResourceConsumer,
-      DiagnosticsHandler diagnosticsHandler) {
-    ResourceTracing resourceTracing = ResourceTracing.getImpl();
-    resourceTracing.setConsumer(androidResourceConsumer);
-    resourceTracing.setProvider(androidResourceProvider);
-    resourceTracing.done(diagnosticsHandler);
+  private void shrinkResources(List<Pair<Integer, byte[]>> dexFileContent) {
+    LegacyResourceShrinker.Builder resourceShrinkerBuilder = LegacyResourceShrinker.builder();
+    Reporter reporter = options.reporter;
+    dexFileContent.forEach(p -> resourceShrinkerBuilder.addDexInput(p.getFirst(), p.getSecond()));
+    try {
+      Collection<AndroidResourceInput> androidResources =
+          options.androidResourceProvider.getAndroidResources();
+      for (AndroidResourceInput androidResource : androidResources) {
+        try {
+          byte[] bytes = androidResource.getByteStream().readAllBytes();
+          Path path = Paths.get(androidResource.getPath().location());
+          switch (androidResource.getKind()) {
+            case MANIFEST:
+              resourceShrinkerBuilder.setManifest(path, bytes);
+              break;
+            case RES_FOLDER_FILE:
+              resourceShrinkerBuilder.addResFolderInput(path, bytes);
+              break;
+            case RESOURCE_TABLE:
+              resourceShrinkerBuilder.setResourceTable(path, bytes);
+              break;
+            case XML_FILE:
+              resourceShrinkerBuilder.addXmlInput(path, bytes);
+              break;
+            case UNKNOWN:
+              break;
+          }
+        } catch (IOException e) {
+          reporter.error(new ExceptionDiagnostic(e, androidResource.getOrigin()));
+        }
+      }
+
+      LegacyResourceShrinker shrinker = resourceShrinkerBuilder.build();
+      ShrinkerResult shrinkerResult = shrinker.run();
+      AndroidResourceConsumer androidResourceConsumer = options.androidResourceConsumer;
+      Set<String> toKeep = shrinkerResult.getResFolderEntriesToKeep();
+      for (AndroidResourceInput androidResource : androidResources) {
+        switch (androidResource.getKind()) {
+          case MANIFEST:
+          case UNKNOWN:
+            androidResourceConsumer.accept(
+                new R8PassThroughAndroidResource(androidResource, reporter), reporter);
+            break;
+          case RESOURCE_TABLE:
+            androidResourceConsumer.accept(
+                new R8AndroidResourceWithData(
+                    androidResource, reporter, shrinkerResult.getResourceTableInProtoFormat()),
+                reporter);
+            break;
+          case RES_FOLDER_FILE:
+          case XML_FILE:
+            if (toKeep.contains(androidResource.getPath().location())) {
+              androidResourceConsumer.accept(
+                  new R8PassThroughAndroidResource(androidResource, reporter), reporter);
+            }
+            break;
+        }
+      }
+      androidResourceConsumer.finished(reporter);
+    } catch (ParserConfigurationException | SAXException | ResourceException | IOException e) {
+      reporter.error(new ExceptionDiagnostic(e));
+    }
   }
 
   private static boolean allReferencesAssignedApiLevel(
@@ -1092,5 +1168,59 @@ public class R8 {
           StringUtils.joinLines("Invalid invocation.", R8Command.getUsageMessage()));
     }
     ExceptionUtils.withMainProgramHandler(() -> run(args));
+  }
+
+  private abstract static class R8AndroidResourceBase implements AndroidResourceOutput {
+
+    protected final AndroidResourceInput androidResource;
+    protected final Reporter reporter;
+
+    public R8AndroidResourceBase(AndroidResourceInput androidResource, Reporter reporter) {
+      this.androidResource = androidResource;
+      this.reporter = reporter;
+    }
+
+    @Override
+    public ResourcePath getPath() {
+      return androidResource.getPath();
+    }
+
+    @Override
+    public Origin getOrigin() {
+      return androidResource.getOrigin();
+    }
+  }
+
+  private static class R8PassThroughAndroidResource extends R8AndroidResourceBase {
+
+    public R8PassThroughAndroidResource(AndroidResourceInput androidResource, Reporter reporter) {
+      super(androidResource, reporter);
+    }
+
+    @Override
+    public ByteDataView getByteDataView() {
+      try {
+        return ByteDataView.of(ByteStreams.toByteArray(androidResource.getByteStream()));
+      } catch (IOException | ResourceException e) {
+        reporter.error(new ExceptionDiagnostic(e, androidResource.getOrigin()));
+      }
+      return null;
+    }
+  }
+
+  private static class R8AndroidResourceWithData extends R8AndroidResourceBase {
+
+    private final byte[] data;
+
+    public R8AndroidResourceWithData(
+        AndroidResourceInput androidResource, Reporter reporter, byte[] data) {
+      super(androidResource, reporter);
+      this.data = data;
+    }
+
+    @Override
+    public ByteDataView getByteDataView() {
+      return ByteDataView.of(data);
+    }
   }
 }
