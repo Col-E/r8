@@ -380,6 +380,7 @@ public class TreePruner {
         // an invalid invoke. They will not actually be called at runtime but we have to keep them
         // as non-abstract (see above) to produce the same failure mode.
         new ProgramMethod(clazz, method).convertToAbstractOrThrowNullMethod(appView);
+        method.markNotProcessed();
         reachableMethods.add(method);
       } else {
         unusedItemsPrinter.registerUnusedMethod(method);
