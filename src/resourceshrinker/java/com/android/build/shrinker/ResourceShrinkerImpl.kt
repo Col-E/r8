@@ -301,6 +301,11 @@ private fun ResourceStore.isJarPathReachable(
         .any { it.isReachable }
 }
 
+fun ResourceStore.isJarPathReachable(path: String) : Boolean {
+    val (_, folder, name) = path.split('/', limit = 3)
+    return isJarPathReachable(folder, name);
+}
+
 private fun ResourceStore.getResourceId(
     folder: String,
     name: String

@@ -32,7 +32,7 @@ public class R8ResourceShrinkerState {
     r8ResourceShrinkerModel.instantiateFromResourceTable(inputStream);
   }
 
-  private static class R8ResourceShrinkerModel extends ResourceShrinkerModel {
+  public static class R8ResourceShrinkerModel extends ResourceShrinkerModel {
 
     public R8ResourceShrinkerModel(
         ShrinkerDebugReporter debugReporter, boolean supportMultipackages) {
@@ -40,25 +40,29 @@ public class R8ResourceShrinkerState {
     }
 
     // Similar to instantiation in ProtoResourceTableGatherer, but using an inputstream.
-    public void instantiateFromResourceTable(InputStream inputStream) {
+    void instantiateFromResourceTable(InputStream inputStream) {
       try {
         ResourceTable resourceTable = ResourceTable.parseFrom(inputStream);
-        ResourceTableUtilKt.entriesSequence(resourceTable)
-            .iterator()
-            .forEachRemaining(
-                entryWrapper -> {
-                  ResourceType resourceType = ResourceType.fromClassName(entryWrapper.getType());
-                  if (resourceType != ResourceType.STYLEABLE) {
-                    this.addResource(
-                        resourceType,
-                        entryWrapper.getPackageName(),
-                        ResourcesUtil.resourceNameToFieldName(entryWrapper.getEntry().getName()),
-                        entryWrapper.getId());
-                  }
-                });
+        instantiateFromResourceTable(resourceTable);
       } catch (IOException ex) {
         throw new RuntimeException(ex);
       }
+    }
+
+    void instantiateFromResourceTable(ResourceTable resourceTable) {
+      ResourceTableUtilKt.entriesSequence(resourceTable)
+          .iterator()
+          .forEachRemaining(
+              entryWrapper -> {
+                ResourceType resourceType = ResourceType.fromClassName(entryWrapper.getType());
+                if (resourceType != ResourceType.STYLEABLE) {
+                  this.addResource(
+                      resourceType,
+                      entryWrapper.getPackageName(),
+                      ResourcesUtil.resourceNameToFieldName(entryWrapper.getEntry().getName()),
+                      entryWrapper.getId());
+                }
+              });
     }
   }
 }

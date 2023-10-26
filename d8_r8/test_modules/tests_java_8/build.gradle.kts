@@ -34,6 +34,7 @@ val keepAnnoJarTask = projectTask("keepanno", "jar")
 val keepAnnoCompileTask = projectTask("keepanno", "compileJava")
 val mainCompileTask = projectTask("main", "compileJava")
 val mainDepsJarTask = projectTask("main", "depsJar")
+val resourceShrinkerDepsJarTask = projectTask("resourceshrinker", "depsJar")
 
 dependencies {
   implementation(keepAnnoJarTask.outputs.files)
@@ -41,7 +42,7 @@ dependencies {
   implementation(projectTask("main", "processResources").outputs.files)
   implementation(projectTask("resourceshrinker", "compileJava").outputs.files)
   implementation(projectTask("resourceshrinker", "compileKotlin").outputs.files)
-  implementation(projectTask("resourceshrinker", "depsJar").outputs.files)
+  implementation(resourceShrinkerDepsJarTask.outputs.files)
   implementation(Deps.asm)
   implementation(Deps.asmCommons)
   implementation(Deps.asmUtil)
@@ -158,6 +159,7 @@ tasks {
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
     dependsOn(gradle.includedBuild("resourceshrinker").task(":jar"))
     from(testDependencies().map(::zipTree))
+    from(resourceShrinkerDepsJarTask.outputs.getFiles().map(::zipTree))
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveFileName.set("deps.jar")
   }
