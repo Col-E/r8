@@ -91,8 +91,6 @@ third_party/ddmlib
 third_party/ddmlib.tar.gz
 third_party/dependencies/
 third_party/dependencies.tar.gz
-third_party/dependencies_new/
-third_party/dependencies_new.tar.gz
 third_party/dependencies_plugin/
 third_party/dependencies_plugin.tar.gz
 third_party/desugar/desugar_*.tar.gz

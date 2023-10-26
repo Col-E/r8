@@ -8,7 +8,7 @@ pluginManagement {
       url = uri("file:../../third_party/dependencies_plugin")
     }
     maven {
-      url = uri("file:../../third_party/dependencies_new")
+      url = uri("file:../../third_party/dependencies")
     }
   }
 }
@@ -17,9 +17,6 @@ dependencyResolutionManagement {
   repositories {
     maven {
       url = uri("file:../../third_party/dependencies")
-    }
-    maven {
-      url = uri("file:../../third_party/dependencies_new")
     }
   }
 }

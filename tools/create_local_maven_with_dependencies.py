@@ -25,9 +25,8 @@ ASM_VERSION = '9.5'
 ESPRESSO_VERSION = '3.0.0'
 FASTUTIL_VERSION = '7.2.1'
 KOTLIN_METADATA_VERSION = '0.7.0'
-KOTLIN_VERSION = '1.8.0'
-GUAVA_VERSION = '31.1-jre'
-GUAVA_VERSION_NEW = '32.1.2-jre'
+KOTLIN_VERSION = '1.9.0'
+GUAVA_VERSION = '32.1.2-jre'
 GSON_VERSION = '2.10.1'
 JAVASSIST_VERSION = '3.29.2-GA'
 JUNIT_VERSION = '4.13-beta-2'
@@ -39,17 +38,51 @@ TESTNG_VERSION = '6.10'
 # Resource shrinker dependency versions
 AAPT2_PROTO_VERSION = '8.2.0-alpha10-10154469'
 PROTOBUF_VERSION = '3.19.3'
-STUDIO_SDK_VERSION = '31.2.0-alpha10'
+STUDIO_SDK_VERSION = '31.2.0-rc01'
 
 BUILD_DEPENDENCIES = [
     'com.google.code.gson:gson:{version}'.format(version=GSON_VERSION),
     'com.google.guava:guava:{version}'.format(version=GUAVA_VERSION),
     'it.unimi.dsi:fastutil:{version}'.format(version=FASTUTIL_VERSION),
-    'org.jetbrains.kotlinx:kotlinx-metadata-jvm:{version}'.format(
-        version=KOTLIN_METADATA_VERSION),
+
     'org.ow2.asm:asm:{version}'.format(version=ASM_VERSION),
     'org.ow2.asm:asm-util:{version}'.format(version=ASM_VERSION),
     'org.ow2.asm:asm-commons:{version}'.format(version=ASM_VERSION),
+
+    'com.google.errorprone:javac:9+181-r4173-1',
+
+    'com.android.tools.build:aapt2-proto:{version}'.format(
+        version=AAPT2_PROTO_VERSION),
+    'com.android.tools.layoutlib:layoutlib-api:{version}'.format(
+        version=STUDIO_SDK_VERSION),
+    'com.android.tools:common:{version}'.format(version=STUDIO_SDK_VERSION),
+    'com.android.tools:sdk-common:{version}'.format(version=STUDIO_SDK_VERSION),
+    'com.google.protobuf:protobuf-java:{version}'.format(
+        version=PROTOBUF_VERSION),
+
+    'org.jetbrains.kotlin:kotlin-assignment-compiler-plugin-embeddable:{version}'.format(
+        version=KOTLIN_VERSION),
+    'org.jetbrains.kotlin:kotlin-compiler-embeddable:{version}'.format(
+        version=KOTLIN_VERSION),
+    'org.jetbrains.kotlin:kotlin-gradle-plugin-api:{version}'.format(
+        version=KOTLIN_VERSION),
+    'org.jetbrains.kotlin:kotlin-gradle-plugin-idea:{version}'.format(
+        version=KOTLIN_VERSION),
+    'org.jetbrains.kotlin:kotlin-reflect:{version}'.format(
+        version=KOTLIN_VERSION),
+    'org.jetbrains.kotlin:kotlin-sam-with-receiver-compiler-plugin-embeddable:{version}'.format(
+        version=KOTLIN_VERSION),
+    'org.jetbrains.kotlin:kotlin-script-runtime:{version}'.format(
+        version=KOTLIN_VERSION),
+    'org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable:{version}'.format(
+        version=KOTLIN_VERSION),
+    'org.jetbrains.kotlin:kotlin-stdlib-jdk8:{version}'.format(
+        version=KOTLIN_VERSION),
+    'org.jetbrains.kotlin:kotlin-tooling-core:{version}'.format(
+        version=KOTLIN_VERSION),
+    'org.jetbrains.kotlinx:kotlinx-metadata-jvm:{version}'.format(
+        version=KOTLIN_METADATA_VERSION),
+    'org.gradle.kotlin.kotlin-dsl:org.gradle.kotlin.kotlin-dsl.gradle.plugin:4.1.3',
 ]
 
 TEST_DEPENDENCIES = [
@@ -60,44 +93,17 @@ TEST_DEPENDENCIES = [
     'com.google.errorprone:error_prone_core:{version}'.format(
         version=ERROR_PRONE_VERSION),
     'org.javassist:javassist:{version}'.format(version=JAVASSIST_VERSION),
-    'org.jetbrains.kotlin:kotlin-stdlib:{version}'.format(
-        version=KOTLIN_VERSION),
-    'org.jetbrains.kotlin:kotlin-reflect:{version}'.format(
-        version=KOTLIN_VERSION),
     'org.mockito:mockito-core:{version}'.format(version=MOCKITO_VERSION),
     'org.testng:testng:{version}'.format(version=TESTNG_VERSION),
 ]
 
-NEW_DEPENDENCIES = [
-    'com.google.guava:guava:{version}'.format(version=GUAVA_VERSION_NEW),
-    'org.gradle.kotlin.kotlin-dsl:org.gradle.kotlin.kotlin-dsl.gradle.plugin:4.0.6',
-    'org.jetbrains.kotlin:kotlin-gradle-plugin-api:1.8.10',
-    'org.jetbrains.kotlin:kotlin-gradle-plugin-idea:1.8.10',
-    'org.jetbrains.kotlin:kotlin-reflect:1.6.10',
-    'org.jetbrains.kotlin:kotlin-reflect:1.8.10',
-    'org.jetbrains.kotlin:kotlin-script-runtime:1.8.10',
-    'org.jetbrains.kotlin:kotlin-tooling-core:1.8.10',
-    'net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:3.0.1',
-    'com.google.errorprone:javac:9+181-r4173-1',
-    # Gradle 8.3
-    'org.gradle.kotlin.kotlin-dsl:org.gradle.kotlin.kotlin-dsl.gradle.plugin:4.1.0',
-    'org.jetbrains.kotlin:kotlin-assignment-compiler-plugin-embeddable:1.9.0',
-    'org.jetbrains.kotlin:kotlin-gradle-plugin-api:1.9.0',
-    'org.jetbrains.kotlin:kotlin-reflect:1.9.0',
-    'org.jetbrains.kotlin:kotlin-script-runtime:1.9.0',
-    'org.jetbrains.kotlin:kotlin-sam-with-receiver-compiler-plugin-embeddable:1.9.0',
-    # Resource shrinker
-    'com.android.tools.build:aapt2-proto:{version}'.format(
-        version=AAPT2_PROTO_VERSION),
-    'com.android.tools.layoutlib:layoutlib-api:{version}'.format(
-        version=STUDIO_SDK_VERSION),
-    'com.android.tools:common:{version}'.format(version=STUDIO_SDK_VERSION),
-    'com.android.tools:sdk-common:{version}'.format(version=STUDIO_SDK_VERSION),
-    'com.google.protobuf:protobuf-java:{version}'.format(
-        version=PROTOBUF_VERSION),
-]
-
 PLUGIN_DEPENDENCIES = [
+  'org.gradle.kotlin.kotlin-dsl:org.gradle.kotlin.kotlin-dsl.gradle.plugin:4.1.0',
+  'org.jetbrains.kotlin:kotlin-gradle-plugin-api:1.9.10',
+  'net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:3.0.1',
+
+  # Patched version of org.spdx.sbom:org.spdx.sbom.gradle.plugin:0.2.0.
+  # See commit message for a13217f333cc65fb602502ac446698dd74d10b7f.
   'org.spdx.sbom:org.spdx.sbom.gradle.plugin:0.2.0-r8-patch01',
   # See https://github.com/FasterXML/jackson-core/issues/999.
   'ch.randelshofer:fastdoubleparser:0.8.0',
@@ -204,13 +210,6 @@ def main():
             args, dependencies_path, repositories, BUILD_DEPENDENCIES + TEST_DEPENDENCIES)
         set_utime(dependencies_path)
         dependencies.append('dependencies')
-        dependencies_new_path = os.path.join(utils.THIRD_PARTY, 'dependencies_new')
-        remove_local_maven_repository(dependencies_new_path)
-        print("Downloading to " + dependencies_new_path)
-        create_local_maven_repository(
-           args, dependencies_new_path, repositories, NEW_DEPENDENCIES)
-        set_utime(dependencies_new_path)
-        dependencies.append('dependencies_new')
 
     upload_cmds = []
     for dependency in dependencies:

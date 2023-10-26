@@ -67,16 +67,15 @@ fun downloadFromGoogleStorage(outputDir : File) {
 
 val thirdParty = getRepoRoot().resolve("third_party")
 downloadFromGoogleStorage(thirdParty.resolve("dependencies"))
-downloadFromGoogleStorage(thirdParty.resolve("dependencies_new"))
 downloadFromGoogleStorage(thirdParty.resolve("dependencies_plugin"))
 
 pluginManagement {
   repositories {
     maven {
-      url = uri("file:../third_party/dependencies")
+      url = uri("file:../third_party/dependencies_plugin")
     }
     maven {
-      url = uri("file:../third_party/dependencies_new")
+      url = uri("file:../third_party/dependencies")
     }
   }
   includeBuild(rootProject.projectDir.resolve("commonBuildSrc"))
@@ -86,9 +85,6 @@ dependencyResolutionManagement {
   repositories {
     maven {
       url = uri("file:../third_party/dependencies")
-    }
-    maven {
-      url = uri("file:../third_party/dependencies_new")
     }
   }
 }
