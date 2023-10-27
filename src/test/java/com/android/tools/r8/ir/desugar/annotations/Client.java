@@ -9,9 +9,15 @@ public class Client {
     A a = new A().method();
     A b = new B().method();
     A c = new C().method();
+    D d = ((D) new F()).method();
+    D e = ((E) new F()).method();
+    D f = new F().method();
 
     System.out.println("a=" + a.getClass().getSimpleName());
     System.out.println("b=" + b.getClass().getSimpleName());
     System.out.println("c=" + c.getClass().getSimpleName());
+    System.out.println("d=" + d.getClass().getSimpleName());
+    System.out.println("e=" + e.getClass().getSimpleName());
+    System.out.println("f=" + f.getClass().getSimpleName());
   }
 }

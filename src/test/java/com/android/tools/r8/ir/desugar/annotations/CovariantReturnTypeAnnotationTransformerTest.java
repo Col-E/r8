@@ -52,7 +52,10 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
             ToolHelper.getClassAsBytes(Client.class),
             ToolHelper.getClassAsBytes(A.class),
             ToolHelper.getClassAsBytes(B.class),
-            ToolHelper.getClassAsBytes(C.class));
+            ToolHelper.getClassAsBytes(C.class),
+            ToolHelper.getClassAsBytes(D.class),
+            ToolHelper.getClassAsBytes(E.class),
+            ToolHelper.getClassAsBytes(F.class));
 
     // Version 1 does not contain annotations.
     checkPresenceOfCovariantAnnotations(input, false);
@@ -68,7 +71,10 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
             com.android.tools.r8.ir.desugar.annotations.version3.ClientDump.dump(),
             ToolHelper.getClassAsBytes(A.class),
             ToolHelper.getClassAsBytes(B.class),
-            ToolHelper.getClassAsBytes(C.class));
+            ToolHelper.getClassAsBytes(C.class),
+            ToolHelper.getClassAsBytes(D.class),
+            ToolHelper.getClassAsBytes(E.class),
+            ToolHelper.getClassAsBytes(F.class));
 
     // Version 1 does not contain annotations.
     checkPresenceOfCovariantAnnotations(input, false);
@@ -85,7 +91,10 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
             ToolHelper.getClassAsBytes(Client.class),
             ToolHelper.getClassAsBytes(A.class),
             com.android.tools.r8.ir.desugar.annotations.version2.BDump.dump(),
-            com.android.tools.r8.ir.desugar.annotations.version2.CDump.dump());
+            com.android.tools.r8.ir.desugar.annotations.version2.CDump.dump(),
+            ToolHelper.getClassAsBytes(D.class),
+            com.android.tools.r8.ir.desugar.annotations.version2.EDump.dump(),
+            com.android.tools.r8.ir.desugar.annotations.version2.FDump.dump());
 
     // Version 2 contains annotations.
     checkPresenceOfCovariantAnnotations(input, true);
@@ -101,7 +110,10 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
             com.android.tools.r8.ir.desugar.annotations.version3.ClientDump.dump(),
             ToolHelper.getClassAsBytes(A.class),
             com.android.tools.r8.ir.desugar.annotations.version2.BDump.dump(),
-            com.android.tools.r8.ir.desugar.annotations.version2.CDump.dump());
+            com.android.tools.r8.ir.desugar.annotations.version2.CDump.dump(),
+            ToolHelper.getClassAsBytes(D.class),
+            com.android.tools.r8.ir.desugar.annotations.version2.EDump.dump(),
+            com.android.tools.r8.ir.desugar.annotations.version2.FDump.dump());
 
     // Version 2 contains annotations.
     checkPresenceOfCovariantAnnotations(input, true);
@@ -122,7 +134,10 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
             com.android.tools.r8.ir.desugar.annotations.version3.ClientDump.dump(),
             ToolHelper.getClassAsBytes(A.class),
             com.android.tools.r8.ir.desugar.annotations.version3.BDump.dump(),
-            com.android.tools.r8.ir.desugar.annotations.version3.CDump.dump());
+            com.android.tools.r8.ir.desugar.annotations.version3.CDump.dump(),
+            ToolHelper.getClassAsBytes(D.class),
+            com.android.tools.r8.ir.desugar.annotations.version3.EDump.dump(),
+            com.android.tools.r8.ir.desugar.annotations.version3.FDump.dump());
 
     // Version 3 does not contain annotations.
     checkPresenceOfCovariantAnnotations(input, false);
@@ -138,7 +153,10 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
             ToolHelper.getClassAsBytes(Client.class),
             ToolHelper.getClassAsBytes(A.class),
             com.android.tools.r8.ir.desugar.annotations.version3.BDump.dump(),
-            com.android.tools.r8.ir.desugar.annotations.version3.CDump.dump());
+            com.android.tools.r8.ir.desugar.annotations.version3.CDump.dump(),
+            ToolHelper.getClassAsBytes(D.class),
+            com.android.tools.r8.ir.desugar.annotations.version3.EDump.dump(),
+            com.android.tools.r8.ir.desugar.annotations.version3.FDump.dump());
 
     // Version 3 does not contain annotations.
     checkPresenceOfCovariantAnnotations(input, false);
@@ -154,7 +172,10 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
             ToolHelper.getClassAsBytes(Client.class),
             ToolHelper.getClassAsBytes(A.class),
             com.android.tools.r8.ir.desugar.annotations.version2.BDump.dump(),
-            com.android.tools.r8.ir.desugar.annotations.version2.CDump.dump());
+            com.android.tools.r8.ir.desugar.annotations.version2.CDump.dump(),
+            ToolHelper.getClassAsBytes(D.class),
+            com.android.tools.r8.ir.desugar.annotations.version2.EDump.dump(),
+            com.android.tools.r8.ir.desugar.annotations.version2.FDump.dump());
 
     // Version 2 contains annotations.
     checkPresenceOfCovariantAnnotations(input, true);
@@ -248,7 +269,7 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
 
     // Check that the original methods are there, and that they are not synthetic.
     MethodSubject methodA =
-        clazzB.method(A.class.getCanonicalName(), "method", Collections.emptyList());
+        clazzA.method(A.class.getCanonicalName(), "method", Collections.emptyList());
     assertThat(methodA, isPresent());
     Assert.assertTrue(!methodA.getMethod().isSyntheticMethod());
 
@@ -278,9 +299,52 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
         clazzC.method(C.class.getCanonicalName(), "method", Collections.emptyList());
     assertThat(methodC3, isPresent());
     Assert.assertTrue(methodC3.getMethod().isSyntheticMethod());
+
+    // Get classes D, E, and F.
+    ClassSubject clazzD = inspector.clazz(D.class.getCanonicalName());
+    assertThat(clazzD, isPresent());
+
+    ClassSubject clazzE = inspector.clazz(E.class.getCanonicalName());
+    assertThat(clazzE, isPresent());
+
+    ClassSubject clazzF = inspector.clazz(F.class.getCanonicalName());
+    assertThat(clazzF, isPresent());
+
+    // Check that the original methods are there, and that they are not synthetic.
+    MethodSubject methodD =
+        clazzD.method(D.class.getCanonicalName(), "method", Collections.emptyList());
+    assertThat(methodD, isPresent());
+    Assert.assertTrue(!methodD.getMethod().isSyntheticMethod());
+
+    MethodSubject methodE =
+        clazzE.method(D.class.getCanonicalName(), "method", Collections.emptyList());
+    assertThat(methodE, isPresent());
+    Assert.assertTrue(!methodE.getMethod().isSyntheticMethod());
+
+    MethodSubject methodF =
+        clazzF.method(D.class.getCanonicalName(), "method", Collections.emptyList());
+    assertThat(methodF, isPresent());
+    Assert.assertTrue(!methodF.getMethod().isSyntheticMethod());
+
+    // Check that a synthetic method has been added to class E.
+    MethodSubject methodE2 =
+        clazzE.method(E.class.getCanonicalName(), "method", Collections.emptyList());
+    assertThat(methodE2, isPresent());
+    Assert.assertTrue(methodE2.getMethod().isSyntheticMethod());
+
+    // Check that two synthetic methods have been added to class F.
+    MethodSubject methodF2 =
+        clazzF.method(E.class.getCanonicalName(), "method", Collections.emptyList());
+    assertThat(methodF2, isPresent());
+    Assert.assertTrue(methodF2.getMethod().isSyntheticMethod());
+
+    MethodSubject methodF3 =
+        clazzF.method(F.class.getCanonicalName(), "method", Collections.emptyList());
+    assertThat(methodF3, isPresent());
+    Assert.assertTrue(methodF3.getMethod().isSyntheticMethod());
   }
 
   private String getExpectedOutput() {
-    return "a=A\nb=B\nc=C\n";
+    return "a=A\nb=B\nc=C\nd=F\ne=F\nf=F\n";
   }
 }

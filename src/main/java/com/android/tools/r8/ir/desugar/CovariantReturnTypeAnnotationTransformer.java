@@ -173,6 +173,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
     MethodAccessFlags newAccessFlags = methodDefinition.accessFlags.copy();
     newAccessFlags.setBridge();
     newAccessFlags.setSynthetic();
+    newAccessFlags.unsetAbstract(); // Synthetic bridge has code, so never abstract.
     DexMethod newMethod =
         factory.createMethod(methodHolder.getType(), newProto, methodReference.getName());
     ForwardMethodBuilder forwardMethodBuilder =
