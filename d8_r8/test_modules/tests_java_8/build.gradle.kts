@@ -137,13 +137,11 @@ tasks {
     systemProperty(
       "R8_RUNTIME_PATH",
       mainCompileTask.outputs.files.getAsPath().split(File.pathSeparator)[0] +
-        File.pathSeparator + mainDepsJarTask.outputs.files.singleFile +
-        File.pathSeparator + getRoot().resolveAll("src", "main", "resources"))
+        File.pathSeparator + mainDepsJarTask.outputs.files.singleFile)
     systemProperty(
       "RETRACE_RUNTIME_PATH",
       mainCompileTask.outputs.files.getAsPath().split(File.pathSeparator)[0] +
-        File.pathSeparator + mainDepsJarTask.outputs.files.singleFile +
-        File.pathSeparator + getRoot().resolveAll("src", "main", "resources"))
+        File.pathSeparator + mainDepsJarTask.outputs.files.singleFile)
     systemProperty("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
     systemProperty("com.android.tools.r8.artprofilerewritingcompletenesscheck", "true")
   }

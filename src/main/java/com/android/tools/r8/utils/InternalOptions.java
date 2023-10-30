@@ -102,7 +102,6 @@ import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.GlobalKeepInfoConfiguration;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
-import com.android.tools.r8.threading.ThreadingModule;
 import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
 import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -238,8 +237,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public List<Consumer<InspectorImpl>> outputInspections = Collections.emptyList();
 
-  private ThreadingModule lazyThreadingModule = null;
-
   // Constructor for testing and/or other utilities.
   public InternalOptions() {
     reporter = new Reporter();
@@ -288,13 +285,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
   }
 
-  public ThreadingModule getThreadingModule() {
-    if (lazyThreadingModule == null) {
-      lazyThreadingModule = ThreadingModule.Loader.load().create();
-    }
-    return lazyThreadingModule;
-  }
-
   private void keepDebugRelatedInformation() {
     assert !proguardConfiguration.isObfuscating();
     getProguardConfiguration().getKeepAttributes().sourceFile = true;
@@ -310,6 +300,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     protoShrinking.enableGeneratedMessageLiteBuilderShrinking = true;
     protoShrinking.enableGeneratedExtensionRegistryShrinking = true;
     protoShrinking.enableEnumLiteProtoShrinking = true;
+  }
+
+  public InternalOptions withModifications(Consumer<InternalOptions> consumer) {
+    consumer.accept(this);
+    return this;
   }
 
   void disableAllOptimizations() {

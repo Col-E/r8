@@ -1,2 +1,0 @@
-com.android.tools.r8.threading.providers.blocking.ThreadingModuleBlockingProvider
-com.android.tools.r8.threading.providers.singlethreaded.ThreadingModuleSingleThreadedProvider
