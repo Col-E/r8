@@ -40,7 +40,8 @@ public class AndroidResourceTestingUtils {
 
   enum RClassType {
     STRING,
-    DRAWABLE;
+    DRAWABLE,
+    XML;
 
     public static RClassType fromClass(Class clazz) {
       String type = rClassWithoutNamespaceAndOuter(clazz).substring(2);
@@ -72,6 +73,14 @@ public class AndroidResourceTestingUtils {
           + "    </application>\n"
           + "</manifest>\n"
           + "\n";
+
+  public static String XML_FILE_WITH_STRING_REFERENCE =
+      "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+          + "<paths>\n"
+          + "    <files-path\n"
+          + "        name=\"@string/%s\"\n"
+          + "        path=\"let/it/be\" />\n"
+          + "</paths>";
 
   public static class AndroidTestRClass {
     // The original aapt2 generated R.java class
@@ -201,6 +210,7 @@ public class AndroidResourceTestingUtils {
     private String manifest;
     private final Map<String, String> stringValues = new TreeMap<>();
     private final Map<String, byte[]> drawables = new TreeMap<>();
+    private final Map<String, String> xmlFiles = new TreeMap<>();
     private final List<Class<?>> classesToRemap = new ArrayList<>();
 
     // Create the android resources from the passed in R classes
@@ -227,6 +237,12 @@ public class AndroidResourceTestingUtils {
 
     AndroidTestResourceBuilder withManifest(String manifest) {
       this.manifest = manifest;
+      return this;
+    }
+
+    AndroidTestResourceBuilder addXmlWithStringReference(
+        String xmlName, String nameOfReferencedString) {
+      xmlFiles.put(xmlName, String.format(XML_FILE_WITH_STRING_REFERENCE, nameOfReferencedString));
       return this;
     }
 
@@ -263,6 +279,12 @@ public class AndroidResourceTestingUtils {
               drawableFolder.toPath().resolve(entry.getKey()), null, entry.getValue());
         }
       }
+      if (xmlFiles.size() > 0) {
+        File xmlFolder = temp.newFolder("res", "xml");
+        for (Entry<String, String> entry : xmlFiles.entrySet()) {
+          FileUtils.writeTextFile(xmlFolder.toPath().resolve(entry.getKey()), entry.getValue());
+        }
+      }
 
       Path output = temp.newFile("resources.zip").toPath();
       Path rClassOutputDir = temp.newFolder("aapt_R_class").toPath();
@@ -283,7 +305,7 @@ public class AndroidResourceTestingUtils {
       ZipUtils.iter(
           rClassClassFileOutput,
           (entry, input) -> {
-            if (ZipUtils.isClassFile(entry.getName())) {
+            if (ZipUtils.isClassFile(entry.getName()) && !entry.getName().endsWith("R.class")) {
               rewrittenRClassFiles.add(
                   transformer(StreamUtils.streamToByteArrayClose(input), null)
                       .addClassTransformer(
@@ -308,6 +330,23 @@ public class AndroidResourceTestingUtils {
                                   signature,
                                   superName,
                                   interfaces);
+                            }
+
+                            @Override
+                            public void visitNestHost(String nestHost) {
+                              // Don't make nest host relationsships
+                            }
+
+                            @Override
+                            public void visitOuterClass(
+                                String owner, String name, String descriptor) {
+                              // Don't make the inner<>outer class connection
+                            }
+
+                            @Override
+                            public void visitInnerClass(
+                                String name, String outerName, String innerName, int access) {
+                              // Don't make the inner<>outer class connection
                             }
                           })
                       .transform());

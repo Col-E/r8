@@ -20,6 +20,7 @@ import com.android.build.shrinker.usages.DexFileAnalysisCallback;
 import com.android.build.shrinker.usages.ProtoAndroidManifestUsageRecorderKt;
 import com.android.build.shrinker.usages.R8ResourceShrinker;
 import com.android.build.shrinker.usages.ToolsAttributeUsageRecorderKt;
+import com.android.ide.common.resources.ResourcesUtil;
 import com.android.ide.common.resources.usage.ResourceStore;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -122,7 +123,9 @@ public class LegacyResourceShrinker {
     ProtoAndroidManifestUsageRecorderKt.recordUsagesFromNode(
         XmlNode.parseFrom(manifest.bytes), model);
     for (PathAndBytes xmlInput : xmlInputs) {
-      ToolsAttributeUsageRecorderKt.processRawXml(getUtfReader(xmlInput.getBytes()), model);
+      if (xmlInput.path.startsWith("res/raw")) {
+        ToolsAttributeUsageRecorderKt.processRawXml(getUtfReader(xmlInput.getBytes()), model);
+      }
     }
     new ProtoResourcesGraphBuilder(
             new ResFolderFileTree() {
@@ -146,6 +149,10 @@ public class LegacyResourceShrinker {
     ResourceStore resourceStore = model.getResourceStore();
     resourceStore.processToolsAttributes();
     model.keepPossiblyReferencedResources();
+    // Transitively mark the reachable resources in the model.
+    // Finds unused resources in provided resources collection.
+    // Marks all used resources as 'reachable' in original collection.
+    ResourcesUtil.findUnusedResources(model.getResourceStore().getResources(), x -> {});
     ImmutableSet.Builder<String> resEntriesToKeep = new ImmutableSet.Builder<>();
     for (PathAndBytes xmlInput : Iterables.concat(xmlInputs, resFolderInputs)) {
       if (ResourceShrinkerImplKt.isJarPathReachable(resourceStore, xmlInput.path.toString())) {
