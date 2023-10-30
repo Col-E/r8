@@ -437,7 +437,7 @@ def prepare_google3(args):
                 result = re.search(version_match_regexp, line)
                 if result:
                     match_count = match_count + 1
-            if match_count != 7:
+            if match_count != 8:
                 print((
                     "Could not find the previous -dev release string to replace in "
                     + "METADATA. Expected to find is mentioned 7 times, but " +
