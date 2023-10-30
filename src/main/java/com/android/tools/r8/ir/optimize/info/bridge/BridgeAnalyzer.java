@@ -24,6 +24,8 @@ import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.SetUtils;
+import java.util.Set;
 
 public class BridgeAnalyzer {
 
@@ -36,12 +38,11 @@ public class BridgeAnalyzer {
     InvokeMethodWithReceiver uniqueInvoke = null;
     CheckCast uniqueReturnCast = null;
     InstructionListIterator instructionIterator = code.entryBlock().listIterator(code);
+    Set<BasicBlock> seenBlocks = null;
     while (instructionIterator.hasNext()) {
       Instruction instruction = instructionIterator.next();
       switch (instruction.opcode()) {
         case ARGUMENT:
-          break;
-
         case ASSUME:
           break;
 
@@ -82,6 +83,13 @@ public class BridgeAnalyzer {
             Goto gotoInstruction = instruction.asGoto();
             BasicBlock targetBlock = gotoInstruction.getTarget();
             if (targetBlock.hasCatchHandlers()) {
+              return failure();
+            }
+            if (seenBlocks == null) {
+              assert gotoInstruction.getBlock().isEntry();
+              seenBlocks = SetUtils.newIdentityHashSet(code.entryBlock());
+            }
+            if (!seenBlocks.add(targetBlock)) {
               return failure();
             }
             instructionIterator = targetBlock.listIterator(code);
