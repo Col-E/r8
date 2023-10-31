@@ -243,7 +243,7 @@ class ResourceShrinkerImpl(
         }
         zos.putNextEntry(outEntry)
         if (!entry.isDirectory) {
-            zos.write(ByteStreams.toByteArray(zis))
+            zis.transferTo(zos);
         }
         zos.closeEntry()
     }

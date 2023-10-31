@@ -174,6 +174,9 @@ public class ResourceShrinkerCli {
         resourceUsageRecorders.add(
                 new ProtoAndroidManifestUsageRecorder(
                         fileSystemProto.getPath(ANDROID_MANIFEST_XML)));
+        for (String rawResource : options.getRawResources()) {
+            resourceUsageRecorders.add(new ToolsAttributeUsageRecorder(Paths.get(rawResource)));
+        }
         // If the apk contains a raw folder, find keep rules in there
         if (new ZipFile(options.getInput())
                 .stream().anyMatch(zipEntry -> zipEntry.getName().startsWith("res/raw"))) {
