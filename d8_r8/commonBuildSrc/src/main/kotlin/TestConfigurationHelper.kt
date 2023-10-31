@@ -18,7 +18,7 @@ class TestConfigurationHelper {
 
     fun retrace(project: Project, r8jar: File, mappingFile: File, exception: Throwable): String {
       val out = StringBuilder()
-      val header = "RETRACED STACKTRACE";
+      val header = "RETRACED STACKTRACE: " + System.currentTimeMillis()
       out.append("\n--------------------------------------\n")
       out.append("${header}\n")
       out.append("--------------------------------------\n")
@@ -32,12 +32,12 @@ class TestConfigurationHelper {
       val process = ProcessBuilder(command).start()
       process.outputStream.use { exception.printStackTrace(PrintStream(it)) }
       process.outputStream.close()
-      val processCompleted = process.waitFor(10L, TimeUnit.SECONDS)
+      val processCompleted = process.waitFor(20L, TimeUnit.SECONDS)
         && process.exitValue() == 0
       out.append(process.inputStream.bufferedReader().use { it.readText() })
       if (!processCompleted) {
         out.append(command.joinToString(" ") + "\n")
-        out.append("ERROR DURING RETRACING\n")
+        out.append("ERROR DURING RETRACING: " + System.currentTimeMillis() + "\n")
         out.append(process.errorStream.bufferedReader().use { it.readText() })
       }
       if (project.hasProperty("print_obfuscated_stacktraces") || !processCompleted) {
