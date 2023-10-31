@@ -136,10 +136,10 @@ tasks {
   }
 
   fun Exec.assembleR8Lib(
-          inputJarProvider: Task,
-          generatedKeepRulesProvider: TaskProvider<Exec>,
-          lib: List<File>,
-          artifactName: String) {
+    inputJarProvider: Task,
+    generatedKeepRulesProvider: TaskProvider<Exec>,
+    classpath: List<File>,
+    artifactName: String) {
     dependsOn(generatedKeepRulesProvider, inputJarProvider, r8WithRelocatedDepsTask)
     val inputJar = inputJarProvider.getSingleOutputFile()
     val r8WithRelocatedDepsJar = r8WithRelocatedDepsTask.getSingleOutputFile()
@@ -148,17 +148,17 @@ tasks {
             generatedKeepRulesProvider.getSingleOutputFile(),
             // TODO(b/294351878): Remove once enum issue is fixed
             getRoot().resolveAll("src", "main", "keep_r8resourceshrinker.txt"))
-    inputs.files(listOf(r8WithRelocatedDepsJar, inputJar).union(keepRuleFiles).union(lib))
+    inputs.files(listOf(r8WithRelocatedDepsJar, inputJar).union(keepRuleFiles).union(classpath))
     val outputJar = getRoot().resolveAll("build", "libs", artifactName)
     outputs.file(outputJar)
     commandLine = createR8LibCommandLine(
-            r8WithRelocatedDepsJar,
-            inputJar,
-            outputJar,
-            keepRuleFiles,
-            excludingDepsVariant = lib.isNotEmpty(),
-            debugVariant = false,
-            lib = lib)
+      r8WithRelocatedDepsJar,
+      inputJar,
+      outputJar,
+      keepRuleFiles,
+      excludingDepsVariant = classpath.isNotEmpty(),
+      debugVariant = false,
+      classpath = classpath)
   }
 
   val assembleR8LibNoDeps by registering(Exec::class) {

@@ -26,6 +26,7 @@ plugins {
 java {
   sourceSets.main.configure {
     java.srcDir(getRoot().resolveAll("src", "main", "java"))
+    resources.srcDirs(getRoot().resolveAll("src", "main", "resources"))
     resources.srcDirs(getRoot().resolveAll("third_party", "api_database", "api_database"))
   }
   sourceCompatibility = JvmCompatibility.sourceCompatibility
@@ -199,6 +200,7 @@ tasks {
     dependsOn(resourceShrinkerJarTask)
     dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
     from(sourceSets.main.get().output)
+    exclude("com/android/tools/r8/threading/providers/**")
     from(keepAnnoJarTask.outputs.files.map(::zipTree))
     from(resourceShrinkerJarTask.outputs.files.map(::zipTree))
     from(getRoot().resolve("LICENSE"))
@@ -212,9 +214,27 @@ tasks {
     archiveFileName.set("r8-full-exclude-deps.jar")
   }
 
+  val threadingModuleBlockingJar by registering(Zip::class) {
+    from(sourceSets.main.get().output)
+    include("com/android/tools/r8/threading/providers/blocking/**")
+    destinationDirectory.set(getRoot().resolveAll("build", "libs"))
+    archiveFileName.set("threading-module-blocking.jar")
+  }
+
+  val threadingModuleSingleThreadedJar by registering(Zip::class) {
+    from(sourceSets.main.get().output)
+    include("com/android/tools/r8/threading/providers/singlethreaded/**")
+    destinationDirectory.set(getRoot().resolveAll("build", "libs"))
+    archiveFileName.set("threading-module-single-threaded.jar")
+  }
+
   val depsJar by registering(Zip::class) {
     dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
     dependsOn(resourceShrinkerDepsTask)
+    dependsOn(threadingModuleBlockingJar)
+    dependsOn(threadingModuleSingleThreadedJar)
+    from(threadingModuleBlockingJar.get().outputs.getFiles().map(::zipTree))
+    from(threadingModuleSingleThreadedJar.get().outputs.getFiles().map(::zipTree))
     from(mainJarDependencies().map(::zipTree))
     from(resourceShrinkerDepsTask.outputs.files.map(::zipTree))
     from(consolidatedLicense)

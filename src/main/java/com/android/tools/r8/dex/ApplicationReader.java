@@ -36,6 +36,7 @@ import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.threading.TaskCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ClassProvider;
@@ -47,7 +48,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LibraryClassCollection;
 import com.android.tools.r8.utils.MainDexListParser;
 import com.android.tools.r8.utils.StringDiagnostic;
-import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -61,7 +61,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 public class ApplicationReader {
@@ -129,8 +128,8 @@ public class ApplicationReader {
 
     timing.begin("DexApplication.read");
     final LazyLoadedDexApplication.Builder builder = DexApplication.builder(options, timing);
+    TaskCollection<?> tasks = new TaskCollection<>(options, executorService);
     try {
-      List<Future<?>> futures = new ArrayList<>();
       // Still preload some of the classes, primarily for two reasons:
       // (a) class lazy loading is not supported for DEX files
       //     now and current implementation of parallel DEX file
@@ -138,10 +137,10 @@ public class ApplicationReader {
       // (b) some of the class file resources don't provide information
       //     about class descriptor.
       // TODO: try and preload less classes.
-      readProguardMap(proguardMap, builder, executorService, futures);
-      ClassReader classReader = new ClassReader(executorService, futures);
+      readProguardMap(proguardMap, builder, tasks);
+      ClassReader classReader = new ClassReader(tasks);
       classReader.readSources();
-      ThreadUtils.awaitFutures(futures);
+      tasks.await();
       flags = classReader.getDexApplicationReadFlags();
       builder.setFlags(flags);
       classReader.initializeLazyClassCollection(builder);
@@ -268,34 +267,30 @@ public class ApplicationReader {
   }
 
   private void readProguardMap(
-      StringResource map,
-      DexApplication.Builder<?> builder,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
+      StringResource map, DexApplication.Builder<?> builder, TaskCollection<?> tasks)
+      throws ExecutionException {
     // Read the Proguard mapping file in parallel with DexCode and DexProgramClass items.
     if (map == null) {
       return;
     }
-    futures.add(
-        executorService.submit(
-            () -> {
-              try {
-                builder.setProguardMap(
-                    ClassNameMapper.mapperFromString(
-                        map.getString(),
-                        options.reporter,
-                        options.mappingComposeOptions().allowEmptyMappedRanges,
-                        options.testing.enableExperimentalMapFileVersion,
-                        true));
-              } catch (IOException | ResourceException e) {
-                throw new CompilationError("Failure to read proguard map file", e, map.getOrigin());
-              }
-            }));
+    tasks.submit(
+        () -> {
+          try {
+            builder.setProguardMap(
+                ClassNameMapper.mapperFromString(
+                    map.getString(),
+                    options.reporter,
+                    options.mappingComposeOptions().allowEmptyMappedRanges,
+                    options.testing.enableExperimentalMapFileVersion,
+                    true));
+          } catch (IOException | ResourceException e) {
+            throw new CompilationError("Failure to read proguard map file", e, map.getOrigin());
+          }
+        });
   }
 
   private final class ClassReader {
-    private final ExecutorService executorService;
-    private final List<Future<?>> futures;
+    private final TaskCollection<?> tasks;
 
     // We use concurrent queues to collect classes
     // since the classes can be collected concurrently.
@@ -315,9 +310,8 @@ public class ApplicationReader {
     private boolean hasReadProgramResourceFromCf = false;
     private boolean hasReadProgramResourceFromDex = false;
 
-    ClassReader(ExecutorService executorService, List<Future<?>> futures) {
-      this.executorService = executorService;
-      this.futures = futures;
+    ClassReader(TaskCollection<?> tasks) {
+      this.tasks = tasks;
     }
 
     public DexApplicationReadFlags getDexApplicationReadFlags() {
@@ -328,7 +322,7 @@ public class ApplicationReader {
     }
 
     private void readDexSources(List<ProgramResource> dexSources, Queue<DexProgramClass> classes)
-        throws IOException, ResourceException {
+        throws IOException, ResourceException, ExecutionException {
       if (dexSources.isEmpty()) {
         return;
       }
@@ -367,13 +361,11 @@ public class ApplicationReader {
         ApplicationReaderMap applicationReaderMap = ApplicationReaderMap.getInstance(options);
         if (!options.testing.dexContainerExperiment) {
           for (DexParser<DexProgramClass> dexParser : dexParsers) {
-            futures.add(
-                executorService.submit(
-                    () -> {
-                      dexParser.addClassDefsTo(
-                          classes::add,
-                          applicationReaderMap); // Depends on Methods, Code items etc.
-                    }));
+            tasks.submit(
+                () -> {
+                  dexParser.addClassDefsTo(
+                      classes::add, applicationReaderMap); // Depends on Methods, Code items etc.
+                });
           }
         } else {
           // All Dex parsers use the same DEX reader, so don't process in parallel.
@@ -430,7 +422,8 @@ public class ApplicationReader {
     }
 
     private void readClassSources(
-        List<ProgramResource> classSources, Queue<DexProgramClass> classes) {
+        List<ProgramResource> classSources, Queue<DexProgramClass> classes)
+        throws ExecutionException {
       if (classSources.isEmpty()) {
         return;
       }
@@ -447,18 +440,11 @@ public class ApplicationReader {
               PROGRAM);
       // Read classes in parallel.
       for (ProgramResource input : classSources) {
-        futures.add(
-            executorService.submit(
-                () -> {
-                  reader.read(input);
-                  // No other way to have a void callable, but we want the IOException from read
-                  // to be wrapped into an ExecutionException.
-                  return null;
-                }));
+        tasks.submit(() -> reader.read(input));
       }
     }
 
-    void readSources() throws IOException, ResourceException {
+    void readSources() throws IOException, ResourceException, ExecutionException {
       Collection<ProgramResource> resources = inputApp.computeAllProgramResources();
       List<ProgramResource> dexResources = new ArrayList<>(resources.size());
       List<ProgramResource> cfResources = new ArrayList<>(resources.size());
