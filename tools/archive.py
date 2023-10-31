@@ -173,6 +173,8 @@ def Run(options):
                 utils.GRADLE_TASK_CONSOLIDATED_LICENSE,
                 utils.GRADLE_TASK_KEEP_ANNO_JAR, utils.GRADLE_TASK_R8,
                 utils.GRADLE_TASK_R8LIB, utils.GRADLE_TASK_R8LIB_NO_DEPS,
+                utils.GRADLE_TASK_THREADING_MODULE_BLOCKING,
+                utils.GRADLE_TASK_THREADING_MODULE_SINGLE_THREADED,
                 utils.GRADLE_TASK_RETRACE, utils.GRADLE_TASK_RETRACE_NO_DEPS,
                 utils.GRADLE_TASK_SOURCE_JAR,
                 utils.GRADLE_TASK_SWISS_ARMY_KNIFE, '-Pno_internal'
@@ -233,6 +235,8 @@ def Run(options):
             utils.R8LIB_JAR + '_map.zip', utils.R8_FULL_EXCLUDE_DEPS_JAR,
             utils.R8LIB_EXCLUDE_DEPS_JAR, utils.R8LIB_EXCLUDE_DEPS_JAR + '.map',
             utils.R8LIB_EXCLUDE_DEPS_JAR + '_map.zip', utils.MAVEN_ZIP_LIB,
+            utils.THREADING_MODULE_BLOCKING_JAR,
+            utils.THREADING_MODULE_SINGLE_THREADED_JAR,
             utils.DESUGAR_CONFIGURATION, utils.DESUGAR_CONFIGURATION_MAVEN_ZIP,
             utils.DESUGAR_CONFIGURATION_JDK11_LEGACY,
             utils.DESUGAR_CONFIGURATION_JDK11_LEGACY_MAVEN_ZIP,
