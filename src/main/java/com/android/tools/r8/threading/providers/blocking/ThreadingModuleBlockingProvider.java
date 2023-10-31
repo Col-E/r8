@@ -4,9 +4,11 @@
 
 package com.android.tools.r8.threading.providers.blocking;
 
+import com.android.tools.r8.Keep;
 import com.android.tools.r8.threading.ThreadingModule;
 import com.android.tools.r8.threading.ThreadingModuleProvider;
 
+@Keep
 public class ThreadingModuleBlockingProvider implements ThreadingModuleProvider {
 
   @Override
