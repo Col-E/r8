@@ -26,7 +26,6 @@ plugins {
 java {
   sourceSets.main.configure {
     java.srcDir(getRoot().resolveAll("src", "main", "java"))
-    resources.srcDirs(getRoot().resolveAll("src", "main", "resources"))
     resources.srcDirs(getRoot().resolveAll("third_party", "api_database", "api_database"))
   }
   sourceCompatibility = JvmCompatibility.sourceCompatibility

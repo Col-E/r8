@@ -5,10 +5,8 @@
 package com.android.tools.r8.threading;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.errors.Unreachable;
-import java.util.Iterator;
+import com.android.tools.r8.errors.CompilationError;
 import java.util.List;
-import java.util.ServiceLoader;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -29,15 +27,26 @@ public interface ThreadingModule {
 
   class Loader {
 
+    // Splitting up the names to make reflective identification unlikely.
+    private static final String PACKAGE = "com.android.tools.r8.threading.providers";
+    private static final String[] IMPLEMENTATIONS = {
+      "blocking.ThreadingModuleBlockingProvider",
+      "singlethreaded.ThreadingModuleSingleThreadedProvider"
+    };
+
     public static ThreadingModuleProvider load() {
-      ServiceLoader<ThreadingModuleProvider> providers =
-          ServiceLoader.load(ThreadingModuleProvider.class);
-      // Don't use `Optional findFirst()` here as it hits a desugared-library issue.
-      Iterator<ThreadingModuleProvider> iterator = providers.iterator();
-      if (iterator.hasNext()) {
-        return iterator.next();
+      for (String implementation : IMPLEMENTATIONS) {
+        String name = PACKAGE + "." + implementation;
+        try {
+          Class<?> providerClass = Class.forName(name);
+          return (ThreadingModuleProvider) providerClass.getDeclaredConstructor().newInstance();
+        } catch (ClassNotFoundException ignored) {
+          continue;
+        } catch (ReflectiveOperationException e) {
+          throw new CompilationError("Failure creating provider for the threading module", e);
+        }
       }
-      throw new Unreachable("Failure to service-load a provider for the threading module");
+      throw new CompilationError("Failure to find a provider for the threading module");
     }
   }
 }
