@@ -106,7 +106,7 @@ def compile_with_memory_min_command(app_data):
 
 CLEAN_COMMANDS = [
     # Make sure we have a clean build to not be polluted by old test files
-    ['tools/gradle.py', 'clean', '--new-gradle'],
+    ['tools/gradle.py', 'clean'],
 ]
 
 # TODO(b/210982978): Enable testing of min xmx again
