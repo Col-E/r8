@@ -34,7 +34,6 @@ import com.android.tools.r8.keepanno.ast.KeepFieldAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldTypePattern;
-import com.android.tools.r8.keepanno.ast.KeepItemKind;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemReference;
 import com.android.tools.r8.keepanno.ast.KeepMemberAccessPattern;
@@ -491,10 +490,8 @@ public class KeepEdgeReader implements Opcodes {
         if (!descriptor.equals(itemDescriptor)) {
           throw new KeepEdgeException("@KeepForApi must reference its class context " + className);
         }
-        if (itemPattern.getKind().equals(KeepItemKind.ONLY_MEMBERS)) {
-          if (items.size() == 1) {
+        if (itemPattern.isMemberItemPattern() && items.size() == 1) {
             throw new KeepEdgeException("@KeepForApi kind must include its class");
-          }
         }
         if (!itemPattern.getExtendsPattern().isAny()) {
           throw new KeepEdgeException("@KeepForApi cannot define an 'extends' pattern.");
@@ -668,10 +665,8 @@ public class KeepEdgeReader implements Opcodes {
           throw new KeepEdgeException(
               "@" + getAnnotationName() + " must reference its class context " + className);
         }
-        if (itemPattern.getKind().equals(KeepItemKind.ONLY_MEMBERS)) {
-          if (items.size() == 1) {
-            throw new KeepEdgeException("@" + getAnnotationName() + " kind must include its class");
-          }
+        if (itemPattern.isMemberItemPattern() && items.size() == 1) {
+          throw new KeepEdgeException("@" + getAnnotationName() + " kind must include its class");
         }
         if (!itemPattern.getExtendsPattern().isAny()) {
           throw new KeepEdgeException(
@@ -701,7 +696,7 @@ public class KeepEdgeReader implements Opcodes {
     private final KeepEdgeMetaInfo.Builder metaInfoBuilder = KeepEdgeMetaInfo.builder();
     private final UserBindingsHelper bindingsHelper = new UserBindingsHelper();
     private final KeepConsequences.Builder consequences = KeepConsequences.builder();
-    private KeepItemKind kind = KeepItemKind.ONLY_MEMBERS;
+    private String kind = Kind.ONLY_MEMBERS;
 
     UsedByReflectionMemberVisitor(
         String annotationDescriptor,
@@ -739,13 +734,9 @@ public class KeepEdgeReader implements Opcodes {
           // The default value is obtained by not assigning a kind (e.g., null in the builder).
           break;
         case Kind.ONLY_CLASS:
-          kind = KeepItemKind.ONLY_CLASS;
-          break;
         case Kind.ONLY_MEMBERS:
-          kind = KeepItemKind.ONLY_MEMBERS;
-          break;
         case Kind.CLASS_AND_MEMBERS:
-          kind = KeepItemKind.CLASS_AND_MEMBERS;
+          kind = value;
           break;
         default:
           super.visitEnum(name, descriptor, value);
@@ -771,11 +762,11 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public void visitEnd() {
-      if (kind.equals(KeepItemKind.ONLY_CLASS)) {
+      if (Kind.ONLY_CLASS.equals(kind)) {
         throw new KeepEdgeException("@" + getAnnotationName() + " kind must include its member");
       }
-      assert context.getKind() == KeepItemKind.ONLY_MEMBERS;
-      if (kind.equals(KeepItemKind.CLASS_AND_MEMBERS)) {
+      assert context.isMemberItemPattern();
+      if (Kind.CLASS_AND_MEMBERS.equals(kind)) {
         consequences.addTarget(
             KeepTarget.builder()
                 .setItemPattern(
@@ -1436,21 +1427,24 @@ public class KeepEdgeReader implements Opcodes {
         assert !itemReference.isBindingReference();
         KeepItemPattern itemPattern = itemReference.asItemPattern();
         KeepItemPattern classPattern;
+        KeepItemPattern memberPattern;
         if (itemPattern.isClassItemPattern()) {
           classPattern = itemPattern;
+          memberPattern =
+              KeepItemPattern.builder()
+                  .copyFrom(itemPattern)
+                  .setMemberPattern(KeepMemberPattern.allMembers())
+                  .build();
         } else {
+          memberPattern = itemPattern;
           classPattern =
               KeepItemPattern.builder()
                   .copyFrom(itemPattern)
-                  .setKind(KeepItemKind.ONLY_CLASS)
                   .setMemberPattern(KeepMemberPattern.none())
                   .build();
         }
-        KeepItemPattern memberPattern =
-            KeepItemPattern.builder()
-                .copyFrom(itemPattern)
-                .setKind(KeepItemKind.ONLY_MEMBERS)
-                .build();
+        assert classPattern.isClassItemPattern();
+        assert memberPattern.isMemberItemPattern();
         return ImmutableList.of(
             KeepItemReference.fromItemPattern(classPattern),
             KeepItemReference.fromItemPattern(memberPattern));
@@ -1470,27 +1464,31 @@ public class KeepEdgeReader implements Opcodes {
       assert kind != null;
       if (Kind.CLASS_AND_MEMBERS.equals(kind)) {
         KeepItemPattern itemPattern = itemReference.asItemPattern();
+        KeepMemberPattern memberPattern;
         KeepItemPattern classPattern;
         if (itemPattern.isClassItemPattern()) {
+          memberPattern = KeepMemberPattern.allMembers();
           classPattern = itemPattern;
         } else {
+          memberPattern = itemPattern.getMemberPattern();
           classPattern =
               KeepItemPattern.builder()
                   .copyFrom(itemPattern)
-                  .setKind(KeepItemKind.ONLY_CLASS)
                   .setMemberPattern(KeepMemberPattern.none())
                   .build();
         }
         BindingSymbol symbol = getBindingsHelper().defineFreshBinding("CLASS", classPattern);
-        KeepItemPattern memberPattern =
+        KeepItemPattern memberItemPattern =
             KeepItemPattern.builder()
                 .copyFrom(itemPattern)
                 .setClassReference(KeepClassReference.fromBindingReference(symbol))
-                .setKind(KeepItemKind.ONLY_MEMBERS)
+                .setMemberPattern(memberPattern)
                 .build();
+        assert classPattern.isClassItemPattern();
+        assert memberItemPattern.isMemberItemPattern();
         return ImmutableList.of(
             KeepItemReference.fromItemPattern(classPattern),
-            KeepItemReference.fromItemPattern(memberPattern));
+            KeepItemReference.fromItemPattern(memberItemPattern));
       } else {
         return Collections.singletonList(itemReference);
       }

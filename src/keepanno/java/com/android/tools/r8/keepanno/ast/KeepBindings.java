@@ -45,26 +45,6 @@ public class KeepBindings {
     bindings.forEach((name, binding) -> fn.accept(name, binding.getItem()));
   }
 
-  public boolean isAny(KeepItemReference itemReference) {
-    return itemReference.isBindingReference()
-        ? isAny(get(itemReference.asBindingReference()).getItem())
-        : isAny(itemReference.asItemPattern());
-  }
-
-  public boolean isAny(KeepItemPattern itemPattern) {
-    return itemPattern.isAny(this::isAnyClassNamePattern);
-  }
-
-  // If the outer-most item has been judged to be "any" then we internally only need to check
-  // that the class-name pattern itself is "any". The class-name could potentially reference names
-  // of other item bindings so this is a recursive search.
-  private boolean isAnyClassNamePattern(BindingSymbol bindingName) {
-    KeepClassReference classReference = get(bindingName).getItem().getClassReference();
-    return classReference.isBindingReference()
-        ? isAnyClassNamePattern(classReference.asBindingReference())
-        : classReference.asClassNamePattern().isAny();
-  }
-
   @Override
   public String toString() {
     return "{"

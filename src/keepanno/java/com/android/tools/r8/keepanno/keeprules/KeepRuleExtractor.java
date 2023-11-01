@@ -297,15 +297,6 @@ public class KeepRuleExtractor {
     List<BindingSymbol> targetMembers = new ArrayList<>();
     for (BindingSymbol targetReference : targets) {
       KeepItemPattern item = bindings.get(targetReference).getItem();
-      if (bindings.isAny(item)) {
-        // If the target is "any item" then it contains any other target pattern.
-        memberPatterns.put(targetReference, item.getMemberPattern());
-        callback.accept(
-            memberPatterns,
-            Collections.singletonList(targetReference),
-            TargetKeepKind.CLASS_OR_MEMBERS);
-        return;
-      }
       if (item.isClassItemPattern()) {
         keepKind = TargetKeepKind.CLASS_AND_MEMBERS;
       } else {

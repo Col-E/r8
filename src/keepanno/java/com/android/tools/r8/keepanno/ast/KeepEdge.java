@@ -37,11 +37,7 @@ package com.android.tools.r8.keepanno.ast;
  *   ITEM_REFERENCE  ::= BINDING_REFERENCE | ITEM_PATTERN
  *   CLASS_REFERENCE ::= BINDING_REFERENCE | QUALIFIED_CLASS_NAME_PATTERN
  *
- *   ITEM_PATTERN
- *     ::= any
- *       | ITEM_KIND class CLASS_REFERENCE extends EXTENDS_PATTERN { MEMBER_PATTERN }
- *
- *   ITEM_KIND ::= ONLY_CLASS | ONLY_MEMBERS | CLASS_AND_MEMBERS
+ *   ITEM_PATTERN ::= class CLASS_REFERENCE extends EXTENDS_PATTERN { MEMBER_PATTERN }
  *
  *   TYPE_PATTERN ::= any | exact type-descriptor
  *   PACKAGE_PATTERN ::= any | exact package-name

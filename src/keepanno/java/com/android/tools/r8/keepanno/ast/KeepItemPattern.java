@@ -6,7 +6,6 @@ package com.android.tools.r8.keepanno.ast;
 import com.android.tools.r8.keepanno.ast.KeepBindings.BindingSymbol;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.function.Predicate;
 
 /**
  * A pattern for matching items in the program.
@@ -20,29 +19,28 @@ import java.util.function.Predicate;
  */
 public class KeepItemPattern {
 
-  public static KeepItemPattern any() {
-    return builder().any().build();
+  public static KeepItemPattern anyClass() {
+    return builder().setMemberPattern(KeepMemberPattern.none()).build();
+  }
+
+  public static KeepItemPattern anyMember() {
+    return builder().setMemberPattern(KeepMemberPattern.allMembers()).build();
   }
 
   public static Builder builder() {
     return new Builder();
   }
 
-  public boolean isClassAndMemberPattern() {
-    return kind == KeepItemKind.CLASS_AND_MEMBERS;
-  }
-
   public boolean isClassItemPattern() {
-    return kind == KeepItemKind.ONLY_CLASS;
+    return memberPattern.isNone();
   }
 
   public boolean isMemberItemPattern() {
-    return kind == KeepItemKind.ONLY_MEMBERS;
+    return !isClassItemPattern();
   }
 
   public static class Builder {
 
-    private KeepItemKind kind = null;
     private KeepClassReference classReference =
         KeepClassReference.fromClassNamePattern(KeepQualifiedClassNamePattern.any());
     private KeepExtendsPattern extendsPattern = KeepExtendsPattern.any();
@@ -51,23 +49,9 @@ public class KeepItemPattern {
     private Builder() {}
 
     public Builder copyFrom(KeepItemPattern pattern) {
-      return setKind(pattern.getKind())
-          .setClassReference(pattern.getClassReference())
+      return setClassReference(pattern.getClassReference())
           .setExtendsPattern(pattern.getExtendsPattern())
           .setMemberPattern(pattern.getMemberPattern());
-    }
-
-    public Builder any() {
-      kind = KeepItemKind.CLASS_AND_MEMBERS;
-      classReference = KeepClassReference.fromClassNamePattern(KeepQualifiedClassNamePattern.any());
-      extendsPattern = KeepExtendsPattern.any();
-      memberPattern = KeepMemberPattern.allMembers();
-      return this;
-    }
-
-    public Builder setKind(KeepItemKind kind) {
-      this.kind = kind;
-      return this;
     }
 
     public Builder setClassReference(KeepClassReference classReference) {
@@ -90,54 +74,25 @@ public class KeepItemPattern {
     }
 
     public KeepItemPattern build() {
-      if (kind == null) {
-        kind = memberPattern.isNone() ? KeepItemKind.ONLY_CLASS : KeepItemKind.ONLY_MEMBERS;
-      }
-      if (kind == KeepItemKind.ONLY_CLASS && !memberPattern.isNone()) {
-        throw new KeepEdgeException(
-            "Invalid kind ONLY_CLASS for item with member pattern: " + memberPattern);
-      }
-      if (kind == KeepItemKind.ONLY_MEMBERS && memberPattern.isNone()) {
-        throw new KeepEdgeException("Invalid kind ONLY_MEMBERS for item with no member pattern");
-      }
-      if (kind == KeepItemKind.CLASS_AND_MEMBERS && memberPattern.isNone()) {
-        throw new KeepEdgeException(
-            "Invalid kind CLASS_AND_MEMBERS for item with no member pattern");
-      }
-      return new KeepItemPattern(kind, classReference, extendsPattern, memberPattern);
+      return new KeepItemPattern(classReference, extendsPattern, memberPattern);
     }
   }
 
-  private final KeepItemKind kind;
   private final KeepClassReference classReference;
   private final KeepExtendsPattern extendsPattern;
   private final KeepMemberPattern memberPattern;
   // TODO: class annotations
 
   private KeepItemPattern(
-      KeepItemKind kind,
       KeepClassReference classReference,
       KeepExtendsPattern extendsPattern,
       KeepMemberPattern memberPattern) {
-    assert kind != null;
     assert classReference != null;
     assert extendsPattern != null;
     assert memberPattern != null;
-    this.kind = kind;
     this.classReference = classReference;
     this.extendsPattern = extendsPattern;
     this.memberPattern = memberPattern;
-  }
-
-  public boolean isAny(Predicate<BindingSymbol> onReference) {
-    return kind.equals(KeepItemKind.CLASS_AND_MEMBERS)
-        && extendsPattern.isAny()
-        && memberPattern.isAllMembers()
-        && classReference.isAny(onReference);
-  }
-
-  public KeepItemKind getKind() {
-    return kind;
   }
 
   public KeepClassReference getClassReference() {
@@ -157,37 +112,40 @@ public class KeepItemPattern {
   }
 
   @Override
-  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
-    if (obj == null || getClass() != obj.getClass()) {
+    if (!(obj instanceof KeepItemPattern)) {
       return false;
     }
     KeepItemPattern that = (KeepItemPattern) obj;
-    return kind.equals(that.kind)
-        && classReference.equals(that.classReference)
+    return classReference.equals(that.classReference)
         && extendsPattern.equals(that.extendsPattern)
         && memberPattern.equals(that.memberPattern);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(kind, classReference, extendsPattern, memberPattern);
+    return Objects.hash(classReference, extendsPattern, memberPattern);
   }
 
   @Override
   public String toString() {
-    return "KeepClassPattern{"
-        + "kind="
-        + kind
-        + ", classReference="
-        + classReference
-        + ", extendsPattern="
-        + extendsPattern
-        + ", memberPattern="
-        + memberPattern
-        + '}';
+    StringBuilder builder = new StringBuilder();
+    if (isClassItemPattern()) {
+      builder.append("KeepClassPattern");
+    } else {
+      assert isMemberItemPattern();
+      builder.append("KeepMemberPattern");
+    }
+    builder.append("{ class=").append(classReference);
+    if (!extendsPattern.isAny()) {
+      builder.append(", extends=").append(extendsPattern);
+    }
+    if (!memberPattern.isNone()) {
+      builder.append(", members=").append(memberPattern);
+    }
+    return builder.append('}').toString();
   }
 }

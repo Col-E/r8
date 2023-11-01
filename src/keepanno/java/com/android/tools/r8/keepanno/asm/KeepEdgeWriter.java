@@ -138,12 +138,6 @@ public class KeepEdgeWriter implements Opcodes {
   }
 
   private void writeItem(AnnotationVisitor itemVisitor, KeepItemPattern item) {
-    if (item.isAny(
-        binding -> {
-          throw new Unimplemented();
-        })) {
-      throw new Unimplemented();
-    }
     KeepClassReference classReference = item.getClassReference();
     if (classReference.isBindingReference()) {
       throw new Unimplemented();

@@ -45,22 +45,34 @@ public class KeepEdgeAstTest extends TestBase {
         KeepEdge.builder()
             .setConsequences(
                 KeepConsequences.builder()
-                    .addTarget(KeepTarget.builder().setItemPattern(KeepItemPattern.any()).build())
+                    .addTarget(
+                        KeepTarget.builder().setItemPattern(KeepItemPattern.anyClass()).build())
+                    .addTarget(
+                        KeepTarget.builder().setItemPattern(KeepItemPattern.anyMember()).build())
                     .build())
             .build();
-    assertEquals(StringUtils.unixLines("-keep class * { *; }"), extract(edge));
+    assertEquals(
+        StringUtils.unixLines(
+            "-keep class * { void finalize(); }", "-keepclassmembers class * { *; }"),
+        extract(edge));
   }
 
   @Test
   public void testSoftPinViaDisallow() {
+    KeepOptions disallowOptions = KeepOptions.disallow(KeepOption.OPTIMIZING);
     KeepEdge edge =
         KeepEdge.builder()
             .setConsequences(
                 KeepConsequences.builder()
                     .addTarget(
                         KeepTarget.builder()
-                            .setItemPattern(KeepItemPattern.any())
-                            .setOptions(KeepOptions.disallow(KeepOption.OPTIMIZING))
+                            .setItemPattern(KeepItemPattern.anyClass())
+                            .setOptions(disallowOptions)
+                            .build())
+                    .addTarget(
+                        KeepTarget.builder()
+                            .setItemPattern(KeepItemPattern.anyMember())
+                            .setOptions(disallowOptions)
                             .build())
                     .build())
             .build();
@@ -70,26 +82,37 @@ public class KeepEdgeAstTest extends TestBase {
     String allows = String.join(",allow", options);
     // The "any" item will be split in two rules, one for the targeted types and one for the
     // targeted members.
-    assertEquals(StringUtils.unixLines("-keep,allow" + allows + " class * { *; }"), extract(edge));
+    assertEquals(
+        StringUtils.unixLines(
+            "-keep,allow" + allows + " class * { void finalize(); }",
+            "-keepclassmembers,allow" + allows + " class * { *; }"),
+        extract(edge));
   }
 
   @Test
   public void testSoftPinViaAllow() {
+    KeepOptions allowOptions = KeepOptions.allow(KeepOption.OBFUSCATING, KeepOption.SHRINKING);
     KeepEdge edge =
         KeepEdge.builder()
             .setConsequences(
                 KeepConsequences.builder()
                     .addTarget(
                         KeepTarget.builder()
-                            .setItemPattern(KeepItemPattern.any())
-                            .setOptions(
-                                KeepOptions.allow(KeepOption.OBFUSCATING, KeepOption.SHRINKING))
+                            .setItemPattern(KeepItemPattern.anyClass())
+                            .setOptions(allowOptions)
+                            .build())
+                    .addTarget(
+                        KeepTarget.builder()
+                            .setItemPattern(KeepItemPattern.anyMember())
+                            .setOptions(allowOptions)
                             .build())
                     .build())
             .build();
     // Allow is just the ordered list of options.
     assertEquals(
-        StringUtils.unixLines("-keep,allowshrinking,allowobfuscation class * { *; }"),
+        StringUtils.unixLines(
+            "-keep,allowshrinking,allowobfuscation class * { void finalize(); }",
+            "-keepclassmembers,allowshrinking,allowobfuscation class * { *; }"),
         extract(edge));
   }
 
