@@ -7,6 +7,7 @@ import argparse
 import datetime
 import os.path
 import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -347,8 +348,11 @@ def g4_open(file):
 
 
 def g4_change(version):
+    message = f'Update R8 to {version}'
+    if version == 'main':
+        message = f'DO NOT SUBMIT: {message}'
     return subprocess.check_output(
-        'g4 change --desc "Update R8 to version %s\n"' % (version),
+        f'g4 change --desc "{message}\n"',
         shell=True).decode('utf-8')
 
 
@@ -367,8 +371,14 @@ def sed(pattern, replace, path):
         for line in lines:
             sources.write(re.sub(pattern, replace, line))
 
-
 def download_file(version, file, dst):
+    if version == 'main':
+        src = os.path.join(utils.LIBS, file)
+        if os.path.exists(src):
+            shutil.copyfile(src, dst)
+        else:
+            print(f"WARNING: no file found for {src}. Skipping.")
+        return
     dir = 'raw' if len(version) != 40 else 'raw/main'
     urllib.request.urlretrieve(
         ('https://storage.googleapis.com/r8-releases/%s/%s/%s' %
@@ -415,41 +425,60 @@ def prepare_google3(args):
             g4_open('retrace_lib.jar')
             g4_open('retrace_lib.jar.map')
             g4_open('desugar_jdk_libs_configuration.jar')
-            download_file(options.version, 'r8-full-exclude-deps.jar',
+            g4_open('threading-module-blocking.jar')
+            g4_open('threading-module-single-threaded.jar')
+            download_file(options.version,
+                          'r8-full-exclude-deps.jar',
                           'full.jar')
-            download_file(options.version, 'r8-full-exclude-deps.jar',
+            download_file(options.version,
+                          'r8-full-exclude-deps.jar',
                           'retrace_full.jar')
-            download_file(options.version, 'r8-src.jar', 'src.jar')
-            download_file(options.version, 'r8lib-exclude-deps.jar', 'lib.jar')
-            download_file(options.version, 'r8lib-exclude-deps.jar.map',
+            download_file(options.version,
+                          'r8-src.jar',
+                          'src.jar')
+            download_file(options.version,
+                          'r8lib-exclude-deps.jar',
+                          'lib.jar')
+            download_file(options.version,
+                          'r8lib-exclude-deps.jar.map',
                           'lib.jar.map')
-            download_file(options.version, 'desugar_jdk_libs_configuration.jar',
+            download_file(options.version,
+                          'desugar_jdk_libs_configuration.jar',
                           'desugar_jdk_libs_configuration.jar')
-            download_file(options.version, 'r8retrace-exclude-deps.jar',
+            download_file(options.version,
+                          'r8retrace-exclude-deps.jar',
                           'retrace_lib.jar')
-            download_file(options.version, 'r8retrace-exclude-deps.jar.map',
+            download_file(options.version,
+                          'r8retrace-exclude-deps.jar.map',
                           'retrace_lib.jar.map')
-            g4_open('METADATA')
-            metadata_path = os.path.join(third_party_r8, 'METADATA')
-            match_count = 0
-            version_match_regexp = r'[1-9]\.[0-9]{1,2}\.[0-9]{1,3}-dev'
-            for line in open(metadata_path, 'r'):
-                result = re.search(version_match_regexp, line)
-                if result:
-                    match_count = match_count + 1
-            if match_count != 8:
-                print((
-                    "Could not find the previous -dev release string to replace in "
-                    + "METADATA. Expected to find is mentioned 7 times, but " +
-                    "found %s occurrences. Please update %s manually and run " +
-                    "again  with options --google3 " +
-                    "--use-existing-work-branch.") %
-                      (match_count, metadata_path))
-                sys.exit(1)
-            sed(version_match_regexp, options.version, metadata_path)
-            sed(r'\{ year.*\}', ('{ year: %i month: %i day: %i }' %
-                                 (today.year, today.month, today.day)),
-                metadata_path)
+            download_file(options.version,
+                          'threading-module-blocking.jar',
+                          'threading-module-blocking.jar')
+            download_file(options.version,
+                          'threading-module-single-threaded.jar',
+                          'threading-module-single-threaded.jar')
+            if options.version != 'main':
+                g4_open('METADATA')
+                metadata_path = os.path.join(third_party_r8, 'METADATA')
+                match_count = 0
+                match_count_expected = 12
+                version_match_regexp = r'[1-9]\.[0-9]{1,2}\.[0-9]{1,3}-dev'
+                for line in open(metadata_path, 'r'):
+                    result = re.search(version_match_regexp, line)
+                    if result:
+                        match_count = match_count + 1
+                if match_count != match_count_expected:
+                    print(f"""WARNING:
+                    Could not find the previous -dev release string to replace in METADATA.
+                    Expected to find it mentioned {match_count_expected} times, but found
+                    {match_count} occurrences. Please update {metadata_path} manually and
+                    run again with options --google3 --use-existing-work-branch.
+                    """)
+                    sys.exit(1)
+                sed(version_match_regexp, options.version, metadata_path)
+                sed(r'\{ year.*\}',
+                    f'{{ year: {today.year} month: {today.month} day: {today.day} }}',
+                    metadata_path)
             subprocess.check_output('chmod u+w *', shell=True)
 
         with utils.ChangedWorkingDirectory(google3_base):
