@@ -15,23 +15,23 @@ val root = getRoot()
 
 java {
   sourceSets.test.configure {
-    java.srcDir(root.resolveAll("src", "test", "examplesJava20"))
+    java.srcDir(root.resolveAll("src", "test", "examplesJava21"))
   }
-  sourceCompatibility = JavaVersion.VERSION_20
-  targetCompatibility = JavaVersion.VERSION_20
+  sourceCompatibility = JavaVersion.VERSION_21
+  targetCompatibility = JavaVersion.VERSION_21
 }
 
 dependencies { }
 
 // We just need to register the examples jars for it to be referenced by other modules.
-val buildExampleJars = buildExampleJars("examplesJava20")
+val buildExampleJars = buildExampleJars("examplesJava21")
 
 tasks {
   withType<JavaCompile> {
     dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
     options.setFork(true)
     options.forkOptions.memoryMaximumSize = "3g"
-    options.forkOptions.executable = getCompilerPath(Jdk.JDK_20)
+    options.forkOptions.executable = getCompilerPath(Jdk.JDK_21)
   }
 }
 

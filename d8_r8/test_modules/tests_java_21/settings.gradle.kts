@@ -21,6 +21,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "tests_java_20"
+rootProject.name = "tests_java_21"
 val root = rootProject.projectDir.parentFile.parentFile
 includeBuild(root.resolve("shared"))
