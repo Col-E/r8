@@ -248,7 +248,23 @@ def run(args):
         print()
         print("deployed to Maven repository at " + args.repo_root + ".")
         print()
-        print("Add")
+        print("For Kotlin Script add")
+        print()
+        print("  maven(url = \"file:///tmp/repo\")")
+        print()
+        print(
+            "to dependencyResolutionManagement.repositories in settings.gradle.kts, and use"
+        )
+        print(
+            'the "changing" property of the coreLibraryDesugaring dependency:')
+        print()
+        print("  coreLibraryDesugaring('com.android.tools:%s:%s') {" %
+              (artifact, version))
+        print("    isChanging = true")
+        print("  }")
+        print()
+
+        print("For Grovey add")
         print()
         print("  maven {")
         print("    url uri('file://" + args.repo_root + "')")
@@ -266,8 +282,8 @@ def run(args):
         print("  }")
         print()
         print(
-            'If not using the "changing" propertyRemember to run gradle with ' +
-            " --refresh-dependencies (./gradlew --refresh-dependencies ...) " +
+            'If not using the "changing" property remember to run gradle with ' +
+            "--refresh-dependencies (./gradlew --refresh-dependencies ...) " +
             "to ensure the cache is not used when the same version is published."
             + "multiple times.")
 

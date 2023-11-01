@@ -55,7 +55,7 @@ GRADLE_TASK_SWISS_ARMY_KNIFE = ':main:swissArmyKnife'
 GRADLE_TASK_TEST = ':test:test'
 GRADLE_TASK_ALL_TESTS_WITH_APPLY_MAPPING_JAR = ':test:rewriteTestsForR8LibWithRelocatedDeps'
 GRADLE_TASK_TEST_DEPS_JAR = ':test:packageTestDeps'
-GRADLE_TASK_TEST_JAR = ':test:allTestsJar'
+GRADLE_TASK_TEST_JAR = ':test:relocateTestsForR8LibWithRelocatedDeps'
 
 R8 = 'r8'
 R8LIB = 'r8lib'

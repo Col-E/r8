@@ -1,5 +1,5 @@
 {
-  "identifier": "com.tools.android:desugar_jdk_libs_configuration_nio:2.0.3",
+  "identifier": "com.tools.android:desugar_jdk_libs_configuration_nio:2.0.4",
   "configuration_format_version": 100,
   "required_compilation_api_level": 30,
   "synthesized_library_classes_package_prefix": "j$.",
