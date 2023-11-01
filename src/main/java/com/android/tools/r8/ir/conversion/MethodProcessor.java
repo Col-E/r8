@@ -21,8 +21,6 @@ public abstract class MethodProcessor {
     return false;
   }
 
-  public abstract MethodProcessingContext createMethodProcessingContext(ProgramMethod method);
-
   public abstract MethodProcessorEventConsumer getEventConsumer();
 
   public abstract boolean isProcessedConcurrently(ProgramMethod method);

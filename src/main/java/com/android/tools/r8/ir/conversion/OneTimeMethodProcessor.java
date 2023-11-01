@@ -65,11 +65,6 @@ public class OneTimeMethodProcessor extends MethodProcessorWithWave {
   }
 
   @Override
-  public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
-    return processorContext.createMethodProcessingContext(method);
-  }
-
-  @Override
   public MethodProcessorEventConsumer getEventConsumer() {
     return eventConsumer;
   }

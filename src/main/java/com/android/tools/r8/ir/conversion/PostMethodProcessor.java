@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.conversion;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
-import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -47,11 +46,6 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
     this.eventConsumer = eventConsumer;
     this.processorContext = appView.createProcessorContext();
     this.waves = createWaves(callGraph);
-  }
-
-  @Override
-  public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
-    return processorContext.createMethodProcessingContext(method);
   }
 
   @Override
@@ -193,7 +187,9 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
             ThreadUtils.processItemsWithResults(
                 wave,
                 method -> {
-                  Timing time = consumer.apply(method, createMethodProcessingContext(method));
+                  Timing time =
+                      consumer.apply(
+                          method, processorContext.createMethodProcessingContext(method));
                   time.end();
                   return time;
                 },

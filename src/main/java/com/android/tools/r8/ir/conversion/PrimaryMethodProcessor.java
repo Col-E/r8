@@ -68,11 +68,6 @@ public class PrimaryMethodProcessor extends MethodProcessorWithWave {
   }
 
   @Override
-  public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
-    return processorContext.createMethodProcessingContext(method);
-  }
-
-  @Override
   public MethodProcessorEventConsumer getEventConsumer() {
     return eventConsumer;
   }
@@ -142,7 +137,9 @@ public class PrimaryMethodProcessor extends MethodProcessorWithWave {
             ThreadUtils.processItemsWithResults(
                 wave,
                 method -> {
-                  Timing time = consumer.apply(method, createMethodProcessingContext(method));
+                  Timing time =
+                      consumer.apply(
+                          method, processorContext.createMethodProcessingContext(method));
                   time.end();
                   return time;
                 },

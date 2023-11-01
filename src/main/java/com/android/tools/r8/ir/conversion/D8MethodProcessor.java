@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
-import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -61,11 +60,6 @@ public class D8MethodProcessor extends MethodProcessor {
 
   public void newWave() {
     this.processorContext = converter.appView.createProcessorContext();
-  }
-
-  @Override
-  public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
-    return processorContext.createMethodProcessingContext(method);
   }
 
   public ProfileCollectionAdditions getProfileCollectionAdditions() {
