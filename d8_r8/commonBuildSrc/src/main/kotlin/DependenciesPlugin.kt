@@ -4,9 +4,8 @@
 
 import DependenciesPlugin.Companion.computeRoot
 import java.io.File
+import java.net.URI
 import java.nio.file.Paths
-import java.security.MessageDigest
-import java.util.UUID
 import kotlin.reflect.full.declaredMemberProperties
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
@@ -22,7 +21,6 @@ import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.register
 import org.gradle.nativeplatform.platform.OperatingSystem
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
-
 
 class DependenciesPlugin: Plugin<Project> {
 
@@ -81,43 +79,6 @@ fun Test.configure(isR8Lib: Boolean, r8Jar: File?, r8LibMappingFile: File? = nul
 
 fun Project.getRoot() : File {
   return computeRoot(this.projectDir)
-}
-
-// See https://datatracker.ietf.org/doc/html/rfc4122#section-4.3 for the algorithm.
-fun uuid5(namespace: UUID, name: String): UUID? {
-  val md = MessageDigest.getInstance("SHA-1")
-  md.update(uuidToBytes(namespace))
-  md.update(name.encodeToByteArray())
-  val sha1Bytes = md.digest()
-  // Set version 5 (upper 4 bits of octet 6).
-  sha1Bytes[6] = (sha1Bytes[6].toInt() and 0x0f).toByte()
-  sha1Bytes[6] = (sha1Bytes[6].toInt() or 0x50).toByte()
-  // Set two upper bits of octet 8 to 10.
-  sha1Bytes[8] = (sha1Bytes[8].toInt() and 0x3f).toByte()
-  sha1Bytes[8] = (sha1Bytes[8].toInt() or 0x80).toByte()
-  return uuidFromBytes(sha1Bytes)
-}
-
-private fun uuidFromBytes(data: ByteArray): UUID? {
-  assert(data.size >= 16)
-  return UUID(toNetworkOrder(data, 0), toNetworkOrder(data, 8))
-}
-
-private fun uuidToBytes(uuid: UUID): ByteArray? {
-  val result = ByteArray(16)
-  fromNetworkByteOrder(uuid.mostSignificantBits, result, 0)
-  fromNetworkByteOrder(uuid.leastSignificantBits, result, 8)
-  return result
-}
-
-private fun toNetworkOrder(data: ByteArray, dataIndex: Int): Long {
-  var result: Long = 0
-  for (i in 0..7) result = result shl 8 or (data[dataIndex + i].toInt() and 0xff).toLong()
-  return result
-}
-
-private fun fromNetworkByteOrder(value: Long, dest: ByteArray, destIndex: Int) {
-  for (i in 0..7) dest[i + destIndex] = (value shr (7 - i) * 8 and 0xffL).toByte()
 }
 
 fun Project.header(title : String) : String {
@@ -215,8 +176,7 @@ fun Project.getExampleJarsTaskName(name: String) : String {
 }
 
 fun Project.resolve(
-  thirdPartyDependency: ThirdPartyDependency, vararg paths: String,
-) : ConfigurableFileCollection {
+    thirdPartyDependency: ThirdPartyDependency, vararg paths: String) : ConfigurableFileCollection {
   return files(project.getRoot().resolve(thirdPartyDependency.path).resolveAll(*paths))
 }
 
@@ -315,7 +275,7 @@ fun Project.createR8LibCommandLine(
   debugVariant: Boolean,
   lib: List<File> = listOf(),
   classpath: List<File> = listOf(),
-  pgInputMap: File? = null,
+  pgInputMap: File? = null
 ) : List<String> {
   return buildList {
     add("python3")
