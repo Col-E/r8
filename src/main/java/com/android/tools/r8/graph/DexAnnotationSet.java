@@ -152,10 +152,13 @@ public class DexAnnotationSet extends CachedHashValueDexItem
     sorted = hashCode();
   }
 
-  @SuppressWarnings("ReferenceEquality")
+  public boolean hasAnnotation(DexType type) {
+    return getFirstMatching(type) != null;
+  }
+
   public DexAnnotation getFirstMatching(DexType type) {
     for (DexAnnotation annotation : annotations) {
-      if (annotation.annotation.type == type) {
+      if (annotation.getAnnotationType().isIdenticalTo(type)) {
         return annotation;
       }
     }

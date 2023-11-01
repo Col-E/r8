@@ -71,11 +71,10 @@ public class ArgumentPropagatorComposeModeling {
       InvokeMethod invoke, ProgramMethod singleTarget, int argumentIndex, Value argument) {
     // First check if this is an invoke to a @Composable function.
     if (singleTarget == null
-        || singleTarget
-                .getDefinition()
-                .annotations()
-                .getFirstMatching(composeReferences.composableType)
-            == null) {
+        || !singleTarget
+            .getDefinition()
+            .annotations()
+            .hasAnnotation(composeReferences.composableType)) {
       return null;
     }
 

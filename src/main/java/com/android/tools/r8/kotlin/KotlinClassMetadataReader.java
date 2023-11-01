@@ -145,9 +145,8 @@ public final class KotlinClassMetadataReader {
   public static boolean hasKotlinClassMetadataAnnotation(
       DexClass clazz, DexDefinitionSupplier definitionSupplier) {
     return clazz
-            .annotations()
-            .getFirstMatching(definitionSupplier.dexItemFactory().kotlinMetadataType)
-        != null;
+        .annotations()
+        .hasAnnotation(definitionSupplier.dexItemFactory().kotlinMetadataType);
   }
 
   public static KotlinClassMetadata toKotlinClassMetadata(
