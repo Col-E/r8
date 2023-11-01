@@ -7,8 +7,8 @@
 set -e
 set -x
 
-#echo "Update this script manually before using"
-#exit -1
+echo "Update this script manually before using"
+exit -1
 
 # Download JDK from https://jdk.java.net/X/ (X = version) into ~/Downloads
 # Create directory third_party/openjdk/jdk-X
@@ -18,10 +18,14 @@ set -x
 
 # Now run script with fingers crossed!
 
-JDK_VERSION="21"
+JDK_VERSION="21.0.1"
 JDK_VERSION_FULL=${JDK_VERSION}
 # For ea versions the full version name has a postfix.
 # JDK_VERSION_FULL="${JDK_VERSION}-ea+33"
+if [[ ! "$(pwd)" =~ .*/third_party/openjdk/jdk-[1-9]*[0-9]*$ ]]; then
+  echo Run this script in the third_party/openjdk/jdk-XX directory
+  exit -1
+fi
 
 rm -rf linux
 rm -f linux.tar.gz
