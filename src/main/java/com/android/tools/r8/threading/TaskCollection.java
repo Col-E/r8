@@ -25,7 +25,25 @@ public class TaskCollection<T> {
     this.executorService = executorService;
   }
 
-  public <E extends Exception> void submit(ThrowingAction<E> task) throws ExecutionException {
+  public int size() {
+    return futures.size();
+  }
+
+  public boolean isEmpty() {
+    return size() == 0;
+  }
+
+  List<Future<T>> getAndClearFutures() {
+    List<Future<T>> copy = new ArrayList<>(futures);
+    futures.clear();
+    return copy;
+  }
+
+  ThreadingModule getThreadingModule() {
+    return threadingModule;
+  }
+
+  public final <E extends Exception> void submit(ThrowingAction<E> task) throws ExecutionException {
     submit(
         () -> {
           task.execute();
@@ -39,5 +57,6 @@ public class TaskCollection<T> {
 
   public void await() throws ExecutionException {
     threadingModule.awaitFutures(futures);
+    futures.clear();
   }
 }

@@ -12,33 +12,27 @@ import com.android.tools.r8.ir.conversion.callgraph.CallSiteInformation;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
-import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.threading.SynchronizedTaskCollection;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 public class D8MethodProcessor extends MethodProcessor {
 
   private final ProfileCollectionAdditions profileCollectionAdditions;
   private final PrimaryD8L8IRConverter converter;
   private final MethodProcessorEventConsumer eventConsumer;
-  private final ExecutorService executorService;
   private final Set<DexType> scheduled = Sets.newIdentityHashSet();
 
   // Asynchronous method processing actions. These are "terminal" method processing actions in the
   // sense that the method processing is known not to fork any other futures.
-  private final List<Future<?>> terminalFutures = Collections.synchronizedList(new ArrayList<>());
+  private final SynchronizedTaskCollection<?> terminalTasks;
 
   // Asynchronous method processing actions. This list includes both "terminal" and "non-terminal"
   // method processing actions. Thus, before the asynchronous method processing finishes, it may
   // fork the processing of another method.
-  private final List<Future<?>> nonTerminalFutures =
-      Collections.synchronizedList(new ArrayList<>());
+  private final SynchronizedTaskCollection<?> nonTerminalTasks;
 
   private ProcessorContext processorContext;
 
@@ -49,8 +43,9 @@ public class D8MethodProcessor extends MethodProcessor {
     this.profileCollectionAdditions = profileCollectionAdditions;
     this.converter = converter;
     this.eventConsumer = MethodProcessorEventConsumer.createForD8(profileCollectionAdditions);
-    this.executorService = executorService;
     this.processorContext = converter.appView.createProcessorContext();
+    this.terminalTasks = new SynchronizedTaskCollection<>(converter.options, executorService);
+    this.nonTerminalTasks = new SynchronizedTaskCollection<>(converter.options, executorService);
   }
 
   public void addScheduled(DexProgramClass clazz) {
@@ -91,16 +86,18 @@ public class D8MethodProcessor extends MethodProcessor {
       // The non-synthetic holder is not scheduled. It will be processed once holder is scheduled.
       return;
     }
-    nonTerminalFutures.add(
-        ThreadUtils.processAsynchronously(
-            () ->
-                converter.rewriteNonDesugaredCode(
-                    method,
-                    eventConsumer,
-                    OptimizationFeedbackIgnore.getInstance(),
-                    this,
-                    processorContext.createMethodProcessingContext(method)),
-            executorService));
+    try {
+      nonTerminalTasks.submit(
+          () ->
+              converter.rewriteNonDesugaredCode(
+                  method,
+                  eventConsumer,
+                  OptimizationFeedbackIgnore.getInstance(),
+                  this,
+                  processorContext.createMethodProcessingContext(method)));
+    } catch (ExecutionException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -115,16 +112,18 @@ public class D8MethodProcessor extends MethodProcessor {
     if (method.getDefinition().isAbstract()) {
       return;
     }
-    terminalFutures.add(
-        ThreadUtils.processAsynchronously(
-            () ->
-                converter.rewriteDesugaredCode(
-                    method,
-                    OptimizationFeedbackIgnore.getInstance(),
-                    this,
-                    processorContext.createMethodProcessingContext(method),
-                    MethodConversionOptions.forD8(converter.appView)),
-            executorService));
+    try {
+      terminalTasks.submit(
+          () ->
+              converter.rewriteDesugaredCode(
+                  method,
+                  OptimizationFeedbackIgnore.getInstance(),
+                  this,
+                  processorContext.createMethodProcessingContext(method),
+                  MethodConversionOptions.forD8(converter.appView)));
+    } catch (ExecutionException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public void scheduleDesugaredMethodsForProcessing(Iterable<ProgramMethod> methods) {
@@ -137,21 +136,8 @@ public class D8MethodProcessor extends MethodProcessor {
   }
 
   public void awaitMethodProcessing() throws ExecutionException {
-    // Await the non-terminal futures until there are only terminal futures left.
-    while (!nonTerminalFutures.isEmpty()) {
-      List<Future<?>> futuresToAwait;
-      synchronized (nonTerminalFutures) {
-        futuresToAwait = new ArrayList<>(nonTerminalFutures);
-        nonTerminalFutures.clear();
-      }
-      ThreadUtils.awaitFutures(futuresToAwait);
-    }
-
-    // Await the terminal futures. There futures will by design not to fork new method processing.
-    int numberOfTerminalFutures = terminalFutures.size();
-    ThreadUtils.awaitFutures(terminalFutures);
-    assert terminalFutures.size() == numberOfTerminalFutures;
-    terminalFutures.clear();
+    nonTerminalTasks.await();
+    terminalTasks.await();
   }
 
   public void processMethod(
@@ -164,8 +150,8 @@ public class D8MethodProcessor extends MethodProcessor {
   }
 
   public boolean verifyNoPendingMethodProcessing() {
-    assert terminalFutures.isEmpty();
-    assert nonTerminalFutures.isEmpty();
+    assert terminalTasks.isEmpty();
+    assert nonTerminalTasks.isEmpty();
     return true;
   }
 }
