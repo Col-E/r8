@@ -67,7 +67,10 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
   }
 
   private MutableFieldOptimizationInfo setAbstractValue(AbstractValue abstractValue) {
-    assert getAbstractValue().isUnknown() || abstractValue.isNonTrivial();
+    assert getAbstractValue().isUnknown()
+        || abstractValue.isNonTrivial()
+        || (getAbstractValue().isNullOrAbstractValue()
+            && getAbstractValue().asNullOrAbstractValue().getNonNullValue().isSingleFieldValue());
     this.abstractValue = abstractValue;
     return this;
   }

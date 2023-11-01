@@ -14,6 +14,7 @@ public class NullOrAbstractValue extends AbstractValue {
   private final AbstractValue value;
 
   private NullOrAbstractValue(AbstractValue value) {
+    assert !value.isSingleNumberValue();
     this.value = value;
   }
 
@@ -44,9 +45,14 @@ public class NullOrAbstractValue extends AbstractValue {
   }
 
   @Override
-  public NullOrAbstractValue rewrittenWithLens(
+  public AbstractValue rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, DexType newType, GraphLens lens, GraphLens codeLens) {
-    return new NullOrAbstractValue(value.rewrittenWithLens(appView, newType, lens, codeLens));
+    AbstractValue rewrittenValue = value.rewrittenWithLens(appView, newType, lens, codeLens);
+    if (rewrittenValue.isSingleNumberValue()) {
+      // Reference type rewritten to primitive.
+      return unknown();
+    }
+    return new NullOrAbstractValue(rewrittenValue);
   }
 
   @Override
