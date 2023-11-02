@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
-import com.google.common.base.Predicates;
 import java.util.function.Predicate;
 
 // Per-class collection of method signatures.
@@ -26,10 +25,6 @@ import java.util.function.Predicate;
 public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
 
   private final Predicate<DexEncodedMethod> methodTester;
-
-  public MethodPoolCollection(AppView<AppInfoWithLiveness> appView, SubtypingInfo subtypingInfo) {
-    this(appView, subtypingInfo, Predicates.alwaysTrue());
-  }
 
   public MethodPoolCollection(
       AppView<AppInfoWithLiveness> appView,

@@ -10,8 +10,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.threading.TaskCollection;
 import com.android.tools.r8.utils.IntBox;
-import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 /**
  * Partition classes among dex files to limit LinearAlloc usage during DexOpt.
@@ -538,12 +537,14 @@ public class InheritanceClassInDexDistributor {
   }
 
   private void updateGroupsNumberOfIds(List<ClassGroup> groups) {
-    Collection<Future<?>> updateIdsTasks = new ArrayList<>(groups.size());
-    for (ClassGroup group : groups) {
-      updateIdsTasks.add(executorService.submit(group::updateNumbersOfIds));
-    }
+    TaskCollection<?> updateIdsTasks =
+        new TaskCollection<>(
+            appView.options().getThreadingModule(), executorService, groups.size());
     try {
-      ThreadUtils.awaitFutures(updateIdsTasks);
+      for (ClassGroup group : groups) {
+        updateIdsTasks.submit(group::updateNumbersOfIds);
+      }
+      updateIdsTasks.await();
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();
       if (cause instanceof RuntimeException) {

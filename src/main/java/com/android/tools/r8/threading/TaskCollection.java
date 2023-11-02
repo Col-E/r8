@@ -6,6 +6,7 @@ package com.android.tools.r8.threading;
 
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingAction;
+import com.android.tools.r8.utils.UncheckedExecutionException;
 import com.google.common.util.concurrent.Futures;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,16 +21,21 @@ public class TaskCollection<T> {
 
   private final ThreadingModule threadingModule;
   private final ExecutorService executorService;
+  private final List<Future<T>> futures;
 
-  private final List<Future<T>> futures = new ArrayList<>();
-
-  public TaskCollection(ThreadingModule threadingModule, ExecutorService executorService) {
+  public TaskCollection(
+      ThreadingModule threadingModule, ExecutorService executorService, int initialCapacity) {
     this.threadingModule = threadingModule;
     this.executorService = executorService;
+    this.futures = initialCapacity > 0 ? new ArrayList<>(initialCapacity) : new ArrayList<>();
+  }
+
+  public TaskCollection(ThreadingModule threadingModule, ExecutorService executorService) {
+    this(threadingModule, executorService, -1);
   }
 
   public TaskCollection(InternalOptions options, ExecutorService executorService) {
-    this(options.getThreadingModule(), executorService);
+    this(options.getThreadingModule(), executorService, -1);
   }
 
   /**
@@ -97,6 +103,24 @@ public class TaskCollection<T> {
           task.execute();
           return null;
         });
+  }
+
+  /** Derived submit to hide the execution exception */
+  public final void submitUnchecked(Callable<T> task) {
+    try {
+      submit(task);
+    } catch (ExecutionException e) {
+      throw new UncheckedExecutionException(e);
+    }
+  }
+
+  /** Derived submit to hide the execution exception */
+  public final <E extends Exception> void submitUnchecked(ThrowingAction<E> task) {
+    try {
+      submit(task);
+    } catch (ExecutionException e) {
+      throw new UncheckedExecutionException(e);
+    }
   }
 
   /** Derived await when no results are needed. */
