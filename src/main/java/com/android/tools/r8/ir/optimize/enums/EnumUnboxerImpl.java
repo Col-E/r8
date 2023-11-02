@@ -793,6 +793,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
     feedback.fixupOptimizationInfos(
         appView,
+        appView.options().getThreadingModule(),
         executorService,
         new OptimizationInfoFixer() {
           @Override

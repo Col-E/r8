@@ -55,6 +55,7 @@ public class MethodResolutionOptimizationInfoAnalysis {
         stronglyConnectedComponents,
         stronglyConnectedComponent ->
             new Traversal(appView, builder, immediateSubtypingInfo).run(stronglyConnectedComponent),
+        appView.options().getThreadingModule(),
         executorService);
     MethodResolutionOptimizationInfoCollection methodResolutionOptimizationInfoCollection =
         builder.build();

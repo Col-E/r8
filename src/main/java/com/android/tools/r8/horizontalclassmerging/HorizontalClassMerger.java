@@ -303,13 +303,13 @@ public class HorizontalClassMerger {
               method -> {
                 IncompleteHorizontalClassMergerCode code =
                     (IncompleteHorizontalClassMergerCode) method.getDefinition().getCode();
-                method
-                    .setCode(
-                        code.toCfCode(
-                            appView.withClassHierarchy(), method, horizontalClassMergerGraphLens),
-                        appView);
+                method.setCode(
+                    code.toCfCode(
+                        appView.withClassHierarchy(), method, horizontalClassMergerGraphLens),
+                    appView);
               });
         },
+        appView.options().getThreadingModule(),
         executorService);
   }
 
@@ -328,6 +328,7 @@ public class HorizontalClassMerger {
                   .hasNext()
               : "Expected no incomplete code";
         },
+        appView.options().getThreadingModule(),
         executorService);
     return true;
   }

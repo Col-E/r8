@@ -36,6 +36,7 @@ import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.threading.ThreadingModule;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -180,10 +181,13 @@ public final class TrivialFieldAccessReprocessor {
 
   private void enqueueMethodsForReprocessing(
       AppInfoWithLiveness appInfo, ExecutorService executorService) throws ExecutionException {
-    ThreadUtils.processItems(appInfo.classes(), this::processClass, executorService);
+    ThreadingModule threadingModule = appView.options().getThreadingModule();
+    ThreadUtils.processItems(
+        appInfo.classes(), this::processClass, threadingModule, executorService);
     ThreadUtils.processItems(
         appInfo.getSyntheticItems().getPendingSyntheticClasses(),
         this::processClass,
+        threadingModule,
         executorService);
     processFieldsNeverRead(appInfo);
     processFieldsNeverWritten(appInfo);

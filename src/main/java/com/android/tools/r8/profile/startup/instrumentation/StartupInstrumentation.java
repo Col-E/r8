@@ -75,7 +75,11 @@ public class StartupInstrumentation {
   }
 
   private void instrumentAllClasses(ExecutorService executorService) throws ExecutionException {
-    ThreadUtils.processItems(appView.appInfo().classes(), this::instrumentClass, executorService);
+    ThreadUtils.processItems(
+        appView.appInfo().classes(),
+        this::instrumentClass,
+        appView.options().getThreadingModule(),
+        executorService);
   }
 
   private void injectStartupRuntimeLibrary(ExecutorService executorService)

@@ -73,7 +73,11 @@ public class CfOpenClosedInterfacesAnalysis {
   }
 
   private void processClasses(ExecutorService executorService) throws ExecutionException {
-    ThreadUtils.processItems(appView.appInfo().classes(), this::processClass, executorService);
+    ThreadUtils.processItems(
+        appView.appInfo().classes(),
+        this::processClass,
+        appView.options().getThreadingModule(),
+        executorService);
   }
 
   private void processClass(DexProgramClass clazz) {

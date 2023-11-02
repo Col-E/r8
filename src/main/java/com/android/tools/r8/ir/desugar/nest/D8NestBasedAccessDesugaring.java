@@ -126,6 +126,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     ThreadUtils.processItems(
         classpathClassesInNests,
         clazz -> synthesizeBridgesForNestBasedAccessesOnClasspath(clazz, eventConsumer),
+        appView.options().getThreadingModule(),
         executorService);
   }
 

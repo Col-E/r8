@@ -7,6 +7,7 @@ import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.threading.ThreadingModule;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThreadUtils.WorkLoad;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -88,13 +89,15 @@ public class OneTimeMethodProcessor extends MethodProcessorWithWave {
     }
   }
 
-  public void forEachWaveWithExtension(MethodAction consumer, ExecutorService executorService)
+  public void forEachWaveWithExtension(
+      MethodAction consumer, ThreadingModule threadingModule, ExecutorService executorService)
       throws ExecutionException {
     while (!wave.isEmpty()) {
       ThreadUtils.processItems(
           wave,
           (method, ignored) ->
               consumer.accept(method, processorContext.createMethodProcessingContext(method)),
+          threadingModule,
           executorService,
           WorkLoad.HEAVY);
       prepareForWaveExtensionProcessing();

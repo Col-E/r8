@@ -39,6 +39,7 @@ public class RecordInvokeDynamicInvokeCustomRewriter {
           clazz.forEachProgramMethodMatching(
               DexEncodedMethod::hasCode, this::rewriteRecordInvokeDynamicInMethod);
         },
+        appView.options().getThreadingModule(),
         executorService);
   }
 

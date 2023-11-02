@@ -522,6 +522,7 @@ final class ClassProcessor {
             }
           }
         },
+        appView.options().getThreadingModule(),
         executorService);
     newExtraInterfaceSignatures.forEach(
         (clazz, extraInterfaceSignatures) -> {

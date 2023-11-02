@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.threading.ThreadingModule;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -37,7 +38,8 @@ public class ProgramAdditions {
         });
   }
 
-  public void apply(ExecutorService executorService) throws ExecutionException {
+  public void apply(ThreadingModule threadingModule, ExecutorService executorService)
+      throws ExecutionException {
     ThreadUtils.processMap(
         additions,
         (holderType, methodMap) -> {
@@ -47,6 +49,7 @@ public class ProgramAdditions {
           newDirectMethods.sort(Comparator.comparing(DexEncodedMethod::getReference));
           holder.getMethodCollection().addDirectMethods(newDirectMethods);
         },
+        threadingModule,
         executorService);
   }
 }

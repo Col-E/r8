@@ -183,6 +183,7 @@ public class GeneratedExtensionRegistryShrinker {
                 methodProcessor,
                 methodProcessingContext,
                 MethodConversionOptions.forLirPhase(appView)),
+        appView.options().getThreadingModule(),
         executorService);
     timing.end();
   }

@@ -69,8 +69,8 @@ public class IdentifierNameStringMarker {
             decoupleIdentifierNameStringInStaticField(field);
           }
         },
-        executorService
-    );
+        appView.options().getThreadingModule(),
+        executorService);
   }
 
   private void decoupleIdentifierNameStringInStaticField(DexEncodedField encodedField) {

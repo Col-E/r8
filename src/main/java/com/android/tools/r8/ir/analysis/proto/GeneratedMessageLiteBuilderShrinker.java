@@ -226,6 +226,7 @@ public class GeneratedMessageLiteBuilderShrinker {
                 appView, builder, dynamicMethod, converter, conversionOptions);
           }
         },
+        appView.options().getThreadingModule(),
         executorService);
     builders.clear();
     timing.end(); // Remove dead builder references

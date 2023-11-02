@@ -301,6 +301,7 @@ public class GlobalSyntheticsGenerator {
               throwExceptionCode,
               apiReferenceStubberEventConsumer);
         },
+        appView.options().getThreadingModule(),
         executorService);
   }
 

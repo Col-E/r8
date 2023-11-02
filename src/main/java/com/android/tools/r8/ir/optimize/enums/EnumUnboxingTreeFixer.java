@@ -292,6 +292,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
                 methodProcessor,
                 methodProcessingContext,
                 MethodConversionOptions.forLirPhase(appView)),
+        appView.options().getThreadingModule(),
         executorService);
 
     return checkNotNullToCheckNotZeroMapping;
@@ -304,6 +305,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     ThreadUtils.processItems(
         unboxedEnumHierarchy.keySet(),
         unboxedEnum -> fixupSuperEnumClassInitializer(converter, unboxedEnum, ordinalField),
+        appView.options().getThreadingModule(),
         executorService);
   }
 

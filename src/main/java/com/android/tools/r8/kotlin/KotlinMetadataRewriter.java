@@ -129,6 +129,7 @@ public class KotlinMetadataRewriter {
           }
           writeKotlinInfoToAnnotation(clazz, kotlinInfo, oldMeta, writeMetadataFieldInfo);
         },
+        appView.options().getThreadingModule(),
         executorService);
     appView.setKotlinMetadataLens(appView.graphLens());
   }
@@ -158,6 +159,7 @@ public class KotlinMetadataRewriter {
           }
           writeKotlinInfoToAnnotation(clazz, kotlinInfo, metadata, writeMetadataFieldInfo);
         },
+        appView.options().getThreadingModule(),
         executorService);
   }
 

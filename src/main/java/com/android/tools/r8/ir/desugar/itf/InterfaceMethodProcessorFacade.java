@@ -53,6 +53,7 @@ public class InterfaceMethodProcessorFacade implements CfPostProcessingDesugarin
     ThreadUtils.processItems(
         ListUtils.filter(programClasses, clazz -> shouldProcess(clazz, flavour)),
         clazz -> classProcessor.process(clazz, eventConsumer),
+        appView.options().getThreadingModule(),
         executorService);
     classProcessor.finalizeProcessing(eventConsumer, executorService);
     interfaceProcessor.finalizeProcessing();

@@ -1454,6 +1454,7 @@ public class OutlinerImpl extends Outliner {
           CodeRewriter.removeAssumeInstructions(appView, code);
           consumer.accept(code);
         },
+        appView.options().getThreadingModule(),
         executorService);
   }
 

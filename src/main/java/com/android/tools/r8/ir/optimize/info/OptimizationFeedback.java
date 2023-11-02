@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.conversion.FieldOptimizationFeedback;
 import com.android.tools.r8.ir.conversion.MethodOptimizationFeedback;
 import com.android.tools.r8.shaking.AppInfoWithLivenessModifier;
+import com.android.tools.r8.threading.ThreadingModule;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
@@ -50,18 +51,22 @@ public abstract class OptimizationFeedback
   }
 
   public void fixupOptimizationInfos(
-      AppView<?> appView, ExecutorService executorService, OptimizationInfoFixer fixer)
+      AppView<?> appView,
+      ThreadingModule threadingModule,
+      ExecutorService executorService,
+      OptimizationInfoFixer fixer)
       throws ExecutionException {
-    fixupOptimizationInfos(appView.appInfo().classes(), executorService, fixer);
+    fixupOptimizationInfos(appView.appInfo().classes(), threadingModule, executorService, fixer);
   }
 
   public void fixupOptimizationInfos(
       Collection<DexProgramClass> classes,
+      ThreadingModule threadingModule,
       ExecutorService executorService,
       OptimizationInfoFixer fixer)
       throws ExecutionException {
     ThreadUtils.processItems(
-        classes, clazz -> clazz.members().forEach(fixer::fixup), executorService);
+        classes, clazz -> clazz.members().forEach(fixer::fixup), threadingModule, executorService);
   }
 
   public void modifyAppInfoWithLiveness(Consumer<AppInfoWithLivenessModifier> consumer) {

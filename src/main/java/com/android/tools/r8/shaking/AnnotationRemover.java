@@ -182,7 +182,11 @@ public class AnnotationRemover {
   }
 
   public void run(ExecutorService executorService) throws ExecutionException {
-    ThreadUtils.processItems(appView.appInfo().classes(), this::run, executorService);
+    ThreadUtils.processItems(
+        appView.appInfo().classes(),
+        this::run,
+        appView.options().getThreadingModule(),
+        executorService);
     assert verifyNoKeptKotlinMembersForClassesWithNoKotlinInfo();
   }
 

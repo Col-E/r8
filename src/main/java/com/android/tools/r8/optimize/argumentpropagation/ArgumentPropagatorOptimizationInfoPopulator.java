@@ -97,6 +97,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     ThreadUtils.processItems(
         stronglyConnectedProgramComponents,
         this::processStronglyConnectedComponent,
+        appView.options().getThreadingModule(),
         executorService);
     timing.end();
 
@@ -153,6 +154,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     ThreadUtils.processItems(
         appView.appInfo().classes(),
         clazz -> prunedMethods.addAll(setOptimizationInfo(clazz)),
+        appView.options().getThreadingModule(),
         executorService);
     for (ProgramMethod prunedMethod : prunedMethods) {
       converter.onMethodPruned(prunedMethod);

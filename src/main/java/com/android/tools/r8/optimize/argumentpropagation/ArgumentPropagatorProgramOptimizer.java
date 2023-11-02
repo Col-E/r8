@@ -209,6 +209,7 @@ public class ArgumentPropagatorProgramOptimizer {
                         interfaceDispatchOutsideProgram.getOrDefault(
                             classes, DexMethodSignatureSet.empty()),
                         affectedClassConsumer),
+            appView.options().getThreadingModule(),
             executorService);
     eventConsumer.finished(appView);
     timing.end();

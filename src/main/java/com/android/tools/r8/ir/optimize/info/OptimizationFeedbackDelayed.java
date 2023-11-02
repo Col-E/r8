@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.AppInfoWithLivenessModifier;
+import com.android.tools.r8.threading.ThreadingModule;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.BitSet;
@@ -68,10 +69,13 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
 
   @Override
   public void fixupOptimizationInfos(
-      AppView<?> appView, ExecutorService executorService, OptimizationInfoFixer fixer)
+      AppView<?> appView,
+      ThreadingModule threadingModule,
+      ExecutorService executorService,
+      OptimizationInfoFixer fixer)
       throws ExecutionException {
     updateVisibleOptimizationInfo();
-    super.fixupOptimizationInfos(appView, executorService, fixer);
+    super.fixupOptimizationInfos(appView, threadingModule, executorService, fixer);
   }
 
   @Override

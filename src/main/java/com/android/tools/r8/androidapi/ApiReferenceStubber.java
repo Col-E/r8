@@ -71,7 +71,8 @@ public class ApiReferenceStubber {
       // Finding super types is really fast so no need to pay the overhead of threading if the
       // number of classes is low.
       if (classes.size() > 2) {
-        ThreadUtils.processItems(classes, this::processClass, executorService);
+        ThreadUtils.processItems(
+            classes, this::processClass, appView.options().getThreadingModule(), executorService);
       } else {
         classes.forEach(this::processClass);
       }

@@ -2190,6 +2190,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
                   method.setCode(lirCode, appView);
                 });
           },
+          appView.options().getThreadingModule(),
           executorService);
       // Conversion to LIR via IR will allocate type elements.
       // They are not needed after construction so remove them again.

@@ -4107,13 +4107,15 @@ public class Enqueuer {
     ThreadUtils.processItems(
         pendingCodeDesugaring,
         method -> desugaring.prepare(method, eventConsumer, programAdditions),
+        appView.options().getThreadingModule(),
         executorService);
-    programAdditions.apply(executorService);
+    programAdditions.apply(appView.options().getThreadingModule(), executorService);
 
     // Then do the actual desugaring.
     ThreadUtils.processItems(
         pendingCodeDesugaring,
         method -> desugaring.desugar(method, additions.getMethodContext(method), eventConsumer),
+        appView.options().getThreadingModule(),
         executorService);
 
     // Move the pending methods and mark them live and ready for tracing.

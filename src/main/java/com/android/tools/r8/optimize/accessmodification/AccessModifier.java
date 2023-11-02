@@ -78,7 +78,10 @@ public class AccessModifier {
         new ProgramClassesBidirectedGraph(appView, immediateSubtypingInfo)
             .computeStronglyConnectedComponents();
     ThreadUtils.processItems(
-        stronglyConnectedComponents, this::processStronglyConnectedComponent, executorService);
+        stronglyConnectedComponents,
+        this::processStronglyConnectedComponent,
+        appView.options().getThreadingModule(),
+        executorService);
     return this;
   }
 

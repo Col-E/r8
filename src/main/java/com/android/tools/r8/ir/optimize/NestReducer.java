@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.threading.ThreadingModule;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -71,8 +72,10 @@ public class NestReducer {
         }
       }
     }
-    ThreadUtils.processItems(nestHosts, this::processNestHost, executorService);
-    ThreadUtils.processItems(nestMembers, this::processNestMember, executorService);
+    ThreadingModule threadingModule = appView.options().getThreadingModule();
+    ThreadUtils.processItems(nestHosts, this::processNestHost, threadingModule, executorService);
+    ThreadUtils.processItems(
+        nestMembers, this::processNestMember, threadingModule, executorService);
   }
 
   private void processNestHost(DexProgramClass clazz) {

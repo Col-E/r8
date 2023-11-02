@@ -442,6 +442,7 @@ class MethodNameMinifier {
     ThreadUtils.processItems(
         methodAccessInfoCollection::forEachMethodReference,
         method -> renameNonReboundMethodReference(method, nonReboundRenamings),
+        appView.options().getThreadingModule(),
         executorService);
     renaming.putAll(nonReboundRenamings);
   }

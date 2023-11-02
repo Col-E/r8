@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.conversion.callgraph.CallGraph;
 import com.android.tools.r8.ir.conversion.callgraph.PartialCallGraphBuilder;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.threading.ThreadingModule;
 import com.android.tools.r8.utils.DeterminismChecker;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -173,6 +174,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
   <E extends Exception> void forEachMethod(
       MethodAction<E> consumer,
       OptimizationFeedbackDelayed feedback,
+      ThreadingModule threadingModule,
       ExecutorService executorService,
       Timing timing)
       throws ExecutionException {
@@ -193,6 +195,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
                   time.end();
                   return time;
                 },
+                threadingModule,
                 executorService);
         merger.add(timings);
         feedback.updateVisibleOptimizationInfo();

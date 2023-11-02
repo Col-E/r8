@@ -100,6 +100,7 @@ public class ArgumentPropagator {
           // calls.
           effectivelyUnusedArgumentsAnalysis.initializeOptimizableVirtualMethods(classes);
         },
+        appView.options().getThreadingModule(),
         executorService);
 
     timing.end();

@@ -3,15 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import static com.google.common.base.Predicates.alwaysTrue;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.threading.TaskCollection;
+import com.android.tools.r8.threading.ThreadingModule;
 import com.android.tools.r8.utils.ListUtils.ReferenceAndIntConsumer;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -74,89 +72,102 @@ public class ThreadUtils {
   }
 
   public static <T, R, E extends Exception> Collection<R> processItemsWithResults(
-      Iterable<T> items, ThrowingFunction<T, R, E> consumer, ExecutorService executorService)
+      Iterable<T> items,
+      ThrowingFunction<T, R, E> consumer,
+      ThreadingModule threadingModule,
+      ExecutorService executorService)
       throws ExecutionException {
-    return processItemsWithResults(items, (item, i) -> consumer.apply(item), executorService);
+    return processItemsWithResults(
+        items, (item, i) -> consumer.apply(item), threadingModule, executorService);
   }
 
   public static <T, R, E extends Exception> Collection<R> processItemsWithResultsThatMatches(
       Iterable<T> items,
       ThrowingFunction<T, R, E> consumer,
       Predicate<R> predicate,
+      ThreadingModule threadingModule,
       ExecutorService executorService)
       throws ExecutionException {
     return processItemsWithResultsThatMatches(
-        items, (item, i) -> consumer.apply(item), predicate, executorService);
+        items, (item, i) -> consumer.apply(item), predicate, threadingModule, executorService);
   }
 
   public static <T, R, E extends Exception> Collection<R> processItemsWithResults(
       Iterable<T> items,
       ThrowingReferenceIntFunction<T, R, E> consumer,
+      ThreadingModule threadingModule,
       ExecutorService executorService)
       throws ExecutionException {
-    return processItemsWithResults(items::forEach, consumer, executorService);
+    return processItemsWithResults(items::forEach, consumer, threadingModule, executorService);
   }
 
   public static <T, R, E extends Exception> Collection<R> processItemsWithResultsThatMatches(
       Iterable<T> items,
       ThrowingReferenceIntFunction<T, R, E> consumer,
       Predicate<R> predicate,
+      ThreadingModule threadingModule,
       ExecutorService executorService)
       throws ExecutionException {
-    return processItemsWithResultsThatMatches(items::forEach, consumer, predicate, executorService);
-  }
-
-  public static <T, R, E extends Exception> Collection<R> processItemsWithResults(
-      ForEachable<T> items, ThrowingFunction<T, R, E> consumer, ExecutorService executorService)
-      throws ExecutionException {
-    return processItemsWithResults(items, (item, i) -> consumer.apply(item), executorService);
+    return processItemsWithResultsThatMatches(
+        items::forEach, consumer, predicate, threadingModule, executorService);
   }
 
   public static <T, R, E extends Exception> Collection<R> processItemsWithResults(
       ForEachable<T> items,
       ThrowingReferenceIntFunction<T, R, E> consumer,
+      ThreadingModule threadingModule,
       ExecutorService executorService)
       throws ExecutionException {
-    IntBox indexSupplier = new IntBox();
-    List<Future<R>> futures = new ArrayList<>();
-    items.forEach(
-        item -> {
-          int index = indexSupplier.getAndIncrement();
-          futures.add(executorService.submit(() -> consumer.apply(item, index)));
-        });
-    return awaitFuturesWithResults(futures, alwaysTrue());
+    return processItemsWithResultsThatMatches(
+        items, consumer, null, threadingModule, executorService);
   }
 
   public static <T, R, E extends Exception> Collection<R> processItemsWithResultsThatMatches(
       ForEachable<T> items,
       ThrowingReferenceIntFunction<T, R, E> consumer,
       Predicate<R> predicate,
+      ThreadingModule threadingModule,
       ExecutorService executorService)
       throws ExecutionException {
-    IntBox indexSupplier = new IntBox();
-    List<Future<R>> futures = new ArrayList<>();
-    items.forEach(
-        item -> {
-          int index = indexSupplier.getAndIncrement();
-          futures.add(executorService.submit(() -> consumer.apply(item, index)));
-        });
-    return awaitFuturesWithResults(futures, predicate);
+    TaskCollection<R> tasks = new TaskCollection<>(threadingModule, executorService);
+    try {
+      items.forEachWithIndex(
+          (index, item) -> {
+            try {
+              tasks.submit(() -> consumer.apply(item, index));
+            } catch (ExecutionException e) {
+              throw new UncheckedExecutionException(e);
+            }
+          });
+    } catch (UncheckedExecutionException e) {
+      throw e.rethrow();
+    }
+    return tasks.awaitWithResults(predicate);
   }
 
   public static <T> void processItems(
-      Collection<T> items, Consumer<T> consumer, ExecutorService executorService)
+      Collection<T> items,
+      Consumer<T> consumer,
+      ThreadingModule threadingModule,
+      ExecutorService executorService)
       throws ExecutionException {
-    processItems(items, (item, i) -> consumer.accept(item), executorService, WorkLoad.LIGHT);
+    processItems(
+        items,
+        (item, i) -> consumer.accept(item),
+        threadingModule,
+        executorService,
+        WorkLoad.LIGHT);
   }
 
   public static <T> void processItems(
       Collection<T> items,
       ReferenceAndIntConsumer<T> consumer,
+      ThreadingModule threadingModule,
       ExecutorService executorService,
       WorkLoad workLoad)
       throws ExecutionException {
     if (items.size() >= workLoad.getThreshold()) {
-      processItems(items::forEach, consumer::accept, executorService);
+      processItems(items::forEach, consumer::accept, threadingModule, executorService);
     } else {
       int counter = 0;
       for (T item : items) {
@@ -166,14 +177,18 @@ public class ThreadUtils {
   }
 
   public static <T, E extends Exception> void processItems(
-      ForEachable<T> items, ThrowingConsumer<T, E> consumer, ExecutorService executorService)
+      ForEachable<T> items,
+      ThrowingConsumer<T, E> consumer,
+      ThreadingModule threadingModule,
+      ExecutorService executorService)
       throws ExecutionException {
-    processItems(items, (item, i) -> consumer.accept(item), executorService);
+    processItems(items, (item, i) -> consumer.accept(item), threadingModule, executorService);
   }
 
   public static <T, E extends Exception> void processItems(
       ForEachable<T> items,
       ThrowingReferenceIntConsumer<T, E> consumer,
+      ThreadingModule threadingModule,
       ExecutorService executorService)
       throws ExecutionException {
     processItemsWithResults(
@@ -182,11 +197,15 @@ public class ThreadUtils {
           consumer.accept(item, i);
           return null;
         },
+        threadingModule,
         executorService);
   }
 
   public static <T, U, E extends Exception> void processMap(
-      Map<T, U> items, ThrowingBiConsumer<T, U, E> consumer, ExecutorService executorService)
+      Map<T, U> items,
+      ThrowingBiConsumer<T, U, E> consumer,
+      ThreadingModule threadingModule,
+      ExecutorService executorService)
       throws ExecutionException {
     processMapWithResults(
         items,
@@ -194,24 +213,33 @@ public class ThreadUtils {
           consumer.accept(key, value);
           return null;
         },
+        threadingModule,
         executorService);
   }
 
   public static <T, U, R, E extends Exception> Collection<R> processMapWithResults(
-      Map<T, U> items, ThrowingBiFunction<T, U, R, E> consumer, ExecutorService executorService)
+      Map<T, U> items,
+      ThrowingBiFunction<T, U, R, E> consumer,
+      ThreadingModule threadingModule,
+      ExecutorService executorService)
       throws ExecutionException {
     return processItemsWithResults(
-        items.entrySet(), arg -> consumer.apply(arg.getKey(), arg.getValue()), executorService);
+        items.entrySet(),
+        arg -> consumer.apply(arg.getKey(), arg.getValue()),
+        threadingModule,
+        executorService);
   }
 
   public static <E extends Exception> void processMethods(
       AppView<?> appView,
       ThrowingConsumer<ProgramMethod, E> consumer,
+      ThreadingModule threadingModule,
       ExecutorService executorService)
       throws ExecutionException {
     processItems(
         appView.appInfo().classes(),
         clazz -> clazz.forEachProgramMethod(consumer::acceptWithRuntimeException),
+        threadingModule,
         executorService);
   }
 
@@ -236,35 +264,6 @@ public class ThreadUtils {
         }
       }
     }
-  }
-
-  public static <R> Collection<R> awaitFuturesWithResults(
-      Collection<? extends Future<R>> futures, Predicate<R> predicate) throws ExecutionException {
-    List<R> results =
-        predicate == alwaysTrue() ? new ArrayList<>(futures.size()) : new ArrayList<>();
-    Iterator<? extends Future<R>> futureIterator = futures.iterator();
-    try {
-      while (futureIterator.hasNext()) {
-        R result = futureIterator.next().get();
-        if (predicate.test(result)) {
-          results.add(result);
-        }
-      }
-    } catch (InterruptedException e) {
-      throw new RuntimeException("Interrupted while waiting for future.", e);
-    } finally {
-      // In case we get interrupted or one of the threads throws an exception, still wait for all
-      // further work to make sure synchronization guarantees are met. Calling cancel unfortunately
-      // does not guarantee that the task at hand actually terminates before cancel returns.
-      while (futureIterator.hasNext()) {
-        try {
-          futureIterator.next().get();
-        } catch (Throwable t) {
-          // Ignore any new Exception.
-        }
-      }
-    }
-    return results;
   }
 
   static ExecutorService getExecutorServiceForProcessors(int processors) {

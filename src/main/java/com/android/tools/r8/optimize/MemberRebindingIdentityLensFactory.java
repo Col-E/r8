@@ -97,6 +97,7 @@ public class MemberRebindingIdentityLensFactory {
                     seenFieldReferences,
                     seenMethodReferences)
                 .accept(method),
+        appView.options().getThreadingModule(),
         executorService);
   }
 

@@ -24,7 +24,8 @@ public class PartialCallGraphBuilder extends IRProcessingCallGraphBuilderBase {
 
   @Override
   void populateGraph(ExecutorService executorService) throws ExecutionException {
-    ThreadUtils.processItems(seeds, this::processMethod, executorService);
+    ThreadUtils.processItems(
+        seeds, this::processMethod, appView.options().getThreadingModule(), executorService);
   }
 
   private void processMethod(ProgramMethod method) {

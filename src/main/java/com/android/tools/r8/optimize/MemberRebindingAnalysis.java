@@ -645,6 +645,7 @@ public class MemberRebindingAnalysis {
                 });
           }
         },
+        appView.options().getThreadingModule(),
         executorService);
     return nonReboundFieldReferences;
   }

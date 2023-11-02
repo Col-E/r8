@@ -437,6 +437,7 @@ public class TreePruner {
     OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
     feedback.fixupOptimizationInfos(
         application.classes(),
+        appView.options().getThreadingModule(),
         executorService,
         new OptimizationInfoFixer() {
           @Override

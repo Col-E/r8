@@ -210,6 +210,7 @@ public class ProtoNormalizer {
                 }
               });
         },
+        appView.options().getThreadingModule(),
         executorService);
 
     // Reserve parameter lists that won't lead to any sharing after normalization. Any method with
@@ -240,6 +241,7 @@ public class ProtoNormalizer {
         method ->
             computeExtraReservationsFromMethod(
                 method, unoptimizableParameterLists, unoptimizableSignatures),
+        appView.options().getThreadingModule(),
         executorService);
 
     return new GlobalReservationState(reservedParameterLists, unoptimizableSignatures);

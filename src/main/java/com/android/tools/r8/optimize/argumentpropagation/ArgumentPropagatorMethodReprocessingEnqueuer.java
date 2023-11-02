@@ -138,6 +138,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
                   });
               return methodsToReprocessInClass;
             },
+            appView.options().getThreadingModule(),
             executorService);
     methodsToReprocess.forEach(
         methodsToReprocessInClass ->

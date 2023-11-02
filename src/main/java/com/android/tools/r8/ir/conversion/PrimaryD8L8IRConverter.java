@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.threading.ThreadingModule;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -332,6 +333,7 @@ public class PrimaryD8L8IRConverter extends IRConverter {
       throws ExecutionException {
     // Prepare desugaring by collecting all the synthetic methods required on program classes.
     ProgramAdditions programAdditions = new ProgramAdditions();
+    ThreadingModule threadingModule = appView.options().getThreadingModule();
     ThreadUtils.processItems(
         appView.appInfo().classes(),
         clazz -> {
@@ -340,8 +342,9 @@ public class PrimaryD8L8IRConverter extends IRConverter {
               method ->
                   instructionDesugaring.prepare(method, desugaringEventConsumer, programAdditions));
         },
+        threadingModule,
         executorService);
-    programAdditions.apply(executorService);
+    programAdditions.apply(threadingModule, executorService);
   }
 
   @SuppressWarnings("BadImport")

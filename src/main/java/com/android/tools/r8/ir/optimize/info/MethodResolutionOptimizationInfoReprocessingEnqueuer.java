@@ -65,6 +65,7 @@ class MethodResolutionOptimizationInfoReprocessingEnqueuer {
                   });
               return methodsToReprocessInClass;
             },
+            appView.options().getThreadingModule(),
             executorService);
     methodsToReprocess.forEach(
         methodsToReprocessInClass ->

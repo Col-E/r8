@@ -61,7 +61,8 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
     assert !affectedClasses.isEmpty();
 
     timing.begin("Fixup application");
-    ThreadUtils.processItems(affectedClasses, this::fixupClass, executorService);
+    ThreadUtils.processItems(
+        affectedClasses, this::fixupClass, appView.options().getThreadingModule(), executorService);
     timing.end();
 
     // Fixup optimization info.
@@ -131,6 +132,7 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
     getSimpleFeedback()
         .fixupOptimizationInfos(
             appView,
+            appView.options().getThreadingModule(),
             executorService,
             new OptimizationInfoFixer() {
               @Override

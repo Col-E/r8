@@ -233,6 +233,7 @@ public final class D8 {
                 analysis.processNewlyLiveMethod(classInitializer, clazz, null, null);
               }
             },
+            appView.options().getThreadingModule(),
             executor);
       }
 

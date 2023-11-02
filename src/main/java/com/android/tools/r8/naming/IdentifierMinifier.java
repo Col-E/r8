@@ -65,8 +65,8 @@ public class IdentifierMinifier {
             clazz.forEachMethod(this::adaptClassStringsInMethod);
           }
         },
-        executorService
-    );
+        appView.options().getThreadingModule(),
+        executorService);
   }
 
   private void adaptClassStringsInStaticField(DexEncodedField encodedField) {
@@ -158,6 +158,7 @@ public class IdentifierMinifier {
           clazz.forEachProgramMethodMatching(
               DexEncodedMethod::hasCode, this::replaceDexItemBasedConstStringInMethod);
         },
+        appView.options().getThreadingModule(),
         executorService);
   }
 

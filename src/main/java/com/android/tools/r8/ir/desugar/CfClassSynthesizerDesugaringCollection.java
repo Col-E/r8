@@ -82,6 +82,7 @@ public abstract class CfClassSynthesizerDesugaringCollection {
                 processorContext.createClassSynthesisDesugaringContext(synthesizer);
             synthesizer.synthesizeClasses(classSynthesisDesugaringContext, eventConsumer);
           },
+          appView.options().getThreadingModule(),
           executorService);
     }
   }

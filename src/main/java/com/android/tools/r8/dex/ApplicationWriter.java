@@ -316,6 +316,7 @@ public class ApplicationWriter {
         virtualFiles,
         virtualFile ->
             rewriteJumboStringsAndComputeDebugRepresentation(virtualFile, lazyDexStrings),
+        appView.options().getThreadingModule(),
         executorService);
   }
 
@@ -335,6 +336,7 @@ public class ApplicationWriter {
               fileTiming.end();
               return fileTiming;
             },
+            appView.options().getThreadingModule(),
             executorService);
     merger.add(timings);
     merger.end();
@@ -908,7 +910,10 @@ public class ApplicationWriter {
 
   private void setCallSiteContexts(ExecutorService executorService) throws ExecutionException {
     ThreadUtils.processItems(
-        appView.appInfo().classes(), this::setCallSiteContexts, executorService);
+        appView.appInfo().classes(),
+        this::setCallSiteContexts,
+        appView.options().getThreadingModule(),
+        executorService);
   }
 
   private void setCallSiteContexts(DexProgramClass clazz) {

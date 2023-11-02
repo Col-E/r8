@@ -191,6 +191,7 @@ public class PrimaryR8IRConverter extends IRConverter {
                     methodProcessingContext,
                     MethodConversionOptions.forLirPhase(appView)),
             feedback,
+            appView.options().getThreadingModule(),
             executorService,
             timing);
         timing.end();
@@ -248,6 +249,7 @@ public class PrimaryR8IRConverter extends IRConverter {
         clazz ->
             clazz.forEachProgramMethod(
                 m -> finalizeLirMethodToOutputFormat(m, deadCodeRemover, appView, rewriterUtils)),
+        appView.options().getThreadingModule(),
         executorService);
     appView
         .getSyntheticItems()

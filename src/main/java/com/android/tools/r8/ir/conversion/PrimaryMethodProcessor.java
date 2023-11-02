@@ -143,6 +143,7 @@ public class PrimaryMethodProcessor extends MethodProcessorWithWave {
                   time.end();
                   return time;
                 },
+                appView.options().getThreadingModule(),
                 executorService);
         merger.add(timings);
         waveDoneAction.notifyWaveDone(wave, executorService);

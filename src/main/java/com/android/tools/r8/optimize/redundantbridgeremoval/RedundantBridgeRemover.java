@@ -172,6 +172,7 @@ public class RedundantBridgeRemover {
             stronglyConnectedProgramComponents,
             this::removeRedundantBridgesInComponent,
             removedBridges -> !removedBridges.isEmpty(),
+            appView.options().getThreadingModule(),
             executorService);
     ProgramMethodSet removedBridges = ProgramMethodSet.create();
     results.forEach(

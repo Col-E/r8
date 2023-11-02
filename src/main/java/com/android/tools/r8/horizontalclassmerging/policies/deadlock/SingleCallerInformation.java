@@ -73,7 +73,10 @@ public class SingleCallerInformation {
 
     public Builder analyze(ExecutorService executorService) throws ExecutionException {
       ThreadUtils.processItems(
-          appView.appInfo()::forEachMethod, this::processMethod, executorService);
+          appView.appInfo()::forEachMethod,
+          this::processMethod,
+          appView.options().getThreadingModule(),
+          executorService);
       return this;
     }
 

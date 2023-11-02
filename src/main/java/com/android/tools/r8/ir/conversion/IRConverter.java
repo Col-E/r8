@@ -336,6 +336,7 @@ public class IRConverter {
                 DexEncodedMethod::isAbstract, method -> method.convertToThrowNullMethod(appView));
           }
         },
+        appView.options().getThreadingModule(),
         executorService);
   }
 
@@ -356,7 +357,10 @@ public class IRConverter {
   public void processSimpleSynthesizeMethods(
       List<ProgramMethod> methods, ExecutorService executorService) throws ExecutionException {
     ThreadUtils.processItems(
-        methods, this::processAndFinalizeSimpleSynthesizedMethod, executorService);
+        methods,
+        this::processAndFinalizeSimpleSynthesizedMethod,
+        options.getThreadingModule(),
+        executorService);
   }
 
   private void processAndFinalizeSimpleSynthesizedMethod(ProgramMethod method) {
@@ -445,6 +449,7 @@ public class IRConverter {
                   methodProcessor,
                   methodProcessingContext,
                   conversionOptions),
+          appView.options().getThreadingModule(),
           executorService);
     }
   }
