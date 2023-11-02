@@ -538,8 +538,7 @@ public class InheritanceClassInDexDistributor {
 
   private void updateGroupsNumberOfIds(List<ClassGroup> groups) {
     TaskCollection<?> updateIdsTasks =
-        new TaskCollection<>(
-            appView.options().getThreadingModule(), executorService, groups.size());
+        new TaskCollection<>(appView.options(), executorService, groups.size());
     try {
       for (ClassGroup group : groups) {
         updateIdsTasks.submit(group::updateNumbersOfIds);

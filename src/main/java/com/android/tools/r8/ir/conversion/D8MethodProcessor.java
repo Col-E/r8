@@ -86,18 +86,14 @@ public class D8MethodProcessor extends MethodProcessor {
       // The non-synthetic holder is not scheduled. It will be processed once holder is scheduled.
       return;
     }
-    try {
-      nonTerminalTasks.submit(
-          () ->
-              converter.rewriteNonDesugaredCode(
-                  method,
-                  eventConsumer,
-                  OptimizationFeedbackIgnore.getInstance(),
-                  this,
-                  processorContext.createMethodProcessingContext(method)));
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e);
-    }
+    nonTerminalTasks.submitUnchecked(
+        () ->
+            converter.rewriteNonDesugaredCode(
+                method,
+                eventConsumer,
+                OptimizationFeedbackIgnore.getInstance(),
+                this,
+                processorContext.createMethodProcessingContext(method)));
   }
 
   @Override
@@ -112,18 +108,14 @@ public class D8MethodProcessor extends MethodProcessor {
     if (method.getDefinition().isAbstract()) {
       return;
     }
-    try {
-      terminalTasks.submit(
-          () ->
-              converter.rewriteDesugaredCode(
-                  method,
-                  OptimizationFeedbackIgnore.getInstance(),
-                  this,
-                  processorContext.createMethodProcessingContext(method),
-                  MethodConversionOptions.forD8(converter.appView)));
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e);
-    }
+    terminalTasks.submitUnchecked(
+        () ->
+            converter.rewriteDesugaredCode(
+                method,
+                OptimizationFeedbackIgnore.getInstance(),
+                this,
+                processorContext.createMethodProcessingContext(method),
+                MethodConversionOptions.forD8(converter.appView)));
   }
 
   public void scheduleDesugaredMethodsForProcessing(Iterable<ProgramMethod> methods) {

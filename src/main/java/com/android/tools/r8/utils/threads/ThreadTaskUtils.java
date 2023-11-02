@@ -23,7 +23,7 @@ public class ThreadTaskUtils {
       ThreadTask... tasks)
       throws ExecutionException {
     assert tasks.length > 0;
-    TaskCollection<?> taskCollection = new TaskCollection<>(options, executorService);
+    TaskCollection<?> taskCollection = new TaskCollection<>(options, executorService, tasks.length);
     if (timingMerger.isEmpty()) {
       for (ThreadTask task : tasks) {
         if (task.shouldRun()) {

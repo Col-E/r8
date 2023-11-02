@@ -132,13 +132,7 @@ public class ThreadUtils {
     TaskCollection<R> tasks = new TaskCollection<>(threadingModule, executorService);
     try {
       items.forEachWithIndex(
-          (index, item) -> {
-            try {
-              tasks.submit(() -> consumer.apply(item, index));
-            } catch (ExecutionException e) {
-              throw new UncheckedExecutionException(e);
-            }
-          });
+          (index, item) -> tasks.submitUnchecked(() -> consumer.apply(item, index)));
     } catch (UncheckedExecutionException e) {
       throw e.rethrow();
     }

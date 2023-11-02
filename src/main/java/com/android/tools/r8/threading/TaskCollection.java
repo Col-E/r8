@@ -35,7 +35,12 @@ public class TaskCollection<T> {
   }
 
   public TaskCollection(InternalOptions options, ExecutorService executorService) {
-    this(options.getThreadingModule(), executorService, -1);
+    this(options, executorService, -1);
+  }
+
+  public TaskCollection(
+      InternalOptions options, ExecutorService executorService, int initialCapacity) {
+    this(options.getThreadingModule(), executorService, initialCapacity);
   }
 
   /**
