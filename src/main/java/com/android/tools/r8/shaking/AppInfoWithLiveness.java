@@ -1361,8 +1361,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         .isDefinitelyInstanceOfStaticType(appView, () -> dynamicReceiverType, staticReceiverType)) {
       return null;
     }
-    DexClass initialResolutionHolder = resolutionResult.getInitialResolutionHolder();
-    if (initialResolutionHolder.isInterface() != isInterface) {
+    DexClass initialResolutionHolder = definitionFor(method.holder);
+    if (initialResolutionHolder == null || initialResolutionHolder.isInterface() != isInterface) {
       return null;
     }
     DexType refinedReceiverType =
@@ -1372,24 +1372,27 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       // The refined receiver is not defined in the program and we cannot determine the target.
       return null;
     }
-    if (singleTargetLookupCache.hasPositiveCacheHit(refinedReceiverType, method)) {
-      return singleTargetLookupCache.getPositiveCacheHit(refinedReceiverType, method);
-    }
-    if (!dynamicReceiverType.hasDynamicLowerBoundType()
-        && singleTargetLookupCache.hasNegativeCacheHit(refinedReceiverType, method)) {
-      return null;
+    if (!dynamicReceiverType.hasDynamicLowerBoundType()) {
+      if (singleTargetLookupCache.hasPositiveCacheHit(refinedReceiverType, method)) {
+        return singleTargetLookupCache.getPositiveCacheHit(refinedReceiverType, method);
+      }
+      if (singleTargetLookupCache.hasNegativeCacheHit(refinedReceiverType, method)) {
+        return null;
+      }
     }
     if (resolutionResult
         .isAccessibleForVirtualDispatchFrom(context.getHolder(), appView)
         .isFalse()) {
       return null;
     }
-    // If the resolved method is final, return the resolution.
+    // If the method is modeled, return the resolution.
     DexClassAndMethod resolvedMethod = resolutionResult.getResolutionPair();
-    if (resolvedMethod.getHolder().isFinal() || resolvedMethod.getAccessFlags().isFinal()) {
-      if (!resolvedMethod.isLibraryMethod()
-          || modeledPredicate.isModeled(resolvedMethod.getHolderType())) {
-        return singleTargetLookupCache.addToCache(refinedReceiverType, method, resolvedMethod);
+    if (modeledPredicate.isModeled(resolutionResult.getResolvedHolder().getType())) {
+      if (resolutionResult.getResolvedHolder().isFinal()
+          || (resolvedMethod.getAccessFlags().isFinal()
+              && resolvedMethod.getAccessFlags().isPublic())) {
+        singleTargetLookupCache.addToCache(refinedReceiverType, method, resolvedMethod);
+        return resolvedMethod;
       }
     }
     DispatchTargetLookupResult exactTarget =

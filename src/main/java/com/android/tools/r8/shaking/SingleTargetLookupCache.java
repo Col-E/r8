@@ -31,11 +31,10 @@ public class SingleTargetLookupCache {
         .add(method);
   }
 
-  public DexClassAndMethod addToCache(
-      DexType refinedReceiverType, DexMethod method, DexClassAndMethod target) {
+  public void addToCache(DexType refinedReceiverType, DexMethod method, DexClassAndMethod target) {
     if (target == null) {
       addNoSingleTargetToCache(refinedReceiverType, method);
-      return null;
+      return;
     }
     assert !ObjectUtils.identical(target.getDefinition(), DexEncodedMethod.SENTINEL);
     assert !hasNegativeCacheHit(refinedReceiverType, method);
@@ -44,7 +43,6 @@ public class SingleTargetLookupCache {
     positiveCache
         .computeIfAbsent(refinedReceiverType, ignoreKey(ConcurrentHashMap::new))
         .put(method, target);
-    return target;
   }
 
   public void removeInstantiatedType(DexType instantiatedType, AppInfoWithLiveness appInfo) {
