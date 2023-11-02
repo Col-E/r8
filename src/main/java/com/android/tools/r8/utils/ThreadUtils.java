@@ -9,14 +9,11 @@ import com.android.tools.r8.threading.TaskCollection;
 import com.android.tools.r8.threading.ThreadingModule;
 import com.android.tools.r8.utils.ListUtils.ReferenceAndIntConsumer;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -50,26 +47,6 @@ public class ThreadUtils {
   }
 
   public static final int NOT_SPECIFIED = -1;
-
-  public static <T> Future<T> processAsynchronously(
-      Action action, ExecutorService executorService) {
-    return processAsynchronously(
-        () -> {
-          action.execute();
-          return null;
-        },
-        executorService);
-  }
-
-  public static <T> void processAsynchronously(
-      Action action, ExecutorService executorService, Collection<Future<T>> futures) {
-    futures.add(processAsynchronously(action, executorService));
-  }
-
-  public static <T> Future<T> processAsynchronously(
-      Callable<T> callable, ExecutorService executorService) {
-    return executorService.submit(callable);
-  }
 
   public static <T, R, E extends Exception> Collection<R> processItemsWithResults(
       Iterable<T> items,
@@ -235,29 +212,6 @@ public class ThreadUtils {
         clazz -> clazz.forEachProgramMethod(consumer::acceptWithRuntimeException),
         threadingModule,
         executorService);
-  }
-
-  public static void awaitFutures(Iterable<? extends Future<?>> futures)
-      throws ExecutionException {
-    Iterator<? extends Future<?>> futureIterator = futures.iterator();
-    try {
-      while (futureIterator.hasNext()) {
-        futureIterator.next().get();
-      }
-    } catch (InterruptedException e) {
-      throw new RuntimeException("Interrupted while waiting for future.", e);
-    } finally {
-      // In case we get interrupted or one of the threads throws an exception, still wait for all
-      // further work to make sure synchronization guarantees are met. Calling cancel unfortunately
-      // does not guarantee that the task at hand actually terminates before cancel returns.
-      while (futureIterator.hasNext()) {
-        try {
-          futureIterator.next().get();
-        } catch (Throwable t) {
-          // Ignore any new Exception.
-        }
-      }
-    }
   }
 
   static ExecutorService getExecutorServiceForProcessors(int processors) {

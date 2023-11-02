@@ -64,11 +64,11 @@ import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.repackaging.RepackagingUtils;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.synthesis.CommittedItems;
+import com.android.tools.r8.threading.TaskCollection;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PredicateSet;
-import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
@@ -80,7 +80,6 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -89,7 +88,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -322,49 +320,46 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   private AppInfoWithLiveness(
-      AppInfoWithLiveness previous,
-      PrunedItems prunedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
+      AppInfoWithLiveness previous, PrunedItems prunedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
     this(
         previous.getSyntheticItems().commitPrunedItems(prunedItems),
         previous.getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
         previous.getMainDexInfo().withoutPrunedItems(prunedItems),
         previous.getMissingClasses(),
         previous.deadProtoTypes,
-        pruneClasses(previous.liveTypes, prunedItems, executorService, futures),
-        pruneMethods(previous.targetedMethods, prunedItems, executorService, futures),
-        pruneClasses(previous.failedClassResolutionTargets, prunedItems, executorService, futures),
-        pruneMethods(previous.failedMethodResolutionTargets, prunedItems, executorService, futures),
-        pruneFields(previous.failedFieldResolutionTargets, prunedItems, executorService, futures),
-        pruneMethods(previous.bootstrapMethods, prunedItems, executorService, futures),
-        pruneMethods(
-            previous.virtualMethodsTargetedByInvokeDirect, prunedItems, executorService, futures),
-        pruneMethods(previous.liveMethods, prunedItems, executorService, futures),
+        pruneClasses(previous.liveTypes, prunedItems, tasks),
+        pruneMethods(previous.targetedMethods, prunedItems, tasks),
+        pruneClasses(previous.failedClassResolutionTargets, prunedItems, tasks),
+        pruneMethods(previous.failedMethodResolutionTargets, prunedItems, tasks),
+        pruneFields(previous.failedFieldResolutionTargets, prunedItems, tasks),
+        pruneMethods(previous.bootstrapMethods, prunedItems, tasks),
+        pruneMethods(previous.virtualMethodsTargetedByInvokeDirect, prunedItems, tasks),
+        pruneMethods(previous.liveMethods, prunedItems, tasks),
         previous.fieldAccessInfoCollection,
         previous.methodAccessInfoCollection.withoutPrunedItems(prunedItems),
         previous.objectAllocationInfoCollection.withoutPrunedItems(prunedItems),
         pruneCallSites(previous.callSites, prunedItems),
         extendPinnedItems(previous, prunedItems.getAdditionalPinnedItems()),
         previous.mayHaveSideEffects,
-        pruneMethods(previous.alwaysInline, prunedItems, executorService, futures),
-        pruneMethods(previous.neverInlineDueToSingleCaller, prunedItems, executorService, futures),
-        pruneMethods(previous.whyAreYouNotInlining, prunedItems, executorService, futures),
-        pruneMethods(previous.reprocess, prunedItems, executorService, futures),
-        pruneMethods(previous.neverReprocess, prunedItems, executorService, futures),
+        pruneMethods(previous.alwaysInline, prunedItems, tasks),
+        pruneMethods(previous.neverInlineDueToSingleCaller, prunedItems, tasks),
+        pruneMethods(previous.whyAreYouNotInlining, prunedItems, tasks),
+        pruneMethods(previous.reprocess, prunedItems, tasks),
+        pruneMethods(previous.neverReprocess, prunedItems, tasks),
         previous.alwaysClassInline,
-        pruneClasses(previous.neverClassInline, prunedItems, executorService, futures),
-        pruneClasses(previous.noClassMerging, prunedItems, executorService, futures),
-        pruneClasses(previous.noVerticalClassMerging, prunedItems, executorService, futures),
-        pruneClasses(previous.noHorizontalClassMerging, prunedItems, executorService, futures),
-        pruneMembers(previous.neverPropagateValue, prunedItems, executorService, futures),
-        pruneMapFromMembers(previous.identifierNameStrings, prunedItems, executorService, futures),
+        pruneClasses(previous.neverClassInline, prunedItems, tasks),
+        pruneClasses(previous.noClassMerging, prunedItems, tasks),
+        pruneClasses(previous.noVerticalClassMerging, prunedItems, tasks),
+        pruneClasses(previous.noHorizontalClassMerging, prunedItems, tasks),
+        pruneMembers(previous.neverPropagateValue, prunedItems, tasks),
+        pruneMapFromMembers(previous.identifierNameStrings, prunedItems, tasks),
         prunedItems.hasRemovedClasses()
             ? CollectionUtils.mergeSets(previous.prunedTypes, prunedItems.getRemovedClasses())
             : previous.prunedTypes,
         previous.switchMaps,
-        pruneClasses(previous.lockCandidates, prunedItems, executorService, futures),
-        pruneMapFromClasses(previous.initClassReferences, prunedItems, executorService, futures),
+        pruneClasses(previous.lockCandidates, prunedItems, tasks),
+        pruneMapFromClasses(previous.initClassReferences, prunedItems, tasks),
         previous.recordFieldValuesReferences);
   }
 
@@ -386,114 +381,91 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   private static Set<DexType> pruneClasses(
-      Set<DexType> methods,
-      PrunedItems prunedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
-    return pruneItems(methods, prunedItems.getRemovedClasses(), executorService, futures);
+      Set<DexType> methods, PrunedItems prunedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
+    return pruneItems(methods, prunedItems.getRemovedClasses(), tasks);
   }
 
   private static Set<DexField> pruneFields(
-      Set<DexField> fields,
-      PrunedItems prunedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
-    return pruneItems(fields, prunedItems.getRemovedFields(), executorService, futures);
+      Set<DexField> fields, PrunedItems prunedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
+    return pruneItems(fields, prunedItems.getRemovedFields(), tasks);
   }
 
   private static Set<DexMember<?, ?>> pruneMembers(
-      Set<DexMember<?, ?>> members,
-      PrunedItems prunedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
+      Set<DexMember<?, ?>> members, PrunedItems prunedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
     if (prunedItems.hasRemovedMembers()) {
-      futures.add(
-          ThreadUtils.processAsynchronously(
-              () -> {
-                Set<DexField> removedFields = prunedItems.getRemovedFields();
-                Set<DexMethod> removedMethods = prunedItems.getRemovedMethods();
-                if (members.size() <= removedFields.size() + removedMethods.size()) {
-                  members.removeIf(
-                      member ->
-                          member.isDexField()
-                              ? removedFields.contains(member.asDexField())
-                              : removedMethods.contains(member.asDexMethod()));
-                } else {
-                  removedFields.forEach(members::remove);
-                  removedMethods.forEach(members::remove);
-                }
-              },
-              executorService));
+      tasks.submit(
+          () -> {
+            Set<DexField> removedFields = prunedItems.getRemovedFields();
+            Set<DexMethod> removedMethods = prunedItems.getRemovedMethods();
+            if (members.size() <= removedFields.size() + removedMethods.size()) {
+              members.removeIf(
+                  member ->
+                      member.isDexField()
+                          ? removedFields.contains(member.asDexField())
+                          : removedMethods.contains(member.asDexMethod()));
+            } else {
+              removedFields.forEach(members::remove);
+              removedMethods.forEach(members::remove);
+            }
+          });
     }
     return members;
   }
 
   private static Set<DexMethod> pruneMethods(
-      Set<DexMethod> methods,
-      PrunedItems prunedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
-    return pruneItems(methods, prunedItems.getRemovedMethods(), executorService, futures);
+      Set<DexMethod> methods, PrunedItems prunedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
+    return pruneItems(methods, prunedItems.getRemovedMethods(), tasks);
   }
 
-  private static <T> Set<T> pruneItems(
-      Set<T> items, Set<T> removedItems, ExecutorService executorService, List<Future<?>> futures) {
+  private static <T> Set<T> pruneItems(Set<T> items, Set<T> removedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
     if (!isThrowingSet(items) && !removedItems.isEmpty()) {
-      futures.add(
-          ThreadUtils.processAsynchronously(
-              () -> {
-                if (items.size() <= removedItems.size()) {
-                  items.removeAll(removedItems);
-                } else {
-                  removedItems.forEach(items::remove);
-                }
-              },
-              executorService));
+      tasks.submit(
+          () -> {
+            if (items.size() <= removedItems.size()) {
+              items.removeAll(removedItems);
+            } else {
+              removedItems.forEach(items::remove);
+            }
+          });
     }
     return items;
   }
 
   private static <V> Map<DexType, V> pruneMapFromClasses(
-      Map<DexType, V> map,
-      PrunedItems prunedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
-    return pruneMap(map, prunedItems.getRemovedClasses(), executorService, futures);
+      Map<DexType, V> map, PrunedItems prunedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
+    return pruneMap(map, prunedItems.getRemovedClasses(), tasks);
   }
 
   private static Object2BooleanMap<DexMember<?, ?>> pruneMapFromMembers(
-      Object2BooleanMap<DexMember<?, ?>> map,
-      PrunedItems prunedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
+      Object2BooleanMap<DexMember<?, ?>> map, PrunedItems prunedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
     if (prunedItems.hasRemovedMembers()) {
-      futures.add(
-          ThreadUtils.processAsynchronously(
-              () -> {
-                prunedItems.getRemovedFields().forEach(map::removeBoolean);
-                prunedItems.getRemovedMethods().forEach(map::removeBoolean);
-              },
-              executorService));
+      tasks.submit(
+          () -> {
+            prunedItems.getRemovedFields().forEach(map::removeBoolean);
+            prunedItems.getRemovedMethods().forEach(map::removeBoolean);
+          });
     }
     return map;
   }
 
   private static <K, V> Map<K, V> pruneMap(
-      Map<K, V> map,
-      Set<K> removedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
+      Map<K, V> map, Set<K> removedItems, TaskCollection<?> tasks) throws ExecutionException {
     if (!removedItems.isEmpty()) {
-      futures.add(
-          ThreadUtils.processAsynchronously(
-              () -> {
-                if (map.size() <= removedItems.size()) {
-                  map.keySet().removeAll(removedItems);
-                } else {
-                  removedItems.forEach(map::remove);
-                }
-              },
-              executorService));
+      tasks.submit(
+          () -> {
+            if (map.size() <= removedItems.size()) {
+              map.keySet().removeAll(removedItems);
+            } else {
+              removedItems.forEach(map::remove);
+            }
+          });
     }
     return map;
   }
@@ -1183,10 +1155,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     } else if (prunedItems.hasRemovedMembers()) {
       keepInfo.mutate(keepInfo -> keepInfo.removeKeepInfoForPrunedItems(prunedItems));
     }
-    List<Future<?>> futures = new ArrayList<>();
-    AppInfoWithLiveness appInfoWithLiveness =
-        new AppInfoWithLiveness(this, prunedItems, executorService, futures);
-    ThreadUtils.awaitFutures(futures);
+    TaskCollection<?> tasks = new TaskCollection<>(options(), executorService);
+    AppInfoWithLiveness appInfoWithLiveness = new AppInfoWithLiveness(this, prunedItems, tasks);
+    tasks.await();
     timing.end();
     return appInfoWithLiveness;
   }
