@@ -806,8 +806,19 @@ def gmaven_publisher_stage_redir_test_info(release_id, artifact, dst):
 
 %s
 
-Then add the following repository to settings.gradle to search the 'redir'
-repository:
+Then add the following repository to settings.gradle.kts (Kotlin Script) to
+search the 'redir' repository:
+
+dependencyResolutionManagement {
+  repositories {
+    maven {
+      url = uri("http://localhost:1480")
+      isAllowInsecureProtocol = true
+    }
+  }
+}
+
+or the following to settings.gradle (Groovy);
 
 dependencyResolutionManagement {
   repositories {
@@ -818,7 +829,14 @@ dependencyResolutionManagement {
   }
 }
 
-and add the following repository to gradle.build for for the staged version:
+and add the following repository to gradle.build.kts (Kotlin Script) for the
+staged version:
+
+coreLibraryDesugaring("%s") {
+  isChanging = true
+}
+
+or the following to settings.gradle (Groovy);
 
 dependencies {
   coreLibraryDesugaring('%s') {
@@ -830,7 +848,7 @@ Use this commands to get artifact from 'redir':
 
 rm -rf /tmp/maven_repo_local
 %s
-""" % (redir_command, artifact, get_command))
+""" % (redir_command, artifact, artifact, get_command))
 
 
 def gmaven_publisher_publish(args, release_id):

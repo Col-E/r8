@@ -264,7 +264,7 @@ def run(args):
         print("  }")
         print()
 
-        print("For Grovey add")
+        print("For Groovy add")
         print()
         print("  maven {")
         print("    url uri('file://" + args.repo_root + "')")
