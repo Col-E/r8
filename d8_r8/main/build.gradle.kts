@@ -21,7 +21,7 @@ plugins {
   `kotlin-dsl`
   id("dependencies-plugin")
   id("net.ltgt.errorprone") version "3.0.1"
-  id("org.spdx.sbom") version "0.2.0-r8-patch01"
+  id("org.spdx.sbom") version "0.4.0-r8-patch01"
 }
 
 java {

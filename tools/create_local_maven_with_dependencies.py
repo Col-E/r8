@@ -104,7 +104,7 @@ PLUGIN_DEPENDENCIES = [
 
   # Patched version of org.spdx.sbom:org.spdx.sbom.gradle.plugin:0.2.0.
   # See commit message for a13217f333cc65fb602502ac446698dd74d10b7f.
-  'org.spdx.sbom:org.spdx.sbom.gradle.plugin:0.2.0-r8-patch01',
+  'org.spdx.sbom:org.spdx.sbom.gradle.plugin:0.4.0-r8-patch01',
   # See https://github.com/FasterXML/jackson-core/issues/999.
   'ch.randelshofer:fastdoubleparser:0.8.0',
 ]
