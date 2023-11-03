@@ -152,15 +152,8 @@ public class Marker {
     return this;
   }
 
-  public boolean hasCompilationMode() {
-    return jsonObject.has(COMPILATION_MODE);
-  }
-
   public String getCompilationMode() {
-    if (hasCompilationMode()) {
-      return jsonObject.get(COMPILATION_MODE).getAsString();
-    }
-    return null;
+    return jsonObject.get(COMPILATION_MODE).getAsString();
   }
 
   public Marker setCompilationMode(CompilationMode mode) {
@@ -174,23 +167,13 @@ public class Marker {
   }
 
   public String getBackend() {
-    if (hasBackend()) {
-      jsonObject.get(BACKEND).getAsString();
+    if (!hasBackend()) {
+      // Before adding backend we would always compile to dex if min-api was specified.
+      return hasMinApi()
+          ? StringUtils.toLowerCase(Backend.DEX.name())
+          : StringUtils.toLowerCase(Backend.CF.name());
     }
-    switch (tool) {
-      case D8:
-      case L8:
-      case R8:
-        // Before adding backend we would always compile to dex if min-api was specified.
-        // This is not fully true for D8 which had a window from aug to oct 2020 where the min-api
-        // was added for CF builds too. However, that was (and still is) only used internally and
-        // those markers should be be found in the wild.
-        return hasMinApi()
-            ? StringUtils.toLowerCase(Backend.DEX.name())
-            : StringUtils.toLowerCase(Backend.CF.name());
-      default:
-        return null;
-    }
+    return jsonObject.get(BACKEND).getAsString();
   }
 
   public boolean isCfBackend() {

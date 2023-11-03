@@ -114,14 +114,6 @@ public class ExtractMarkerApiTest extends CompilerApiTestRunner {
                 assertFalse(marker.isR8());
                 assertFalse(marker.isL8());
                 assertEquals(1, marker.getMinApi());
-                assertTrue(marker.hasBackend());
-                assertTrue(marker.isBackendDexFiles());
-                assertFalse(marker.isBackendClassFiles());
-                assertTrue(marker.hasCompilationMode());
-                assertTrue(marker.isCompilationModeDebug());
-                assertFalse(marker.isCompilationModeRelease());
-                assertFalse(marker.isR8ModeCompatibility());
-                assertFalse(marker.isR8ModeFull());
                 assertThat(marker.getRawEncoding(), startsWith("~~D8{"));
               } else {
                 assertTrue(origin == originCf || origin.equals(new PathOrigin(inputFile)));

@@ -19,11 +19,6 @@ public class MarkerInfoImpl implements MarkerInfo {
   }
 
   @Override
-  public String getVersion() {
-    return marker.getVersion();
-  }
-
-  @Override
   public String getTool() {
     return marker.getTool().toString();
   }
@@ -46,46 +41,6 @@ public class MarkerInfoImpl implements MarkerInfo {
   @Override
   public int getMinApi() {
     return marker.hasMinApi() ? marker.getMinApi().intValue() : -1;
-  }
-
-  @Override
-  public boolean hasBackend() {
-    return marker.getBackend() != null;
-  }
-
-  @Override
-  public boolean isBackendClassFiles() {
-    return "cf".equals(marker.getBackend());
-  }
-
-  @Override
-  public boolean isBackendDexFiles() {
-    return "dex".equals(marker.getBackend());
-  }
-
-  @Override
-  public boolean hasCompilationMode() {
-    return marker.hasCompilationMode();
-  }
-
-  @Override
-  public boolean isCompilationModeDebug() {
-    return "debug".equals(marker.getCompilationMode());
-  }
-
-  @Override
-  public boolean isCompilationModeRelease() {
-    return "release".equals(marker.getCompilationMode());
-  }
-
-  @Override
-  public boolean isR8ModeCompatibility() {
-    return isR8() && "compatibility".equals(marker.getR8Mode());
-  }
-
-  @Override
-  public boolean isR8ModeFull() {
-    return isR8() && "full".equals(marker.getR8Mode());
   }
 
   @Override
