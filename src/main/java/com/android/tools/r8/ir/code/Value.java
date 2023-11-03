@@ -801,7 +801,7 @@ public class Value implements Comparable<Value> {
                               user.isAnd()
                                   || user.isOr()
                                   || ((user.isShl() || user.isShr() || user.isUshr())
-                                      && constNumberValue == user.asShl().getFirstOperand())
+                                      && constNumberValue == user.getFirstOperand())
                                   || user.isXor());
           if (useBinaryRepresentation) {
             builder.append("0b").append(Integer.toBinaryString(intValue));
