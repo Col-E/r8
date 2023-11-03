@@ -169,11 +169,8 @@ public interface PositionRemapper {
               parsedData.lookupCalleePosition(line);
           if (calleePosition != null) {
             // Take the first line as the callee position
-            position =
-                position
-                    .builderWithCopy()
-                    .setLine(calleePosition.getValue().getRange().from)
-                    .build();
+            int calleeLine = Math.max(0, calleePosition.getValue().getRange().from);
+            position = position.builderWithCopy().setLine(calleeLine).build();
           }
           return baseRemapper.createRemappedPosition(
               SourcePosition.builder()
