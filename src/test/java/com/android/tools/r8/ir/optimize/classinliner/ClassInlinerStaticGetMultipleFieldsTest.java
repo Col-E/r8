@@ -43,8 +43,7 @@ public class ClassInlinerStaticGetMultipleFieldsTest extends TestBase {
               assertThat(inspector.clazz(DataImpl.class), isAbsent());
             })
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/309076043): Should succeed with "1", "2", "3", "4".
-        .assertSuccessWithOutputLines("1", "1", "3", "3");
+        .assertSuccessWithOutputLines("1", "2", "3", "4");
   }
 
   static class Main {

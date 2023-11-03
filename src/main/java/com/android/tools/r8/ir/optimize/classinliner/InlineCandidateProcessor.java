@@ -800,7 +800,7 @@ final class InlineCandidateProcessor {
             replaceFieldReadFromStaticGet(
                 code,
                 instructionIterator,
-                user.asInstanceGet(),
+                instruction.asInstanceGet(),
                 affectedValues,
                 pendingReplacements);
           } else {
