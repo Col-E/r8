@@ -195,14 +195,6 @@ public class ExtractMarkerApiTest extends CompilerApiTestRunner {
               boolean r8 = marker.isR8();
               boolean l8 = marker.isL8();
               int minApi = marker.getMinApi();
-              boolean hasBackend = marker.hasBackend();
-              boolean backendDexFiles = marker.isBackendDexFiles();
-              boolean backendClassFiles = marker.isBackendClassFiles();
-              boolean hasCompilationMode = marker.hasCompilationMode();
-              boolean compilationModeDebug = marker.isCompilationModeDebug();
-              boolean compilationModeRelease = marker.isCompilationModeRelease();
-              boolean r8ModeCompatibility = marker.isR8ModeCompatibility();
-              boolean r8ModeFull = marker.isR8ModeFull();
               String raw = marker.getRawEncoding();
             }
           });
