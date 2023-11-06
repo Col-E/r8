@@ -207,6 +207,16 @@ public class ToolHelper {
     }
   }
 
+  public static Path getKeepAnnoPath() {
+    // TODO(b/270105162): This changes when new gradle setup is default.
+    if (isNewGradleSetup()) {
+      return Paths.get(
+          System.getProperty("KEEP_ANNO_JAVAC_BUILD_DIR").split(File.pathSeparator)[0]);
+    } else {
+      return Paths.get(BUILD_DIR, "classes", "java", "keepanno");
+    }
+  }
+
   public static final Path CHECKED_IN_R8_17_WITH_DEPS =
       Paths.get(THIRD_PARTY_DIR).resolve("r8").resolve("r8_with_deps_17.jar");
 

@@ -34,7 +34,6 @@ import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -65,16 +64,6 @@ public class KeepEdgeAnnotationsTest extends TestBase {
     @Override
     public String toString() {
       return clazz.getSimpleName() + ", " + params.toString();
-    }
-  }
-
-  public static Path getKeepAnnoPath() {
-    // TODO(b/270105162): This changes when new gradle setup is default.
-    if (ToolHelper.isNewGradleSetup()) {
-      return Paths.get(
-          System.getProperty("KEEP_ANNO_JAVAC_BUILD_DIR").split(File.pathSeparator)[0]);
-    } else {
-      return Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "keepanno");
     }
   }
 
@@ -112,7 +101,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
     Path out =
         JavaCompilerTool.create(parameters.getRuntime().asCf(), temp)
             .addAnnotationProcessors(typeName(KeepEdgeProcessor.class))
-            .addClasspathFiles(getKeepAnnoPath())
+            .addClasspathFiles(ToolHelper.getKeepAnnoPath())
             .addClassNames(Collections.singletonList(typeName(source)))
             .addClasspathFiles(Paths.get(ToolHelper.BUILD_DIR, "classes", "java", "test"))
             .addClasspathFiles(ToolHelper.getR8WithRelocatedDeps())
@@ -137,7 +126,7 @@ public class KeepEdgeAnnotationsTest extends TestBase {
         JavaCompilerTool.create(parameters.getRuntime().asCf(), temp)
             .addSourceFiles(ToolHelper.getSourceFileForTestClass(source))
             .addAnnotationProcessors(typeName(KeepEdgeProcessor.class))
-            .addClasspathFiles(getKeepAnnoPath())
+            .addClasspathFiles(ToolHelper.getKeepAnnoPath())
             .addClasspathFiles(ToolHelper.getDeps())
             .compile();
     testForJvm(parameters)

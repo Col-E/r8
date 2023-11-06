@@ -15,7 +15,6 @@ import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
-import com.android.tools.r8.keepanno.KeepEdgeAnnotationsTest;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.profile.art.ArtProfileConsumer;
@@ -754,7 +753,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T enableExperimentalKeepAnnotations() {
     builder.addClasspathResourceProvider(
-        DirectoryClassFileProvider.fromDirectory(KeepEdgeAnnotationsTest.getKeepAnnoPath()));
+        DirectoryClassFileProvider.fromDirectory(ToolHelper.getKeepAnnoPath()));
     builder.setEnableExperimentalKeepAnnotations(true);
     return self();
   }

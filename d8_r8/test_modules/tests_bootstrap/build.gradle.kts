@@ -26,9 +26,12 @@ java {
 }
 
 val testsJava8Jar = projectTask("tests_java_8", "testJar")
+val keepAnnoJarTask = projectTask("keepanno", "jar")
+val keepAnnoCompileTask = projectTask("keepanno", "compileJava")
 val mainR8RelocatedTask = projectTask("main", "r8WithRelocatedDeps")
 
 dependencies {
+  implementation(keepAnnoJarTask.outputs.files)
   implementation(files(testsJava8Jar.outputs.files.getSingleFile()))
   implementation(projectTask("main", "jar").outputs.files)
   implementation(Deps.asm)
@@ -70,6 +73,7 @@ tasks {
     dependsOn(mainR8RelocatedTask)
     systemProperty("TEST_DATA_LOCATION",
                    layout.buildDirectory.dir("classes/java/test").get().toString())
+    systemProperty("KEEP_ANNO_JAVAC_BUILD_DIR", keepAnnoCompileTask.outputs.files.getAsPath())
     systemProperty("R8_WITH_RELOCATED_DEPS", mainR8RelocatedTask.outputs.files.singleFile)
     systemProperty("R8_RUNTIME_PATH", mainR8RelocatedTask.outputs.files.singleFile)
   }
@@ -82,6 +86,7 @@ tasks {
 
   val depsJar by registering(Jar::class) {
     dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
+    dependsOn(gradle.includedBuild("keepanno").task(":jar"))
     if (!project.hasProperty("no_internal")) {
       dependsOn(gradle.includedBuild("shared").task(":downloadDepsInternal"))
     }
