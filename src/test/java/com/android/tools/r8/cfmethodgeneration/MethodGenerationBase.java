@@ -372,7 +372,6 @@ public abstract class MethodGenerationBase extends CodeGenerationBase {
   }
 
   protected static void setUpSystemPropertiesForMain(TestDataSourceSet sourceSet) {
-    System.setProperty("USE_NEW_GRADLE_SETUP", "true");
     System.setProperty("TEST_DATA_LOCATION", sourceSet.getBuildDir().toString());
   }
 }

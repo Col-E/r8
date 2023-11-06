@@ -50,7 +50,6 @@ class TestConfigurationHelper {
 
     fun setupTestTask(test: Test, isR8Lib: Boolean, r8Jar: File?, r8LibMappingFile: File?) {
       val project = test.project
-      test.systemProperty("USE_NEW_GRADLE_SETUP", "true")
       if (project.hasProperty("testfilter")) {
         val testFilter = project.property("testfilter").toString()
         test.filter.setFailOnNoMatchingTests(false)

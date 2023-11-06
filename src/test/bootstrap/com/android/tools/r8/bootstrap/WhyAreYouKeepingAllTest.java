@@ -12,7 +12,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.dex.Marker.Backend;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -55,7 +54,7 @@ public class WhyAreYouKeepingAllTest extends TestBase {
         // results.
         .collectStdoutWithoutForwarding()
         // TODO(b/176783536, b/270105162): Get a hold of dependencies in new gradle setup.
-        .applyIf(ToolHelper.isNewGradleSetup(), R8TestBuilder::allowUnusedDontWarnPatterns)
+        .apply(R8TestBuilder::allowUnusedDontWarnPatterns)
         .compile()
         .assertStdoutThatMatches(containsString("referenced in keep rule"))
         // TODO(b/124655065): We should always know the reason for keeping.

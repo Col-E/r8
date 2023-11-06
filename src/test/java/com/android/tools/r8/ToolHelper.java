@@ -99,10 +99,6 @@ import org.junit.rules.TemporaryFolder;
 
 public class ToolHelper {
 
-  public static boolean isNewGradleSetup() {
-    return "true".equals(System.getProperty("USE_NEW_GRADLE_SETUP"));
-  }
-
   public static String getProjectRoot() {
     String current = System.getProperty("user.dir");
     if (!current.contains("d8_r8")) {
@@ -146,9 +142,7 @@ public class ToolHelper {
     }
 
     public static TestDataSourceSet computeLegacyOrGradleSpecifiedLocation() {
-      return isNewGradleSetup()
-          ? TestDataSourceSet.SPECIFIED_BY_GRADLE_PROPERTY
-          : TestDataSourceSet.LEGACY;
+      return TestDataSourceSet.SPECIFIED_BY_GRADLE_PROPERTY;
     }
   }
 
@@ -178,43 +172,23 @@ public class ToolHelper {
   public static final String SMALI_BUILD_DIR = THIRD_PARTY_DIR + "smali/";
 
   public static String getExamplesJava11BuildDir() {
-    // TODO(b/270105162): This changes when new gradle setup is default.
-    if (ToolHelper.isNewGradleSetup()) {
-      assert System.getProperty("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR") != null;
-      return System.getProperty("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR");
-    } else {
-      return BUILD_DIR + "classes/java/examplesJava11/";
-    }
+    assert System.getProperty("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR") != null;
+    return System.getProperty("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR");
   }
 
   public static Path getR8MainPath() {
-    // TODO(b/270105162): This changes when new gradle setup is default.
-    if (ToolHelper.isNewGradleSetup()) {
-      assert System.getProperty("R8_RUNTIME_PATH") != null;
-      return Paths.get(System.getProperty("R8_RUNTIME_PATH"));
-    } else {
-      return isTestingR8Lib() ? R8LIB_JAR : R8_JAR_OLD;
-    }
+    assert System.getProperty("R8_RUNTIME_PATH") != null;
+    return Paths.get(System.getProperty("R8_RUNTIME_PATH"));
   }
 
   public static Path getRetracePath() {
-    // TODO(b/270105162): This changes when new gradle setup is default.
-    if (ToolHelper.isNewGradleSetup()) {
-      assert System.getProperty("RETRACE_RUNTIME_PATH") != null;
-      return Paths.get(System.getProperty("RETRACE_RUNTIME_PATH"));
-    } else {
-      return isTestingR8Lib() ? ToolHelper.R8_RETRACE_JAR : ToolHelper.R8_JAR_OLD;
-    }
+    assert System.getProperty("RETRACE_RUNTIME_PATH") != null;
+    return Paths.get(System.getProperty("RETRACE_RUNTIME_PATH"));
   }
 
   public static Path getKeepAnnoPath() {
-    // TODO(b/270105162): This changes when new gradle setup is default.
-    if (isNewGradleSetup()) {
-      return Paths.get(
-          System.getProperty("KEEP_ANNO_JAVAC_BUILD_DIR").split(File.pathSeparator)[0]);
-    } else {
-      return Paths.get(BUILD_DIR, "classes", "java", "keepanno");
-    }
+    assert System.getProperty("KEEP_ANNO_JAVAC_BUILD_DIR") != null;
+    return Paths.get(System.getProperty("KEEP_ANNO_JAVAC_BUILD_DIR").split(File.pathSeparator)[0]);
   }
 
   public static final Path CHECKED_IN_R8_17_WITH_DEPS =
@@ -286,19 +260,13 @@ public class ToolHelper {
   public static final Path R8_RETRACE_JAR = Paths.get(LIBS_DIR, "r8retrace.jar");
 
   public static Path getDeps() {
-    if (isNewGradleSetup()) {
-      return Paths.get(System.getProperty("R8_DEPS"));
-    } else {
-      return Paths.get(LIBS_DIR, "deps_all.jar");
-    }
+    assert System.getProperty("R8_DEPS") != null;
+    return Paths.get(System.getProperty("R8_DEPS"));
   }
 
   public static Path getR8WithRelocatedDeps() {
-    if (isNewGradleSetup()) {
-      return Paths.get(System.getProperty("R8_WITH_RELOCATED_DEPS"));
-    } else {
-      return Paths.get(LIBS_DIR, "r8_with_relocated_deps.jar");
-    }
+    assert System.getProperty("R8_WITH_RELOCATED_DEPS") != null;
+    return Paths.get(System.getProperty("R8_WITH_RELOCATED_DEPS"));
   }
 
   public static final String DESUGARED_LIB_RELEASES_DIR =

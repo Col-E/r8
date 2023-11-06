@@ -365,9 +365,7 @@ public class KotlinCompilerTool {
       }
     }
     ProcessBuilder builder = new ProcessBuilder(commandLineAndHasherConsumers.cmdline);
-    if (ToolHelper.isNewGradleSetup()) {
-      builder.directory(new File(ToolHelper.getProjectRoot()));
-    }
+    builder.directory(new File(ToolHelper.getProjectRoot()));
     ProcessResult processResult = ToolHelper.runProcess(builder);
     if (CommandResultCache.isEnabled() && output.toFile().isFile()) {
       CommandResultCache.getInstance().putResult(processResult, cacheLookupKey, output);
