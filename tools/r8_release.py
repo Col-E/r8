@@ -99,10 +99,6 @@ def prepare_release(args):
                       'is the same as exiting release (%s).' % old_version)
                     sys.exit(1)
 
-                subprocess.check_call(
-                    ['git', 'cl', 'new-branch',
-                     'release-%s' % version])
-
                 if args.dev_pre_cherry_pick:
                     for pre_commit in args.dev_pre_cherry_pick:
                         subprocess.check_call(
