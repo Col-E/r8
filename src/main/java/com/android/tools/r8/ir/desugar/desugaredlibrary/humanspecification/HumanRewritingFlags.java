@@ -138,6 +138,17 @@ public class HumanRewritingFlags {
     public int hashCode() {
       return 7 * rewrittenType.hashCode() + getEmulatedMethods().hashCode();
     }
+
+    public HumanEmulatedInterfaceDescriptor merge(HumanEmulatedInterfaceDescriptor other) {
+      if (rewrittenType != other.getRewrittenType()) {
+        throw new UnsupportedOperationException(
+            "Emulated interface descriptor can only be merged on the same rewritten type.");
+      }
+      ImmutableSet.Builder<DexMethod> builder = ImmutableSet.builder();
+      builder.addAll(getEmulatedMethods());
+      builder.addAll(other.getEmulatedMethods());
+      return new HumanEmulatedInterfaceDescriptor(rewrittenType, builder.build());
+    }
   }
 
   public static Builder builder(Reporter reporter, Origin origin) {
@@ -403,12 +414,12 @@ public class HumanRewritingFlags {
     }
 
     public Builder putEmulatedInterface(
-        DexType interfaceType, HumanEmulatedInterfaceDescriptor descriptor) {
-      put(
-          emulatedInterfaces,
-          interfaceType,
-          descriptor,
-          HumanDesugaredLibrarySpecificationParser.EMULATE_INTERFACE_KEY);
+        DexType interfaceType, HumanEmulatedInterfaceDescriptor newDescriptor) {
+      assert newDescriptor != null;
+      HumanEmulatedInterfaceDescriptor oldDescriptor = emulatedInterfaces.get(interfaceType);
+      HumanEmulatedInterfaceDescriptor mergedDescriptor =
+          oldDescriptor == null ? newDescriptor : newDescriptor.merge(oldDescriptor);
+      emulatedInterfaces.put(interfaceType, mergedDescriptor);
       return this;
     }
 

@@ -1,5 +1,5 @@
 {
-  "identifier": "com.tools.android:desugar_jdk_libs_configuration_minimal:2.0.4",
+  "identifier": "com.tools.android:desugar_jdk_libs_configuration_minimal:2.1.0",
   "configuration_format_version": 101,
   "required_compilation_api_level": 24,
   "synthesized_library_classes_package_prefix": "j$.",
