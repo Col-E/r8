@@ -318,8 +318,14 @@ tasks {
             "r8lib-exclude-deps-testdeps-cf.jar")
   }
 
-  val unzipTests by registering(Copy::class) {
+  val cleanUnzipTests by registering(Delete::class) {
     dependsOn(packageTests)
+    val outputDir = file("${buildDir}/unpacked/test")
+    setDelete(outputDir)
+  }
+
+  val unzipTests by registering(Copy::class) {
+    dependsOn(cleanUnzipTests, packageTests)
     val outputDir = file("${buildDir}/unpacked/test")
     from(zipTree(packageTests.getSingleOutputFile()))
     into(outputDir)
@@ -334,11 +340,23 @@ tasks {
     into(outputDir)
   }
 
+  val cleanUnzipRewrittenTestsForR8LibWithRelocatedDeps by registering(Delete::class) {
+    val outputDir = file("${buildDir}/unpacked/rewrittentests-r8lib")
+    setDelete(outputDir)
+  }
+
   val unzipRewrittenTestsForR8LibWithRelocatedDeps by registering(Copy::class) {
+    dependsOn(cleanUnzipRewrittenTestsForR8LibWithRelocatedDeps)
     unzipRewrittenTestsForR8Lib(rewriteTestsForR8LibWithRelocatedDeps, "rewrittentests-r8lib")
   }
 
+  val cleanUnzipRewrittenTestsForR8LibNoDeps by registering(Delete::class) {
+    val outputDir = file("${buildDir}/unpacked/rewrittentests-r8lib-exclude-deps")
+    setDelete(outputDir)
+  }
+
   val unzipRewrittenTestsForR8LibNoDeps by registering(Copy::class) {
+    dependsOn(cleanUnzipRewrittenTestsForR8LibNoDeps)
     unzipRewrittenTestsForR8Lib(
             rewriteTestsForR8LibNoDeps, "rewrittentests-r8lib-exclude-deps")
   }
