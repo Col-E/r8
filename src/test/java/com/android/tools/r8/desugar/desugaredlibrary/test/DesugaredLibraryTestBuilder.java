@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.test;
 
+import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8TestBuilder;
@@ -58,7 +59,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   private String l8ExtraKeepRules = "";
   private Consumer<InternalOptions> l8OptionModifier = ConsumerUtils.emptyConsumer();
   private boolean l8FinalPrefixVerification = true;
-  private boolean overrideDefaultLibraryFiles = false;
+  private boolean overrideDefaultLibrary = false;
   private CustomLibrarySpecification customLibrarySpecification = null;
   private TestingKeepRuleConsumer keepRuleConsumer = null;
   private List<ExternalArtProfile> l8ResidualArtProfiles = new ArrayList<>();
@@ -163,8 +164,15 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
    * library files.
    */
   public DesugaredLibraryTestBuilder<T> overrideLibraryFiles(Path... files) {
-    overrideDefaultLibraryFiles = true;
+    overrideDefaultLibrary = true;
     builder.addLibraryFiles(files);
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> overrideLibraryProvider(
+      ClassFileResourceProvider provider) {
+    overrideDefaultLibrary = true;
+    builder.addLibraryProvider(provider);
     return this;
   }
 
@@ -373,7 +381,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   }
 
   private void prepareCompilation() {
-    if (overrideDefaultLibraryFiles) {
+    if (overrideDefaultLibrary) {
       return;
     }
     builder.addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles());

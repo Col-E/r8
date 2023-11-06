@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags.HumanEmulatedInterfaceDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.DerivedMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedInterfaceDescriptor;
@@ -43,9 +44,9 @@ public class HumanToMachineEmulatedInterfaceConverter {
       AppInfoWithClassHierarchy appInfo,
       MachineRewritingFlags.Builder builder,
       BiConsumer<String, Set<? extends DexReference>> warnConsumer) {
-    Map<DexType, DexType> emulateInterfaces = rewritingFlags.getEmulatedInterfaces();
-    Set<DexMethod> dontRewriteInvocation = rewritingFlags.getDontRewriteInvocation();
-    processEmulatedInterfaceHierarchy(appInfo, emulateInterfaces);
+    Map<DexType, HumanEmulatedInterfaceDescriptor> emulateInterfaces =
+        rewritingFlags.getEmulatedInterfaces();
+    processEmulatedInterfaceHierarchy(appInfo, emulateInterfaces.keySet());
     for (DexType itf : emulateInterfaces.keySet()) {
       DexClass itfClass = appInfo.contextIndependentDefinitionFor(itf);
       if (itfClass == null) {
@@ -53,15 +54,19 @@ public class HumanToMachineEmulatedInterfaceConverter {
         continue;
       }
       Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedMethods = new IdentityHashMap<>();
+      HumanEmulatedInterfaceDescriptor humanDescriptor = emulateInterfaces.get(itf);
       itfClass.forEachClassMethodMatching(
-          m -> m.isDefaultMethod() && !dontRewriteInvocation.contains(m.getReference()),
+          m ->
+              m.isDefaultMethod()
+                  && humanDescriptor.getEmulatedMethods().contains(m.getReference()),
           method ->
               emulatedMethods.put(
                   method.getReference(),
                   computeEmulatedDispatchDescriptor(
                       method.getReference(), rewritingFlags, appInfo)));
       builder.putEmulatedInterface(
-          itf, new EmulatedInterfaceDescriptor(emulateInterfaces.get(itf), emulatedMethods));
+          itf,
+          new EmulatedInterfaceDescriptor(humanDescriptor.getRewrittenType(), emulatedMethods));
     }
     warnConsumer.accept("Missing emulated interfaces: ", missingEmulatedInterface);
   }
@@ -74,7 +79,10 @@ public class HumanToMachineEmulatedInterfaceConverter {
         appInfo
             .dexItemFactory()
             .createMethod(
-                rewritingFlags.getEmulatedInterfaces().get(method.getHolderType()),
+                rewritingFlags
+                    .getEmulatedInterfaces()
+                    .get(method.getHolderType())
+                    .getRewrittenType(),
                 method.getProto(),
                 method.getName());
     DerivedMethod interfaceMethod = new DerivedMethod(itfDexMethod);
@@ -148,9 +156,9 @@ public class HumanToMachineEmulatedInterfaceConverter {
   }
 
   private void processEmulatedInterfaceHierarchy(
-      AppInfoWithClassHierarchy appInfo, Map<DexType, DexType> emulateInterfaces) {
+      AppInfoWithClassHierarchy appInfo, Set<DexType> emulateInterfaces) {
     Set<DexType> processed = Sets.newIdentityHashSet();
-    ArrayList<DexType> emulatedInterfacesSorted = new ArrayList<>(emulateInterfaces.keySet());
+    ArrayList<DexType> emulatedInterfacesSorted = new ArrayList<>(emulateInterfaces);
     emulatedInterfacesSorted.sort(DexType::compareTo);
     for (DexType interfaceType : emulatedInterfacesSorted) {
       processEmulatedInterfaceHierarchy(appInfo, emulateInterfaces, interfaceType, processed);
@@ -159,7 +167,7 @@ public class HumanToMachineEmulatedInterfaceConverter {
 
   private void processEmulatedInterfaceHierarchy(
       AppInfoWithClassHierarchy appInfo,
-      Map<DexType, DexType> emulateInterfaces,
+      Set<DexType> emulateInterfaces,
       DexType interfaceType,
       Set<DexType> processed) {
     if (processed.contains(interfaceType)) {
@@ -175,7 +183,7 @@ public class HumanToMachineEmulatedInterfaceConverter {
         WorkList.newIdentityWorkList(Arrays.asList(theInterface.interfaces.values));
     while (!workList.isEmpty()) {
       DexType next = workList.next();
-      if (emulateInterfaces.containsKey(next)) {
+      if (emulateInterfaces.contains(next)) {
         processEmulatedInterfaceHierarchy(appInfo, emulateInterfaces, next, processed);
         emulatedInterfaceHierarchy.get(next).add(interfaceType);
         DexClass nextClass = appInfo.definitionFor(next);

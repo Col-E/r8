@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.ApiLevelRange;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags.HumanEmulatedInterfaceDescriptor;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.Reporter;
 import java.util.HashSet;
@@ -88,7 +89,7 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
     deduplicateRewritePrefix(flags, otherFlags, commonBuilder, builder);
     deduplicateRewriteDifferentPrefix(flags, otherFlags, commonBuilder, builder);
 
-    deduplicateFlags(
+    deduplicateEmulatedInterfaceFlags(
         flags.getEmulatedInterfaces(),
         otherFlags.getEmulatedInterfaces(),
         commonBuilder::putEmulatedInterface,
@@ -114,11 +115,6 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
         commonBuilder::putCustomConversion,
         builder::putCustomConversion);
 
-    deduplicateFlags(
-        flags.getDontRewriteInvocation(),
-        otherFlags.getDontRewriteInvocation(),
-        commonBuilder::addDontRewriteInvocation,
-        builder::addDontRewriteInvocation);
     deduplicateFlags(
         flags.getDontRetarget(),
         otherFlags.getDontRetarget(),
@@ -211,6 +207,22 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
                 builder.putRewritePrefix(k, v);
               }
             });
+  }
+
+  @SuppressWarnings("ReferenceEquality")
+  private static <T extends DexItem> void deduplicateEmulatedInterfaceFlags(
+      Map<T, HumanEmulatedInterfaceDescriptor> flags,
+      Map<T, HumanEmulatedInterfaceDescriptor> otherFlags,
+      BiConsumer<T, HumanEmulatedInterfaceDescriptor> common,
+      BiConsumer<T, HumanEmulatedInterfaceDescriptor> specific) {
+    flags.forEach(
+        (k, v) -> {
+          if (otherFlags.get(k) == v) {
+            common.accept(k, v);
+          } else {
+            specific.accept(k, v);
+          }
+        });
   }
 
   @SuppressWarnings("ReferenceEquality")

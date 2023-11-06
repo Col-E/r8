@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags.HumanEmulatedInterfaceDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.DerivedMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
@@ -248,7 +249,8 @@ public class HumanToMachineRetargetConverter {
       AppInfoWithClassHierarchy appInfo,
       HumanRewritingFlags humanRewritingFlags) {
     // Answers true if this method is already managed through emulated interface dispatch.
-    Map<DexType, DexType> emulateLibraryInterface = humanRewritingFlags.getEmulatedInterfaces();
+    Map<DexType, HumanEmulatedInterfaceDescriptor> emulateLibraryInterface =
+        humanRewritingFlags.getEmulatedInterfaces();
     if (emulateLibraryInterface.isEmpty()) {
       return false;
     }

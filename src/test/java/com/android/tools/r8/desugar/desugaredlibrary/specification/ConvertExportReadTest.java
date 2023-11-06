@@ -292,9 +292,6 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
 
     assertEquals(humanRewritingFlags1.getDontRetarget(), humanRewritingFlags2.getDontRetarget());
     assertEquals(
-        humanRewritingFlags1.getDontRewriteInvocation(),
-        humanRewritingFlags2.getDontRewriteInvocation());
-    assertEquals(
         humanRewritingFlags1.getWrapperConversions(), humanRewritingFlags2.getWrapperConversions());
 
     assertEquals(

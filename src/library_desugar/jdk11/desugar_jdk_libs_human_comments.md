@@ -232,11 +232,6 @@ default and static methods present on it. It generates a companion class holding
 the code for the default and static methods, and a dispatch class which hold the
 code to support emulated dispatch for the default methods.
 
-### Flag dont_rewrite
-
-`methodNotToRewrite`
-D8/R8 ignroes the methods present here from the emulated interface.
-
 ### Flag wrapper_conversion
 
 `type`

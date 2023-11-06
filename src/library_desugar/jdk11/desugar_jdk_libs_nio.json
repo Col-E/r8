@@ -1,6 +1,6 @@
 {
   "identifier": "com.tools.android:desugar_jdk_libs_configuration_nio:2.0.4",
-  "configuration_format_version": 100,
+  "configuration_format_version": 101,
   "required_compilation_api_level": 30,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": true,
@@ -347,16 +347,91 @@
         "java.nio.channels.SeekableByteChannel"
       ],
       "emulate_interface": {
-        "java.lang.Iterable": "j$.lang.Iterable",
-        "java.util.Collection": "j$.util.Collection",
-        "java.util.Comparator": "j$.util.Comparator",
-        "java.util.Iterator": "j$.util.Iterator",
-        "java.util.List": "j$.util.List",
-        "java.util.Map": "j$.util.Map",
-        "java.util.Map$Entry": "j$.util.Map$Entry",
-        "java.util.Set": "j$.util.Set",
-        "java.util.SortedSet": "j$.util.SortedSet",
-        "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
+        "java.lang.Iterable": {
+          "rewrittenType": "j$.lang.Iterable",
+          "emulatedMethods": [
+            "java.util.Spliterator java.lang.Iterable#spliterator()",
+            "void java.lang.Iterable#forEach(java.util.function.Consumer)"
+          ]
+        },
+        "java.util.concurrent.ConcurrentMap": {
+          "rewrittenType": "j$.util.concurrent.ConcurrentMap",
+          "emulatedMethods": [
+            "void java.util.concurrent.ConcurrentMap#forEach(java.util.function.BiConsumer)",
+            "java.lang.Object java.util.concurrent.ConcurrentMap#getOrDefault(java.lang.Object, java.lang.Object)",
+            "java.lang.Object java.util.concurrent.ConcurrentMap#computeIfAbsent(java.lang.Object, java.util.function.Function)",
+            "void java.util.concurrent.ConcurrentMap#replaceAll(java.util.function.BiFunction)",
+            "java.lang.Object java.util.concurrent.ConcurrentMap#compute(java.lang.Object, java.util.function.BiFunction)",
+            "java.lang.Object java.util.concurrent.ConcurrentMap#computeIfPresent(java.lang.Object, java.util.function.BiFunction)",
+            "java.lang.Object java.util.concurrent.ConcurrentMap#merge(java.lang.Object, java.lang.Object, java.util.function.BiFunction)"
+          ]
+        },
+        "java.util.List": {
+          "rewrittenType": "j$.util.List",
+          "emulatedMethods": [
+            "java.util.Spliterator java.util.List#spliterator()",
+            "void java.util.List#sort(java.util.Comparator)",
+            "void java.util.List#replaceAll(java.util.function.UnaryOperator)"
+          ]
+        },
+        "java.util.Map": {
+          "rewrittenType": "j$.util.Map",
+          "emulatedMethods": [
+            "java.lang.Object java.util.Map#merge(java.lang.Object, java.lang.Object, java.util.function.BiFunction)",
+            "java.lang.Object java.util.Map#putIfAbsent(java.lang.Object, java.lang.Object)",
+            "void java.util.Map#forEach(java.util.function.BiConsumer)",
+            "void java.util.Map#replaceAll(java.util.function.BiFunction)",
+            "java.lang.Object java.util.Map#computeIfAbsent(java.lang.Object, java.util.function.Function)",
+            "java.lang.Object java.util.Map#compute(java.lang.Object, java.util.function.BiFunction)",
+            "java.lang.Object java.util.Map#computeIfPresent(java.lang.Object, java.util.function.BiFunction)",
+            "boolean java.util.Map#remove(java.lang.Object, java.lang.Object)",
+            "boolean java.util.Map#replace(java.lang.Object, java.lang.Object, java.lang.Object)",
+            "java.lang.Object java.util.Map#replace(java.lang.Object, java.lang.Object)",
+            "java.lang.Object java.util.Map#getOrDefault(java.lang.Object, java.lang.Object)"
+          ]
+        },
+        "java.util.Collection": {
+          "rewrittenType": "j$.util.Collection",
+          "emulatedMethods": [
+            "java.util.stream.Stream java.util.Collection#stream()",
+            "java.util.stream.Stream java.util.Collection#parallelStream()",
+            "java.util.Spliterator java.util.Collection#spliterator()",
+            "boolean java.util.Collection#removeIf(java.util.function.Predicate)"
+          ]
+        },
+        "java.util.Iterator": {
+          "rewrittenType": "j$.util.Iterator",
+          "emulatedMethods": [
+            "void java.util.Iterator#forEachRemaining(java.util.function.Consumer)"
+          ]
+        },
+        "java.util.Map$Entry": {
+          "rewrittenType": "j$.util.Map$Entry"
+        },
+        "java.util.Set": {
+          "rewrittenType": "j$.util.Set",
+          "emulatedMethods": [
+            "java.util.Spliterator java.util.Set#spliterator()"
+          ]
+        },
+        "java.util.Comparator": {
+          "rewrittenType": "j$.util.Comparator",
+          "emulatedMethods": [
+            "java.util.Comparator java.util.Comparator#thenComparingDouble(java.util.function.ToDoubleFunction)",
+            "java.util.Comparator java.util.Comparator#thenComparingInt(java.util.function.ToIntFunction)",
+            "java.util.Comparator java.util.Comparator#reversed()",
+            "java.util.Comparator java.util.Comparator#thenComparing(java.util.function.Function, java.util.Comparator)",
+            "java.util.Comparator java.util.Comparator#thenComparingLong(java.util.function.ToLongFunction)",
+            "java.util.Comparator java.util.Comparator#thenComparing(java.util.Comparator)",
+            "java.util.Comparator java.util.Comparator#thenComparing(java.util.function.Function)"
+          ]
+        },
+        "java.util.SortedSet": {
+          "rewrittenType": "j$.util.SortedSet",
+          "emulatedMethods": [
+            "java.util.Spliterator java.util.SortedSet#spliterator()"
+          ]
+        }
       },
       "dont_rewrite": [
         "void java.util.Iterator#remove()"
