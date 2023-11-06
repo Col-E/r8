@@ -312,6 +312,13 @@ def prepare_studio(args):
     assert args.version
     assert os.path.exists(args.studio), ("Could not find STUDIO path %s" %
                                          args.studio)
+    if (not args.studio.endswith('-dev')
+        and not args.studio.endswith('-dev/')
+        and not args.studio_legacy_release):
+        print("Please use the new release process, see go/r8-release-prebuilts. "
+            + "If for some reason the legacy release process is needed "
+            + "pass --studio-legacy-release")
+        sys.exit(1)
 
     def release_studio(options):
         print("Releasing for STUDIO")
@@ -1036,6 +1043,10 @@ def parse_options():
         metavar=('<path>'),
         help='Release for studio by setting the path to a studio '
         'checkout')
+    result.add_argument('--studio-legacy-release',
+                        default=False,
+                        action='store_true',
+                        help='Allow Studio release using the legacy process')
     result.add_argument('--aosp',
                         metavar=('<path>'),
                         help='Release for aosp by setting the path to the '
