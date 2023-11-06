@@ -94,6 +94,7 @@ def main():
         cmd.extend([
             '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
         ])
+    cmd.append('-Dcom.android.tools.r8.enableKeepAnnotations=1')
     cmd.extend(['-cp', args.r8compiler, 'com.android.tools.r8.R8'])
     cmd.append(args.r8jar)
     if args.debug_variant:

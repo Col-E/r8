@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
  * Annotation to mark a class, field or method as part of a library API surface.
  *
  * <p>When a class is annotated, member patterns can be used to define which members are to be kept.
- * When no member patterns are specified the default pattern is to match all public and protected
+ * When no member patterns are specified the default pattern matches all public and protected
  * members.
  *
  * <p>When a member is annotated, the member patterns cannot be used as the annotated member itself

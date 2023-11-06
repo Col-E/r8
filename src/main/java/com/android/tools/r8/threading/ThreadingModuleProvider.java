@@ -4,14 +4,18 @@
 
 package com.android.tools.r8.threading;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepItemKind;
+import com.android.tools.r8.keepanno.annotations.MemberAccessFlags;
+import com.android.tools.r8.keepanno.annotations.UsedByReflection;
 
 /**
  * Interface to obtain a threading module.
  *
- * <p>The provider is loaded via Java service loader so its interface must be kept.
+ * <p>The provider is loaded via reflection so its interface must be kept.
  */
-@Keep
+@UsedByReflection(
+    kind = KeepItemKind.CLASS_AND_MEMBERS,
+    memberAccess = {MemberAccessFlags.PUBLIC})
 public interface ThreadingModuleProvider {
 
   ThreadingModule create();

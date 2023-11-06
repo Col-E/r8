@@ -134,7 +134,8 @@ public final class R8Command extends BaseCompilerCommand {
     private final List<FeatureSplit> featureSplits = new ArrayList<>();
     private String synthesizedClassPrefix = "";
     private boolean enableMissingLibraryApiModeling = false;
-    private boolean enableExperimentalKeepAnnotations = false;
+    private boolean enableExperimentalKeepAnnotations =
+        System.getProperty("com.android.tools.r8.enableKeepAnnotations") != null;
     private SemanticVersion fakeCompilerVersion = null;
     private AndroidResourceProvider androidResourceProvider = null;
     private AndroidResourceConsumer androidResourceConsumer = null;

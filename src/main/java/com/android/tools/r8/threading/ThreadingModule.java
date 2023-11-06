@@ -4,8 +4,14 @@
 
 package com.android.tools.r8.threading;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.keepanno.annotations.KeepItemKind;
+import com.android.tools.r8.keepanno.annotations.KeepTarget;
+import com.android.tools.r8.keepanno.annotations.MemberAccessFlags;
+import com.android.tools.r8.keepanno.annotations.UsedByReflection;
+import com.android.tools.r8.keepanno.annotations.UsesReflection;
+import com.android.tools.r8.threading.providers.blocking.ThreadingModuleBlockingProvider;
+import com.android.tools.r8.threading.providers.singlethreaded.ThreadingModuleSingleThreadedProvider;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -16,11 +22,14 @@ import java.util.concurrent.Future;
  * Threading module interface to enable non-blocking usage of R8.
  *
  * <p>The threading module has multiple implementations outside the main R8 jar. The concrete
- * implementations are loaded via a Java service loader. Since these implementations are dynamically
- * loaded the interface they implement must be kept.
+ * implementations are loaded via reflection. Since these implementations are dynamically loaded the
+ * interface they implement must be kept.
  */
-@Keep
+@UsedByReflection(
+    kind = KeepItemKind.CLASS_AND_MEMBERS,
+    memberAccess = {MemberAccessFlags.PUBLIC})
 public interface ThreadingModule {
+
   <T> Future<T> submit(Callable<T> task, ExecutorService executorService) throws ExecutionException;
 
   <T> void awaitFutures(List<Future<T>> futures) throws ExecutionException;
@@ -28,12 +37,25 @@ public interface ThreadingModule {
   class Loader {
 
     // Splitting up the names to make reflective identification unlikely.
+    // We explicitly don't want R8 to optimize out the reflective lookup.
     private static final String PACKAGE = "com.android.tools.r8.threading.providers";
     private static final String[] IMPLEMENTATIONS = {
       "blocking.ThreadingModuleBlockingProvider",
       "singlethreaded.ThreadingModuleSingleThreadedProvider"
     };
 
+    @UsesReflection({
+      @KeepTarget(
+          kind = KeepItemKind.CLASS_AND_MEMBERS,
+          classConstant = ThreadingModuleBlockingProvider.class,
+          methodName = "<init>",
+          methodParameters = {}),
+      @KeepTarget(
+          kind = KeepItemKind.CLASS_AND_MEMBERS,
+          classConstant = ThreadingModuleSingleThreadedProvider.class,
+          methodName = "<init>",
+          methodParameters = {})
+    })
     public static ThreadingModuleProvider load() {
       for (String implementation : IMPLEMENTATIONS) {
         String name = PACKAGE + "." + implementation;
