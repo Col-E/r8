@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ArchiveBuilder;
@@ -34,7 +35,7 @@ import java.util.zip.ZipOutputStream;
  * <p>This consumer receives DEX file content using standard indexed-multidex for programs larger
  * than a single DEX file. This is the default consumer for DEX programs.
  */
-@KeepForSubclassing
+@KeepForApi
 public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider {
 
   /**
@@ -78,7 +79,7 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
   }
 
   /** Forwarding consumer to delegate to an optional existing consumer. */
-  @Keep
+  @KeepForApi
   class ForwardingConsumer implements DexIndexedConsumer {
 
     private static final DexIndexedConsumer EMPTY_CONSUMER = new ForwardingConsumer(null);
@@ -111,7 +112,7 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
   }
 
   /** Consumer to write program resources to an output. */
-  @Keep
+  @KeepForApi
   class ArchiveConsumer extends ForwardingConsumer
       implements DataResourceConsumer, InternalProgramOutputPathConsumer {
     protected final OutputBuilder outputBuilder;
@@ -211,7 +212,7 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
     }
   }
 
-  @Keep
+  @KeepForApi
   class DirectoryConsumer extends ForwardingConsumer
       implements DataResourceConsumer, InternalProgramOutputPathConsumer {
     private final Path directory;

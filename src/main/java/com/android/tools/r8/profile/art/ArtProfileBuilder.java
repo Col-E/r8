@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.profile.art;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.TextInputStream;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.function.Consumer;
 
 /** API for building an ART profile. */
-@Keep
+@KeepForApi
 public interface ArtProfileBuilder {
 
   /** API for adding information about a class rule to the compiler. */

@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -35,7 +36,7 @@ import java.util.Set;
  *     .build();
  * </pre>
  */
-@Keep
+@KeepForApi
 public class BackportedMethodListCommand {
 
   private final boolean printHelp;
@@ -184,7 +185,7 @@ public class BackportedMethodListCommand {
     builder.setMinApiLevel(minApi);
   }
 
-  @Keep
+  @KeepForApi
   public static class Builder {
 
     private final Reporter reporter;

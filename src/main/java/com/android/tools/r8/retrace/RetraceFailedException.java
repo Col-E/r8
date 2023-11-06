@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /**
  * Exception thrown when retrace failed to complete because of errors previously reported through
  * {@link com.android.tools.r8.DiagnosticsHandler}.
  */
-@Keep
+@KeepForApi
 public class RetraceFailedException extends Exception {
 
   public RetraceFailedException() {

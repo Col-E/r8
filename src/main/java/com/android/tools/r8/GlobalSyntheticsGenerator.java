@@ -39,6 +39,7 @@ import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaring;
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringEventConsumer;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.naming.RecordRewritingNamingLens;
 import com.android.tools.r8.naming.VarHandleDesugaringRewritingNamingLens;
 import com.android.tools.r8.origin.CommandLineOrigin;
@@ -68,7 +69,7 @@ import java.util.concurrent.ExecutorService;
  * The GlobalSyntheticsGenerator, a tool for generating a dex file for all possible global
  * synthetics.
  */
-@Keep
+@KeepForApi
 public class GlobalSyntheticsGenerator {
 
   @SuppressWarnings("ReferenceEquality")

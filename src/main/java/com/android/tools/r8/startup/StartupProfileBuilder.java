@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.startup;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.TextInputStream;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.profile.art.HumanReadableArtProfileParserBuilder;
 import java.util.function.Consumer;
 
 /** Interface for providing a startup profile to the compiler. */
-@Keep
+@KeepForApi
 public interface StartupProfileBuilder {
 
   /** API for adding information about a startup class to the compiler. */

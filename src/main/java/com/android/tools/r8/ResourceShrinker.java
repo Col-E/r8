@@ -47,6 +47,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.ir.code.SingleConstant;
 import com.android.tools.r8.ir.code.WideConstant;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.AndroidApp;
@@ -71,16 +72,17 @@ import java.util.stream.Stream;
  *
  * <p>This class extracts all integer constants and string constants, which might refer to resource.
  * More specifically, we look for the following while analyzing dex:
+ *
  * <ul>
  *   <li>const instructions that might load integers or strings
- *   <li>static fields that have an initial value. This initial value might be integer, string,
- *   or array of integers.
+ *   <li>static fields that have an initial value. This initial value might be integer, string, or
+ *       array of integers.
  *   <li>integer array payloads. Only payloads referenced in fill-array-data instructions will be
- *   processed. More specifically, if a payload is referenced in fill-array-data, and we are able
- *   to determine that array is not array of integers, payload will be ignored. Otherwise, it will
- *   be processed once fill-array-data-payload instruction is encountered.
+ *       processed. More specifically, if a payload is referenced in fill-array-data, and we are
+ *       able to determine that array is not array of integers, payload will be ignored. Otherwise,
+ *       it will be processed once fill-array-data-payload instruction is encountered.
  *   <li>all annotations (class, field, method) that contain annotation element whose value is
- *   integer, string or array of integers are processed.
+ *       integer, string or array of integers are processed.
  * </ul>
  *
  * <p>Please note that switch payloads are not analyzed. Although they might contain integer
@@ -92,10 +94,10 @@ import java.util.stream.Stream;
 
 // TODO(b/121121779) Remove keep if possible.
 @Deprecated
-@Keep
+@KeepForApi
 final public class ResourceShrinker {
 
-  @Keep
+  @KeepForApi
   public final static class Command extends BaseCommand {
 
     Command(AndroidApp app) {
@@ -108,7 +110,7 @@ final public class ResourceShrinker {
     }
   }
 
-  @Keep
+  @KeepForApi
   public final static class Builder extends BaseCommand.Builder<Command, Builder> {
 
     @Override
@@ -126,7 +128,7 @@ final public class ResourceShrinker {
    * Classes that would like to process data relevant to resource shrinking should implement this
    * interface.
    */
-  @KeepForSubclassing
+  @KeepForApi
   public interface ReferenceChecker {
 
     /**

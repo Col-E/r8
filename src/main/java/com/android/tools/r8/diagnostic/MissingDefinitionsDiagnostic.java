@@ -5,14 +5,14 @@
 package com.android.tools.r8.diagnostic;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.Collection;
 
 /**
  * Information about items that are not part of the compilation unit, but which are referenced from
  * a reachable program location.
  */
-@Keep
+@KeepForApi
 public interface MissingDefinitionsDiagnostic extends Diagnostic {
 
   /**

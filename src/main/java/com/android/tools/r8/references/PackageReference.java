@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.references;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.KeepForRetraceApi;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.Objects;
 
 /** Reference to a package. */
-@Keep
+@KeepForApi
 @KeepForRetraceApi
 public class PackageReference {
 

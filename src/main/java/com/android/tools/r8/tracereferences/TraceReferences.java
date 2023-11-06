@@ -6,7 +6,6 @@ package com.android.tools.r8.tracereferences;
 import static com.android.tools.r8.utils.CovariantReturnTypeUtils.modelLibraryMethodsWithCovariantReturnTypes;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
@@ -17,6 +16,7 @@ import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
@@ -31,7 +31,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
-@Keep
+@KeepForApi
 public class TraceReferences {
 
   public static void run(TraceReferencesCommand command) throws CompilationFailedException {

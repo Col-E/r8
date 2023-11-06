@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.google.common.primitives.Bytes;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -16,7 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
 /** Interface for producing a string format of a mapping file. */
-@Keep
+@KeepForApi
 public interface ProguardMapProducer {
 
   InputStream get() throws IOException;

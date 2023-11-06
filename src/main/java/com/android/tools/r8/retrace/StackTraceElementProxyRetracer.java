@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.retrace.internal.StackTraceElementProxyRetracerImpl;
 
-@Keep
+@KeepForApi
 public interface StackTraceElementProxyRetracer<T, ST extends StackTraceElementProxy<T, ST>> {
 
   RetraceStackTraceElementProxyResult<T, ST> retrace(ST element, RetraceStackTraceContext context);

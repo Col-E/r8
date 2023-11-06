@@ -58,6 +58,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumUnboxingCfMethods;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.templates.CfUtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.jar.CfApplicationWriter;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.kotlin.KotlinMetadataUtils;
 import com.android.tools.r8.naming.IdentifierMinifier;
@@ -166,7 +167,7 @@ import org.xml.sax.SAXException;
  * them to DEX bytecode, using {@code androidJar} as the reference of the system runtime library,
  * and then writes the result to the directory or zip archive specified by {@code outputPath}.
  */
-@Keep
+@KeepForApi
 public class R8 {
 
   private final Timing timing;

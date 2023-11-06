@@ -4,9 +4,9 @@
 package com.android.tools.r8.tracereferences;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.StringConsumer.FileConsumer;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.tracereferences.internal.TraceReferencesResult;
 import java.nio.file.Path;
 
@@ -23,7 +23,7 @@ import java.nio.file.Path;
  *     .build();
  * </pre>
  */
-@Keep
+@KeepForApi
 public class TraceReferencesKeepRules extends TraceReferencesConsumer.ForwardingConsumer {
 
   private final TraceReferencesResult.Builder traceReferencesResultBuilder;
@@ -49,7 +49,7 @@ public class TraceReferencesKeepRules extends TraceReferencesConsumer.Forwarding
    *
    * <p>A builder is obtained by calling {@link TraceReferencesKeepRules#builder}.
    */
-  @Keep
+  @KeepForApi
   public static class Builder {
     private StringConsumer consumer;
     private boolean allowObfuscation;

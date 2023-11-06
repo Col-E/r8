@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.TypeReference;
 
-@Keep
+@KeepForApi
 public interface RetracedFieldReference extends RetracedClassMemberReference {
 
   boolean isUnknown();
@@ -19,7 +19,7 @@ public interface RetracedFieldReference extends RetracedClassMemberReference {
 
   String getFieldName();
 
-  @Keep
+  @KeepForApi
   interface KnownRetracedFieldReference extends RetracedFieldReference {
 
     TypeReference getFieldType();

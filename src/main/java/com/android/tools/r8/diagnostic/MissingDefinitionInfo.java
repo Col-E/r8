@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.diagnostic;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.Collection;
 
 /**
  * Information about the contexts that references an item that was not part of the compilation unit.
  */
-@Keep
+@KeepForApi
 public interface MissingDefinitionInfo {
 
   /**

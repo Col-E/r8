@@ -5,7 +5,7 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
@@ -13,7 +13,7 @@ import com.google.common.base.Splitter;
 import java.util.ArrayList;
 import java.util.List;
 
-@Keep
+@KeepForApi
 public abstract class StackTraceElementProxy<T, ST extends StackTraceElementProxy<T, ST>> {
 
   public abstract boolean hasClassName();

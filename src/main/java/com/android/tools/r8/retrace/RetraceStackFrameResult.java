@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -14,7 +14,7 @@ import java.util.function.Consumer;
  * <p>It is guaranteed to be non-ambiguous. It can have more than one frame if it is an inline or an
  * outline expansion. It can be empty, fx. if the frames are compiler synthesized.
  */
-@Keep
+@KeepForApi
 public interface RetraceStackFrameResult<T> {
 
   /**

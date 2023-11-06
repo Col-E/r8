@@ -3,10 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-@KeepForSubclassing
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
+
+@KeepForApi
 public interface DataResourceProvider {
 
-  @KeepForSubclassing
+  @KeepForApi
   interface Visitor {
     void visit(DataDirectoryResource directory);
     void visit(DataEntryResource file);

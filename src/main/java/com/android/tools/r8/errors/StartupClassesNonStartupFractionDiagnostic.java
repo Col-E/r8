@@ -5,9 +5,9 @@
 package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.profile.startup.profile.StartupProfile;
@@ -15,7 +15,7 @@ import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import java.util.List;
 
-@Keep
+@KeepForApi
 public class StartupClassesNonStartupFractionDiagnostic implements Diagnostic {
 
   private final int numberOfStartupClasses;

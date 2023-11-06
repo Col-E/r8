@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
+
 /** Levels of diagnostics messages reported by the compiler. */
-@Keep
+@KeepForApi
 public enum DiagnosticsLevel {
   ERROR,
   WARNING,

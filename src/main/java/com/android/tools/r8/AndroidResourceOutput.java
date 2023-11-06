@@ -4,6 +4,8 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
+
 /**
  * Base interface for android resources (resource table, manifest, res folder files)
  *
@@ -11,7 +13,7 @@ package com.android.tools.r8;
  * allows us to reason about resources, and transitively other resources and code throughout the
  * entire compilation pipeline.
  */
-@Keep
+@KeepForApi
 public interface AndroidResourceOutput extends Resource {
   // The path, within the app, of the resource.
   ResourcePath getPath();

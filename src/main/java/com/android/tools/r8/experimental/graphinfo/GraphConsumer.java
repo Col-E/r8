@@ -3,9 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.graphinfo;
 
-import com.android.tools.r8.KeepForSubclassing;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
-@KeepForSubclassing
+@KeepForApi
 public interface GraphConsumer {
 
   /**

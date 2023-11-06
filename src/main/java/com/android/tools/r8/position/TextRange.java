@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.position;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
-@Keep
+@KeepForApi
 public class TextRange implements Position {
   private final TextPosition start;
   private final TextPosition end;

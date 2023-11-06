@@ -5,14 +5,14 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.internal.PartitionMappingSupplierBase;
 
-@Keep
+@KeepForApi
 public class PartitionMappingSupplier extends PartitionMappingSupplierBase<PartitionMappingSupplier>
     implements MappingSupplier<PartitionMappingSupplier> {
 
@@ -41,7 +41,7 @@ public class PartitionMappingSupplier extends PartitionMappingSupplierBase<Parti
    *
    * @param classReference The minified class reference allowed to be lookup up.
    */
-  @Keep
+  @KeepForApi
   @Override
   public PartitionMappingSupplier registerClassUse(
       DiagnosticsHandler diagnosticsHandler, ClassReference classReference) {
@@ -53,7 +53,7 @@ public class PartitionMappingSupplier extends PartitionMappingSupplierBase<Parti
    *
    * @param methodReference The minified method reference allowed to be lookup up.
    */
-  @Keep
+  @KeepForApi
   @Override
   public PartitionMappingSupplier registerMethodUse(
       DiagnosticsHandler diagnosticsHandler, MethodReference methodReference) {
@@ -65,7 +65,7 @@ public class PartitionMappingSupplier extends PartitionMappingSupplierBase<Parti
    *
    * @param fieldReference The minified field reference allowed to be lookup up.
    */
-  @Keep
+  @KeepForApi
   @Override
   public PartitionMappingSupplier registerFieldUse(
       DiagnosticsHandler diagnosticsHandler, FieldReference fieldReference) {
@@ -99,7 +99,7 @@ public class PartitionMappingSupplier extends PartitionMappingSupplierBase<Parti
     return new NoMetadataBuilder(mapVersion);
   }
 
-  @Keep
+  @KeepForApi
   public abstract static class NoMetadataBuilderBase<B extends NoMetadataBuilderBase<B>>
       extends PartitionMappingSupplierBuilderBase<B> {
 
@@ -120,7 +120,7 @@ public class PartitionMappingSupplier extends PartitionMappingSupplierBase<Parti
     }
   }
 
-  @Keep
+  @KeepForApi
   public static class NoMetadataBuilder extends NoMetadataBuilderBase<NoMetadataBuilder> {
 
     private NoMetadataBuilder(MapVersion fallbackMapVersion) {
@@ -147,7 +147,7 @@ public class PartitionMappingSupplier extends PartitionMappingSupplierBase<Parti
     }
   }
 
-  @Keep
+  @KeepForApi
   public static class Builder extends NoMetadataBuilderBase<Builder> {
 
     private byte[] metadata;

@@ -6,6 +6,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.DesugaredMethodsList;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.DesugaredMethodsListCommand;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -44,7 +45,7 @@ import com.android.tools.r8.utils.StringUtils;
  * The above generates the list of backported methods for a compilation with a min API of <code>
  * apiLevel</code> into the file <code>methods-list.txt</code>.
  */
-@Keep
+@KeepForApi
 public class BackportedMethodList {
 
   static final String USAGE_MESSAGE =

@@ -6,12 +6,12 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.lint;
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.Reporter;
@@ -21,7 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
-@Keep
+@KeepForApi
 public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
 
   private final AndroidApiLevel minApi;

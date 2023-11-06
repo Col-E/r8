@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
+
 /** Information present in a given marker. */
-@Keep
+@KeepForApi
 public interface MarkerInfo {
 
   /** Get the tool that has generated the marker. */

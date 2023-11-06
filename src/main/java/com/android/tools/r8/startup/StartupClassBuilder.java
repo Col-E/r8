@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.startup;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.ClassReference;
 
 /** Interface for providing information about a startup class to the compiler. */
-@Keep
+@KeepForApi
 public interface StartupClassBuilder {
 
   StartupClassBuilder setClassReference(ClassReference classReference);

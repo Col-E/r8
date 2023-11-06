@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.naming.MapConsumer;
 import com.android.tools.r8.naming.ProguardMapStringConsumer;
 import com.android.tools.r8.origin.Origin;
@@ -60,7 +61,7 @@ import java.util.function.Consumer;
  *     .build();
  * </pre>
  */
-@Keep
+@KeepForApi
 public final class D8Command extends BaseCompilerCommand {
 
   private static class DefaultD8DiagnosticsHandler implements DiagnosticsHandler {
@@ -85,7 +86,7 @@ public final class D8Command extends BaseCompilerCommand {
    *
    * <p>A builder is obtained by calling {@link D8Command#builder}.
    */
-  @Keep
+  @KeepForApi
   public static class Builder extends BaseCompilerCommand.Builder<D8Command, Builder> {
 
     private boolean intermediate = false;

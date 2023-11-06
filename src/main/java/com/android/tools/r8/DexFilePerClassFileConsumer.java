@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.utils.FileUtils.DEX_EXTENSION;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.utils.ArchiveBuilder;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DirectoryBuilder;
@@ -31,7 +32,7 @@ import java.util.zip.ZipOutputStream;
  *
  * <p>This consumer receives DEX file content for each Java class-file input.
  */
-@KeepForSubclassing
+@KeepForApi
 public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBufferProvider {
 
   static final boolean SHOULD_COMBINE_SYNTHETIC_CLASSES = true;
@@ -93,7 +94,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBuffer
   }
 
   /** Forwarding consumer to delegate to an optional existing consumer. */
-  @Keep
+  @KeepForApi
   class ForwardingConsumer implements DexFilePerClassFileConsumer {
 
     private static final DexFilePerClassFileConsumer EMPTY_CONSUMER = new ForwardingConsumer(null);
@@ -138,7 +139,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBuffer
   }
 
   /** Consumer to write program resources to an output. */
-  @Keep
+  @KeepForApi
   class ArchiveConsumer extends ForwardingConsumer
       implements DataResourceConsumer, InternalProgramOutputPathConsumer {
     private final OutputBuilder outputBuilder;
@@ -231,7 +232,7 @@ public interface DexFilePerClassFileConsumer extends ProgramConsumer, ByteBuffer
   }
 
   /** Directory consumer to write program resources to a directory. */
-  @Keep
+  @KeepForApi
   class DirectoryConsumer extends ForwardingConsumer
       implements DataResourceConsumer, InternalProgramOutputPathConsumer {
     private final OutputBuilder outputBuilder;

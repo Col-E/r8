@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.SubtypingInfo;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
@@ -35,7 +36,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-@Keep
+@KeepForApi
 public class GenerateMainDexList {
   private final Timing timing = new Timing("maindex");
   private final InternalOptions options;

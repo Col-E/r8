@@ -4,26 +4,26 @@
 
 package com.android.tools.r8.origin;
 
-import com.android.tools.r8.KeepForSubclassing;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Origin description of a resource.
  *
- * <p>An origin is a list of parts that describe where a resource originates from. The first part
- * is the most recent part and is associated with the present resource, each successive part is
- * then associated with the context of the previous part.
+ * <p>An origin is a list of parts that describe where a resource originates from. The first part is
+ * the most recent part and is associated with the present resource, each successive part is then
+ * associated with the context of the previous part.
  *
- * <p>For example, for a class file, say {@code my/class/Foo.class}, that is contained within a
- * jar archive, say {@code myjar.jar}, the Origin of of this resource will be {@code
+ * <p>For example, for a class file, say {@code my/class/Foo.class}, that is contained within a jar
+ * archive, say {@code myjar.jar}, the Origin of of this resource will be {@code
  * myjar.jar:my/class/Foo.class} where each part is separated by a colon.
  *
  * <p>There are two top-most origins which have no parent: {@code Origin.root()} and {@code
  * Origin.unknown()}. The former is the parent of any file path, while the latter is an unknown
  * origin (e.g., for generated resources of raw bytes).
  */
-@KeepForSubclassing
+@KeepForApi
 public abstract class Origin implements Comparable<Origin> {
 
   private static final Origin ROOT =

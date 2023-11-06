@@ -5,11 +5,11 @@
 package com.android.tools.r8.ir.optimize.inliner;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 
-@Keep
+@KeepForApi
 public class WhyAreYouNotInliningDiagnostic implements Diagnostic {
 
   private final Origin origin;

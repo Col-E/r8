@@ -2,9 +2,6 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-# TODO(b/204058761): Remove when we can use test proguard options.
--keep @com.android.tools.r8.Keep class * { public *; }
--keep @com.android.tools.r8.KeepForSubclassing class * { public *; protected *; }
 -keepclasseswithmembers class * { @com.android.tools.r8.KeepMethodForCompileDump <methods>; }
 
 # Keep all things that can be reached from the retrace api and keep the annotation

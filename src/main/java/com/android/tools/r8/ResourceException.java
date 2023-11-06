@@ -3,15 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 
 /**
  * Checked exception for resource related failures.
  *
- * For example, this is the expected exception that must be thrown if a resource fails to produce
+ * <p>For example, this is the expected exception that must be thrown if a resource fails to produce
  * its content. See {@link ProgramResource#getByteStream()} and {@link StringResource#getString()}.
  */
-@Keep
+@KeepForApi
 public class ResourceException extends Exception {
 
   private final Origin origin;

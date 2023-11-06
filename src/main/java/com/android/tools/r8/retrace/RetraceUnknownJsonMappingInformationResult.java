@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-@Keep
+@KeepForApi
 public interface RetraceUnknownJsonMappingInformationResult {
 
   /** Basic operation over 'elements' which represent a possible non-ambiguous retracing. */

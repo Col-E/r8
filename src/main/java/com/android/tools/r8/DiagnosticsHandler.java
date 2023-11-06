@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.io.PrintStream;
@@ -12,7 +13,7 @@ import java.io.PrintStream;
  *
  * <p>During compilation the warning and info methods will be called.
  */
-@Keep
+@KeepForApi
 public interface DiagnosticsHandler {
 
   /** Should be considered private. */

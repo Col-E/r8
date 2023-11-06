@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +28,7 @@ import java.util.List;
  *     .build();
  * </pre>
  */
-@Keep
+@KeepForApi
 public class FeatureSplit {
 
   public static final FeatureSplit BASE =
@@ -85,7 +86,7 @@ public class FeatureSplit {
    *
    * <p>A builder is obtained by calling addFeatureSplit on a {@link R8Command.Builder}.
    */
-  @Keep
+  @KeepForApi
   public static class Builder {
     private ProgramConsumer programConsumer;
     private final List<ProgramResourceProvider> programResourceProviders = new ArrayList<>();

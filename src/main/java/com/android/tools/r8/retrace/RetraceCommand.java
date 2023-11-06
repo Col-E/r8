@@ -5,13 +5,13 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser;
 import com.android.tools.r8.utils.Box;
 import java.util.List;
 import java.util.function.Consumer;
 
-@Keep
+@KeepForApi
 public class RetraceCommand {
 
   private final StackTraceSupplier stackTraceSupplier;
@@ -72,7 +72,7 @@ public class RetraceCommand {
     return new Builder(new DiagnosticsHandler() {});
   }
 
-  @Keep
+  @KeepForApi
   public static class Builder {
 
     private boolean isVerbose;

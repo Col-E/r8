@@ -11,9 +11,9 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.references.ClassReference;
@@ -41,7 +41,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
 
-@Keep
+@KeepForApi
 public class RelocatorCommand {
 
   private static final String THREAD_COUNT_FLAG = "--thread-count";
@@ -167,7 +167,7 @@ public class RelocatorCommand {
     return mapping;
   }
 
-  @Keep
+  @KeepForApi
   public static class Builder {
 
     private final AndroidApp.Builder app;

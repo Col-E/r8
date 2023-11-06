@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
 import com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser;
 
-@Keep
+@KeepForApi
 public interface StackTraceLineParser<T, ST extends StackTraceElementProxy<T, ST>> {
 
   ST parse(T stackTraceLine);

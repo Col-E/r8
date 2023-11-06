@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
-@Keep
+@KeepForApi
 public interface RetraceAsyncResult<T> {
 
   T getResult(MappingPartitionFromKeySupplier supplier);

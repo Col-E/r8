@@ -5,13 +5,13 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /***
  * Interface for registering a callback when a retracing operation is finished.
  */
 @FunctionalInterface
-@Keep
+@KeepForApi
 public interface FinishedPartitionMappingCallback {
 
   FinishedPartitionMappingCallback EMPTY_INSTANCE = diagnosticsHandler -> {};

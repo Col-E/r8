@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.retrace.internal.RetraceStackTraceContextImpl;
 
-@Keep
+@KeepForApi
 public interface RetraceStackTraceContext {
 
   static RetraceStackTraceContext empty() {

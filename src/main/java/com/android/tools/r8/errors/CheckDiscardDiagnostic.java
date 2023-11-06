@@ -4,8 +4,8 @@
 package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.graph.ProgramDefinition;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.GraphReporter;
@@ -15,7 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.List;
 
-@Keep
+@KeepForApi
 public class CheckDiscardDiagnostic implements Diagnostic {
 
   private final List<String> messages;

@@ -8,7 +8,6 @@ import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ArchiveProgramResourceProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.ParseFlagInfo;
 import com.android.tools.r8.ParseFlagInfoImpl;
 import com.android.tools.r8.ParseFlagPrinter;
@@ -16,6 +15,7 @@ import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-@Keep
+@KeepForApi
 public class DesugaredMethodsListCommand {
 
   private final boolean help;
@@ -131,7 +131,7 @@ public class DesugaredMethodsListCommand {
     return new Builder(diagnosticsHandler);
   }
 
-  @Keep
+  @KeepForApi
   public static class Builder {
 
     private int minApi = AndroidApiLevel.B.getLevel();

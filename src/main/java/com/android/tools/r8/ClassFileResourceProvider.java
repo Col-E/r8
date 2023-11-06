@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.io.IOException;
 import java.util.Set;
 
@@ -13,7 +14,7 @@ import java.util.Set;
  * only created on-demand when they are needed by the compiler. If never needed, the resource will
  * never be loaded.
  */
-@KeepForSubclassing
+@KeepForApi
 public interface ClassFileResourceProvider {
 
   /**

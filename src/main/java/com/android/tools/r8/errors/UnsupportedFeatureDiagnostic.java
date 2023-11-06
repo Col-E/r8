@@ -4,12 +4,12 @@
 package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.AndroidApiLevel;
 
-@Keep
+@KeepForApi
 public abstract class UnsupportedFeatureDiagnostic implements Diagnostic {
 
   public static String makeMessage(

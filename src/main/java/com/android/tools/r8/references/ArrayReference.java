@@ -3,14 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.references;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.KeepForRetraceApi;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.Objects;
 
 /** Reference to an array type. */
-@Keep
+@KeepForApi
 @KeepForRetraceApi
 public final class ArrayReference implements TypeReference {
 

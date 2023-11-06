@@ -17,7 +17,6 @@
 -keep @com.android.tools.r8.KeepForRetraceApi class * { public *; }
 
 -keep,allowshrinking @com.android.tools.r8.Keep class * { public *; }
--keep,allowshrinking @com.android.tools.r8.KeepForSubclassing class * { public *; protected *; }
 
 -keep public class com.android.tools.r8.Version { public static final java.lang.String LABEL; }
 -keep public class com.android.tools.r8.Version { public static java.lang.String getVersionString(); }

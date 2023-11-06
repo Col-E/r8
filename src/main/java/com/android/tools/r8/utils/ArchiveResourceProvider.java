@@ -8,12 +8,12 @@ import static com.android.tools.r8.utils.FileUtils.isArchive;
 import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceProvider;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -33,7 +33,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
-@Keep // TODO(b/121121779) Remove keep-annotation.
+@KeepForApi
 public class ArchiveResourceProvider implements ProgramResourceProvider, DataResourceProvider {
 
   private final Origin origin;

@@ -3,12 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-@Keep
+@KeepForApi
 public interface RetraceFrameElement extends RetraceElement<RetraceFrameResult> {
 
   boolean isUnknown();

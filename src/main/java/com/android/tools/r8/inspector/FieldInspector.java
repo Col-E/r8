@@ -3,12 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.inspector;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.FieldReference;
 import java.util.Optional;
 
 /** Inspector for a field definition. */
-@Keep
+@KeepForApi
 public interface FieldInspector {
 
   /** Get the field reference for the field of this inspector. */

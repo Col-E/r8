@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /**
  * Supplier of input lines to be retraced.
@@ -12,7 +12,7 @@ import com.android.tools.r8.Keep;
  * @param <E> the type of the {@link Throwable}
  */
 @FunctionalInterface
-@Keep
+@KeepForApi
 public interface StreamSupplier<E extends Throwable> {
 
   String getNext() throws E;

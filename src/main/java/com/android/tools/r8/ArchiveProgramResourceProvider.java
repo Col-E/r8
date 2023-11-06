@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -27,14 +28,14 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 /** Provider for archives of program resources. */
-@KeepForSubclassing
+@KeepForApi
 public class ArchiveProgramResourceProvider implements ProgramResourceProvider {
 
   interface ArchiveEntryConsumer {
     void accept(ArchiveEntryOrigin entry, InputStream stream) throws IOException;
   }
 
-  @KeepForSubclassing
+  @KeepForApi
   public interface ZipFileSupplier {
     ZipFile open() throws IOException;
   }

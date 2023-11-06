@@ -5,8 +5,8 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 
@@ -18,7 +18,7 @@ import com.android.tools.r8.position.Position;
  * conversion to a diagnostic, the full exception stack can be obtained in the suppressed exceptions
  * on the inner-most cause.
  */
-@Keep
+@KeepForApi
 public class ExceptionDiagnostic implements Diagnostic {
 
   private final Throwable cause;

@@ -4,8 +4,8 @@
 package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /** Common interface type for all diagnostics related to desugaring. */
-@Keep
+@KeepForApi
 public interface DesugarDiagnostic extends Diagnostic {}

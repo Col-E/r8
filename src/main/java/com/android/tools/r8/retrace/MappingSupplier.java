@@ -5,10 +5,10 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.MappingSupplierInternal;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
-@Keep
+@KeepForApi
 public interface MappingSupplier<T extends MappingSupplier<T>>
     extends MappingSupplierBase<T>, MappingSupplierInternal {
 

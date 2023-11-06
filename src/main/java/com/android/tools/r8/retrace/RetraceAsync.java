@@ -5,12 +5,12 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.retrace.internal.RetraceBase;
 import java.util.List;
 
 /** An async retrace tool for obfuscated stack traces. */
-@Keep
+@KeepForApi
 public class RetraceAsync<T, ST extends StackTraceElementProxy<T, ST>> extends RetraceBase<T, ST> {
 
   private final MappingSupplierAsync<?> mappingSupplier;
@@ -97,7 +97,7 @@ public class RetraceAsync<T, ST extends StackTraceElementProxy<T, ST>> extends R
             context);
   }
 
-  @Keep
+  @KeepForApi
   public static class Builder<T, ST extends StackTraceElementProxy<T, ST>>
       extends RetraceBuilderBase<Builder<T, ST>, T, ST> {
 

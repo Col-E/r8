@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.Pair;
@@ -17,11 +18,11 @@ import java.util.List;
 import java.util.function.BiConsumer;
 
 /** Immutable command structure for an invocation of the {@link ExtractMarker} tool. */
-@Keep
+@KeepForApi
 public class ExtractMarkerCommand {
 
   /** Builder for constructing a {@link ExtractMarkerCommand}. */
-  @Keep
+  @KeepForApi
   public static class Builder {
     private boolean printHelp = false;
     private final List<Path> programFiles = new ArrayList<>();

@@ -8,11 +8,11 @@ import static com.android.tools.r8.utils.ExceptionUtils.failWithFakeEntry;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.ParseFlagInfo;
 import com.android.tools.r8.ParseFlagInfoImpl;
 import com.android.tools.r8.ParseFlagPrinter;
 import com.android.tools.r8.Version;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.retrace.internal.RetraceAbortException;
 import com.android.tools.r8.retrace.internal.RetraceBase;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
@@ -44,7 +44,7 @@ import java.util.Scanner;
  * <p>This is the interface for getting de-obfuscating stack traces, similar to the proguard retrace
  * tool.
  */
-@Keep
+@KeepForApi
 public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> extends RetraceBase<T, ST> {
 
   private static final String USAGE_MESSAGE =
@@ -426,7 +426,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> extends Retrac
     return new Builder<>();
   }
 
-  @Keep
+  @KeepForApi
   public static class Builder<T, ST extends StackTraceElementProxy<T, ST>>
       extends RetraceBuilderBase<Builder<T, ST>, T, ST> {
 

@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileForRewriting;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -37,7 +38,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 /** Immutable command structure for an invocation of the {@link L8} library compiler. */
-@Keep
+@KeepForApi
 public final class L8Command extends BaseCompilerCommand {
 
   private final D8Command d8Command;
@@ -252,7 +253,7 @@ public final class L8Command extends BaseCompilerCommand {
    *
    * <p>A builder is obtained by calling {@link L8Command#builder}.
    */
-  @Keep
+  @KeepForApi
   public static class Builder extends BaseCompilerCommand.Builder<L8Command, Builder> {
 
     private final List<Pair<List<String>, Origin>> proguardConfigStrings = new ArrayList<>();

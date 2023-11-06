@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.ClassReference;
 
 /**
@@ -18,7 +19,7 @@ import com.android.tools.r8.references.ClassReference;
  * application. It is valid to merge just the globals in such a final step. See {@code
  * GlobalSyntheticsResourceProvider}.
  */
-@Keep
+@KeepForApi
 public interface GlobalSyntheticsConsumer {
 
   /**

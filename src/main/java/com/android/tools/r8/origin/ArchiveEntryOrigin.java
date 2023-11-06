@@ -4,12 +4,10 @@
 
 package com.android.tools.r8.origin;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
-/**
- * Origin representing an entry in an archive.
- */
-@Keep
+/** Origin representing an entry in an archive. */
+@KeepForApi
 public class ArchiveEntryOrigin extends Origin {
 
   final String entryName;

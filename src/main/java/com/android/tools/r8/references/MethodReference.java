@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.references;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.KeepForRetraceApi;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import java.util.List;
@@ -16,7 +16,7 @@ import java.util.Objects;
  * <p>A method reference is always fully qualified with both a qualified holder type as well as its
  * full list of formal parameters.
  */
-@Keep
+@KeepForApi
 @KeepForRetraceApi
 public final class MethodReference {
   private final ClassReference holderClass;

@@ -4,11 +4,12 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Reporter;
 
-@Keep
+@KeepForApi
 public class AssertionsConfiguration {
 
   private enum AssertionTransformation {
@@ -78,7 +79,7 @@ public class AssertionsConfiguration {
    * <p>A builder is obtained by calling {@link
    * BaseCompilerCommand.Builder#addAssertionsConfiguration}.
    */
-  @Keep
+  @KeepForApi
   public static class Builder {
     Reporter reporter;
     private AssertionTransformation transformation;

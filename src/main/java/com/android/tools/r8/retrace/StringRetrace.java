@@ -5,7 +5,7 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.retrace.internal.RetraceStackFrameResultWithContextImpl;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
 import com.android.tools.r8.utils.StringUtils;
@@ -20,7 +20,7 @@ import java.util.function.Consumer;
  * Specialized Retrace class for retracing string retraces, with special handling for appending
  * additional information into the strings, such as OR's for ambiguous lines.
  */
-@Keep
+@KeepForApi
 public class StringRetrace extends Retrace<String, StackTraceElementStringProxy> {
 
   StringRetrace(

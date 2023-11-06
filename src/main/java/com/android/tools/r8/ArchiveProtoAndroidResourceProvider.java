@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.AndroidResourceInput.Kind;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.FileUtils;
@@ -26,7 +27,7 @@ import java.util.zip.ZipFile;
  * <p>The descriptor index is built eagerly upon creating the provider and subsequent requests for
  * resources in the descriptor set will then force the read of zip entry contents.
  */
-@Keep
+@KeepForApi
 public class ArchiveProtoAndroidResourceProvider implements AndroidResourceProvider {
   private final Path archive;
   private final Origin origin;

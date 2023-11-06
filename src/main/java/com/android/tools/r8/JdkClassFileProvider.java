@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -34,7 +35,7 @@ import java.util.Set;
  * <code>lib/rt.jar</code> will be loaded. JDK's of version 9 or higher system module classes will
  * be loaded using <code>lib/jrt-fs.jar/<code>.
  */
-@Keep
+@KeepForApi
 public class JdkClassFileProvider implements ClassFileResourceProvider, Closeable {
   private Origin origin;
   private final Set<String> descriptors = new HashSet<>();

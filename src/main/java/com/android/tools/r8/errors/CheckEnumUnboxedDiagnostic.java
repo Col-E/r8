@@ -5,16 +5,16 @@
 package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.google.common.collect.ImmutableList;
 import java.util.Comparator;
 import java.util.List;
 
-@Keep
+@KeepForApi
 public class CheckEnumUnboxedDiagnostic implements Diagnostic {
 
   private final List<String> messages;
