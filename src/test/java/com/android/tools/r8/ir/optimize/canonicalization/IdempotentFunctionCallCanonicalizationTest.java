@@ -198,8 +198,8 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
 
     D8TestRunResult result =
         testForD8()
-            .debug()
             .addProgramClasses(MAIN)
+            .release()
             .setMinApi(parameters)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);

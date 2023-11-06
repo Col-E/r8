@@ -7,7 +7,6 @@ import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.R8RunArtTestsTest.DexTool;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -67,10 +66,6 @@ public class TestCondition {
           throw new Unreachable();
       }
     }
-
-    static boolean isArt(Runtime runtime) {
-      return EnumSet.range(LOWEST_ART_VERSION, HIGHEST_ART_VERSION).contains(runtime);
-    }
   }
 
   static class ToolSet {
@@ -93,7 +88,7 @@ public class TestCondition {
 
   static class RuntimeSet {
 
-    private EnumSet<Runtime> set;
+    private final EnumSet<Runtime> set;
 
     public RuntimeSet(EnumSet<Runtime> set) {
       this.set = set;
@@ -137,8 +132,6 @@ public class TestCondition {
           CompilerUnderTest.R8CF);
   public static final CompilerSet R8DEX_COMPILER =
       compilers(CompilerUnderTest.R8, CompilerUnderTest.R8_AFTER_D8);
-  public static final CompilerSet R8_NOT_AFTER_D8_COMPILER =
-      compilers(CompilerUnderTest.R8, CompilerUnderTest.D8_AFTER_R8CF, CompilerUnderTest.R8CF);
   public static final CompilerSet R8CF = compilers(CompilerUnderTest.R8CF);
 
   public static final CompilationModeSet DEBUG_MODE =
@@ -194,30 +187,6 @@ public class TestCondition {
 
   public static RuntimeSet runtimesUpTo(DexVm.Version upto) {
     return RuntimeSet.fromDexVmVersionSet(EnumSet.range(DexVm.Version.first(), upto));
-  }
-
-  public static RuntimeSet artRuntimesUpTo(Runtime upto) {
-    assert Runtime.isArt(upto);
-    return new RuntimeSet(EnumSet.range(Runtime.LOWEST_ART_VERSION, upto));
-  }
-
-  public static RuntimeSet artRuntimesUpToAndJava(Runtime upto) {
-    return runtimes(
-        Sets.union(artRuntimesUpTo(upto).set, runtimes(Runtime.JAVA).set).toArray(new Runtime[0]));
-  }
-
-  public static RuntimeSet runtimesFrom(DexVm.Version start) {
-    return RuntimeSet.fromDexVmVersionSet(EnumSet.range(start, DexVm.Version.last()));
-  }
-
-  public static RuntimeSet artRuntimesFrom(Runtime start) {
-    assert Runtime.isArt(start);
-    return new RuntimeSet(EnumSet.range(start, Runtime.HIGHEST_ART_VERSION));
-  }
-
-  public static RuntimeSet artRuntimesFromAndJava(Runtime start) {
-    return runtimes(
-        Sets.union(artRuntimesFrom(start).set, runtimes(Runtime.JAVA).set).toArray(new Runtime[0]));
   }
 
   public static RuntimeSet and(RuntimeSet... sets) {

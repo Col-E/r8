@@ -20,26 +20,26 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.Arrays;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 // Regression test for b/297320921
 @RunWith(Parameterized.class)
 public class TryCatchRangeOverflowTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withDefaultDexRuntime().withMinimumApiLevel().build();
-  }
-
-  public TryCatchRangeOverflowTest(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   // Each add/2addr instruction has size 1, so we add have as many instruction minus some padding
@@ -80,7 +80,10 @@ public class TryCatchRangeOverflowTest extends TestBase {
       compile(addCount)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("" + addCount)
-          .inspect(inspector -> checkTryCatchHandlers(2, inspector));
+          .inspect(
+              inspector ->
+                  checkTryCatchHandlers(
+                      1 + BooleanUtils.intValue(addCount > UNSPLIT_LIMIT + 1), inspector));
     }
   }
 
@@ -112,16 +115,17 @@ public class TryCatchRangeOverflowTest extends TestBase {
     compile(addCount)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("" + addCount)
-        .inspect(inspector -> checkTryCatchHandlers(3, inspector));
+        .inspect(inspector -> checkTryCatchHandlers(2, inspector));
   }
 
-  private D8TestBuilder compile(int addCount) throws Exception {
+  private D8TestBuilder compile(int addCount) {
     return testForD8(Backend.DEX)
         .addProgramClasses(TestClass.class)
         .addOptionsModification(
             o ->
                 o.testing.irModifier =
                     (code, appView) -> amendCodeWithAddInstructions(addCount, code))
+        .debug()
         .setMinApi(parameters);
   }
 

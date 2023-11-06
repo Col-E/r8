@@ -481,7 +481,7 @@ public class ToolHelper {
         return shortName;
       }
 
-      private String shortName;
+      private final String shortName;
     }
 
     public String toString() {
@@ -584,9 +584,7 @@ public class ToolHelper {
         result.add("/bin/bash");
       }
       result.add(getExecutable());
-      for (String option : options) {
-        result.add(option);
-      }
+      result.addAll(options);
       for (Map.Entry<String, String> entry : systemProperties.entrySet()) {
         StringBuilder builder = new StringBuilder("-D");
         builder.append(entry.getKey());
@@ -698,7 +696,7 @@ public class ToolHelper {
       }
     }
 
-    public ProcessResult getCachedResults() throws IOException {
+    public ProcessResult getCachedResults() {
       if (!useCache()) {
         return null;
       }
@@ -1169,17 +1167,6 @@ public class ToolHelper {
     }
     fail("Unsupported platform, we currently only support mac and linux: " + getPlatform());
     return ""; //never here
-  }
-
-  public static String toolsDir() {
-    String osName = System.getProperty("os.name");
-    if (osName.equals("Mac OS X")) {
-      return "mac";
-    } else if (osName.contains("Windows")) {
-      return "windows";
-    } else {
-      return "linux";
-    }
   }
 
   public static String getProguard5Script() {
@@ -1775,10 +1762,6 @@ public class ToolHelper {
     return compatSink.build();
   }
 
-  public static void runL8(L8Command command) throws CompilationFailedException {
-    runL8(command, options -> {});
-  }
-
   public static void runL8(L8Command command, Consumer<InternalOptions> optionsModifier)
       throws CompilationFailedException {
     InternalOptions internalOptions = command.getInternalOptions();
@@ -1791,7 +1774,8 @@ public class ToolHelper {
         command.getR8Command());
   }
 
-  public static void addFilteredAndroidJar(BaseCommand.Builder builder, AndroidApiLevel apiLevel) {
+  public static void addFilteredAndroidJar(
+      BaseCommand.Builder<?, ?> builder, AndroidApiLevel apiLevel) {
     addFilteredAndroidJar(getAppBuilder(builder), apiLevel);
   }
 
@@ -2351,13 +2335,6 @@ public class ToolHelper {
     return result.stdout;
   }
 
-  public static String checkArtOutputIdentical(String file1, String file2, String mainClass,
-      DexVm version)
-      throws IOException {
-    return checkArtOutputIdentical(Collections.singletonList(file1),
-        Collections.singletonList(file2), mainClass, null, version);
-  }
-
   public static String checkArtOutputIdentical(List<String> files1, List<String> files2,
       String mainClass,
       Consumer<ArtCommandBuilder> extras,
@@ -2410,7 +2387,7 @@ public class ToolHelper {
   }
 
   // Checked in VMs for which dex2oat should work specified in decreasing order.
-  private static List<DexVm> SUPPORTED_DEX2OAT_VMS =
+  private static final List<DexVm> SUPPORTED_DEX2OAT_VMS =
       ImmutableList.of(DexVm.ART_12_0_0_HOST, DexVm.ART_6_0_1_HOST);
 
   public static ProcessResult runDex2OatRaw(Path file, Path outFile, DexVm targetVm)
@@ -2457,8 +2434,7 @@ public class ToolHelper {
     ProcessBuilder builder = new ProcessBuilder(command);
     builder.directory(getDexVmPath(vm).toFile());
     builder.environment().put("LD_LIBRARY_PATH", getDexVmLibPath(vm).toString());
-    ProcessResult processResult = runProcess(builder);
-    return processResult;
+    return runProcess(builder);
   }
 
   public static ProcessResult runProguardRaw(
@@ -2509,11 +2485,6 @@ public class ToolHelper {
     return runProguardRaw(getProguard5Script(), inJar, outJar, config, map);
   }
 
-  public static ProcessResult runProguardRaw(Path inJar, Path outJar, Path config, Path map)
-      throws IOException {
-    return runProguardRaw(getProguard5Script(), inJar, outJar, ImmutableList.of(config), map);
-  }
-
   public static String runProguard(Path inJar, Path outJar, Path config, Path map)
       throws IOException {
     return runProguard(inJar, outJar, ImmutableList.of(config), map);
@@ -2537,16 +2508,6 @@ public class ToolHelper {
   public static ProcessResult runProguard6Raw(
       Path inJar, Path outJar, Path lib, Path config, Path map) throws IOException {
     return runProguardRaw(getProguard6Script(), inJar, outJar, lib, ImmutableList.of(config), map);
-  }
-
-  public static String runProguard6(Path inJar, Path outJar, Path config, Path map)
-      throws IOException {
-    return runProguard6(inJar, outJar, ImmutableList.of(config), map);
-  }
-
-  public static String runProguard6(Path inJar, Path outJar, List<Path> configs, Path map)
-      throws IOException {
-    return runProguard(getProguard6Script(), inJar, outJar, configs, map);
   }
 
   public static ProcessResult runRetraceRaw(Path retracePath, Path map, Path stackTrace)
