@@ -21,13 +21,18 @@ def parse_arguments():
         '--outdir',
         help='Output directory to place the r8.jar in (default cwd).',
         default=None)
+    parser.add_argument(
+        '--nolib',
+        help='Use the non-lib distribution (default uses the lib distribution)',
+        default=False,
+        action='store_true')
     return parser.parse_args()
 
 
 def main():
     args = parse_arguments()
     outdir = args.outdir if args.outdir else ''
-    print(compiledump.download_distribution(args.version, True, outdir))
+    print(compiledump.download_distribution(args.version, args, outdir))
     return 0
 
 
