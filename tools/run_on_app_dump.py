@@ -23,7 +23,7 @@ from thread_utils import print_thread
 import update_prebuilds_in_android
 import utils
 
-GOLEM_BUILD_TARGETS = [utils.GRADLE_TASK_R8LIB, utils.GRADLE_TASK_RETRACE]
+GOLEM_BUILD_TARGETS = [utils.GRADLE_TASK_R8LIB]
 SHRINKERS = ['r8', 'r8-full', 'r8-nolib', 'r8-nolib-full']
 
 
@@ -1287,7 +1287,7 @@ def main(argv):
         elif options.version == 'main':
             if not options.no_build:
                 gradle.RunGradle([
-                    utils.GRADLE_TASK_RETRACE, utils.GRADLE_TASK_R8,
+                    utils.GRADLE_TASK_R8,
                     '-Pno_internal'
                 ])
                 build_r8lib = False

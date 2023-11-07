@@ -175,7 +175,6 @@ def Run(options):
                 utils.GRADLE_TASK_R8LIB, utils.GRADLE_TASK_R8LIB_NO_DEPS,
                 utils.GRADLE_TASK_THREADING_MODULE_BLOCKING,
                 utils.GRADLE_TASK_THREADING_MODULE_SINGLE_THREADED,
-                utils.GRADLE_TASK_RETRACE, utils.GRADLE_TASK_RETRACE_NO_DEPS,
                 utils.GRADLE_TASK_SOURCE_JAR,
                 utils.GRADLE_TASK_SWISS_ARMY_KNIFE, '-Pno_internal'
             ])
@@ -243,10 +242,6 @@ def Run(options):
             utils.DESUGAR_CONFIGURATION_JDK11_MINIMAL_MAVEN_ZIP,
             utils.DESUGAR_CONFIGURATION_JDK11_MAVEN_ZIP,
             utils.DESUGAR_CONFIGURATION_JDK11_NIO_MAVEN_ZIP, utils.R8_SRC_JAR,
-            utils.R8RETRACE_JAR, utils.R8RETRACE_JAR + '.map',
-            utils.R8RETRACE_JAR + '_map.zip', utils.R8RETRACE_EXCLUDE_DEPS_JAR,
-            utils.R8RETRACE_EXCLUDE_DEPS_JAR + '.map',
-            utils.R8RETRACE_EXCLUDE_DEPS_JAR + '_map.zip',
             utils.KEEPANNO_ANNOTATIONS_JAR,
             utils.GENERATED_LICENSE,
             'd8_r8/main/build/spdx/r8.spdx.json'
