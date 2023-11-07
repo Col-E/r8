@@ -15,6 +15,7 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectories
+import org.gradle.api.tasks.OutputFiles
 import org.gradle.api.tasks.TaskAction
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.workers.WorkAction
@@ -34,6 +35,13 @@ abstract class DownloadAllDependenciesTask : DefaultTask() {
   @OutputDirectories
   fun getOutputDir(): List<File> {
     return _thirdPartyDeps!!.map { _root!!.resolve(it.path) }
+  }
+
+  @OutputFiles
+  fun getOutputFiles(): List<File> {
+      return _thirdPartyDeps!!.map {
+        _root!!.resolve(it.sha1File.resolveSibling(it.sha1File.name.replace(".sha1", "")))
+      }
   }
 
   @Inject
