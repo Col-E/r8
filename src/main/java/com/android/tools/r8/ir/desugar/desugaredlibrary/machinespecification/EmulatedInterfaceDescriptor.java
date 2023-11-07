@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -32,6 +33,18 @@ public class EmulatedInterfaceDescriptor implements SpecificationDescriptor {
 
   public Map<DexMethod, EmulatedDispatchMethodDescriptor> getEmulatedMethods() {
     return emulatedMethods;
+  }
+
+  public EmulatedInterfaceDescriptor merge(EmulatedInterfaceDescriptor other) {
+    if (!rewrittenType.isIdenticalTo(other.getRewrittenType())) {
+      throw new UnsupportedOperationException(
+          "Emulated interface descriptor can only be merged on the same rewritten type.");
+    }
+    ImmutableMap.Builder<DexMethod, EmulatedDispatchMethodDescriptor> builder =
+        ImmutableMap.builder();
+    builder.putAll(getEmulatedMethods());
+    builder.putAll(other.getEmulatedMethods());
+    return new EmulatedInterfaceDescriptor(rewrittenType, builder.build());
   }
 
   @Override
