@@ -249,7 +249,8 @@
             "java.util.stream.Stream java.util.Collection#stream()",
             "java.util.stream.Stream java.util.Collection#parallelStream()",
             "java.util.Spliterator java.util.Collection#spliterator()",
-            "boolean java.util.Collection#removeIf(java.util.function.Predicate)"
+            "boolean java.util.Collection#removeIf(java.util.function.Predicate)",
+            "void java.util.Collection#forEach(java.util.function.Consumer)"
           ]
         },
         "java.util.Iterator": {
