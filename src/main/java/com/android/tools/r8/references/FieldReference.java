@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.references;
 
-import com.android.tools.r8.KeepForRetraceApi;
 import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.Objects;
 
@@ -14,7 +13,6 @@ import java.util.Objects;
  * type of the field.
  */
 @KeepForApi
-@KeepForRetraceApi
 public final class FieldReference {
   private final ClassReference holderClass;
   private final String fieldName;

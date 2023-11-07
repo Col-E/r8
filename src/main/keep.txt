@@ -4,9 +4,6 @@
 
 -keepclasseswithmembers class * { @com.android.tools.r8.KeepMethodForCompileDump <methods>; }
 
-# Keep all things that can be reached from the retrace api and keep the annotation
--keep @com.android.tools.r8.KeepForRetraceApi class * { public *; }
-
 -keep public class com.android.tools.r8.D8 { public static void main(java.lang.String[]); }
 -keep public class com.android.tools.r8.R8 { public static void main(java.lang.String[]); }
 -keep public class com.android.tools.r8.ExtractMarker { public static void main(java.lang.String[]); }

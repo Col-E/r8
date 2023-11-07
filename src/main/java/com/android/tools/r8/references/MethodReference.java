@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.references;
 
-import com.android.tools.r8.KeepForRetraceApi;
 import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
@@ -17,7 +16,6 @@ import java.util.Objects;
  * full list of formal parameters.
  */
 @KeepForApi
-@KeepForRetraceApi
 public final class MethodReference {
   private final ClassReference holderClass;
   private final String methodName;
