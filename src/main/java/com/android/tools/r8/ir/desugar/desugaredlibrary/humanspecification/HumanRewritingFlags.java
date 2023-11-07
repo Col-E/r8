@@ -140,7 +140,7 @@ public class HumanRewritingFlags {
     }
 
     public HumanEmulatedInterfaceDescriptor merge(HumanEmulatedInterfaceDescriptor other) {
-      if (rewrittenType != other.getRewrittenType()) {
+      if (!rewrittenType.isIdenticalTo(other.getRewrittenType())) {
         throw new UnsupportedOperationException(
             "Emulated interface descriptor can only be merged on the same rewritten type.");
       }
