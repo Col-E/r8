@@ -84,6 +84,16 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   @Override
+  public Instruction peekNext() {
+    // Reset current since listIterator.remove() changes based on whether next() or previous() was
+    // last called.
+    // E.g.: next() -> current=C
+    // peekNext(): next() -> current=D, previous() -> current=D
+    current = null;
+    return IteratorUtils.peekNext(listIterator);
+  }
+
+  @Override
   public boolean hasPrevious() {
     return listIterator.hasPrevious();
   }
@@ -97,6 +107,16 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   @Override
   public int previousIndex() {
     return listIterator.previousIndex();
+  }
+
+  @Override
+  public Instruction peekPrevious() {
+    // Reset current since listIterator.remove() changes based on whether next() or previous() was
+    // last called.
+    // E.g.: previous() -> current=B
+    // peekPrevious(): previous() -> current=A, next() -> current=A
+    current = null;
+    return IteratorUtils.peekPrevious(listIterator);
   }
 
   @Override

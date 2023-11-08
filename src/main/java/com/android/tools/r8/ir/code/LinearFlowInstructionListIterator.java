@@ -249,6 +249,27 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
     return currentBlockIterator.next();
   }
 
+  @Override
+  public Instruction peekNext() {
+    // Default impl calls next() / previous(), which will alter this.seen.
+    Instruction current = currentBlockIterator.peekNext();
+    if (!current.isGoto()) {
+      return current;
+    }
+    BasicBlock target = current.asGoto().getTarget();
+    if (!isLinearEdge(currentBlock, target)) {
+      return current;
+    }
+    while (target.isTrivialGoto()) {
+      BasicBlock candidate = target.exit().asGoto().getTarget();
+      if (!isLinearEdge(target, candidate)) {
+        break;
+      }
+      target = candidate;
+    }
+    return target.entry();
+  }
+
   private BasicBlock getBeginningOfTrivialLinearGotoChain(BasicBlock block) {
     if (block.getPredecessors().size() != 1
         || !isLinearEdge(block.getPredecessors().get(0), block)) {
@@ -287,6 +308,20 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
     // Iterate over the jump.
     currentBlockIterator.previous();
     return currentBlockIterator.previous();
+  }
+
+  @Override
+  public Instruction peekPrevious() {
+    // Default impl calls next() / previous(), which will alter this.seen.
+    Instruction ret = currentBlockIterator.peekPrevious();
+    if (ret != null) {
+      return ret;
+    }
+    BasicBlock target = getBeginningOfTrivialLinearGotoChain(currentBlock);
+    if (target == null || target.size() < 2) {
+      return null;
+    }
+    return target.getInstructions().get(target.size() - 2);
   }
 
   @Override

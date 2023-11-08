@@ -489,7 +489,8 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
       addConstantInBlock
           .computeIfAbsent(dominator, k -> new LinkedHashMap<>())
           .put(copy.outValue(), copy);
-      assert iterator.peekPrevious() == instruction;
+      // Using peekPrevious() would disable remove().
+      assert iterator.previous() == instruction && iterator.next() == instruction;
       iterator.removeOrReplaceByDebugLocalRead();
     }
   }

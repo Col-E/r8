@@ -23,7 +23,7 @@ import java.util.function.UnaryOperator;
 
 public class IRCodeInstructionListIterator implements InstructionListIterator {
 
-  private final ListIterator<BasicBlock> blockIterator;
+  private final BasicBlockIterator blockIterator;
   private InstructionListIterator instructionIterator;
 
   private final IRCode code;
@@ -174,6 +174,16 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   }
 
   @Override
+  public Instruction peekNext() {
+    // Default impl calls next() / previous(), which affects what remove() does.
+    Instruction next = instructionIterator.peekNext();
+    if (next == null && blockIterator.hasNext()) {
+      next = blockIterator.peekNext().entry();
+    }
+    return next;
+  }
+
+  @Override
   public boolean hasPrevious() {
     return instructionIterator.hasPrevious() || blockIterator.hasPrevious();
   }
@@ -190,6 +200,16 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
     instructionIterator = block.listIterator(code, block.getInstructions().size());
     assert instructionIterator.hasPrevious();
     return instructionIterator.previous();
+  }
+
+  @Override
+  public Instruction peekPrevious() {
+    // Default impl calls next() / previous(), which affects what remove() does.
+    Instruction previous = instructionIterator.peekPrevious();
+    if (previous == null && blockIterator.hasPrevious()) {
+      previous = blockIterator.peekPrevious().exit();
+    }
+    return previous;
   }
 
   @Override
