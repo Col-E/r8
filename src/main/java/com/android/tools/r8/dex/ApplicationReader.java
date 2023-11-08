@@ -60,7 +60,6 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public class ApplicationReader {
@@ -87,10 +86,8 @@ public class ApplicationReader {
     return read((StringResource) null);
   }
 
-  public LazyLoadedDexApplication read(
-      StringResource proguardMap)
-      throws IOException {
-    ExecutorService executor = Executors.newSingleThreadExecutor();
+  public LazyLoadedDexApplication read(StringResource proguardMap) throws IOException {
+    ExecutorService executor = options.getThreadingModule().createSingleThreadedExecutorService();
     try {
       return read(proguardMap, executor);
     } finally {

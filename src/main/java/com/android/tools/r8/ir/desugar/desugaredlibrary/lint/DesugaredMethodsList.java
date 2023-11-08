@@ -15,11 +15,9 @@ import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.ThreadUtils;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 @KeepForApi
 public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
@@ -51,23 +49,18 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
       System.out.println("DesugaredMethodsList " + Version.getVersionString());
       return;
     }
-    ExecutorService executorService = ThreadUtils.getExecutorService(ThreadUtils.NOT_SPECIFIED);
-    try {
-      ExceptionUtils.withD8CompilationHandler(
-          command.getReporter(),
-          () ->
-              new DesugaredMethodsList(
-                      command.getMinApi(),
-                      command.isAndroidPlatformBuild(),
-                      command.getReporter(),
-                      command.getDesugarLibrarySpecification(),
-                      command.getDesugarLibraryImplementation(),
-                      command.getOutputConsumer(),
-                      command.getLibrary())
-                  .run());
-    } finally {
-      executorService.shutdown();
-    }
+    ExceptionUtils.withD8CompilationHandler(
+        command.getReporter(),
+        () ->
+            new DesugaredMethodsList(
+                    command.getMinApi(),
+                    command.isAndroidPlatformBuild(),
+                    command.getReporter(),
+                    command.getDesugarLibrarySpecification(),
+                    command.getDesugarLibraryImplementation(),
+                    command.getOutputConsumer(),
+                    command.getLibrary())
+                .run());
   }
 
   @Override

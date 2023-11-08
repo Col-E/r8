@@ -10,9 +10,22 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public class ThreadingModuleBlocking implements ThreadingModule {
+
+  @Override
+  public ExecutorService createSingleThreadedExecutorService() {
+    return Executors.newSingleThreadExecutor();
+  }
+
+  @Override
+  public ExecutorService createThreadedExecutorService(int threadCount) {
+    // Note Executors.newSingleThreadExecutor() is not used when just one thread is used. See
+    // b/67338394.
+    return Executors.newWorkStealingPool(threadCount);
+  }
 
   @Override
   public <T> Future<T> submit(Callable<T> task, ExecutorService executorService) {

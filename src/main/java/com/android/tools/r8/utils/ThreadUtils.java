@@ -12,7 +12,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -214,26 +213,27 @@ public class ThreadUtils {
         executorService);
   }
 
-  static ExecutorService getExecutorServiceForProcessors(int processors) {
+  static ExecutorService getExecutorServiceForProcessors(
+      int processors, ThreadingModule threadingModule) {
     // This heuristic is based on measurements on a 32 core (hyper-threaded) machine.
     int threads = processors <= 2 ? processors : (int) Math.ceil(Integer.min(processors, 16) / 2.0);
-    return getExecutorServiceForThreads(threads);
+    return getExecutorServiceForThreads(threads, threadingModule);
   }
 
-  static ExecutorService getExecutorServiceForThreads(int threads) {
-    // Note Executors.newSingleThreadExecutor() is not used when just one thread is used. See
-    // b/67338394.
-    return Executors.newWorkStealingPool(threads);
+  static ExecutorService getExecutorServiceForThreads(
+      int threads, ThreadingModule threadingModule) {
+    return threadingModule.createThreadedExecutorService(threads);
   }
 
-  public static ExecutorService getExecutorService(int threads) {
+  public static ExecutorService getExecutorService(int threads, ThreadingModule threadingModule) {
     return threads == NOT_SPECIFIED
-        ? getExecutorServiceForProcessors(Runtime.getRuntime().availableProcessors())
-        : getExecutorServiceForThreads(threads);
+        ? getExecutorServiceForProcessors(
+            Runtime.getRuntime().availableProcessors(), threadingModule)
+        : getExecutorServiceForThreads(threads, threadingModule);
   }
 
   public static ExecutorService getExecutorService(InternalOptions options) {
-    return getExecutorService(options.threadCount);
+    return getExecutorService(options.threadCount, options.getThreadingModule());
   }
 
   public static int getNumberOfThreads(ExecutorService service) {

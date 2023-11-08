@@ -108,7 +108,7 @@ public class Smali {
     InternalOptions options = new InternalOptions();
     options.setMinApiLevel(AndroidApiLevel.getAndroidApiLevel(apiLevel));
     options.programConsumer = consumer;
-    ExecutorService executor = ThreadUtils.getExecutorService(1);
+    ExecutorService executor = options.getThreadingModule().createThreadedExecutorService(1);
     try {
       DexApplication dexApp = new ApplicationReader(app, options, Timing.empty()).read(executor);
       ApplicationWriter writer =

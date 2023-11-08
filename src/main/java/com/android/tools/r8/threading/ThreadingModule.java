@@ -30,6 +30,10 @@ import java.util.concurrent.Future;
     memberAccess = {MemberAccessFlags.PUBLIC})
 public interface ThreadingModule {
 
+  ExecutorService createSingleThreadedExecutorService();
+
+  ExecutorService createThreadedExecutorService(int threadCount);
+
   <T> Future<T> submit(Callable<T> task, ExecutorService executorService) throws ExecutionException;
 
   <T> void awaitFutures(List<Future<T>> futures) throws ExecutionException;
