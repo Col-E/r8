@@ -54,6 +54,7 @@ public class CollectionToArrayTest extends DesugaredLibraryTestBase {
     this.compilationSpecification = compilationSpecification;
   }
 
+  @Ignore("b/266401747")
   @Test
   public void test() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)
