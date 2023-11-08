@@ -12,12 +12,14 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -180,15 +182,20 @@ abstract class AbstractBackportTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
+    testD8(D8TestRunResult::assertSuccess);
+  }
+
+  public void testD8(ThrowingConsumer<D8TestRunResult, RuntimeException> runResultConsumer)
+      throws Exception {
     parameters.assumeDexRuntime();
     testForD8()
         .setMinApi(parameters)
         .apply(this::configureProgram)
         .setIncludeClassesChecksum(true)
         .compileWithExpectedDiagnostics(this::checkDiagnostics)
+        .inspect(this::assertDesugaring)
         .run(parameters.getRuntime(), testClassName)
-        .assertSuccess()
-        .inspect(this::assertDesugaring);
+        .apply(runResultConsumer);
   }
 
   @Test
