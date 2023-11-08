@@ -38,7 +38,6 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
@@ -378,25 +377,19 @@ public class Value implements Comparable<Value> {
   }
 
   public Set<Instruction> aliasedUsers(AliasedValueConfiguration configuration) {
-    Set<Instruction> users = SetUtils.newIdentityHashSet(uniqueUsers());
-    Set<Instruction> visited = Sets.newIdentityHashSet();
-    collectAliasedUsersViaAssume(configuration, visited, uniqueUsers(), users);
+    Set<Instruction> users = Sets.newIdentityHashSet();
+    collectAliasedUsersViaAssume(configuration, this, users);
     return users;
   }
 
   private static void collectAliasedUsersViaAssume(
-      AliasedValueConfiguration configuration,
-      Set<Instruction> visited,
-      Set<Instruction> usersToTest,
-      Set<Instruction> collectedUsers) {
-    for (Instruction user : usersToTest) {
-      if (!visited.add(user)) {
+      AliasedValueConfiguration configuration, Value value, Set<Instruction> collectedUsers) {
+    for (Instruction user : value.uniqueUsers()) {
+      if (!collectedUsers.add(user)) {
         continue;
       }
       if (configuration.isIntroducingAnAlias(user)) {
-        collectedUsers.addAll(user.outValue().uniqueUsers());
-        collectAliasedUsersViaAssume(
-            configuration, visited, user.outValue().uniqueUsers(), collectedUsers);
+        collectAliasedUsersViaAssume(configuration, user.outValue(), collectedUsers);
       }
     }
   }
