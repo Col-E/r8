@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Map;
+import java.util.Optional;
 
 final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
@@ -52,6 +53,7 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
       InvokeMethod invoke,
       SingleResolutionResult<?> resolutionResult,
       ProgramMethod candidate,
+      Optional<InliningIRProvider> inliningIRProvider,
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return true;
@@ -97,7 +99,12 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
     }
     assert method.getDefinition() != info.target.getDefinition();
     assert passesInliningConstraints(
-        invoke, resolutionResult, info.target, Reason.FORCE, whyAreYouNotInliningReporter);
+        invoke,
+        resolutionResult,
+        info.target,
+        Optional.empty(),
+        Reason.FORCE,
+        whyAreYouNotInliningReporter);
     return new InlineAction(info.target, invoke, Reason.FORCE);
   }
 

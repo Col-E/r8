@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineResult;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
+import java.util.Optional;
 
 /**
  * The InliningOracle contains information needed for when inlining other methods into @method.
@@ -28,6 +29,7 @@ public interface InliningOracle {
       InvokeMethod invoke,
       SingleResolutionResult<?> resolutionResult,
       ProgramMethod candidate,
+      Optional<InliningIRProvider> inliningIRProvider,
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 

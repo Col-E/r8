@@ -887,6 +887,38 @@ public class DexItemFactory {
     return createMethod(boxType, proto, valueOfMethodName);
   }
 
+  public BoxUnboxPrimitiveMethodRoundtrip getBoxUnboxPrimitiveMethodRoundtrip(DexType type) {
+    if (type.isPrimitiveType()) {
+      return new BoxUnboxPrimitiveMethodRoundtrip(
+          getBoxPrimitiveMethod(type), getUnboxPrimitiveMethod(type));
+    } else if (primitiveToBoxed.containsValue(type)) {
+      return new BoxUnboxPrimitiveMethodRoundtrip(
+          getUnboxPrimitiveMethod(type), getBoxPrimitiveMethod(type));
+    } else {
+      return null;
+    }
+  }
+
+  public static class BoxUnboxPrimitiveMethodRoundtrip {
+
+    private final DexMethod boxIfPrimitiveElseUnbox;
+    private final DexMethod unboxIfPrimitiveElseBox;
+
+    public BoxUnboxPrimitiveMethodRoundtrip(
+        DexMethod boxIfPrimitiveElseUnbox, DexMethod unboxIfPrimitiveElseBox) {
+      this.boxIfPrimitiveElseUnbox = boxIfPrimitiveElseUnbox;
+      this.unboxIfPrimitiveElseBox = unboxIfPrimitiveElseBox;
+    }
+
+    public DexMethod getBoxIfPrimitiveElseUnbox() {
+      return boxIfPrimitiveElseUnbox;
+    }
+
+    public DexMethod getUnboxIfPrimitiveElseBox() {
+      return unboxIfPrimitiveElseBox;
+    }
+  }
+
   public DexType getBoxedForPrimitiveType(DexType primitive) {
     assert primitive.isPrimitiveType();
     return primitiveToBoxed.get(primitive);

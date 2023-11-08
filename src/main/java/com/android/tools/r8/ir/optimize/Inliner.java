@@ -699,11 +699,6 @@ public class Inliner {
           }
         }
       }
-
-      if (inliningIRProvider.shouldApplyCodeRewritings(target)) {
-        assert lensCodeRewriter != null;
-        lensCodeRewriter.rewrite(code, target, inliningIRProvider.getMethodProcessor());
-      }
       if (options.testing.inlineeIrModifier != null) {
         options.testing.inlineeIrModifier.accept(code);
       }
@@ -894,7 +889,7 @@ public class Inliner {
             options.inliningInstructionAllowance - numberOfInstructions(code),
             inliningReasonStrategy);
     InliningIRProvider inliningIRProvider =
-        new InliningIRProvider(appView, method, code, methodProcessor);
+        new InliningIRProvider(appView, method, code, lensCodeRewriter, methodProcessor);
     assert inliningIRProvider.verifyIRCacheIsEmpty();
     performInliningImpl(
         oracle, oracle, method, code, feedback, inliningIRProvider, methodProcessor, timing);
@@ -1065,12 +1060,12 @@ public class Inliner {
               code, blockIterator, block, affectedValues, blocksToRemove, timing);
 
           // The synthetic and bridge flags are maintained only if the inlinee has also these flags.
-          if (context.getDefinition().isBridge() && !inlinee.code.method().isBridge()) {
-            context.getDefinition().accessFlags.demoteFromBridge();
+          if (context.getAccessFlags().isBridge() && !singleTarget.getAccessFlags().isBridge()) {
+            context.getAccessFlags().demoteFromBridge();
           }
-          if (context.getDefinition().accessFlags.isSynthetic()
-              && !inlinee.code.method().accessFlags.isSynthetic()) {
-            context.getDefinition().accessFlags.demoteFromSynthetic();
+          if (context.getAccessFlags().isSynthetic()
+              && !singleTarget.getAccessFlags().isSynthetic()) {
+            context.getAccessFlags().demoteFromSynthetic();
           }
 
           context.getDefinition().copyMetadata(appView, singleTargetMethod);

@@ -7,6 +7,8 @@ import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.addMonitorEn
 import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.collectAllMonitorEnterValues;
 import static com.android.tools.r8.utils.AndroidApiLevelUtils.isApiSafeForInlining;
 
+import com.android.tools.r8.dex.code.DexCheckCast;
+import com.android.tools.r8.dex.code.DexInvokeStatic;
 import com.android.tools.r8.dex.code.DexMoveResult;
 import com.android.tools.r8.dex.code.DexMoveResultObject;
 import com.android.tools.r8.dex.code.DexMoveResultWide;
@@ -16,6 +18,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexItemFactory.BoxUnboxPrimitiveMethodRoundtrip;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
@@ -23,7 +27,10 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
@@ -52,6 +59,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
@@ -129,6 +137,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       InvokeMethod invoke,
       SingleResolutionResult<?> resolutionResult,
       ProgramMethod singleTarget,
+      Optional<InliningIRProvider> inliningIRProvider,
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     // Do not inline if the inlinee is greater than the api caller level.
@@ -186,7 +195,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
 
-    if (reason == Reason.SIMPLE && !satisfiesRequirementsForSimpleInlining(invoke, singleTarget)) {
+    if (reason == Reason.SIMPLE
+        && !satisfiesRequirementsForSimpleInlining(invoke, singleTarget, inliningIRProvider)) {
       whyAreYouNotInliningReporter.reportInlineeNotSimple();
       return false;
     }
@@ -217,7 +227,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         || method.getDefinition().getCode().hasMonitorInstructions();
   }
 
-  public boolean satisfiesRequirementsForSimpleInlining(InvokeMethod invoke, ProgramMethod target) {
+  public boolean satisfiesRequirementsForSimpleInlining(
+      InvokeMethod invoke, ProgramMethod target, Optional<InliningIRProvider> inliningIRProvider) {
     // Code size modified by inlining, so only read for non-concurrent methods.
     boolean deterministic = !methodProcessor.isProcessedConcurrently(target);
     if (deterministic) {
@@ -225,7 +236,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       Code code = target.getDefinition().getCode();
       int instructionLimit =
           inlinerOptions.getSimpleInliningInstructionLimit()
-              + getInliningInstructionLimitIncrement(invoke, target);
+              + getInliningInstructionLimitIncrement(invoke, target, inliningIRProvider);
       if (code.estimatedSizeForInliningAtMost(instructionLimit)) {
         return true;
       }
@@ -237,20 +248,26 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     return simpleInliningConstraint.isSatisfied(invoke);
   }
 
-  private int getInliningInstructionLimitIncrement(InvokeMethod invoke, ProgramMethod candidate) {
-    int instructionLimit = 0;
-    BitSet hints = candidate.getDefinition().getOptimizationInfo().getNonNullParamOrThrow();
+  private int getInliningInstructionLimitIncrement(
+      InvokeMethod invoke, ProgramMethod target, Optional<InliningIRProvider> inliningIRProvider) {
+    if (!options.inlinerOptions().enableSimpleInliningInstructionLimitIncrement) {
+      return 0;
+    }
+    int instructionLimit =
+        getInliningInstructionLimitIncrementForPrelude(invoke, target, inliningIRProvider);
+    BitSet hints = target.getOptimizationInfo().getNonNullParamOrThrow();
     if (hints != null) {
       List<Value> arguments = invoke.arguments();
       for (int index = invoke.getFirstNonReceiverArgumentIndex();
           index < arguments.size();
           index++) {
         Value argument = arguments.get(index);
-        if ((argument.isArgument()
-                || (argument.getType().isReferenceType() && argument.isNeverNull()))
-            && hints.get(index)) {
-          // 5-4 instructions per parameter check are expected to be removed.
-          instructionLimit += 4;
+        if (hints.get(index)) {
+          if ((argument.isArgument()
+              || (argument.getType().isReferenceType() && argument.isNeverNull()))) {
+            // 5-4 instructions per parameter check are expected to be removed.
+            instructionLimit += 4;
+          }
         }
       }
     }
@@ -260,6 +277,53 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       instructionLimit += DexMoveResult.SIZE;
     }
     return instructionLimit;
+  }
+
+  private int getInliningInstructionLimitIncrementForPrelude(
+      InvokeMethod invoke, ProgramMethod target, Optional<InliningIRProvider> inliningIRProvider) {
+    if (inliningIRProvider.isEmpty()
+        || invoke.arguments().isEmpty()
+        || !target.getDefinition().getCode().isLirCode()) {
+      return 0;
+    }
+    IRCode code = inliningIRProvider.get().getAndCacheInliningIR(invoke, target);
+    Iterable<Argument> arguments = code::argumentIterator;
+    DexItemFactory factory = appView.dexItemFactory();
+    int increment = 0;
+    for (Argument argument : arguments) {
+      Value argumentValue = argument.outValue();
+      for (Instruction user : argumentValue.uniqueUsers()) {
+        if (user.isCheckCast()) {
+          CheckCast checkCastUser = user.asCheckCast();
+          TypeElement argumentType = invoke.getArgument(argument.getIndex()).getType();
+          TypeElement castType = checkCastUser.getType().toTypeElement(appView);
+          if (argumentType.lessThanOrEqual(castType, appView)) {
+            // We can remove the cast inside the inlinee.
+            increment += DexCheckCast.SIZE;
+          }
+        } else {
+          DexType argumentType = target.getArgumentType(argument.getIndex());
+          BoxUnboxPrimitiveMethodRoundtrip roundtrip =
+              factory.getBoxUnboxPrimitiveMethodRoundtrip(argumentType);
+          if (roundtrip == null) {
+            continue;
+          }
+          Value invokeArgument = invoke.getArgument(argument.getIndex()).getAliasedValue();
+          if (user.isInvokeMethod(roundtrip.getBoxIfPrimitiveElseUnbox())
+              && invokeArgument.isDefinedByInstructionSatisfying(
+                  definition ->
+                      definition.isInvokeMethod(roundtrip.getUnboxIfPrimitiveElseBox()))) {
+            // We can remove the unbox/box operation inside the inlinee.
+            increment += DexInvokeStatic.SIZE + DexMoveResult.SIZE;
+            if (invokeArgument.numberOfAllUsers() == 1 && argumentValue.numberOfAllUsers() == 1) {
+              // We can remove the box/unbox operation inside the caller.
+              increment += DexInvokeStatic.SIZE + DexMoveResult.SIZE;
+            }
+          }
+        }
+      }
+    }
+    return increment;
   }
 
   @Override
@@ -294,7 +358,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     Reason reason =
-        reasonStrategy.computeInliningReason(invoke, singleTarget, context, this, methodProcessor);
+        reasonStrategy.computeInliningReason(
+            invoke, singleTarget, context, this, inliningIRProvider, methodProcessor);
     if (reason == Reason.NEVER) {
       return null;
     }
@@ -315,7 +380,12 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     if (!passesInliningConstraints(
-        invoke, resolutionResult, singleTarget, reason, whyAreYouNotInliningReporter)) {
+        invoke,
+        resolutionResult,
+        singleTarget,
+        Optional.of(inliningIRProvider),
+        reason,
+        whyAreYouNotInliningReporter)) {
       return null;
     }
 

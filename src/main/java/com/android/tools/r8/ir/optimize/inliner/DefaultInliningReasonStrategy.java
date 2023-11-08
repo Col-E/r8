@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
+import java.util.Optional;
 
 public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
 
@@ -35,6 +36,7 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
       ProgramMethod target,
       ProgramMethod context,
       DefaultInliningOracle oracle,
+      InliningIRProvider inliningIRProvider,
       MethodProcessor methodProcessor) {
     DexEncodedMethod targetMethod = target.getDefinition();
     DexMethod targetReference = target.getReference();
@@ -56,7 +58,7 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
     if (isSingleCallerInliningTarget(target, context)) {
       return Reason.SINGLE_CALLER;
     }
-    if (isMultiCallerInlineCandidate(invoke, target, oracle, methodProcessor)) {
+    if (isMultiCallerInlineCandidate(invoke, target, inliningIRProvider, oracle, methodProcessor)) {
       return methodProcessor.isPrimaryMethodProcessor()
           ? Reason.MULTI_CALLER_CANDIDATE
           : Reason.ALWAYS;
@@ -81,9 +83,11 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
   private boolean isMultiCallerInlineCandidate(
       InvokeMethod invoke,
       ProgramMethod singleTarget,
+      InliningIRProvider inliningIRProvider,
       DefaultInliningOracle oracle,
       MethodProcessor methodProcessor) {
-    if (oracle.satisfiesRequirementsForSimpleInlining(invoke, singleTarget)) {
+    if (oracle.satisfiesRequirementsForSimpleInlining(
+        invoke, singleTarget, Optional.of(inliningIRProvider))) {
       return false;
     }
     if (methodProcessor.isPrimaryMethodProcessor()) {

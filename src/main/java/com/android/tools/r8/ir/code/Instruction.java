@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
@@ -1325,6 +1326,10 @@ public abstract class Instruction
   }
 
   public boolean isInvokeMethod() {
+    return false;
+  }
+
+  public boolean isInvokeMethod(DexMethod invokedMethod) {
     return false;
   }
 

@@ -114,6 +114,11 @@ public abstract class InvokeMethod extends Invoke {
   }
 
   @Override
+  public boolean isInvokeMethod(DexMethod invokedMethod) {
+    return getInvokedMethod().isIdenticalTo(invokedMethod);
+  }
+
+  @Override
   public InvokeMethod asInvokeMethod() {
     return this;
   }

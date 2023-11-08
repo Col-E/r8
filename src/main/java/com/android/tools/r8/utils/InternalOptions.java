@@ -1714,6 +1714,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         parseSystemPropertyForDevelopmentOrDefault(
             "com.android.tools.r8.inliningInstructionLimit", -1);
 
+    public boolean enableSimpleInliningInstructionLimitIncrement = true;
+
     public int[] multiCallerInliningInstructionLimits =
         new int[] {Integer.MAX_VALUE, 28, 16, 12, 10};
 

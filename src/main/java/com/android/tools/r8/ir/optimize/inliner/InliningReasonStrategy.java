@@ -17,5 +17,6 @@ public interface InliningReasonStrategy {
       ProgramMethod target,
       ProgramMethod context,
       DefaultInliningOracle oracle,
+      InliningIRProvider inliningIRProvider,
       MethodProcessor methodProcessor);
 }
