@@ -168,20 +168,23 @@ public class HumanRewritingFlags {
       super(rewrittenType, ImmutableSet.of());
     }
 
+    @Override
     public boolean isLegacy() {
       return true;
     }
 
+    @Override
     public HumanEmulatedInterfaceDescriptor merge(HumanEmulatedInterfaceDescriptor other) {
       throw new UnsupportedOperationException();
     }
 
+    @Override
     public boolean containsEmulatedMethod(DexMethod reference, DexItemFactory factory) {
       // Equivalence for parsing specification with format version 100.
       DexMethod dontRewrite =
           factory.createMethod(
               factory.iteratorType, factory.createProto(factory.voidType), "remove");
-      return reference != dontRewrite;
+      return !reference.isIdenticalTo(dontRewrite);
     }
   }
 
