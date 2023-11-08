@@ -233,7 +233,7 @@ public class LegacyToHumanSpecificationConverter {
     dexClass
         .virtualMethods(m -> m.isDefaultMethod() && !dontRewrite.contains(m.getReference()))
         .forEach(m -> emulatedMethods.add(m.getReference()));
-    builder.putEmulatedInterface(
+    builder.putSpecifiedEmulatedInterface(
         type, new HumanEmulatedInterfaceDescriptor(rewrittenType, emulatedMethods));
   }
 

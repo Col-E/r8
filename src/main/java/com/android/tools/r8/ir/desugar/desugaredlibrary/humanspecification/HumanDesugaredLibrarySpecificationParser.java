@@ -345,8 +345,15 @@ public class HumanDesugaredLibrarySpecificationParser {
     if (jsonFlagSet.has(EMULATE_INTERFACE_KEY)) {
       for (Map.Entry<String, JsonElement> itf :
           jsonFlagSet.get(EMULATE_INTERFACE_KEY).getAsJsonObject().entrySet()) {
-        builder.putEmulatedInterface(
-            stringDescriptorToDexType(itf.getKey()), parseEmulatedInterface(itf.getValue()));
+        if (itf.getValue().isJsonPrimitive()) {
+          builder.putLegacyEmulatedInterface(
+              stringDescriptorToDexType(itf.getKey()),
+              stringDescriptorToDexType(itf.getValue().getAsString()));
+        } else {
+          builder.putSpecifiedEmulatedInterface(
+              stringDescriptorToDexType(itf.getKey()),
+              parseEmulatedInterfaceDescriptor(itf.getValue()));
+        }
       }
     }
     if (jsonFlagSet.has(CUSTOM_CONVERSION_KEY)) {
@@ -392,7 +399,7 @@ public class HumanDesugaredLibrarySpecificationParser {
     }
   }
 
-  private HumanEmulatedInterfaceDescriptor parseEmulatedInterface(JsonElement value) {
+  private HumanEmulatedInterfaceDescriptor parseEmulatedInterfaceDescriptor(JsonElement value) {
     JsonObject jsonObject = value.getAsJsonObject();
     DexType rewrittenType =
         stringDescriptorToDexType(required(jsonObject, REWRITTEN_TYPE_KEY).getAsString());

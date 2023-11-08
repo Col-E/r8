@@ -123,6 +123,7 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter {
             .forEach(
                 (itf, descriptor) -> {
                   TreeMap<String, Object> value = new TreeMap<>();
+                  assert !descriptor.isLegacy();
                   emulatedInterfaces.put(toString(itf), value);
                   value.put(REWRITTEN_TYPE_KEY, toString(descriptor.getRewrittenType()));
                   value.put(EMULATED_METHODS_KEY, setToString(descriptor.getEmulatedMethods()));

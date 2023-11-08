@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
@@ -116,6 +117,10 @@ public class HumanRewritingFlags {
       this.emulatedMethods = emulatedMethods;
     }
 
+    public boolean isLegacy() {
+      return false;
+    }
+
     public DexType getRewrittenType() {
       return rewrittenType;
     }
@@ -148,6 +153,35 @@ public class HumanRewritingFlags {
       builder.addAll(getEmulatedMethods());
       builder.addAll(other.getEmulatedMethods());
       return new HumanEmulatedInterfaceDescriptor(rewrittenType, builder.build());
+    }
+
+    public boolean containsEmulatedMethod(DexMethod reference, DexItemFactory factory) {
+      return getEmulatedMethods().contains(reference);
+    }
+  }
+
+  // TODO(b/309735284): Temporary work-around.
+  public static class LegacyHumanEmulatedInterfaceDescriptor
+      extends HumanEmulatedInterfaceDescriptor {
+
+    public LegacyHumanEmulatedInterfaceDescriptor(DexType rewrittenType) {
+      super(rewrittenType, ImmutableSet.of());
+    }
+
+    public boolean isLegacy() {
+      return true;
+    }
+
+    public HumanEmulatedInterfaceDescriptor merge(HumanEmulatedInterfaceDescriptor other) {
+      throw new UnsupportedOperationException();
+    }
+
+    public boolean containsEmulatedMethod(DexMethod reference, DexItemFactory factory) {
+      // Equivalence for parsing specification with format version 100.
+      DexMethod dontRewrite =
+          factory.createMethod(
+              factory.iteratorType, factory.createProto(factory.voidType), "remove");
+      return reference != dontRewrite;
     }
   }
 
@@ -413,7 +447,16 @@ public class HumanRewritingFlags {
       return this;
     }
 
-    public Builder putEmulatedInterface(
+    public Builder putLegacyEmulatedInterface(DexType interfaceType, DexType rewrittenType) {
+      put(
+          emulatedInterfaces,
+          interfaceType,
+          new LegacyHumanEmulatedInterfaceDescriptor(rewrittenType),
+          HumanDesugaredLibrarySpecificationParser.EMULATE_INTERFACE_KEY);
+      return this;
+    }
+
+    public Builder putSpecifiedEmulatedInterface(
         DexType interfaceType, HumanEmulatedInterfaceDescriptor newDescriptor) {
       assert newDescriptor != null;
       HumanEmulatedInterfaceDescriptor oldDescriptor = emulatedInterfaces.get(interfaceType);

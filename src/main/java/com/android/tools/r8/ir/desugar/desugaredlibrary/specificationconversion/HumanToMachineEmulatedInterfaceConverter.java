@@ -58,7 +58,8 @@ public class HumanToMachineEmulatedInterfaceConverter {
       itfClass.forEachClassMethodMatching(
           m ->
               m.isDefaultMethod()
-                  && humanDescriptor.getEmulatedMethods().contains(m.getReference()),
+                  && humanDescriptor.containsEmulatedMethod(
+                      m.getReference(), appInfo.dexItemFactory()),
           method ->
               emulatedMethods.put(
                   method.getReference(),
