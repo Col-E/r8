@@ -188,7 +188,7 @@ def run(map_path,
         )
 
     if not r8jar:
-        r8jar = utils.R8_JAR if no_r8lib else utils.R8LIB
+        r8jar = utils.R8_JAR if no_r8lib else utils.R8LIB_JAR
 
     retrace_args += [
         '-cp', r8jar, 'com.android.tools.r8.retrace.Retrace', map_path
