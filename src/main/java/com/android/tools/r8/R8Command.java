@@ -140,6 +140,8 @@ public final class R8Command extends BaseCompilerCommand {
     private SemanticVersion fakeCompilerVersion = null;
     private AndroidResourceProvider androidResourceProvider = null;
     private AndroidResourceConsumer androidResourceConsumer = null;
+    private ResourceShrinkerConfiguration resourceShrinkerConfiguration =
+        ResourceShrinkerConfiguration.DEFAULT_CONFIGURATION;
 
     private final ProguardConfigurationParserOptions.Builder parserOptionsBuilder =
         ProguardConfigurationParserOptions.builder().readEnvironment();
@@ -536,6 +538,19 @@ public final class R8Command extends BaseCompilerCommand {
      */
     public Builder setAndroidResourceConsumer(AndroidResourceConsumer consumer) {
       this.androidResourceConsumer = consumer;
+      return this;
+    }
+
+    /**
+     * API for configuring resource shrinking.
+     *
+     * <p>Set the configuration properties on the provided builder.
+     */
+    public Builder setResourceShrinkerConfiguration(
+        Function<ResourceShrinkerConfiguration.Builder, ResourceShrinkerConfiguration>
+            configurationBuilder) {
+      this.resourceShrinkerConfiguration =
+          configurationBuilder.apply(ResourceShrinkerConfiguration.builder(getReporter()));
       return this;
     }
 
