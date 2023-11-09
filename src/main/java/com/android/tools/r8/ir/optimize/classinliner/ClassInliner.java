@@ -180,7 +180,8 @@ public final class ClassInliner {
 
         // Is inlining allowed.
         InliningIRProvider inliningIRProvider =
-            new InliningIRProvider(appView, method, code, null, methodProcessor);
+            new InliningIRProvider(
+                appView, method, code, inliner.getLensCodeRewriter(), methodProcessor);
         ClassInlinerCostAnalysis costAnalysis =
             new ClassInlinerCostAnalysis(appView, inliningIRProvider, processor.getReceivers());
         if (costAnalysis.willExceedInstructionBudget(

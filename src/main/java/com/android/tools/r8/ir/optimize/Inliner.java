@@ -122,6 +122,10 @@ public class Inliner {
             : null;
   }
 
+  public LensCodeRewriter getLensCodeRewriter() {
+    return lensCodeRewriter;
+  }
+
   @SuppressWarnings("ReferenceEquality")
   private ConstraintWithTarget instructionAllowedForInlining(
       Instruction instruction, InliningConstraints inliningConstraints, ProgramMethod context) {
