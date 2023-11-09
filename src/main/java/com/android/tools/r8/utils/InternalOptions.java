@@ -19,6 +19,7 @@ import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.GlobalSyntheticsConsumer;
 import com.android.tools.r8.MapIdProvider;
 import com.android.tools.r8.ProgramConsumer;
+import com.android.tools.r8.ResourceShrinkerConfiguration;
 import com.android.tools.r8.SourceFileProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.SyntheticInfoConsumer;
@@ -195,6 +196,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public CancelCompilationChecker cancelCompilationChecker = null;
   public AndroidResourceProvider androidResourceProvider = null;
   public AndroidResourceConsumer androidResourceConsumer = null;
+  public ResourceShrinkerConfiguration resourceShrinkerConfiguration;
 
   public boolean checkIfCancelled() {
     if (cancelCompilationChecker == null) {

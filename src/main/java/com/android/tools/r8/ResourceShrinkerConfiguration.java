@@ -44,6 +44,14 @@ public class ResourceShrinkerConfiguration {
     return new Builder();
   }
 
+  public boolean isOptimizedShrinking() {
+    return optimizedShrinking;
+  }
+
+  public boolean isPreciseShrinking() {
+    return preciseShrinking;
+  }
+
   /**
    * Builder for constructing a ResourceShrinkerConfiguration.
    *

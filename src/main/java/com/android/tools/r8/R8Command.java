@@ -714,7 +714,8 @@ public final class R8Command extends BaseCompilerCommand {
               getClassConflictResolver(),
               getCancelCompilationChecker(),
               androidResourceProvider,
-              androidResourceConsumer);
+              androidResourceConsumer,
+              resourceShrinkerConfiguration);
 
       if (inputDependencyGraphConsumer != null) {
         inputDependencyGraphConsumer.finished();
@@ -905,6 +906,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final boolean enableMissingLibraryApiModeling;
   private final AndroidResourceProvider androidResourceProvider;
   private final AndroidResourceConsumer androidResourceConsumer;
+  private final ResourceShrinkerConfiguration resourceShrinkerConfiguration;
 
   /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
@@ -1001,7 +1003,8 @@ public final class R8Command extends BaseCompilerCommand {
       ClassConflictResolver classConflictResolver,
       CancelCompilationChecker cancelCompilationChecker,
       AndroidResourceProvider androidResourceProvider,
-      AndroidResourceConsumer androidResourceConsumer) {
+      AndroidResourceConsumer androidResourceConsumer,
+      ResourceShrinkerConfiguration resourceShrinkerConfiguration) {
     super(
         inputApp,
         mode,
@@ -1048,6 +1051,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.enableMissingLibraryApiModeling = enableMissingLibraryApiModeling;
     this.androidResourceProvider = androidResourceProvider;
     this.androidResourceConsumer = androidResourceConsumer;
+    this.resourceShrinkerConfiguration = resourceShrinkerConfiguration;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -1074,6 +1078,7 @@ public final class R8Command extends BaseCompilerCommand {
     enableMissingLibraryApiModeling = false;
     androidResourceProvider = null;
     androidResourceConsumer = null;
+    resourceShrinkerConfiguration = null;
   }
 
   public DexItemFactory getDexItemFactory() {
@@ -1250,6 +1255,7 @@ public final class R8Command extends BaseCompilerCommand {
 
     internal.androidResourceProvider = androidResourceProvider;
     internal.androidResourceConsumer = androidResourceConsumer;
+    internal.resourceShrinkerConfiguration = resourceShrinkerConfiguration;
 
     if (!DETERMINISTIC_DEBUGGING) {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;
