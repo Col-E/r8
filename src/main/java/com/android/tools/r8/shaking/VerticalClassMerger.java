@@ -463,6 +463,12 @@ public class VerticalClassMerger {
     if (!target.isPublic()) {
       return true;
     }
+    for (DexType sourceInterface : source.getInterfaces()) {
+      DexClass sourceInterfaceClass = appView.definitionFor(sourceInterface);
+      if (sourceInterfaceClass != null && !sourceInterfaceClass.isPublic()) {
+        return true;
+      }
+    }
     for (DexEncodedField field : source.fields()) {
       if (!(field.isPublic() || field.isPrivate())) {
         return true;

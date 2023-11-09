@@ -8,6 +8,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.classmerging.vertical.testclasses.InterfaceAccessibleAfterVerticalClassMergingTestClasses;
 import com.android.tools.r8.classmerging.vertical.testclasses.InterfaceAccessibleAfterVerticalClassMergingTestClasses.A;
+import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -31,18 +32,14 @@ public class InterfaceAccessibleAfterVerticalClassMergingTest extends TestBase {
         .addInnerClasses(getClass(), InterfaceAccessibleAfterVerticalClassMergingTestClasses.class)
         .addKeepMainRule(Main.class)
         .addVerticallyMergedClassesInspector(
-            inspector -> inspector.assertMergedIntoSubtype(A.class))
+            VerticallyMergedClassesInspector::assertNoClassesMerged)
         .enableNoAccessModificationAnnotationsForClasses()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters)
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/309727365): Should succeed.
-        .assertFailureWithErrorThatThrows(
-            parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isDalvik()
-                ? NoClassDefFoundError.class
-                : IllegalAccessError.class);
+        .assertSuccessWithOutputLines("B");
   }
 
   static class Main {
