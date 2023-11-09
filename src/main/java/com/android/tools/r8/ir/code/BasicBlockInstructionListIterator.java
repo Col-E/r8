@@ -30,6 +30,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
@@ -135,8 +136,8 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   /**
-   * Adds an instruction to the block. The instruction will be added just before the current cursor
-   * position.
+   * Adds an instruction to the block. The instruction will be added just before the instruction
+   * that would be returned by a call to next().
    *
    * <p>The instruction will be assigned to the block it is added to.
    *
@@ -153,58 +154,71 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     metadata.record(instruction);
   }
 
+  private boolean hasPriorThrowingInstruction() {
+    Instruction next = peekNext();
+    for (Instruction ins : block.getInstructions()) {
+      if (ins == next) {
+        break;
+      }
+      if (ins.instructionTypeCanThrow()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @Override
   public InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
       IRCode code,
       BasicBlockIterator blockIterator,
-      Instruction[] instructions,
+      Collection<Instruction> instructionsToAdd,
       InternalOptions options) {
-    InstructionListIterator iterator = this;
-    if (!block.hasCatchHandlers()) {
-      iterator.addAll(instructions);
-      return iterator;
+    // Assert that we are not inserting after the final jump, and also store peekNext() for later.
+    Instruction origNext = null;
+    assert (origNext = peekNext()) != null;
+    InstructionListIterator ret =
+        addPossiblyThrowingInstructionsToPossiblyThrowingBlockImpl(
+            this, code, blockIterator, instructionsToAdd, options);
+    assert ret.peekNext() == origNext;
+    return ret;
+  }
+
+  // Use a static method to ensure dstIterator is used instead of "this".
+  private static InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlockImpl(
+      BasicBlockInstructionListIterator dstIterator,
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Collection<Instruction> instructionsToAdd,
+      InternalOptions options) {
+    if (!dstIterator.block.hasCatchHandlers() || instructionsToAdd.isEmpty()) {
+      dstIterator.addAll(instructionsToAdd);
+      return dstIterator;
     }
-    int i = 0;
-    if (!block.canThrow()) {
-      // Add all non-throwing instructions up until the first throwing instruction.
-      for (; i < instructions.length; i++) {
-        Instruction materializingInstruction = instructions[i];
-        if (!materializingInstruction.instructionTypeCanThrow()) {
-          iterator.add(materializingInstruction);
-        } else {
-          break;
-        }
-      }
-      // Add the first throwing instruction without splitting the block.
-      if (i < instructions.length) {
-        assert instructions[i].instructionTypeCanThrow();
-        iterator.add(instructions[i]);
-        i++;
-      }
+
+    Iterator<Instruction> srcIterator = instructionsToAdd.iterator();
+
+    // If the throwing instruction is before the cursor, then we must split the block first.
+    // If there is one afterwards, we can add instructions and when we split, the throwing one
+    // will be moved to the split block.
+    boolean splitBeforeAdding = dstIterator.hasPriorThrowingInstruction();
+    if (splitBeforeAdding) {
+      BasicBlock nextBlock =
+          dstIterator.splitCopyCatchHandlers(
+              code, blockIterator, options, UnaryOperator.identity());
+      dstIterator = nextBlock.listIterator(code);
     }
-    for (; i < instructions.length; i++) {
-      BasicBlock splitBlock = iterator.splitCopyCatchHandlers(code, blockIterator, options);
-      BasicBlock previousBlock = blockIterator.positionAfterPreviousBlock(splitBlock);
-      assert previousBlock == splitBlock;
-      iterator = splitBlock.listIterator(code);
-      // Add all non-throwing instructions up until the next throwing instruction to the split
-      // block.
-      for (; i < instructions.length; i++) {
-        Instruction materializingInstruction = instructions[i];
-        if (!materializingInstruction.instructionTypeCanThrow()) {
-          iterator.add(materializingInstruction);
-        } else {
-          break;
-        }
+    do {
+      boolean addedThrowing = dstIterator.addUntilThrowing(srcIterator);
+      if (!addedThrowing || (!srcIterator.hasNext() && splitBeforeAdding)) {
+        break;
       }
-      // Add the current throwing instruction to the split block.
-      if (i < instructions.length) {
-        assert instructions[i].instructionTypeCanThrow();
-        iterator.add(instructions[i]);
-        i++;
-      }
-    }
-    return iterator;
+      BasicBlock nextBlock =
+          dstIterator.splitCopyCatchHandlers(
+              code, blockIterator, options, UnaryOperator.identity());
+      dstIterator = nextBlock.listIterator(code);
+    } while (srcIterator.hasNext());
+
+    return dstIterator;
   }
 
   @Override
