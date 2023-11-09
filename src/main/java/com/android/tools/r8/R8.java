@@ -114,7 +114,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SelfRetraceTest;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -131,7 +130,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
@@ -854,20 +855,21 @@ public class R8 {
 
       new DesugaredLibraryKeepRuleGenerator(appView).runIfNecessary(timing);
 
-      List<Pair<Integer, byte[]>> dexFileContent = new ArrayList<>();
+      Map<String, byte[]> dexFileContent = new ConcurrentHashMap<>();
       if (options.androidResourceProvider != null && options.androidResourceConsumer != null) {
         options.programConsumer =
-            new ForwardingConsumer((DexIndexedConsumer) options.programConsumer) {
-              @Override
-              public void accept(
-                  int fileIndex,
-                  ByteDataView data,
-                  Set<String> descriptors,
-                  DiagnosticsHandler handler) {
-                dexFileContent.add(new Pair<>(fileIndex, data.copyByteData()));
-                super.accept(fileIndex, data, descriptors, handler);
-              }
-            };
+            wrapConsumerStoreBytesInList(
+                dexFileContent, (DexIndexedConsumer) options.programConsumer, "base");
+        if (options.featureSplitConfiguration != null) {
+          int featureIndex = 0;
+          for (FeatureSplit featureSplit : options.featureSplitConfiguration.getFeatureSplits()) {
+            featureSplit.internalSetProgramConsumer(
+                wrapConsumerStoreBytesInList(
+                    dexFileContent,
+                    (DexIndexedConsumer) featureSplit.getProgramConsumer(),
+                    "feature" + featureIndex));
+          }
+        }
       }
 
       assert appView.verifyMovedMethodsHaveOriginalMethodPosition();
@@ -894,67 +896,132 @@ public class R8 {
     }
   }
 
-  private void shrinkResources(List<Pair<Integer, byte[]>> dexFileContent) {
+  private static ForwardingConsumer wrapConsumerStoreBytesInList(
+      Map<String, byte[]> dexFileContent,
+      DexIndexedConsumer programConsumer,
+      String classesPrefix) {
+
+    return new ForwardingConsumer(programConsumer) {
+      @Override
+      public void accept(
+          int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
+        dexFileContent.put(classesPrefix + "_classes" + fileIndex + ".dex", data.copyByteData());
+        super.accept(fileIndex, data, descriptors, handler);
+      }
+    };
+  }
+
+  private void shrinkResources(Map<String, byte[]> dexFileContent) {
     LegacyResourceShrinker.Builder resourceShrinkerBuilder = LegacyResourceShrinker.builder();
     Reporter reporter = options.reporter;
-    dexFileContent.forEach(p -> resourceShrinkerBuilder.addDexInput(p.getFirst(), p.getSecond()));
+    dexFileContent.forEach(resourceShrinkerBuilder::addDexInput);
     try {
-      Collection<AndroidResourceInput> androidResources =
-          options.androidResourceProvider.getAndroidResources();
-      for (AndroidResourceInput androidResource : androidResources) {
-        try {
-          byte[] bytes = androidResource.getByteStream().readAllBytes();
-          Path path = Paths.get(androidResource.getPath().location());
-          switch (androidResource.getKind()) {
-            case MANIFEST:
-              resourceShrinkerBuilder.setManifest(path, bytes);
-              break;
-            case RES_FOLDER_FILE:
-              resourceShrinkerBuilder.addResFolderInput(path, bytes);
-              break;
-            case RESOURCE_TABLE:
-              resourceShrinkerBuilder.setResourceTable(path, bytes);
-              break;
-            case XML_FILE:
-              resourceShrinkerBuilder.addXmlInput(path, bytes);
-              break;
-            case UNKNOWN:
-              break;
+      addResourcesToBuilder(
+          resourceShrinkerBuilder, reporter, options.androidResourceProvider, null);
+      if (options.featureSplitConfiguration != null) {
+        for (FeatureSplit featureSplit : options.featureSplitConfiguration.getFeatureSplits()) {
+          if (featureSplit.getAndroidResourceProvider() != null) {
+            addResourcesToBuilder(
+                resourceShrinkerBuilder,
+                reporter,
+                featureSplit.getAndroidResourceProvider(),
+                featureSplit);
           }
-        } catch (IOException e) {
-          reporter.error(new ExceptionDiagnostic(e, androidResource.getOrigin()));
         }
       }
 
       LegacyResourceShrinker shrinker = resourceShrinkerBuilder.build();
       ShrinkerResult shrinkerResult = shrinker.run();
-      AndroidResourceConsumer androidResourceConsumer = options.androidResourceConsumer;
       Set<String> toKeep = shrinkerResult.getResFolderEntriesToKeep();
-      for (AndroidResourceInput androidResource : androidResources) {
-        switch (androidResource.getKind()) {
-          case MANIFEST:
-          case UNKNOWN:
-            androidResourceConsumer.accept(
-                new R8PassThroughAndroidResource(androidResource, reporter), reporter);
-            break;
-          case RESOURCE_TABLE:
-            androidResourceConsumer.accept(
-                new R8AndroidResourceWithData(
-                    androidResource, reporter, shrinkerResult.getResourceTableInProtoFormat()),
-                reporter);
-            break;
-          case RES_FOLDER_FILE:
-          case XML_FILE:
-            if (toKeep.contains(androidResource.getPath().location())) {
-              androidResourceConsumer.accept(
-                  new R8PassThroughAndroidResource(androidResource, reporter), reporter);
-            }
-            break;
+      writeResourcesToConsumer(
+          reporter,
+          shrinkerResult,
+          toKeep,
+          options.androidResourceProvider,
+          options.androidResourceConsumer,
+          null);
+      if (options.featureSplitConfiguration != null) {
+        for (FeatureSplit featureSplit : options.featureSplitConfiguration.getFeatureSplits()) {
+          if (featureSplit.getAndroidResourceProvider() != null) {
+            writeResourcesToConsumer(
+                reporter,
+                shrinkerResult,
+                toKeep,
+                featureSplit.getAndroidResourceProvider(),
+                featureSplit.getAndroidResourceConsumer(),
+                featureSplit);
+          }
         }
       }
-      androidResourceConsumer.finished(reporter);
     } catch (ParserConfigurationException | SAXException | ResourceException | IOException e) {
       reporter.error(new ExceptionDiagnostic(e));
+    }
+  }
+
+  private static void writeResourcesToConsumer(
+      Reporter reporter,
+      ShrinkerResult shrinkerResult,
+      Set<String> toKeep,
+      AndroidResourceProvider androidResourceProvider,
+      AndroidResourceConsumer androidResourceConsumer,
+      FeatureSplit featureSplit)
+      throws ResourceException {
+    for (AndroidResourceInput androidResource : androidResourceProvider.getAndroidResources()) {
+      switch (androidResource.getKind()) {
+        case MANIFEST:
+        case UNKNOWN:
+          androidResourceConsumer.accept(
+              new R8PassThroughAndroidResource(androidResource, reporter), reporter);
+          break;
+        case RESOURCE_TABLE:
+          androidResourceConsumer.accept(
+              new R8AndroidResourceWithData(
+                  androidResource,
+                  reporter,
+                  shrinkerResult.getResourceTableInProtoFormat(featureSplit)),
+              reporter);
+          break;
+        case RES_FOLDER_FILE:
+        case XML_FILE:
+          if (toKeep.contains(androidResource.getPath().location())) {
+            androidResourceConsumer.accept(
+                new R8PassThroughAndroidResource(androidResource, reporter), reporter);
+          }
+          break;
+      }
+    }
+    androidResourceConsumer.finished(reporter);
+  }
+
+  private static void addResourcesToBuilder(
+      LegacyResourceShrinker.Builder resourceShrinkerBuilder,
+      Reporter reporter,
+      AndroidResourceProvider androidResourceProvider,
+      FeatureSplit featureSplit)
+      throws ResourceException {
+    for (AndroidResourceInput androidResource : androidResourceProvider.getAndroidResources()) {
+      try {
+        byte[] bytes = androidResource.getByteStream().readAllBytes();
+        Path path = Paths.get(androidResource.getPath().location());
+        switch (androidResource.getKind()) {
+          case MANIFEST:
+            resourceShrinkerBuilder.addManifest(path, bytes);
+            break;
+          case RES_FOLDER_FILE:
+            resourceShrinkerBuilder.addResFolderInput(path, bytes);
+            break;
+          case RESOURCE_TABLE:
+            resourceShrinkerBuilder.addResourceTable(path, bytes, featureSplit);
+            break;
+          case XML_FILE:
+            resourceShrinkerBuilder.addXmlInput(path, bytes);
+            break;
+          case UNKNOWN:
+            break;
+        }
+      } catch (IOException e) {
+        reporter.error(new ExceptionDiagnostic(e, androidResource.getOrigin()));
+      }
     }
   }
 

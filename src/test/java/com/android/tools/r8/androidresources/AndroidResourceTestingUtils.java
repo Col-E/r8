@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StreamUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.MoreCollectors;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -27,6 +28,7 @@ import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -141,6 +143,10 @@ public class AndroidResourceTestingUtils {
       return mapping.containsKey(type) && mapping.get(type).containsValueFor(name);
     }
 
+    public Collection<String> entriesForType(String type) {
+      return mapping.get(type).mapping.keySet();
+    }
+
     public static class ResourceNameToValueMapping {
       private final Map<String, List<ResourceValue>> mapping = new HashMap<>();
 
@@ -198,11 +204,17 @@ public class AndroidResourceTestingUtils {
     }
 
     public void assertContainsResourceWithName(String type, String name) {
-      Assert.assertTrue(testResourceTable.containsValueFor(type, name));
+      Assert.assertTrue(
+          StringUtils.join(",", entries(type)), testResourceTable.containsValueFor(type, name));
     }
 
     public void assertDoesNotContainResourceWithName(String type, String name) {
-      Assert.assertFalse(testResourceTable.containsValueFor(type, name));
+      Assert.assertFalse(
+          StringUtils.join(",", entries(type)), testResourceTable.containsValueFor(type, name));
+    }
+
+    public Collection<String> entries(String type) {
+      return testResourceTable.entriesForType(type);
     }
   }
 
@@ -212,6 +224,7 @@ public class AndroidResourceTestingUtils {
     private final Map<String, byte[]> drawables = new TreeMap<>();
     private final Map<String, String> xmlFiles = new TreeMap<>();
     private final List<Class<?>> classesToRemap = new ArrayList<>();
+    private int packageId = 0x7f;
 
     // Create the android resources from the passed in R classes
     // All values will be generated based on the fields in the class.
@@ -257,6 +270,11 @@ public class AndroidResourceTestingUtils {
       return this;
     }
 
+    AndroidTestResourceBuilder setPackageId(int packageId) {
+      this.packageId = packageId;
+      return this;
+    }
+
     AndroidTestResourceBuilder addDrawable(String name, byte[] value) {
       drawables.put(name, value);
       return this;
@@ -288,7 +306,7 @@ public class AndroidResourceTestingUtils {
 
       Path output = temp.newFile("resources.zip").toPath();
       Path rClassOutputDir = temp.newFolder("aapt_R_class").toPath();
-      compileWithAapt2(resFolder, manifestPath, rClassOutputDir, output, temp);
+      compileWithAapt2(resFolder, manifestPath, rClassOutputDir, output, temp, packageId);
       Path rClassJavaFile =
           Files.walk(rClassOutputDir)
               .filter(path -> path.endsWith("R.java"))
@@ -367,7 +385,12 @@ public class AndroidResourceTestingUtils {
   }
 
   public static void compileWithAapt2(
-      Path resFolder, Path manifest, Path rClassFolder, Path resourceZip, TemporaryFolder temp)
+      Path resFolder,
+      Path manifest,
+      Path rClassFolder,
+      Path resourceZip,
+      TemporaryFolder temp,
+      int packageId)
       throws IOException {
     Path compileOutput = temp.newFile("compiled.zip").toPath();
     ProcessResult compileProcessResult =
@@ -386,6 +409,11 @@ public class AndroidResourceTestingUtils {
             rClassFolder.toString(),
             "--manifest",
             manifest.toString(),
+            "--package-id",
+            "" + packageId,
+            "--allow-reserved-package-id",
+            "--rename-resources-package",
+            "thepackage" + packageId + ".foobar",
             "--proto-format",
             compileOutput.toString());
     failOnError(linkProcesResult);

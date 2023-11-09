@@ -566,8 +566,8 @@ public final class R8Command extends BaseCompilerCommand {
         }
       }
       for (FeatureSplit featureSplit : featureSplits) {
-        assert featureSplit.getProgramConsumer() instanceof DexIndexedConsumer;
-        if (!(getProgramConsumer() instanceof DexIndexedConsumer)) {
+        verifyResourceSplitOrProgramSplit(featureSplit);
+        if (getProgramConsumer() != null && !(getProgramConsumer() instanceof DexIndexedConsumer)) {
           reporter.error("R8 does not support class file output when using feature splits");
         }
       }
@@ -585,6 +585,11 @@ public final class R8Command extends BaseCompilerCommand {
         reporter.error("Using desugared library configuration requires desugaring to be enabled");
       }
       super.validate();
+    }
+
+    private static void verifyResourceSplitOrProgramSplit(FeatureSplit featureSplit) {
+      assert featureSplit.getProgramConsumer() instanceof DexIndexedConsumer
+          || featureSplit.getAndroidResourceProvider() != null;
     }
 
     @Override

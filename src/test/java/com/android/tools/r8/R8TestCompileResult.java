@@ -27,7 +27,9 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -40,6 +42,7 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   private final List<Path> features;
   private final List<ExternalArtProfile> residualArtProfiles;
   private final Path resourceShrinkerOutput;
+  private final Map<String, Path> resourceShrinkerOutputForFeatures;
 
   R8TestCompileResult(
       TestState state,
@@ -53,7 +56,8 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
       int minApiLevel,
       List<Path> features,
       List<ExternalArtProfile> residualArtProfiles,
-      Path resourceShrinkerOutput) {
+      Path resourceShrinkerOutput,
+      HashMap<String, Path> resourceShrinkerOutputForFeatures) {
     super(state, app, minApiLevel, outputMode, libraryDesugaringTestConfiguration);
     this.proguardConfiguration = proguardConfiguration;
     this.syntheticProguardRules = syntheticProguardRules;
@@ -62,6 +66,7 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
     this.features = features;
     this.residualArtProfiles = residualArtProfiles;
     this.resourceShrinkerOutput = resourceShrinkerOutput;
+    this.resourceShrinkerOutputForFeatures = resourceShrinkerOutputForFeatures;
   }
 
   @Override
@@ -161,6 +166,14 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
     consumer.accept(
         new ResourceTableInspector(
             ZipUtils.readSingleEntry(resourceShrinkerOutput, "resources.pb")));
+    return self();
+  }
+
+  public <E extends Throwable> R8TestCompileResult inspectShrunkenResourcesForFeature(
+      Consumer<ResourceTableInspector> consumer, String featureName) throws IOException {
+    Path path = resourceShrinkerOutputForFeatures.get(featureName);
+    assertNotNull(path);
+    consumer.accept(new ResourceTableInspector(ZipUtils.readSingleEntry(path, "resources.pb")));
     return self();
   }
 

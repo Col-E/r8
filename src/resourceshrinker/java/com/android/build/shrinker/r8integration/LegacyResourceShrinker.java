@@ -22,9 +22,11 @@ import com.android.build.shrinker.usages.R8ResourceShrinker;
 import com.android.build.shrinker.usages.ToolsAttributeUsageRecorderKt;
 import com.android.ide.common.resources.ResourcesUtil;
 import com.android.ide.common.resources.usage.ResourceStore;
+import com.android.tools.r8.FeatureSplit;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.protobuf.InvalidProtocolBufferException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -40,39 +42,44 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.xml.parsers.ParserConfigurationException;
-import org.jetbrains.annotations.NotNull;
 import org.xml.sax.SAXException;
 
 public class LegacyResourceShrinker {
-  private final Map<Integer, byte[]> dexInputs;
+  private final Map<String, byte[]> dexInputs;
   private final List<PathAndBytes> resFolderInputs;
   private final List<PathAndBytes> xmlInputs;
-  private final PathAndBytes manifest;
-  private final PathAndBytes resourceTable;
+  private final List<PathAndBytes> manifest;
+  private final Map<PathAndBytes, FeatureSplit> resourceTables;
 
   public static class Builder {
 
-    private final Map<Integer, byte[]> dexInputs = new HashMap<>();
+    private final Map<String, byte[]> dexInputs = new HashMap<>();
     private final List<PathAndBytes> resFolderInputs = new ArrayList<>();
     private final List<PathAndBytes> xmlInputs = new ArrayList<>();
 
-    private PathAndBytes manifest;
-    private PathAndBytes resourceTable;
+    private final List<PathAndBytes> manifests = new ArrayList<>();
+    private final Map<PathAndBytes, FeatureSplit> resourceTables = new HashMap<>();
 
     private Builder() {}
 
-    public Builder setManifest(Path path, byte[] bytes) {
-      this.manifest = new PathAndBytes(bytes, path);
+    public Builder addManifest(Path path, byte[] bytes) {
+      manifests.add(new PathAndBytes(bytes, path));
       return this;
     }
 
-    public Builder setResourceTable(Path path, byte[] bytes) {
-      this.resourceTable = new PathAndBytes(bytes, path);
+    public Builder addResourceTable(Path path, byte[] bytes, FeatureSplit featureSplit) {
+      resourceTables.put(new PathAndBytes(bytes, path), featureSplit);
+      try {
+        ResourceTable resourceTable = ResourceTable.parseFrom(bytes);
+        System.currentTimeMillis();
+      } catch (InvalidProtocolBufferException e) {
+        throw new RuntimeException(e);
+      }
       return this;
     }
 
-    public Builder addDexInput(int index, byte[] bytes) {
-      dexInputs.put(index, bytes);
+    public Builder addDexInput(String classesLocation, byte[] bytes) {
+      dexInputs.put(classesLocation, bytes);
       return this;
     }
 
@@ -87,22 +94,22 @@ public class LegacyResourceShrinker {
     }
 
     public LegacyResourceShrinker build() {
-      assert manifest != null && resourceTable != null;
+      assert manifests != null && resourceTables != null;
       return new LegacyResourceShrinker(
-          dexInputs, resFolderInputs, manifest, resourceTable, xmlInputs);
+          dexInputs, resFolderInputs, manifests, resourceTables, xmlInputs);
     }
   }
 
   private LegacyResourceShrinker(
-      Map<Integer, byte[]> dexInputs,
+      Map<String, byte[]> dexInputs,
       List<PathAndBytes> resFolderInputs,
-      PathAndBytes manifest,
-      PathAndBytes resourceTable,
+      List<PathAndBytes> manifests,
+      Map<PathAndBytes, FeatureSplit> resourceTables,
       List<PathAndBytes> xmlInputs) {
     this.dexInputs = dexInputs;
     this.resFolderInputs = resFolderInputs;
-    this.manifest = manifest;
-    this.resourceTable = resourceTable;
+    this.manifest = manifests;
+    this.resourceTables = resourceTables;
     this.xmlInputs = xmlInputs;
   }
 
@@ -111,41 +118,48 @@ public class LegacyResourceShrinker {
   }
 
   public ShrinkerResult run() throws IOException, ParserConfigurationException, SAXException {
-    R8ResourceShrinkerModel model = new R8ResourceShrinkerModel(NoDebugReporter.INSTANCE, false);
-    ResourceTable loadedResourceTable = ResourceTable.parseFrom(resourceTable.bytes);
-    model.instantiateFromResourceTable(loadedResourceTable);
-    for (Entry<Integer, byte[]> entry : dexInputs.entrySet()) {
+    R8ResourceShrinkerModel model = new R8ResourceShrinkerModel(NoDebugReporter.INSTANCE, true);
+    for (PathAndBytes pathAndBytes : resourceTables.keySet()) {
+      ResourceTable loadedResourceTable = ResourceTable.parseFrom(pathAndBytes.bytes);
+      model.instantiateFromResourceTable(loadedResourceTable);
+    }
+    for (Entry<String, byte[]> entry : dexInputs.entrySet()) {
       // The analysis needs an origin for the dex files, synthesize an easy recognizable one.
-      Path inMemoryR8 = Paths.get("in_memory_r8_classes" + entry.getKey() + ".dex");
+      Path inMemoryR8 = Paths.get("in_memory_r8_" + entry.getKey() + ".dex");
       R8ResourceShrinker.runResourceShrinkerAnalysis(
           entry.getValue(), inMemoryR8, new DexFileAnalysisCallback(inMemoryR8, model));
     }
-    ProtoAndroidManifestUsageRecorderKt.recordUsagesFromNode(
-        XmlNode.parseFrom(manifest.bytes), model);
+    for (PathAndBytes pathAndBytes : manifest) {
+      ProtoAndroidManifestUsageRecorderKt.recordUsagesFromNode(
+          XmlNode.parseFrom(pathAndBytes.bytes), model);
+    }
     for (PathAndBytes xmlInput : xmlInputs) {
       if (xmlInput.path.startsWith("res/raw")) {
         ToolsAttributeUsageRecorderKt.processRawXml(getUtfReader(xmlInput.getBytes()), model);
       }
     }
-    new ProtoResourcesGraphBuilder(
-            new ResFolderFileTree() {
-              Map<String, PathAndBytes> pathToBytes =
-                  new ImmutableMap.Builder<String, PathAndBytes>()
-                      .putAll(
-                          xmlInputs.stream()
-                              .collect(Collectors.toMap(PathAndBytes::getPathWithoutRes, a -> a)))
-                      .putAll(
-                          resFolderInputs.stream()
-                              .collect(Collectors.toMap(PathAndBytes::getPathWithoutRes, a -> a)))
-                      .build();
 
-              @Override
-              public byte[] getEntryByName(@NotNull String pathInRes) {
-                return pathToBytes.get(pathInRes).getBytes();
-              }
-            },
-            unused -> loadedResourceTable)
-        .buildGraph(model);
+    ImmutableMap<String, PathAndBytes> resFolderMappings =
+        new ImmutableMap.Builder<String, PathAndBytes>()
+            .putAll(
+                xmlInputs.stream()
+                    .collect(Collectors.toMap(PathAndBytes::getPathWithoutRes, a -> a)))
+            .putAll(
+                resFolderInputs.stream()
+                    .collect(Collectors.toMap(PathAndBytes::getPathWithoutRes, a -> a)))
+            .build();
+    for (PathAndBytes pathAndBytes : resourceTables.keySet()) {
+      ResourceTable resourceTable = ResourceTable.parseFrom(pathAndBytes.bytes);
+      new ProtoResourcesGraphBuilder(
+              new ResFolderFileTree() {
+                @Override
+                public byte[] getEntryByName(String pathInRes) {
+                  return resFolderMappings.get(pathInRes).getBytes();
+                }
+              },
+              unused -> resourceTable)
+          .buildGraph(model);
+    }
     ResourceStore resourceStore = model.getResourceStore();
     resourceStore.processToolsAttributes();
     model.keepPossiblyReferencedResources();
@@ -164,9 +178,14 @@ public class LegacyResourceShrinker {
             .filter(r -> !r.isReachable())
             .map(r -> r.value)
             .collect(Collectors.toList());
-    ResourceTable shrunkenResourceTable =
-        ResourceTableUtilKt.nullOutEntriesWithIds(loadedResourceTable, resourceIdsToRemove);
-    return new ShrinkerResult(resEntriesToKeep.build(), shrunkenResourceTable.toByteArray());
+    Map<FeatureSplit, ResourceTable> shrunkenTables = new HashMap<>();
+    for (Entry<PathAndBytes, FeatureSplit> entry : resourceTables.entrySet()) {
+      ResourceTable shrunkenResourceTable =
+          ResourceTableUtilKt.nullOutEntriesWithIds(
+              ResourceTable.parseFrom(entry.getKey().bytes), resourceIdsToRemove);
+      shrunkenTables.put(entry.getValue(), shrunkenResourceTable);
+    }
+    return new ShrinkerResult(resEntriesToKeep.build(), shrunkenTables);
   }
 
   // Lifted from com/android/utils/XmlUtils.java which we can't easily update internal dependency
@@ -236,15 +255,17 @@ public class LegacyResourceShrinker {
 
   public static class ShrinkerResult {
     private final Set<String> resFolderEntriesToKeep;
-    private final byte[] resourceTableInProtoFormat;
+    private final Map<FeatureSplit, ResourceTable> resourceTableInProtoFormat;
 
-    public ShrinkerResult(Set<String> resFolderEntriesToKeep, byte[] resourceTableInProtoFormat) {
+    public ShrinkerResult(
+        Set<String> resFolderEntriesToKeep,
+        Map<FeatureSplit, ResourceTable> resourceTableInProtoFormat) {
       this.resFolderEntriesToKeep = resFolderEntriesToKeep;
       this.resourceTableInProtoFormat = resourceTableInProtoFormat;
     }
 
-    public byte[] getResourceTableInProtoFormat() {
-      return resourceTableInProtoFormat;
+    public byte[] getResourceTableInProtoFormat(FeatureSplit featureSplit) {
+      return resourceTableInProtoFormat.get(featureSplit).toByteArray();
     }
 
     public Set<String> getResFolderEntriesToKeep() {

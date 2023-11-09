@@ -51,6 +51,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -83,6 +84,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   private final List<String> applyMappingMaps = new ArrayList<>();
   private final List<Path> features = new ArrayList<>();
   private Path resourceShrinkerOutput = null;
+  private HashMap<String, Path> resourceShrinkerOutputForFeatures = new HashMap<>();
   private PartitionMapConsumer partitionMapConsumer = null;
 
   @Override
@@ -170,7 +172,8 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
             getMinApiLevel(),
             features,
             residualArtProfiles,
-            resourceShrinkerOutput);
+            resourceShrinkerOutput,
+            resourceShrinkerOutputForFeatures);
     switch (allowedDiagnosticMessages) {
       case ALL:
         compileResult.getDiagnosticMessages().assertAllDiagnosticsMatch(new IsAnything<>());
@@ -878,19 +881,33 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         testResource, getState().getNewTempFile("resourceshrinkeroutput.zip"));
   }
 
-  public T addAndroidResources(AndroidTestResource testResource, Path output) throws IOException {
-    addResourceShrinkerProviderAndConsumer(testResource.getResourceZip(), output);
+  public T addFeatureSplitAndroidResources(AndroidTestResource testResource, String featureName)
+      throws IOException {
+    Path outputFile = getState().getNewTempFile("resourceshrinkeroutput_" + featureName + ".zip");
+    resourceShrinkerOutputForFeatures.put(featureName, outputFile);
+    getBuilder()
+        .addFeatureSplit(
+            featureSplitGenerator -> {
+              featureSplitGenerator.setAndroidResourceConsumer(
+                  new ArchiveProtoAndroidResourceConsumer(outputFile));
+              Path resourceZip = testResource.getResourceZip();
+              featureSplitGenerator.setAndroidResourceProvider(
+                  new ArchiveProtoAndroidResourceProvider(
+                      resourceZip, new PathOrigin(resourceZip)));
+              return featureSplitGenerator.build();
+            });
     return addProgramClassFileData(testResource.getRClass().getClassFileData());
   }
 
-  private T addResourceShrinkerProviderAndConsumer(Path resources, Path output) throws IOException {
+  public T addAndroidResources(AndroidTestResource testResource, Path output) throws IOException {
+    Path resources = testResource.getResourceZip();
     resourceShrinkerOutput = output;
     getBuilder()
         .setAndroidResourceProvider(
             new ArchiveProtoAndroidResourceProvider(resources, new PathOrigin(resources)));
-    getBuilder()
-        .setAndroidResourceConsumer(
-            new ArchiveProtoAndroidResourceConsumer(resourceShrinkerOutput));
-    return self();
+    getBuilder().setAndroidResourceConsumer(new ArchiveProtoAndroidResourceConsumer(output));
+    self();
+    return addProgramClassFileData(testResource.getRClass().getClassFileData());
   }
+
 }

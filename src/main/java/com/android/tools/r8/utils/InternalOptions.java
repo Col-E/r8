@@ -644,10 +644,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     if (featureSplitConfiguration != null) {
       for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
         ProgramConsumer programConsumer = featureSplit.getProgramConsumer();
-        programConsumer.finished(reporter);
-        DataResourceConsumer dataResourceConsumer = programConsumer.getDataResourceConsumer();
-        if (dataResourceConsumer != null) {
-          dataResourceConsumer.finished(reporter);
+        if (programConsumer != null) {
+          programConsumer.finished(reporter);
+          DataResourceConsumer dataResourceConsumer = programConsumer.getDataResourceConsumer();
+          if (dataResourceConsumer != null) {
+            dataResourceConsumer.finished(reporter);
+          }
         }
       }
     }
