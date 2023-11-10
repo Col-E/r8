@@ -351,31 +351,33 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     current = newInstruction;
   }
 
+  private Position getPreviousPosition() {
+    // Cannot use "current" because it is invalidated by peekNext().
+    Instruction prev = peekPrevious();
+    return prev != null ? prev.getPosition() : block.getPosition();
+  }
+
+  private void addNewNonThrowing(Instruction instruction, InternalOptions options) {
+    assert !instruction.instructionTypeCanThrow();
+    if (!hasInsertionPosition()) {
+      // We keep position info only for throwing instructions in release mode.
+      instruction.setPosition(options.debug ? getPreviousPosition() : Position.none());
+    }
+    add(instruction);
+  }
+
   @Override
   public Value insertConstNumberInstruction(
       IRCode code, InternalOptions options, long value, TypeElement type) {
     ConstNumber constNumberInstruction = code.createNumberConstant(value, type);
-    // Note that we only keep position info for throwing instructions in release mode.
-    if (!hasInsertionPosition()) {
-      Position position;
-      if (options.debug) {
-        position = current != null ? current.getPosition() : block.getPosition();
-      } else {
-        position = Position.none();
-      }
-      constNumberInstruction.setPosition(position);
-    }
-    add(constNumberInstruction);
+    addNewNonThrowing(constNumberInstruction, options);
     return constNumberInstruction.outValue();
   }
 
   @Override
   public Value insertConstStringInstruction(AppView<?> appView, IRCode code, DexString value) {
     ConstString constStringInstruction = code.createStringConstant(appView, value);
-    // Note that we only keep position info for throwing instructions in release mode.
-    constStringInstruction.setPosition(
-        appView.options().debug ? current.getPosition() : Position.none());
-    add(constStringInstruction);
+    addNewNonThrowing(constStringInstruction, appView.options());
     return constStringInstruction.outValue();
   }
 
@@ -714,7 +716,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     assert hasNext();
 
     // Get the position at which the block is being split.
-    Position position = current != null ? current.getPosition() : block.getPosition();
+    Position position = getPreviousPosition();
 
     // Prepare the new block, placing the exception handlers on the block with the throwing
     // instruction.
