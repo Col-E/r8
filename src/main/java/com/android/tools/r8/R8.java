@@ -481,9 +481,6 @@ public class R8 {
       // to clear the cache, so that we will recompute the type lattice elements.
       appView.dexItemFactory().clearTypeElementsCache();
 
-      // TODO(b/132677331): Remove legacy access modifier.
-      LegacyAccessModifier.run(appViewWithLiveness, executorService, timing);
-
       // This pass attempts to reduce the number of nests and nest size to allow further passes, and
       // should therefore be run after the publicizer.
       new NestReducer(appViewWithLiveness).run(executorService, timing);

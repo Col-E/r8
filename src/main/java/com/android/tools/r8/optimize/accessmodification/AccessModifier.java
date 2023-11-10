@@ -62,8 +62,7 @@ public class AccessModifier {
       throws ExecutionException {
     timing.begin("Access modification");
     AccessModifierOptions accessModifierOptions = appView.options().getAccessModifierOptions();
-    if (accessModifierOptions.isAccessModificationEnabled()
-        && !accessModifierOptions.isLegacyAccessModifierEnabled()) {
+    if (accessModifierOptions.isAccessModificationEnabled()) {
       new AccessModifier(appView)
           .processStronglyConnectedComponents(executorService)
           .installLens(executorService, timing);

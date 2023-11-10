@@ -473,21 +473,17 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   @Override
   public void notifyHorizontalClassMergerFinished(
       HorizontalClassMerger.Mode horizontalClassMergerMode) {
-    if (horizontalClassMergerMode.isInitial()
-        && !options().getAccessModifierOptions().isLegacyAccessModifierEnabled()) {
+    if (horizontalClassMergerMode.isInitial()) {
       getMethodAccessInfoCollection().destroy();
     }
   }
 
   public void notifyMemberRebindingFinished(AppView<AppInfoWithLiveness> appView) {
     getFieldAccessInfoCollection().restrictToProgram(appView);
-    if (!options().getAccessModifierOptions().isLegacyAccessModifierEnabled()) {
-      getMethodAccessInfoCollection().destroyNonDirectNonSuperInvokes();
-    }
   }
 
   public void notifyRedundantBridgeRemoverFinished(boolean initial) {
-    if (initial && !options().getAccessModifierOptions().isLegacyAccessModifierEnabled()) {
+    if (initial) {
       getMethodAccessInfoCollection().destroySuperInvokes();
     }
   }
@@ -495,9 +491,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   @Override
   public void notifyMinifierFinished() {
     liveMethods = ThrowingSet.get();
-    if (!options().getAccessModifierOptions().isLegacyAccessModifierEnabled()) {
-      getMethodAccessInfoCollection().destroy();
-    }
+    getMethodAccessInfoCollection().destroy();
   }
 
   public void notifyTreePrunerFinished(Enqueuer.Mode mode) {
