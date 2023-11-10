@@ -67,8 +67,14 @@ public class ArgumentPropagatorComposeModeling {
    *   }
    * </pre>
    */
+  // TODO(b/302483644): Only apply modeling when the context is recognized as being a restart
+  //  lambda.
   public ParameterState modelParameterStateForChangedOrDefaultArgumentToComposableFunction(
-      InvokeMethod invoke, ProgramMethod singleTarget, int argumentIndex, Value argument) {
+      InvokeMethod invoke,
+      ProgramMethod singleTarget,
+      int argumentIndex,
+      Value argument,
+      ProgramMethod context) {
     // First check if this is an invoke to a @Composable function.
     if (singleTarget == null
         || !singleTarget

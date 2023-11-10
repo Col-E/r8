@@ -23,10 +23,14 @@ public class ArgumentPropagatorCodeScannerModeling {
   }
 
   ParameterState modelParameterStateForArgumentToFunction(
-      InvokeMethod invoke, ProgramMethod singleTarget, int argumentIndex, Value argument) {
+      InvokeMethod invoke,
+      ProgramMethod singleTarget,
+      int argumentIndex,
+      Value argument,
+      ProgramMethod context) {
     if (composeModeling != null) {
       return composeModeling.modelParameterStateForChangedOrDefaultArgumentToComposableFunction(
-          invoke, singleTarget, argumentIndex, argument);
+          invoke, singleTarget, argumentIndex, argument, context);
     }
     return null;
   }
