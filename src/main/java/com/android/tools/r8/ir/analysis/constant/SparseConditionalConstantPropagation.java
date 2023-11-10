@@ -57,9 +57,13 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
     return true;
   }
 
+  public Map<Value, AbstractValue> analyze(IRCode code) {
+    return new SparseConditionalConstantPropagationOnCode(code).analyze().mapping;
+  }
+
   @Override
   protected CodeRewriterResult rewriteCode(IRCode code) {
-    return new SparseConditionalConstantPropagationOnCode(code).run();
+    return new SparseConditionalConstantPropagationOnCode(code).analyze().run();
   }
 
   private class SparseConditionalConstantPropagationOnCode {
@@ -86,7 +90,7 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
       visitedBlocks = new BitSet(maxBlockNumber);
     }
 
-    protected CodeRewriterResult run() {
+    public SparseConditionalConstantPropagationOnCode analyze() {
       BasicBlock firstBlock = code.entryBlock();
       visitInstructions(firstBlock);
 
@@ -113,6 +117,10 @@ public class SparseConditionalConstantPropagation extends CodeRewriterPass<AppIn
           }
         }
       }
+      return this;
+    }
+
+    protected CodeRewriterResult run() {
       boolean hasChanged = rewriteConstants();
       return CodeRewriterResult.hasChanged(hasChanged);
     }

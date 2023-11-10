@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.lightir.LirCode;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
+import com.android.tools.r8.optimize.compose.ComposableOptimizationPass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -225,6 +226,8 @@ public class PrimaryR8IRConverter extends IRConverter {
     if (identifierNameStringMarker != null) {
       identifierNameStringMarker.decoupleIdentifierNameStringsInFields(executorService);
     }
+
+    ComposableOptimizationPass.run(appView, this, timing);
 
     // Assure that no more optimization feedback left after post processing.
     assert feedback.noUpdatesLeft();

@@ -928,6 +928,10 @@ public class IRConverter {
     appView.withArgumentPropagator(
         argumentPropagator -> argumentPropagator.scan(method, code, methodProcessor, timing));
 
+    if (methodProcessor.isComposeMethodProcessor()) {
+      methodProcessor.asComposeMethodProcessor().scan(method, code, timing);
+    }
+
     if (methodProcessor.isPrimaryMethodProcessor()) {
       enumUnboxer.analyzeEnums(code, methodProcessor);
     }

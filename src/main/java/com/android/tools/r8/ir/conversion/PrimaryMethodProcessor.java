@@ -98,7 +98,6 @@ public class PrimaryMethodProcessor extends MethodProcessorWithWave {
     InternalOptions options = appView.options();
     Deque<ProgramMethodSet> waves = new ArrayDeque<>();
     Collection<Node> nodes = callGraph.getNodes();
-    int waveCount = 1;
     while (!nodes.isEmpty()) {
       ProgramMethodSet wave = callGraph.extractLeaves();
       waves.addLast(wave);

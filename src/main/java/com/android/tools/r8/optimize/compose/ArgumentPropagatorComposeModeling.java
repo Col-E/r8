@@ -4,8 +4,10 @@
 package com.android.tools.r8.optimize.compose;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -19,16 +21,31 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterSt
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BitUtils;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.google.common.collect.Iterables;
 
 public class ArgumentPropagatorComposeModeling {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final ComposeReferences composeReferences;
+  private final ComposeReferences rewrittenComposeReferences;
+
+  private final DexType rewrittenFunction2Type;
+  private final DexString invokeName;
 
   public ArgumentPropagatorComposeModeling(AppView<AppInfoWithLiveness> appView) {
     assert appView.testing().modelUnknownChangedAndDefaultArgumentsToComposableFunctions;
     this.appView = appView;
-    this.composeReferences = appView.getComposeReferences();
+    this.rewrittenComposeReferences =
+        appView
+            .getComposeReferences()
+            .rewrittenWithLens(appView.graphLens(), GraphLens.getIdentityLens());
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    this.rewrittenFunction2Type =
+        appView
+            .graphLens()
+            .lookupType(
+                dexItemFactory.createType("Lkotlin/jvm/functions/Function2;"),
+                GraphLens.getIdentityLens());
+    this.invokeName = dexItemFactory.createString("invoke");
   }
 
   /**
@@ -67,20 +84,29 @@ public class ArgumentPropagatorComposeModeling {
    *   }
    * </pre>
    */
-  // TODO(b/302483644): Only apply modeling when the context is recognized as being a restart
-  //  lambda.
   public ParameterState modelParameterStateForChangedOrDefaultArgumentToComposableFunction(
       InvokeMethod invoke,
       ProgramMethod singleTarget,
       int argumentIndex,
       Value argument,
       ProgramMethod context) {
+    // TODO(b/302483644): Add some robust way of detecting restart lambda contexts.
+    if (!context.getHolder().getInterfaces().contains(rewrittenFunction2Type)
+        || !invoke.getPosition().getOutermostCaller().getMethod().getName().isEqualTo(invokeName)
+        || Iterables.isEmpty(
+            context
+                .getHolder()
+                .instanceFields(
+                    f -> f.getName().isIdenticalTo(rewrittenComposeReferences.changedFieldName)))) {
+      return null;
+    }
+
     // First check if this is an invoke to a @Composable function.
     if (singleTarget == null
         || !singleTarget
             .getDefinition()
             .annotations()
-            .hasAnnotation(composeReferences.composableType)) {
+            .hasAnnotation(rewrittenComposeReferences.composableType)) {
       return null;
     }
 
@@ -109,7 +135,7 @@ public class ArgumentPropagatorComposeModeling {
         invokedMethod.getArity() - 2 - BooleanUtils.intValue(hasDefaultParameter);
     if (!invokedMethod
         .getParameter(composerParameterIndex)
-        .isIdenticalTo(composeReferences.composerType)) {
+        .isIdenticalTo(rewrittenComposeReferences.composerType)) {
       return null;
     }
 
@@ -128,13 +154,9 @@ public class ArgumentPropagatorComposeModeling {
       // We generally expect this argument to be defined by a call to updateChangedFlags().
       if (argument.isDefinedByInstructionSatisfying(Instruction::isInvokeStatic)) {
         InvokeStatic invokeStatic = argument.getDefinition().asInvokeStatic();
-        DexMethod maybeUpdateChangedFlagsMethod =
-            appView
-                .graphLens()
-                .getOriginalMethodSignature(
-                    invokeStatic.getInvokedMethod(), GraphLens.getIdentityLens());
+        DexMethod maybeUpdateChangedFlagsMethod = invokeStatic.getInvokedMethod();
         if (!maybeUpdateChangedFlagsMethod.isIdenticalTo(
-            composeReferences.updatedChangedFlagsMethod)) {
+            rewrittenComposeReferences.updatedChangedFlagsMethod)) {
           return null;
         }
         // Assume the call does not impact the $$changed capture and strip the call.
@@ -160,10 +182,10 @@ public class ArgumentPropagatorComposeModeling {
                     .createDefiniteBitsNumberValue(
                         BitUtils.ALL_BITS_SET_MASK, BitUtils.ALL_BITS_SET_MASK << 1));
       }
-      expectedFieldName = composeReferences.changedFieldName;
+      expectedFieldName = rewrittenComposeReferences.changedFieldName;
     } else {
       // We are looking at an argument to the $$default parameter of the @Composable function.
-      expectedFieldName = composeReferences.defaultFieldName;
+      expectedFieldName = rewrittenComposeReferences.defaultFieldName;
     }
 
     // At this point we expect that the restart lambda is reading either this.$$changed or

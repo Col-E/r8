@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.lens.GraphLens;
 
 public class ComposeReferences {
 
@@ -30,5 +31,27 @@ public class ComposeReferences {
             factory.createType("Landroidx/compose/runtime/RecomposeScopeImplKt;"),
             factory.createProto(factory.intType, factory.intType),
             "updateChangedFlags");
+  }
+
+  public ComposeReferences(
+      DexString changedFieldName,
+      DexString defaultFieldName,
+      DexType composableType,
+      DexType composerType,
+      DexMethod updatedChangedFlagsMethod) {
+    this.changedFieldName = changedFieldName;
+    this.defaultFieldName = defaultFieldName;
+    this.composableType = composableType;
+    this.composerType = composerType;
+    this.updatedChangedFlagsMethod = updatedChangedFlagsMethod;
+  }
+
+  public ComposeReferences rewrittenWithLens(GraphLens graphLens, GraphLens codeLens) {
+    return new ComposeReferences(
+        changedFieldName,
+        defaultFieldName,
+        graphLens.lookupClassType(composableType, codeLens),
+        graphLens.lookupClassType(composerType, codeLens),
+        graphLens.getRenamedMethodSignature(updatedChangedFlagsMethod, codeLens));
   }
 }

@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -45,6 +46,10 @@ public abstract class DexClassAndMemberMap<K extends DexClassAndMember<?, ?>, V>
 
   public void forEach(BiConsumer<K, V> consumer) {
     backing.forEach((wrapper, value) -> consumer.accept(wrapper.get(), value));
+  }
+
+  public void forEachValue(Consumer<V> consumer) {
+    backing.values().forEach(consumer);
   }
 
   public V get(K member) {

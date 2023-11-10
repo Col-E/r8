@@ -2410,6 +2410,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         System.getProperty("com.android.tools.r8.disableMarkingClassesFinal") != null;
     public boolean testEnableTestAssertions = false;
     public boolean keepMetadataInR8IfNotRewritten = true;
+    public boolean enableComposableOptimizationPass =
+        SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault(
+            "com.android.tools.r8.enableComposableOptimizationPass", false);
     public boolean modelUnknownChangedAndDefaultArgumentsToComposableFunctions =
         SystemPropertyUtils.parseSystemPropertyForDevelopmentOrDefault(
             "com.android.tools.r8.modelUnknownChangedAndDefaultArgumentsToComposableFunctions",
