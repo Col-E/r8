@@ -168,7 +168,9 @@ public class MethodResolutionOptimizationInfoAnalysis {
           if (!keepInfo.isShrinkingAllowed(appView.options())) {
             // Method is kept and could be overridden outside app (e.g., in tests). Verify we don't
             // have any optimization info recorded for non-abstract methods.
-            assert method.isAbstract() || method.getOptimizationInfo().isDefault();
+            assert method.isAbstract()
+                || method.getOptimizationInfo().isDefault()
+                || method.getOptimizationInfo().returnValueHasBeenPropagated();
             newState.joinMethodOptimizationInfo(
                 appView, method.getSignature(), DefaultMethodOptimizationInfo.getInstance());
           } else if (!method.isAbstract()) {
