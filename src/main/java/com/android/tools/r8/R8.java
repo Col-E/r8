@@ -499,16 +499,13 @@ public class R8 {
           .setMustRetargetInvokesToTargetMethod()
           .run(executorService, timing);
 
-      boolean isKotlinLibraryCompilationWithInlinePassThrough =
-          options.enableCfByteCodePassThrough && appView.hasCfByteCodePassThroughMethods();
-
       RuntimeTypeCheckInfo runtimeTypeCheckInfo =
           classMergingEnqueuerExtensionBuilder.build(appView.graphLens());
       classMergingEnqueuerExtensionBuilder = null;
 
       assert ArtProfileCompletenessChecker.verify(appView);
 
-      if (!isKotlinLibraryCompilationWithInlinePassThrough
+      if (!appView.hasCfByteCodePassThroughMethods()
           && options.getProguardConfiguration().isOptimizing()) {
         if (options.enableVerticalClassMerging) {
           timing.begin("VerticalClassMerger");

@@ -691,6 +691,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public void setCfByteCodePassThrough(Set<DexMethod> cfByteCodePassThrough) {
+    assert options().enableCfByteCodePassThrough;
     this.cfByteCodePassThrough = cfByteCodePassThrough;
   }
 
@@ -913,9 +914,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public boolean isCfByteCodePassThrough(DexEncodedMethod method) {
-    if (!options().isGeneratingClassFiles()) {
+    if (!options().enableCfByteCodePassThrough) {
       return false;
     }
+    assert options().isGeneratingClassFiles();
     if (cfByteCodePassThrough.contains(method.getReference())) {
       return true;
     }

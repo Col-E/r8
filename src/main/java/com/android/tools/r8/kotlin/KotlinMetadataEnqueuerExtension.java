@@ -113,7 +113,9 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
               m -> keepByteCodeFunctions.add(m.getReference()));
         }
       }
-      appView.setCfByteCodePassThrough(keepByteCodeFunctions);
+      if (appView.options().enableCfByteCodePassThrough) {
+        appView.setCfByteCodePassThrough(keepByteCodeFunctions);
+      }
     } else {
       assert enqueuer.getMode().isFinalTreeShaking();
       enqueuer.forAllLiveClasses(
