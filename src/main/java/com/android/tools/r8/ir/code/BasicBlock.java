@@ -304,7 +304,7 @@ public class BasicBlock {
   }
 
   public List<BasicBlock> getSuccessors() {
-    return Collections.unmodifiableList(successors);
+    return ListUtils.unmodifiableForTesting(successors);
   }
 
   public List<BasicBlock> getMutableSuccessors() {
@@ -368,7 +368,7 @@ public class BasicBlock {
   }
 
   public List<BasicBlock> getPredecessors() {
-    return Collections.unmodifiableList(predecessors);
+    return ListUtils.unmodifiableForTesting(predecessors);
   }
 
   public List<BasicBlock> getMutablePredecessors() {

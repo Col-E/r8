@@ -5407,7 +5407,7 @@ public class Enqueuer {
     }
 
     Set<T> getItems() {
-      return Collections.unmodifiableSet(items);
+      return SetUtils.unmodifiableForTesting(items);
     }
   }
 
@@ -5463,7 +5463,7 @@ public class Enqueuer {
     }
 
     Set<DexEncodedMethod> getItems() {
-      return Collections.unmodifiableSet(items);
+      return SetUtils.unmodifiableForTesting(items);
     }
   }
 

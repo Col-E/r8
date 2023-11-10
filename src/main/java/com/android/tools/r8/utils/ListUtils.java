@@ -8,6 +8,7 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -353,5 +354,9 @@ public class ListUtils {
     ts.addAll(one);
     ts.addAll(other);
     return ts;
+  }
+
+  public static <T> List<T> unmodifiableForTesting(List<T> list) {
+    return InternalOptions.assertionsEnabled() ? Collections.unmodifiableList(list) : list;
   }
 }
