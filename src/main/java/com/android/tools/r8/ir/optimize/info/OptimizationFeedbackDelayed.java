@@ -228,7 +228,7 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo) {
+  public synchronized void setBridgeInfo(ProgramMethod method, BridgeInfo bridgeInfo) {
     getMethodOptimizationInfoForUpdating(method).setBridgeInfo(bridgeInfo);
   }
 

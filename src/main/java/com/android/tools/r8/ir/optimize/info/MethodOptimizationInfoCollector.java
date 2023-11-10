@@ -140,7 +140,7 @@ public class MethodOptimizationInfoCollector {
       MethodProcessor methodProcessor,
       Timing timing) {
     DexEncodedMethod definition = method.getDefinition();
-    identifyBridgeInfo(definition, code, feedback, timing);
+    identifyBridgeInfo(method, code, feedback, timing);
     analyzeReturns(code, feedback, methodProcessor, timing);
     if (options.enableClassInlining) {
       computeClassInlinerMethodConstraint(method, code, feedback, timing);
@@ -162,9 +162,9 @@ public class MethodOptimizationInfoCollector {
   }
 
   private void identifyBridgeInfo(
-      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
+      ProgramMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
     timing.begin("Identify bridge info");
-    feedback.setBridgeInfo(method, BridgeAnalyzer.analyzeMethod(method, code));
+    feedback.setBridgeInfo(method, BridgeAnalyzer.analyzeMethod(method.getDefinition(), code));
     timing.end();
   }
 

@@ -151,8 +151,8 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo) {
-    method.getMutableOptimizationInfo().setBridgeInfo(bridgeInfo);
+  public void setBridgeInfo(ProgramMethod method, BridgeInfo bridgeInfo) {
+    method.getDefinition().getMutableOptimizationInfo().setBridgeInfo(bridgeInfo);
   }
 
   @Override

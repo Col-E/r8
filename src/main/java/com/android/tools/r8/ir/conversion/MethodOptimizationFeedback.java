@@ -54,7 +54,7 @@ public interface MethodOptimizationFeedback {
 
   void markAsPropagated(DexEncodedMethod method);
 
-  void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo);
+  void setBridgeInfo(ProgramMethod method, BridgeInfo bridgeInfo);
 
   void setClassInlinerMethodConstraint(
       ProgramMethod method, ClassInlinerMethodConstraint classInlinerConstraint);

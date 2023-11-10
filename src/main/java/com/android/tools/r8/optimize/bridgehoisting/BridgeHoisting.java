@@ -99,17 +99,22 @@ public class BridgeHoisting {
 
       // Record the invokes from the newly synthesized bridge methods in the method access info
       // collection.
-      MethodAccessInfoCollection.Modifier methodAccessInfoCollectionModifier =
-          appView.appInfo().getMethodAccessInfoCollection().modifier();
-      result.forEachHoistedBridge(
-          (bridge, bridgeInfo) -> {
-            if (bridgeInfo.isVirtualBridgeInfo()) {
-              DexMethod reference = bridgeInfo.asVirtualBridgeInfo().getInvokedMethod();
-              methodAccessInfoCollectionModifier.registerInvokeVirtualInContext(reference, bridge);
-            } else {
-              assert false;
-            }
-          });
+      MethodAccessInfoCollection methodAccessInfoCollection =
+          appView.appInfo().getMethodAccessInfoCollection();
+      if (!methodAccessInfoCollection.isVirtualInvokesDestroyed()) {
+        MethodAccessInfoCollection.Modifier methodAccessInfoCollectionModifier =
+            methodAccessInfoCollection.modifier();
+        result.forEachHoistedBridge(
+            (bridge, bridgeInfo) -> {
+              if (bridgeInfo.isVirtualBridgeInfo()) {
+                DexMethod reference = bridgeInfo.asVirtualBridgeInfo().getInvokedMethod();
+                methodAccessInfoCollectionModifier.registerInvokeVirtualInContext(
+                    reference, bridge);
+              } else {
+                assert false;
+              }
+            });
+      }
     }
 
     appView.notifyOptimizationFinishedForTesting();
@@ -257,7 +262,7 @@ public class BridgeHoisting {
     // Now update the code of the bridge method chosen as representative.
     representative
         .setCode(createCodeForVirtualBridge(representative, methodToInvoke), appView);
-    feedback.setBridgeInfo(representative.getDefinition(), new VirtualBridgeInfo(methodToInvoke));
+    feedback.setBridgeInfo(representative, new VirtualBridgeInfo(methodToInvoke));
 
     // Move the bridge method to the super class, and record this in the graph lens.
     DexMethod newMethodReference =
