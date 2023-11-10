@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.benchmarks.BenchmarkResults;
 import com.android.tools.r8.debug.DebugTestConfig;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorEventConsumer;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.testing.AndroidBuildVersion;
@@ -25,6 +26,8 @@ import com.android.tools.r8.utils.ThrowingOutputStream;
 import com.android.tools.r8.utils.codeinspector.ArgumentPropagatorCodeScannerResultInspector;
 import com.android.tools.r8.utils.codeinspector.EnumUnboxingInspector;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
+import com.android.tools.r8.utils.codeinspector.MinificationInspector;
+import com.android.tools.r8.utils.codeinspector.RepackagingInspector;
 import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
@@ -43,6 +46,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -195,13 +199,22 @@ public abstract class TestCompilerBuilder<
 
   public T addHorizontallyMergedClassesInspector(
       ThrowableConsumer<HorizontallyMergedClassesInspector> inspector) {
+    return addHorizontallyMergedClassesInspector(inspector, HorizontalClassMerger.Mode::isFinal);
+  }
+
+  public T addHorizontallyMergedClassesInspector(
+      ThrowableConsumer<HorizontallyMergedClassesInspector> inspector,
+      Predicate<HorizontalClassMerger.Mode> predicate) {
     return addOptionsModification(
         options ->
             options.testing.horizontallyMergedClassesConsumer =
-                ((dexItemFactory, horizontallyMergedClasses) ->
+                ((dexItemFactory, horizontallyMergedClasses, mode) -> {
+                  if (predicate.test(mode)) {
                     inspector.acceptWithRuntimeException(
                         new HorizontallyMergedClassesInspector(
-                            dexItemFactory, horizontallyMergedClasses))));
+                            dexItemFactory, horizontallyMergedClasses));
+                  }
+                }));
   }
 
   public T addHorizontallyMergedClassesInspectorIf(
@@ -210,6 +223,24 @@ public abstract class TestCompilerBuilder<
       return addHorizontallyMergedClassesInspector(inspector);
     }
     return self();
+  }
+
+  public T addMinificationInspector(ThrowableConsumer<MinificationInspector> inspector) {
+    return addOptionsModification(
+        options ->
+            options.testing.namingLensConsumer =
+                ((dexItemFactory, namingLens) ->
+                    inspector.acceptWithRuntimeException(
+                        new MinificationInspector(dexItemFactory, namingLens))));
+  }
+
+  public T addRepackagingInspector(ThrowableConsumer<RepackagingInspector> inspector) {
+    return addOptionsModification(
+        options ->
+            options.testing.repackagingLensConsumer =
+                ((dexItemFactory, repackagingLens) ->
+                    inspector.acceptWithRuntimeException(
+                        new RepackagingInspector(dexItemFactory, repackagingLens))));
   }
 
   public T addVerticallyMergedClassesInspector(

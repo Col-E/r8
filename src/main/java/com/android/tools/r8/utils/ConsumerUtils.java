@@ -47,6 +47,10 @@ public class ConsumerUtils {
     return (s, t) -> {};
   }
 
+  public static <S, T, U> TriConsumer<S, T, U> emptyTriConsumer() {
+    return (s, t, u) -> {};
+  }
+
   public static <T> ThrowingConsumer<T, RuntimeException> emptyThrowingConsumer() {
     return ignore -> {};
   }

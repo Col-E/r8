@@ -786,7 +786,7 @@ public class R8 {
         appView.clearApplyMappingSeedMapper();
       } else if (options.isMinifying()) {
         timing.begin("Minification");
-        appView.setNamingLens(new Minifier(appView.withLiveness()).run(executorService, timing));
+        new Minifier(appView.withLiveness()).run(executorService, timing);
         timing.end();
       } else {
         timing.begin("MinifyIdentifiers");

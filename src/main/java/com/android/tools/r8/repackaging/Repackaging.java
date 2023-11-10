@@ -77,6 +77,7 @@ public class Repackaging {
     RepackagingLens lens = repackageClasses(appBuilder, executorService);
     if (lens != null) {
       appView.rewriteWithLensAndApplication(lens, appBuilder.build(), executorService, timing);
+      appView.testing().repackagingLensConsumer.accept(appView.dexItemFactory(), lens);
     }
     appView.notifyOptimizationFinishedForTesting();
     timing.end();

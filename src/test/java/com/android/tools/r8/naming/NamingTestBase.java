@@ -53,10 +53,11 @@ public abstract class NamingTestBase extends TestBase {
     dexItemFactory = appView.dexItemFactory();
     ExecutorService executor = Executors.newSingleThreadExecutor();
     try {
-      return new Minifier(appView).run(executor, Timing.empty());
+      new Minifier(appView).run(executor, Timing.empty());
     } finally {
       executor.shutdown();
     }
+    return appView.getNamingLens();
   }
 
   protected static <T> Collection<Object[]> createTests(

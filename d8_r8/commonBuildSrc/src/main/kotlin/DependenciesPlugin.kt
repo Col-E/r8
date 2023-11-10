@@ -417,6 +417,14 @@ object ThirdPartyDeps {
       "third_party",
       "binary_compatibility_tests",
       "compiler_api_tests.tar.gz.sha1").toFile())
+  val composeExamplesChangedBitwiseValuePropagation = ThirdPartyDependency(
+    "compose-examples-changed-bitwise-value-propagation",
+    Paths.get(
+      "third_party", "opensource-apps", "compose-examples",
+      "changed-bitwise-value-propagation").toFile(),
+    Paths.get(
+      "third_party", "opensource-apps", "compose-examples",
+      "changed-bitwise-value-propagation.tar.gz.sha1").toFile())
   val coreLambdaStubs = ThirdPartyDependency(
     "coreLambdaStubs",
     Paths.get("third_party", "core-lambda-stubs").toFile(),

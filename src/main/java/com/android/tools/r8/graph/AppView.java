@@ -814,11 +814,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       HorizontallyMergedClasses horizontallyMergedClasses, HorizontalClassMerger.Mode mode) {
     assert !hasHorizontallyMergedClasses() || mode.isFinal();
     this.horizontallyMergedClasses = horizontallyMergedClasses().extend(horizontallyMergedClasses);
-    if (mode.isFinal()) {
-      testing()
-          .horizontallyMergedClassesConsumer
-          .accept(dexItemFactory(), horizontallyMergedClasses());
-    }
+    testing()
+        .horizontallyMergedClassesConsumer
+        .accept(dexItemFactory(), horizontallyMergedClasses(), mode);
   }
 
   public boolean hasVerticallyMergedClasses() {

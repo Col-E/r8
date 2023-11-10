@@ -84,6 +84,7 @@ import com.android.tools.r8.lightir.LirStrategy;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MapConsumer;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.optimize.accessmodification.AccessModifierOptions;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorEventConsumer;
 import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemovalOptions;
@@ -98,6 +99,7 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.repackaging.Repackaging.DefaultRepackagingConfiguration;
 import com.android.tools.r8.repackaging.Repackaging.RepackagingConfiguration;
+import com.android.tools.r8.repackaging.RepackagingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.GlobalKeepInfoConfiguration;
@@ -2312,12 +2314,18 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public Function<AppView<AppInfoWithLiveness>, RepackagingConfiguration>
         repackagingConfigurationFactory = DefaultRepackagingConfiguration::new;
 
-    public BiConsumer<DexItemFactory, HorizontallyMergedClasses> horizontallyMergedClassesConsumer =
-        ConsumerUtils.emptyBiConsumer();
+    public TriConsumer<DexItemFactory, HorizontallyMergedClasses, HorizontalClassMerger.Mode>
+        horizontallyMergedClassesConsumer = ConsumerUtils.emptyTriConsumer();
     public Function<List<Policy>, List<Policy>> horizontalClassMergingPolicyRewriter =
         Function.identity();
     public TriFunction<AppView<?>, Iterable<DexProgramClass>, DexProgramClass, DexProgramClass>
         horizontalClassMergingTarget = (appView, candidates, target) -> target;
+
+    public BiConsumer<DexItemFactory, NamingLens> namingLensConsumer =
+        ConsumerUtils.emptyBiConsumer();
+
+    public BiConsumer<DexItemFactory, RepackagingLens> repackagingLensConsumer =
+        ConsumerUtils.emptyBiConsumer();
 
     public BiConsumer<DexItemFactory, EnumDataMap> unboxedEnumsConsumer =
         ConsumerUtils.emptyBiConsumer();

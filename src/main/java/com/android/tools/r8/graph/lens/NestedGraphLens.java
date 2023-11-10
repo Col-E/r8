@@ -117,7 +117,7 @@ public class NestedGraphLens extends DefaultNonIdentityGraphLens {
   }
 
   @Override
-  protected DexType getNextClassType(DexType type) {
+  public DexType getNextClassType(DexType type) {
     return typeMap.getRepresentativeValueOrDefault(type, type);
   }
 
