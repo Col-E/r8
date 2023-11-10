@@ -32,17 +32,16 @@ def parse_options():
                         metavar='<hash>',
                         nargs='+',
                         help='Hashed to merge')
-
+    parser.add_argument('remote',
+                        default='origin',
+                        help='The remote name (defaults to "origin")')
     return parser.parse_args()
 
 
 def run(args):
-    # Checkout the branch.
-    subprocess.check_output(['git', 'checkout', args.branch])
-
-    if (args.current_checkout):
+    if args.current_checkout:
         for i in range(len(args.hashes) + 1):
-            branch = 'cherry-%d' % (i + 1)
+            branch = 'cherry-%s-%d' % (args.branch, i + 1)
             print('Deleting branch %s' % branch)
             subprocess.run(['git', 'branch', branch, '-D'])
 
@@ -50,12 +49,12 @@ def run(args):
 
     count = 1
     for hash in args.hashes:
-        branch = 'cherry-%d' % count
+        branch = 'cherry-%s-%d' % (args.branch, count)
         print('Cherry-picking %s in %s' % (hash, branch))
-        if (count == 1):
+        if count == 1:
             subprocess.run([
                 'git', 'new-branch', branch, '--upstream',
-                'origin/%s' % args.branch
+                '%s/%s' % (args.remote, args.branch)
             ])
         else:
             subprocess.run(['git', 'new-branch', branch, '--upstream-current'])
@@ -64,7 +63,7 @@ def run(args):
         confirm_and_upload(branch, args, bugs)
         count = count + 1
 
-    branch = 'cherry-%d' % count
+    branch = 'cherry-%s-%d' % (args.branch, count)
     subprocess.run(['git', 'new-branch', branch, '--upstream-current'])
 
     old_version = 'unknown'
@@ -102,7 +101,7 @@ def run(args):
 
     subprocess.run(['git', 'commit', '-a', '-m', message])
     confirm_and_upload(branch, args, None)
-    if (not args.current_checkout):
+    if not args.current_checkout:
         while True:
             try:
                 answer = input(
@@ -140,12 +139,17 @@ def confirm_and_upload(branch, args, bugs):
             l.strip() for l in commit_message.decode('UTF-8').split('\n')
         ]
         for line in commit_lines:
+            bug = None
             if line.startswith('Bug: '):
-                normalized = line.replace('Bug: ', '').replace('b/', '')
-                if len(normalized) > 0:
-                    bugs.add(normalized)
+                bug = line.replace('Bug: ', '')
+            elif line.startswith('Fixed: '):
+                bug = line.replace('Fixed: ', '')
+            elif line.startswith('Fixes: '):
+                bug = line.replace('Fixes: ', '')
+            if bug:
+                bugs.add(bug.replace('b/', '').strip())
 
-    if (not args.no_upload):
+    if not args.no_upload:
         subprocess.run(['git', 'cl', 'upload', '--bypass-hooks'])
 
 
