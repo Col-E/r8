@@ -574,6 +574,11 @@ public class DexProgramClass extends DexClass
     return kotlinInfo;
   }
 
+  @Override
+  public ClassKind<DexProgramClass> getKind() {
+    return ClassKind.PROGRAM;
+  }
+
   public void setKotlinInfo(KotlinClassLevelInfo kotlinInfo) {
     assert kotlinInfo != null;
     assert this.kotlinInfo == getNoKotlinInfo();

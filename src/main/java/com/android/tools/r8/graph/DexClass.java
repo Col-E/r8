@@ -1194,6 +1194,8 @@ public abstract class DexClass extends DexDefinition
   /** Returns kotlin class info if the class is synthesized by kotlin compiler. */
   public abstract KotlinClassLevelInfo getKotlinInfo();
 
+  public abstract ClassKind<?> getKind();
+
   public final String getSimpleName() {
     return getType().getSimpleName();
   }

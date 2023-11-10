@@ -126,6 +126,11 @@ public class DexClasspathClass extends DexClass
   }
 
   @Override
+  public ClassKind<DexClasspathClass> getKind() {
+    return ClassKind.CLASSPATH;
+  }
+
+  @Override
   public DexClasspathClass get() {
     return this;
   }

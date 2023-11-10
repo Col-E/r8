@@ -1002,7 +1002,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       builder.setName(methodReference.getName());
       builder.setProto(methodReference.getProto());
       buildMethodCallback.accept(builder);
-      methodDefinition = builder.build();
+      methodDefinition = builder.build(clazz.getKind());
       methodCollection.addMethod(methodDefinition);
       newMethodCallback.accept((T) DexClassAndMethod.create(clazz, methodDefinition));
       return methodDefinition;
