@@ -17,9 +17,7 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -35,38 +33,11 @@ public interface InstructionListIterator
     }
   }
 
-  default void addAll(Collection<Instruction> instructions) {
-    for (Instruction instruction : instructions) {
-      add(instruction);
-    }
-  }
-
-  default boolean addUntilThrowing(Iterator<Instruction> srcIterator) {
-    while (srcIterator.hasNext()) {
-      // Add all non-throwing instructions up until the first throwing instruction.
-      Instruction instruction = srcIterator.next();
-      add(instruction);
-      if (instruction.instructionTypeCanThrow()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
       IRCode code,
       BasicBlockIterator blockIterator,
-      Collection<Instruction> instructionsToAdd,
+      Instruction[] instructions,
       InternalOptions options);
-
-  default InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
-      IRCode code,
-      BasicBlockIterator blockIterator,
-      Instruction[] instructionsToAdd,
-      InternalOptions options) {
-    return addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
-        code, blockIterator, Arrays.asList(instructionsToAdd), options);
-  }
 
   BasicBlock addThrowingInstructionToPossiblyThrowingBlock(
       IRCode code,
