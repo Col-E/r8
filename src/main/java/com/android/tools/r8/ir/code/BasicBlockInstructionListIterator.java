@@ -42,7 +42,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   protected final BasicBlock block;
   protected final ListIterator<Instruction> listIterator;
   protected Instruction current;
-  protected Position position = null;
+  private Position position = null;
 
   private final IRMetadata metadata;
 
@@ -140,7 +140,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
   @Override
   public void unsetInsertionPosition() {
-    this.position = null;
+    setInsertionPosition(null);
   }
 
   /**
@@ -155,8 +155,8 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   public void add(Instruction instruction) {
     instruction.setBlock(block);
     assert instruction.getBlock() == block;
-    if (position != null && !instruction.hasPosition()) {
-      instruction.setPosition(position);
+    if (!instruction.hasPosition() && hasInsertionPosition()) {
+      instruction.setPosition(getInsertionPosition());
     }
     listIterator.add(instruction);
     metadata.record(instruction);
@@ -598,16 +598,15 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     assert !throwBlockInstructionIterator.hasNext();
 
     // Replace the instruction by throw.
-    Throw throwInstruction = new Throw(exceptionValue);
-    if (hasInsertionPosition()) {
-      throwInstruction.setPosition(position);
-    } else if (toBeReplaced.getPosition().isSome()) {
-      throwInstruction.setPosition(toBeReplaced.getPosition());
-    } else {
-      assert !toBeReplaced.instructionTypeCanThrow();
-      throwInstruction.setPosition(Position.syntheticNone());
-    }
-    throwBlockInstructionIterator.replaceCurrentInstruction(throwInstruction);
+    throwBlockInstructionIterator.replaceCurrentInstruction(
+        Throw.builder()
+            .setExceptionValue(exceptionValue)
+            .setPosition(
+                getInsertionPositionOrDefault(
+                    toBeReplaced.getPosition().isSome()
+                        ? toBeReplaced.getPosition()
+                        : Position.syntheticNone()))
+            .build());
   }
 
   @Override
@@ -657,7 +656,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       throwBlockInstructionIterator = this;
     } else {
       throwBlockInstructionIterator = throwBlock.listIterator(code);
-      throwBlockInstructionIterator.setInsertionPosition(position);
+      throwBlockInstructionIterator.setInsertionPosition(getInsertionPosition());
     }
 
     // Insert constant null before the goto instruction.
@@ -669,18 +668,15 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     assert !throwBlockInstructionIterator.hasNext();
 
     // Replace the instruction by throw.
-    Throw throwInstruction = new Throw(nullValue);
-    if (hasInsertionPosition()) {
-      throwInstruction.setPosition(position);
-    } else if (toBeReplaced.getPosition().isSome()) {
-      throwInstruction.setPosition(toBeReplaced.getPosition());
-    } else {
-      // The instruction that is being removed cannot throw, and thus it must be unreachable as we
-      // are replacing it by `throw null`, so we can safely use a none-position.
-      assert !toBeReplaced.instructionTypeCanThrow();
-      throwInstruction.setPosition(Position.syntheticNone());
-    }
-    throwBlockInstructionIterator.replaceCurrentInstruction(throwInstruction);
+    throwBlockInstructionIterator.replaceCurrentInstruction(
+        Throw.builder()
+            .setExceptionValue(nullValue)
+            .setPosition(
+                getInsertionPositionOrDefault(
+                    toBeReplaced.getPosition().isSome()
+                        ? toBeReplaced.getPosition()
+                        : Position.syntheticNone()))
+            .build());
 
     if (block.hasCatchHandlers()) {
       if (block == throwBlock) {
