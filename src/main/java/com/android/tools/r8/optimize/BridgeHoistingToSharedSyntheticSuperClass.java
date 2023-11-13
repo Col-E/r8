@@ -69,10 +69,13 @@ public class BridgeHoistingToSharedSyntheticSuperClass {
     }
     timing.time(
         "BridgeHoistingToSharedSyntheticSuperClass",
-        () -> new BridgeHoistingToSharedSyntheticSuperClass(appView).run(executorService, timing));
+        () ->
+            new BridgeHoistingToSharedSyntheticSuperClass(appView)
+                .internalRun(executorService, timing));
   }
 
-  private void run(ExecutorService executorService, Timing timing) throws ExecutionException {
+  private void internalRun(ExecutorService executorService, Timing timing)
+      throws ExecutionException {
     Collection<Group> groups = createInitialGroups(appView);
     groups = refineGroups(groups);
     if (!groups.isEmpty()) {
