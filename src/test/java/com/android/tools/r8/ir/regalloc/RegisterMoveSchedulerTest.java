@@ -200,7 +200,7 @@ public class RegisterMoveSchedulerTest {
     public InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
         IRCode code,
         BasicBlockIterator blockIterator,
-        Instruction[] instructions,
+        Collection<Instruction> instructionsToAdd,
         InternalOptions options) {
       throw new Unimplemented();
     }

@@ -89,7 +89,7 @@ public abstract class Instruction
   }
 
   public void setPosition(Position position) {
-    assert this.position == null;
+    assert !hasPosition();
     this.position = position;
   }
 
