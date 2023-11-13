@@ -2365,6 +2365,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean allowUnusedDontWarnRules = true;
     public boolean alwaysUseExistingAccessInfoCollectionsInMemberRebinding = true;
     public boolean alwaysUsePessimisticRegisterAllocation = false;
+    public boolean enableBridgeHoistingToSharedSyntheticSuperclass = false;
     public boolean enableCheckCastAndInstanceOfRemoval = true;
     public boolean enableDeadSwitchCaseElimination = true;
     public boolean enableInvokeSuperToInvokeVirtualRewriting = true;

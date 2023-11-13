@@ -69,6 +69,7 @@ import com.android.tools.r8.naming.ProguardMapMinifier;
 import com.android.tools.r8.naming.RecordInvokeDynamicInvokeCustomRewriter;
 import com.android.tools.r8.naming.RecordRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
+import com.android.tools.r8.optimize.BridgeHoistingToSharedSyntheticSuperClass;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLensFactory;
@@ -495,12 +496,13 @@ public class R8 {
           .setMustRetargetInvokesToTargetMethod()
           .run(executorService, timing);
 
-      RuntimeTypeCheckInfo runtimeTypeCheckInfo =
-          classMergingEnqueuerExtensionBuilder.build(appView.graphLens());
-      classMergingEnqueuerExtensionBuilder = null;
+      BridgeHoistingToSharedSyntheticSuperClass.run(appViewWithLiveness, executorService, timing);
 
       assert ArtProfileCompletenessChecker.verify(appView);
 
+      RuntimeTypeCheckInfo runtimeTypeCheckInfo =
+          classMergingEnqueuerExtensionBuilder.build(appView.graphLens());
+      classMergingEnqueuerExtensionBuilder = null;
       if (!appView.hasCfByteCodePassThroughMethods()
           && options.getProguardConfiguration().isOptimizing()) {
         if (options.enableVerticalClassMerging) {

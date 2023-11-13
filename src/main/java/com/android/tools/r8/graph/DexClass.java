@@ -734,6 +734,10 @@ public abstract class DexClass extends DexDefinition
     return superType;
   }
 
+  public void setSuperType(DexType superType) {
+    this.superType = superType;
+  }
+
   public boolean hasClassInitializer() {
     return getClassInitializer() != null;
   }

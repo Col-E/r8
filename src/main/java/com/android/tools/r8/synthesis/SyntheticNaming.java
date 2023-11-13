@@ -61,6 +61,10 @@ public class SyntheticNaming {
   public final SyntheticKind LAMBDA = generator.forInstanceClass("Lambda");
   public final SyntheticKind THREAD_LOCAL = generator.forInstanceClass("ThreadLocal");
 
+  // Merging not permitted since this could defeat the purpose of the synthetic class.
+  public final SyntheticKind SHARED_SUPER_CLASS =
+      generator.forNonSharableInstanceClass("SharedSuper");
+
   // TODO(b/214901256): Sharing of synthetic classes may lead to duplicate method errors.
   public final SyntheticKind NON_FIXED_INIT_TYPE_ARGUMENT =
       generator.forNonSharableInstanceClass("$IA");
