@@ -1,5 +1,5 @@
 {
-  "identifier": "com.tools.android:desugar_jdk_libs_configuration_nio:2.0.4",
+  "identifier": "com.tools.android:desugar_jdk_libs_configuration_nio:2.1.0",
   "configuration_format_version": 101,
   "required_compilation_api_level": 30,
   "synthesized_library_classes_package_prefix": "j$.",
@@ -8,6 +8,7 @@
     {
       "api_level_below_or_equal": 10000,
       "amend_library_method": [
+        "public java.lang.Object[] java.util.Collection#toArray(java.util.function.IntFunction)",
         "public static java.nio.file.Path java.nio.file.Path#of(java.lang.String, java.lang.String[])",
         "public static java.nio.file.Path java.nio.file.Path#of(java.net.URI)"
       ]
@@ -75,6 +76,14 @@
         "java.net.URLEncoder": "j$.net.URLEncoder",
         "java.io.DesugarInputStream": "j$.io.DesugarInputStream",
         "java.util.concurrent.DesugarTimeUnit": "j$.util.concurrent.DesugarTimeUnit"
+      },
+      "emulate_interface": {
+        "java.util.Collection": {
+          "rewrittenType": "j$.util.Collection",
+          "emulatedMethods": [
+            "java.lang.Object[] java.util.Collection#toArray(java.util.function.IntFunction)"
+          ]
+        }
       },
       "retarget_method": {
         "java.util.concurrent.TimeUnit java.util.concurrent.TimeUnit#of(java.time.temporal.ChronoUnit)": "java.util.concurrent.DesugarTimeUnit",
@@ -588,7 +597,9 @@
       "api_level_below_or_equal": 10000,
       "api_level_greater_or_equal": 26,
       "rewrite_prefix": {
-        "sun.nio.cs.UTF_8": "j$.sun.nio.cs.UTF_8"
+        "sun.nio.cs.UTF_8": "j$.sun.nio.cs.UTF_8",
+        "sun.nio.cs.Unicode": "j$.sun.nio.cs.Unicode",
+        "sun.nio.cs.HistoricallyNamedCharset": "j$.sun.nio.cs.HistoricallyNamedCharset"
       },
       "retarget_static_field": {
         "sun.nio.cs.UTF_8 sun.nio.cs.UTF_8#INSTANCE": "java.nio.charset.Charset java.nio.charset.StandardCharsets#UTF_8"

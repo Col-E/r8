@@ -1,10 +1,16 @@
 {
-  "identifier": "com.tools.android:desugar_jdk_libs_configuration:2.0.4",
+  "identifier": "com.tools.android:desugar_jdk_libs_configuration:2.1.0",
   "configuration_format_version": 101,
   "required_compilation_api_level": 30,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": true,
   "common_flags": [
+    {
+      "api_level_below_or_equal": 10000,
+      "amend_library_method": [
+        "public java.lang.Object[] java.util.Collection#toArray(java.util.function.IntFunction)"
+      ]
+    },
     {
       "api_level_below_or_equal": 10000,
       "api_level_greater_or_equal": 26,
@@ -56,6 +62,14 @@
       "api_level_below_or_equal": 32,
       "rewrite_prefix": {
         "java.util.concurrent.DesugarTimeUnit": "j$.util.concurrent.DesugarTimeUnit"
+      },
+      "emulate_interface": {
+        "java.util.Collection": {
+          "rewrittenType": "j$.util.Collection",
+          "emulatedMethods": [
+            "java.lang.Object[] java.util.Collection#toArray(java.util.function.IntFunction)"
+          ]
+        }
       },
       "retarget_method": {
         "java.util.concurrent.TimeUnit java.util.concurrent.TimeUnit#of(java.time.temporal.ChronoUnit)": "java.util.concurrent.DesugarTimeUnit",
