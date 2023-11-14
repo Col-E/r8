@@ -749,10 +749,10 @@ public class R8 {
       timing.end();
 
       // Perform repackaging.
-      if (options.isRepackagingEnabled()) {
-        new Repackaging(appView.withLiveness()).run(executorService, timing);
-      }
       if (appView.hasLiveness()) {
+        if (options.isRepackagingEnabled()) {
+          new Repackaging(appView.withLiveness()).run(executorService, timing);
+        }
         assert Repackaging.verifyIdentityRepackaging(appView.withLiveness(), executorService);
       }
 

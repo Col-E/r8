@@ -3,10 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.repackage;
 
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -28,20 +25,15 @@ public class RepackageWithoutAnyOptimizationTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    Throwable t =
-        assertThrows(
-            CompilationFailedException.class,
-            () ->
-                testForR8(parameters.getBackend())
-                    .addInnerClasses(getClass())
-                    .setMinApi(parameters.getApiLevel())
-                    .addKeepMainRule(TestClass.class)
-                    .addDontOptimize()
-                    .addDontObfuscate()
-                    .addDontShrink()
-                    .addKeepRules("-repackageclasses")
-                    .compile());
-    assertTrue(t.getCause() instanceof ClassCastException);
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(TestClass.class)
+        .addDontOptimize()
+        .addDontObfuscate()
+        .addDontShrink()
+        .addKeepRules("-repackageclasses")
+        .compile();
   }
 
   static class TestClass {
