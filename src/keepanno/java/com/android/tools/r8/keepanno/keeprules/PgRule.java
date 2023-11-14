@@ -196,8 +196,8 @@ public abstract class PgRule {
         TargetKeepKind targetKeepKind) {
       super(metaInfo, options);
       assert !targetKeepKind.equals(TargetKeepKind.JUST_MEMBERS);
-      this.holderNamePattern = holder.namePattern;
-      this.holderPattern = holder.itemPattern;
+      this.holderNamePattern = holder.getNamePattern();
+      this.holderPattern = holder.getClassItemPattern();
       this.targetKeepKind = targetKeepKind;
       this.memberPatterns = memberPatterns;
       this.targetMembers = targetMembers;
@@ -257,8 +257,8 @@ public abstract class PgRule {
         List<KeepBindingSymbol> memberTargets,
         TargetKeepKind keepKind) {
       super(metaInfo, options);
-      this.classCondition = classCondition.itemPattern;
-      this.classTarget = classTarget.itemPattern;
+      this.classCondition = classCondition.getClassItemPattern();
+      this.classTarget = classTarget.getClassItemPattern();
       this.memberPatterns = memberPatterns;
       this.memberConditions = memberConditions;
       this.memberTargets = memberTargets;
@@ -351,8 +351,8 @@ public abstract class PgRule {
         List<KeepBindingSymbol> memberTargets,
         TargetKeepKind keepKind) {
       super(metaInfo, options);
-      this.holderNamePattern = holder.namePattern;
-      this.holderPattern = holder.itemPattern;
+      this.holderNamePattern = holder.getNamePattern();
+      this.holderPattern = holder.getClassItemPattern();
       this.memberPatterns = memberPatterns;
       this.memberConditions = memberConditions;
       this.memberTargets = memberTargets;

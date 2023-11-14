@@ -9,7 +9,6 @@ import com.android.tools.r8.keepanno.ast.KeepBindings.KeepBindingSymbol;
 import com.android.tools.r8.keepanno.ast.KeepCheck;
 import com.android.tools.r8.keepanno.ast.KeepCheck.KeepCheckKind;
 import com.android.tools.r8.keepanno.ast.KeepClassItemPattern;
-import com.android.tools.r8.keepanno.ast.KeepClassItemReference;
 import com.android.tools.r8.keepanno.ast.KeepCondition;
 import com.android.tools.r8.keepanno.ast.KeepDeclaration;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
@@ -17,6 +16,7 @@ import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepEdgeMetaInfo;
 import com.android.tools.r8.keepanno.ast.KeepFieldAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
+import com.android.tools.r8.keepanno.ast.KeepInstanceOfPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemReference;
 import com.android.tools.r8.keepanno.ast.KeepMemberItemPattern;
@@ -135,25 +135,76 @@ public class KeepRuleExtractor {
     return rules;
   }
 
-  /**
-   * Utility to package up a class binding with its name and item pattern.
-   *
-   * <p>This is useful as the normalizer will have introduced class reference indirections so a
-   * given item may need to.
-   */
+  /** Utility to package up a class binding with its name and item pattern. */
   public static class Holder {
-    final KeepClassItemPattern itemPattern;
-    final KeepQualifiedClassNamePattern namePattern;
+    private final KeepClassItemPattern itemPattern;
 
     static Holder create(KeepBindingSymbol bindingName, KeepBindings bindings) {
       KeepClassItemPattern itemPattern = bindings.get(bindingName).getItem().asClassItemPattern();
-      KeepQualifiedClassNamePattern namePattern = getClassNamePattern(itemPattern, bindings);
-      return new Holder(itemPattern, namePattern);
+      return new Holder(itemPattern);
     }
 
-    private Holder(KeepClassItemPattern itemPattern, KeepQualifiedClassNamePattern namePattern) {
+    private Holder(KeepClassItemPattern itemPattern) {
+      assert itemPattern != null;
       this.itemPattern = itemPattern;
-      this.namePattern = namePattern;
+    }
+
+    public KeepClassItemPattern getClassItemPattern() {
+      return itemPattern;
+    }
+
+    public KeepQualifiedClassNamePattern getNamePattern() {
+      return getClassItemPattern().getClassNamePattern();
+    }
+
+    public void onTargetHolders(Consumer<Holder> fn) {
+      KeepInstanceOfPattern instanceOfPattern = itemPattern.getInstanceOfPattern();
+      if (instanceOfPattern.isAny()) {
+        // An any-pattern does not give rise to 'extends' and maps as is.
+        fn.accept(this);
+        return;
+      }
+      if (instanceOfPattern.isExclusive()) {
+        // An exclusive-pattern maps to the "extends" clause as is.
+        fn.accept(this);
+        return;
+      }
+      if (getNamePattern().isExact()) {
+        // This case is a pattern of "Foo instance-of Bar" and only makes sense if Foo==Bar.
+        // In any case we can conservatively cover this case by ignoring the instance-of clause.
+        Holder holderWithoutExtends =
+            new Holder(
+                KeepClassItemPattern.builder()
+                    .copyFrom(itemPattern)
+                    .setInstanceOfPattern(KeepInstanceOfPattern.any())
+                    .build());
+        fn.accept(holderWithoutExtends);
+        return;
+      }
+      if (getNamePattern().isAny()) {
+        // This case is a pattern of "* instance-of Bar" and we match that as two rules, one of
+        // which is just the rule on the instance-of moved to the class name.
+        Holder holderWithInstanceOfAsName =
+            new Holder(
+                KeepClassItemPattern.builder()
+                    .copyFrom(itemPattern)
+                    .setClassNamePattern(instanceOfPattern.getClassNamePattern())
+                    .setInstanceOfPattern(KeepInstanceOfPattern.any())
+                    .build());
+        fn.accept(this);
+        fn.accept(holderWithInstanceOfAsName);
+        return;
+      }
+      // The remaining case is the general "*Foo* instance-of *Bar*" case. Here it unfolds to two
+      // cases matching anything of the form "*Foo*" and the other being the exclusive extends.
+      Holder holderWithNoInstanceOf =
+          new Holder(
+              KeepClassItemPattern.builder()
+                  .copyFrom(itemPattern)
+                  .setInstanceOfPattern(KeepInstanceOfPattern.any())
+                  .build());
+      fn.accept(this);
+      fn.accept(holderWithNoInstanceOf);
     }
   }
 
@@ -290,12 +341,14 @@ public class KeepRuleExtractor {
   @FunctionalInterface
   private interface OnTargetCallback {
     void accept(
+        Holder targetHolder,
         Map<KeepBindingSymbol, KeepMemberPattern> memberPatterns,
         List<KeepBindingSymbol> memberTargets,
         TargetKeepKind keepKind);
   }
 
   private static void computeTargets(
+      Holder targetHolder,
       Set<KeepBindingSymbol> targets,
       KeepBindings bindings,
       Map<KeepBindingSymbol, KeepMemberPattern> memberPatterns,
@@ -315,7 +368,10 @@ public class KeepRuleExtractor {
     if (targetMembers.isEmpty()) {
       keepKind = TargetKeepKind.CLASS_OR_MEMBERS;
     }
-    callback.accept(memberPatterns, targetMembers, keepKind);
+    final TargetKeepKind finalKeepKind = keepKind;
+    targetHolder.onTargetHolders(
+        newTargetHolder ->
+            callback.accept(newTargetHolder, memberPatterns, targetMembers, finalKeepKind));
   }
 
   private static void createUnconditionalRules(
@@ -326,16 +382,17 @@ public class KeepRuleExtractor {
       KeepOptions options,
       Set<KeepBindingSymbol> targets) {
     computeTargets(
+        holder,
         targets,
         bindings,
         new HashMap<>(),
-        (memberPatterns, targetMembers, targetKeepKind) -> {
+        (targetHolder, memberPatterns, targetMembers, targetKeepKind) -> {
           if (targetKeepKind.equals(TargetKeepKind.JUST_MEMBERS)) {
             // Members dependent on the class, so they go to the implicitly dependent rule.
             rules.add(
                 new PgDependentMembersRule(
                     metaInfo,
-                    holder,
+                    targetHolder,
                     options,
                     memberPatterns,
                     Collections.emptyList(),
@@ -344,7 +401,12 @@ public class KeepRuleExtractor {
           } else {
             rules.add(
                 new PgUnconditionalRule(
-                    metaInfo, holder, options, memberPatterns, targetMembers, targetKeepKind));
+                    metaInfo,
+                    targetHolder,
+                    options,
+                    memberPatterns,
+                    targetMembers,
+                    targetKeepKind));
           }
         });
   }
@@ -358,8 +420,8 @@ public class KeepRuleExtractor {
       KeepOptions options,
       Set<KeepBindingSymbol> conditions,
       Set<KeepBindingSymbol> targets) {
-    if (conditionHolder.namePattern.isExact()
-        && conditionHolder.itemPattern.equals(targetHolder.itemPattern)) {
+    if (conditionHolder.getNamePattern().isExact()
+        && conditionHolder.getClassItemPattern().equals(targetHolder.getClassItemPattern())) {
       // If the targets are conditional on its holder, the rule can be simplified as a dependent
       // rule. Note that this is only valid on an *exact* class matching as otherwise any
       // wildcard is allowed to be matched independently on the left and right of the edge.
@@ -370,16 +432,17 @@ public class KeepRuleExtractor {
     List<KeepBindingSymbol> conditionMembers =
         computeConditions(conditions, bindings, memberPatterns);
     computeTargets(
+        targetHolder,
         targets,
         bindings,
         memberPatterns,
-        (ignore, targetMembers, targetKeepKind) ->
+        (newTargetHolder, ignore, targetMembers, targetKeepKind) ->
             rules.add(
                 new PgConditionalRule(
                     metaInfo,
                     options,
                     conditionHolder,
-                    targetHolder,
+                    newTargetHolder,
                     memberPatterns,
                     conditionMembers,
                     targetMembers,
@@ -388,7 +451,7 @@ public class KeepRuleExtractor {
 
   private static void createDependentRules(
       List<PgRule> rules,
-      Holder holder,
+      Holder initialHolder,
       KeepEdgeMetaInfo metaInfo,
       KeepBindings bindings,
       KeepOptions options,
@@ -398,10 +461,11 @@ public class KeepRuleExtractor {
     List<KeepBindingSymbol> conditionMembers =
         computeConditions(conditions, bindings, memberPatterns);
     computeTargets(
+        initialHolder,
         targets,
         bindings,
         memberPatterns,
-        (ignore, targetMembers, targetKeepKind) -> {
+        (holder, ignore, targetMembers, targetKeepKind) -> {
           List<KeepBindingSymbol> nonAllMemberTargets = new ArrayList<>(targetMembers.size());
           for (KeepBindingSymbol targetMember : targetMembers) {
             KeepMemberPattern memberPattern = memberPatterns.get(targetMember);
@@ -462,18 +526,6 @@ public class KeepRuleExtractor {
     KeepFieldAccessPattern accessPattern =
         KeepFieldAccessPattern.builder().copyOfMemberAccess(pattern.getAccessPattern()).build();
     return KeepFieldPattern.builder().setAccessPattern(accessPattern).build();
-  }
-
-  private static KeepQualifiedClassNamePattern getClassNamePattern(
-      KeepItemPattern itemPattern, KeepBindings bindings) {
-    if (itemPattern.isClassItemPattern()) {
-      return itemPattern.asClassItemPattern().getClassNamePattern();
-    }
-    KeepMemberItemPattern memberItemPattern = itemPattern.asMemberItemPattern();
-    KeepClassItemReference classReference = memberItemPattern.getClassReference();
-    assert classReference.isBindingReference();
-    return getClassNamePattern(
-        bindings.get(classReference.asBindingReference()).getItem(), bindings);
   }
 
   private static KeepBindingSymbol getClassItemBindingReference(

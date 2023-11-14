@@ -505,7 +505,7 @@ public class KeepEdgeReader implements Opcodes {
         if (classItemPattern.isMemberItemPattern() && items.size() == 1) {
             throw new KeepEdgeException("@KeepForApi kind must include its class");
         }
-        if (!classItemPattern.getExtendsPattern().isAny()) {
+        if (!classItemPattern.getInstanceOfPattern().isAny()) {
           throw new KeepEdgeException("@KeepForApi cannot define an 'extends' pattern.");
         }
         consequences.addTarget(KeepTarget.builder().setItemReference(item).build());
@@ -684,7 +684,7 @@ public class KeepEdgeReader implements Opcodes {
         if (itemPattern.isMemberItemPattern() && items.size() == 1) {
           throw new KeepEdgeException("@" + getAnnotationName() + " kind must include its class");
         }
-        if (!holderPattern.getExtendsPattern().isAny()) {
+        if (!holderPattern.getInstanceOfPattern().isAny()) {
           throw new KeepEdgeException(
               "@" + getAnnotationName() + " cannot define an 'extends' pattern.");
         }

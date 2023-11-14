@@ -6,6 +6,7 @@ package com.android.tools.r8.keepanno.ast;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public abstract class KeepMethodParametersPattern {
 
@@ -87,6 +88,13 @@ public abstract class KeepMethodParametersPattern {
     @Override
     public int hashCode() {
       return parameterPatterns.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return "("
+          + parameterPatterns.stream().map(Object::toString).collect(Collectors.joining(", "))
+          + ")";
     }
   }
 

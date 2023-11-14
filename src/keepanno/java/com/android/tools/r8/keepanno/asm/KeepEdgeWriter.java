@@ -155,7 +155,7 @@ public class KeepEdgeWriter implements Opcodes {
     } else {
       throw new Unimplemented();
     }
-    if (!classItemPattern.getExtendsPattern().isAny()) {
+    if (!classItemPattern.getInstanceOfPattern().isAny()) {
       throw new Unimplemented();
     }
   }

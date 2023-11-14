@@ -64,6 +64,11 @@ public abstract class KeepInstanceOfPattern {
     }
 
     @Override
+    public boolean isInclusive() {
+      return isInclusive;
+    }
+
+    @Override
     public KeepQualifiedClassNamePattern getClassNamePattern() {
       return namePattern;
     }
@@ -87,7 +92,8 @@ public abstract class KeepInstanceOfPattern {
 
     @Override
     public String toString() {
-      return namePattern.toString();
+      String nameString = namePattern.toString();
+      return isInclusive ? nameString : ("excl(" + nameString + ")");
     }
   }
 
@@ -100,4 +106,10 @@ public abstract class KeepInstanceOfPattern {
   public abstract boolean isAny();
 
   public abstract KeepQualifiedClassNamePattern getClassNamePattern();
+
+  public abstract boolean isInclusive();
+
+  public final boolean isExclusive() {
+    return !isInclusive();
+  }
 }

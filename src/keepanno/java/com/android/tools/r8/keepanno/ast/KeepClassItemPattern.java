@@ -27,7 +27,7 @@ public class KeepClassItemPattern extends KeepItemPattern {
 
     public Builder copyFrom(com.android.tools.r8.keepanno.ast.KeepClassItemPattern pattern) {
       return setClassNamePattern(pattern.getClassNamePattern())
-          .setInstanceOfPattern(pattern.getExtendsPattern());
+          .setInstanceOfPattern(pattern.getInstanceOfPattern());
     }
 
     public Builder setClassNamePattern(KeepQualifiedClassNamePattern classNamePattern) {
@@ -47,14 +47,14 @@ public class KeepClassItemPattern extends KeepItemPattern {
   }
 
   private final KeepQualifiedClassNamePattern classNamePattern;
-  private final KeepInstanceOfPattern extendsPattern;
+  private final KeepInstanceOfPattern instanceOfPattern;
 
   public KeepClassItemPattern(
       KeepQualifiedClassNamePattern classNamePattern, KeepInstanceOfPattern extendsPattern) {
     assert classNamePattern != null;
     assert extendsPattern != null;
     this.classNamePattern = classNamePattern;
-    this.extendsPattern = extendsPattern;
+    this.instanceOfPattern = extendsPattern;
   }
 
   @Override
@@ -80,12 +80,12 @@ public class KeepClassItemPattern extends KeepItemPattern {
     return classNamePattern;
   }
 
-  public KeepInstanceOfPattern getExtendsPattern() {
-    return extendsPattern;
+  public KeepInstanceOfPattern getInstanceOfPattern() {
+    return instanceOfPattern;
   }
 
   public boolean isAny() {
-    return classNamePattern.isAny() && extendsPattern.isAny();
+    return classNamePattern.isAny() && instanceOfPattern.isAny();
   }
 
   @Override
@@ -98,12 +98,12 @@ public class KeepClassItemPattern extends KeepItemPattern {
     }
     KeepClassItemPattern that = (KeepClassItemPattern) obj;
     return classNamePattern.equals(that.classNamePattern)
-        && extendsPattern.equals(that.extendsPattern);
+        && instanceOfPattern.equals(that.instanceOfPattern);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(classNamePattern, extendsPattern);
+    return Objects.hash(classNamePattern, instanceOfPattern);
   }
 
   @Override
@@ -111,8 +111,8 @@ public class KeepClassItemPattern extends KeepItemPattern {
     return "KeepClassItemPattern"
         + "{ class="
         + classNamePattern
-        + ", extends="
-        + extendsPattern
+        + ", instance-of="
+        + instanceOfPattern
         + '}';
   }
 }

@@ -93,7 +93,7 @@ public abstract class RulePrintingUtils {
       BiConsumer<StringBuilder, KeepQualifiedClassNamePattern> printClassName) {
     builder.append("class ");
     printClassName.accept(builder, classPattern.getClassNamePattern());
-    KeepInstanceOfPattern extendsPattern = classPattern.getExtendsPattern();
+    KeepInstanceOfPattern extendsPattern = classPattern.getInstanceOfPattern();
     if (!extendsPattern.isAny()) {
       builder.append(" extends ");
       printClassName(

@@ -17,9 +17,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class KeepInclusiveInstanceOfTest extends TestBase {
+public class KeepNameAndInstanceOfTest extends TestBase {
 
   static final String EXPECTED = StringUtils.lines("on Base", "on Sub");
+  static final String EXPECTED_R8 = StringUtils.lines("on Base", "No method on Sub");
 
   private final TestParameters parameters;
 
@@ -28,7 +29,7 @@ public class KeepInclusiveInstanceOfTest extends TestBase {
     return getTestParameters().withDefaultRuntimes().withApiLevel(AndroidApiLevel.B).build();
   }
 
-  public KeepInclusiveInstanceOfTest(TestParameters parameters) {
+  public KeepNameAndInstanceOfTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -48,7 +49,7 @@ public class KeepInclusiveInstanceOfTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(EXPECTED);
+        .assertSuccessWithOutput(EXPECTED_R8);
   }
 
   public List<Class<?>> getInputClasses() {
@@ -56,12 +57,14 @@ public class KeepInclusiveInstanceOfTest extends TestBase {
   }
 
   static class Base {
+
     static void hiddenMethod() {
       System.out.println("on Base");
     }
   }
 
   static class Sub extends Base {
+
     static void hiddenMethod() {
       System.out.println("on Sub");
     }
@@ -70,9 +73,11 @@ public class KeepInclusiveInstanceOfTest extends TestBase {
   static class A {
 
     @UsesReflection({
-      // Because the method is static, this works whereas `classConstant = Base.class` won't
-      // keep the method on `Sub`.
-      @KeepTarget(instanceOfClassConstant = Base.class, methodName = "hiddenMethod")
+      @KeepTarget(
+          // Restricting the matching to Base will cause Sub to be stripped.
+          classConstant = Base.class,
+          instanceOfClassConstant = Base.class,
+          methodName = "hiddenMethod")
     })
     public void foo(Base base) throws Exception {
       base.getClass().getDeclaredMethod("hiddenMethod").invoke(null);
@@ -82,8 +87,16 @@ public class KeepInclusiveInstanceOfTest extends TestBase {
   static class TestClass {
 
     public static void main(String[] args) throws Exception {
-      new A().foo(new Base());
-      new A().foo(new Sub());
+      try {
+        new A().foo(new Base());
+      } catch (Exception e) {
+        System.out.println("No method on Base");
+      }
+      try {
+        new A().foo(new Sub());
+      } catch (Exception e) {
+        System.out.println("No method on Sub");
+      }
     }
   }
 }
