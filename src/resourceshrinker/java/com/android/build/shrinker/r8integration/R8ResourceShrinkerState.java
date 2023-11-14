@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class R8ResourceShrinkerState {
+
   private R8ResourceShrinkerModel r8ResourceShrinkerModel;
 
   public List<String> trace(int id) {
@@ -30,6 +31,10 @@ public class R8ResourceShrinkerState {
   public void setResourceTableInput(InputStream inputStream) {
     r8ResourceShrinkerModel = new R8ResourceShrinkerModel(NoDebugReporter.INSTANCE, true);
     r8ResourceShrinkerModel.instantiateFromResourceTable(inputStream);
+  }
+
+  public R8ResourceShrinkerModel getR8ResourceShrinkerModel() {
+    return r8ResourceShrinkerModel;
   }
 
   public static class R8ResourceShrinkerModel extends ResourceShrinkerModel {

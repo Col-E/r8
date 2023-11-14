@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult;
+import com.android.tools.r8.graph.FieldResolutionResult.SingleFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
@@ -74,7 +75,7 @@ public class GetArrayOfMissingTypeVerifyErrorWorkaround implements EnqueuerField
   @Override
   public void traceStaticFieldRead(
       DexField field,
-      FieldResolutionResult resolutionResult,
+      SingleFieldResolutionResult<?> resolutionResult,
       ProgramMethod context,
       EnqueuerWorklist worklist) {
     if (isUnsafeToUseFieldOnDalvik(field)) {

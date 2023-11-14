@@ -21,7 +21,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.FieldResolutionResult;
+import com.android.tools.r8.graph.FieldResolutionResult.SingleFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -69,7 +69,7 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis
   @Override
   public void traceStaticFieldRead(
       DexField field,
-      FieldResolutionResult resolutionResult,
+      SingleFieldResolutionResult<?> resolutionResult,
       ProgramMethod context,
       EnqueuerWorklist worklist) {
     if (isUsingJavaAssertionsDisabledField(field) || isUsingKotlinAssertionsEnabledField(field)) {

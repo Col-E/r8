@@ -123,6 +123,10 @@ public class LegacyResourceShrinker {
       ResourceTable loadedResourceTable = ResourceTable.parseFrom(pathAndBytes.bytes);
       model.instantiateFromResourceTable(loadedResourceTable);
     }
+    return shrinkModel(model);
+  }
+
+  public ShrinkerResult shrinkModel(R8ResourceShrinkerModel model) throws IOException {
     for (Entry<String, byte[]> entry : dexInputs.entrySet()) {
       // The analysis needs an origin for the dex files, synthesize an easy recognizable one.
       Path inMemoryR8 = Paths.get("in_memory_r8_" + entry.getKey() + ".dex");

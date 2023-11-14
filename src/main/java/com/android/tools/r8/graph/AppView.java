@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.build.shrinker.r8integration.R8ResourceShrinkerState;
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.contexts.CompilationContext;
@@ -143,6 +144,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private final Map<DexType, String> sourceFileForPrunedTypes = new IdentityHashMap<>();
 
   private SeedMapper applyMappingSeedMapper;
+
+  R8ResourceShrinkerState resourceShrinkerState = null;
 
   // When input has been (partially) desugared these are the classes which has been library
   // desugared. This information is populated in the IR converter.
@@ -858,6 +861,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     assert !hasUnboxedEnums();
     this.unboxedEnums = unboxedEnums;
     testing().unboxedEnumsConsumer.accept(dexItemFactory(), unboxedEnums);
+  }
+
+  public R8ResourceShrinkerState getResourceShrinkerState() {
+    return resourceShrinkerState;
+  }
+
+  public void setResourceShrinkerState(R8ResourceShrinkerState resourceShrinkerState) {
+    this.resourceShrinkerState = resourceShrinkerState;
   }
 
   public boolean validateUnboxedEnumsHaveBeenPruned() {

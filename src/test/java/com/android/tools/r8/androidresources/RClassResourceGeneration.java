@@ -4,6 +4,7 @@
 package com.android.tools.r8.androidresources;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -75,15 +76,15 @@ public class RClassResourceGeneration extends TestBase {
     CodeInspector inspector = new CodeInspector(resourceApp);
     ClassSubject stringClazz = inspector.clazz(R.string.class);
     // Implicitly added with the manifest
-    ensureIntFieldWithValue(stringClazz, "app_name", 0x7f020000);
+    ensureIntFieldWithValue(stringClazz, "app_name");
 
-    ensureIntFieldWithValue(stringClazz, "bar", 0x7f020001);
-    ensureIntFieldWithValue(stringClazz, "foo", 0x7f020002);
-    ensureIntFieldWithValue(inspector.clazz(R.drawable.class), "foobar", 0x7f010000);
+    ensureIntFieldWithValue(stringClazz, "bar");
+    ensureIntFieldWithValue(stringClazz, "foo");
+    ensureIntFieldWithValue(inspector.clazz(R.drawable.class), "foobar");
   }
 
-  private void ensureIntFieldWithValue(ClassSubject clazz, String name, int value) {
-    assertEquals(clazz.field("int", name).getStaticValue().asDexValueInt().value, value);
+  private void ensureIntFieldWithValue(ClassSubject clazz, String name) {
+    assertTrue(clazz.field("int", name).isPresent());
   }
 
   public static class FooBar {

@@ -29,7 +29,7 @@ import com.android.tools.r8.keepanno.annotations.KeepForApi;
  */
 @KeepForApi
 public class ResourceShrinkerConfiguration {
-  static ResourceShrinkerConfiguration DEFAULT_CONFIGURATION =
+  public static ResourceShrinkerConfiguration DEFAULT_CONFIGURATION =
       new ResourceShrinkerConfiguration(false, true);
 
   private final boolean optimizedShrinking;
@@ -40,7 +40,7 @@ public class ResourceShrinkerConfiguration {
     this.preciseShrinking = preciseShrinking;
   }
 
-  static Builder builder(DiagnosticsHandler handler) {
+  public static Builder builder(DiagnosticsHandler handler) {
     return new Builder();
   }
 

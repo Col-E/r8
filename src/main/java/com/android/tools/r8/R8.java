@@ -851,7 +851,10 @@ public class R8 {
       new DesugaredLibraryKeepRuleGenerator(appView).runIfNecessary(timing);
 
       Map<String, byte[]> dexFileContent = new ConcurrentHashMap<>();
-      if (options.androidResourceProvider != null && options.androidResourceConsumer != null) {
+      if (options.androidResourceProvider != null
+          && options.androidResourceConsumer != null
+          // We trace the dex directly in the enqueuer.
+          && !options.resourceShrinkerConfiguration.isOptimizedShrinking()) {
         options.programConsumer =
             wrapConsumerStoreBytesInList(
                 dexFileContent, (DexIndexedConsumer) options.programConsumer, "base");
@@ -874,7 +877,7 @@ public class R8 {
       writeApplication(appView, inputApp, executorService);
 
       if (options.androidResourceProvider != null && options.androidResourceConsumer != null) {
-        shrinkResources(dexFileContent);
+        shrinkResources(dexFileContent, appView);
       }
       assert appView.getDontWarnConfiguration().validate(options);
 
@@ -906,7 +909,8 @@ public class R8 {
     };
   }
 
-  private void shrinkResources(Map<String, byte[]> dexFileContent) {
+  private void shrinkResources(
+      Map<String, byte[]> dexFileContent, AppView<AppInfoWithClassHierarchy> appView) {
     LegacyResourceShrinker.Builder resourceShrinkerBuilder = LegacyResourceShrinker.builder();
     Reporter reporter = options.reporter;
     dexFileContent.forEach(resourceShrinkerBuilder::addDexInput);
@@ -926,7 +930,13 @@ public class R8 {
       }
 
       LegacyResourceShrinker shrinker = resourceShrinkerBuilder.build();
-      ShrinkerResult shrinkerResult = shrinker.run();
+      ShrinkerResult shrinkerResult;
+      if (options.resourceShrinkerConfiguration.isOptimizedShrinking()) {
+        shrinkerResult =
+            shrinker.shrinkModel(appView.getResourceShrinkerState().getR8ResourceShrinkerModel());
+      } else {
+        shrinkerResult = shrinker.run();
+      }
       Set<String> toKeep = shrinkerResult.getResFolderEntriesToKeep();
       writeResourcesToConsumer(
           reporter,

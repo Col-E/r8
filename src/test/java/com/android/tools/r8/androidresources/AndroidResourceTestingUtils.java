@@ -14,6 +14,7 @@ import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.transformers.ClassTransformer;
+import com.android.tools.r8.transformers.MethodTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -43,6 +44,7 @@ public class AndroidResourceTestingUtils {
   enum RClassType {
     STRING,
     DRAWABLE,
+    STYLEABLE,
     XML;
 
     public static RClassType fromClass(Class clazz) {
@@ -221,6 +223,7 @@ public class AndroidResourceTestingUtils {
   public static class AndroidTestResourceBuilder {
     private String manifest;
     private final Map<String, String> stringValues = new TreeMap<>();
+    private final Map<String, Integer> styleables = new TreeMap<>();
     private final Map<String, byte[]> drawables = new TreeMap<>();
     private final Map<String, String> xmlFiles = new TreeMap<>();
     private final List<Class<?>> classesToRemap = new ArrayList<>();
@@ -242,6 +245,10 @@ public class AndroidResourceTestingUtils {
           }
           if (rClassType == RClassType.DRAWABLE) {
             addDrawable(name, TINY_PNG);
+          }
+          if (rClassType == RClassType.STYLEABLE) {
+            // Add 4 different values, i.e., the array will be 4 integers.
+            addStyleable(name, 4);
           }
         }
       }
@@ -265,6 +272,11 @@ public class AndroidResourceTestingUtils {
       return this;
     }
 
+    AndroidTestResourceBuilder addStyleable(String name, int numberOfValues) {
+      styleables.put(name, numberOfValues);
+      return this;
+    }
+
     AndroidTestResourceBuilder addStringValue(String name, String value) {
       stringValues.put(name, value);
       return this;
@@ -284,11 +296,13 @@ public class AndroidResourceTestingUtils {
       Path manifestPath =
           FileUtils.writeTextFile(temp.newFile("AndroidManifest.xml").toPath(), this.manifest);
       Path resFolder = temp.newFolder("res").toPath();
+      Path valuesFolder = temp.newFolder("res", "values").toPath();
       if (stringValues.size() > 0) {
+        FileUtils.writeTextFile(valuesFolder.resolve("strings.xml"), createStringResourceXml());
+      }
+      if (styleables.size() > 0) {
         FileUtils.writeTextFile(
-            temp.newFolder("res", "values").toPath().resolve("strings.xml"),
-            createStringResourceXml());
-
+            valuesFolder.resolve("styleables.xml"), createStyleableResourceXml());
       }
       if (drawables.size() > 0) {
         File drawableFolder = temp.newFolder("res", "drawable");
@@ -367,6 +381,19 @@ public class AndroidResourceTestingUtils {
                               // Don't make the inner<>outer class connection
                             }
                           })
+                      .addMethodTransformer(
+                          new MethodTransformer() {
+                            @Override
+                            public void visitFieldInsn(
+                                int opcode, String owner, String name, String descriptor) {
+                              String maybeTransformedOwner =
+                                  isInnerRClass(owner)
+                                      ? noNamespaceToProgramMap.getOrDefault(
+                                          rClassWithoutNamespaceAndOuter(owner), owner)
+                                      : owner;
+                              super.visitFieldInsn(opcode, maybeTransformedOwner, name, descriptor);
+                            }
+                          })
                       .transform());
             }
           });
@@ -382,6 +409,27 @@ public class AndroidResourceTestingUtils {
       stringBuilder.append("</resources>");
       return stringBuilder.toString();
     }
+
+    private String createStyleableResourceXml() {
+      StringBuilder stringBuilder = new StringBuilder("<resources>\n");
+      styleables.forEach(
+          (name, value) -> {
+            stringBuilder.append("<declare-styleable name=\"" + name + "\">\n");
+            // For every entry we add here we will have an additional array entry pointing
+            // at the boolean attr in the resource table. We will also get a name_attri R class
+            // entry to select into the generated array.
+            for (Integer i = 0; i < value; i++) {
+              stringBuilder.append("<attr name=\"attr_" + name + i + "\" format=\"boolean\" />\n");
+            }
+            stringBuilder.append("</declare-styleable>");
+          });
+      stringBuilder.append("</resources>");
+      return stringBuilder.toString();
+    }
+  }
+
+  public static void dumpWithAapt2(Path path) throws IOException {
+    System.out.println(ToolHelper.runAapt2("dump", "resources", path.toString()));
   }
 
   public static void compileWithAapt2(
@@ -407,6 +455,7 @@ public class AndroidResourceTestingUtils {
             resourceZip.toString(),
             "--java",
             rClassFolder.toString(),
+            "--non-final-ids",
             "--manifest",
             manifest.toString(),
             "--package-id",
