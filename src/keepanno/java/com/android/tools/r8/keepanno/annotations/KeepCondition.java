@@ -36,6 +36,10 @@ public @interface KeepCondition {
    * <ul>
    *   <li>className
    *   <li>classConstant
+   *   <li>instanceOfClassName
+   *   <li>instanceOfClassNameExclusive
+   *   <li>instanceOfClassConstant
+   *   <li>instanceOfClassConstantExclusive
    *   <li>extendsClassName
    *   <li>extendsClassConstant
    * </ul>
@@ -73,7 +77,25 @@ public @interface KeepCondition {
   Class<?> classConstant() default Object.class;
 
   /**
-   * Define the instance-of pattern as classes extending the fully qualified class name.
+   * Define the instance-of pattern as classes that are instances of the fully qualified class name.
+   *
+   * <p>Mutually exclusive with the following other properties defining instance-of:
+   *
+   * <ul>
+   *   <li>instanceOfClassNameExclusive
+   *   <li>instanceOfClassConstant
+   *   <li>instanceOfClassConstantExclusive
+   *   <li>extendsClassName
+   *   <li>extendsClassConstant
+   *   <li>classFromBinding
+   * </ul>
+   *
+   * <p>If none are specified the default is to match any class instance.
+   */
+  String instanceOfClassName() default "";
+
+  /**
+   * Define the instance-of pattern as classes that are instances of the fully qualified class name.
    *
    * <p>The pattern is exclusive in that it does not match classes that are instances of the
    * pattern, but only those that are instances of classes that are subclasses of the pattern.
@@ -81,6 +103,72 @@ public @interface KeepCondition {
    * <p>Mutually exclusive with the following other properties defining instance-of:
    *
    * <ul>
+   *   <li>instanceOfClassName
+   *   <li>instanceOfClassConstant
+   *   <li>instanceOfClassConstantExclusive
+   *   <li>extendsClassName
+   *   <li>extendsClassConstant
+   *   <li>classFromBinding
+   * </ul>
+   *
+   * <p>If none are specified the default is to match any class instance.
+   */
+  String instanceOfClassNameExclusive() default "";
+
+  /**
+   * Define the instance-of pattern as classes that are instances the referenced Class constant.
+   *
+   * <p>Mutually exclusive with the following other properties defining instance-of:
+   *
+   * <ul>
+   *   <li>instanceOfClassName
+   *   <li>instanceOfClassNameExclusive
+   *   <li>instanceOfClassConstantExclusive
+   *   <li>extendsClassName
+   *   <li>extendsClassConstant
+   *   <li>classFromBinding
+   * </ul>
+   *
+   * <p>If none are specified the default is to match any class instance.
+   */
+  Class<?> instanceOfClassConstant() default Object.class;
+
+  /**
+   * Define the instance-of pattern as classes that are instances the referenced Class constant.
+   *
+   * <p>The pattern is exclusive in that it does not match classes that are instances of the
+   * pattern, but only those that are instances of classes that are subclasses of the pattern.
+   *
+   * <p>Mutually exclusive with the following other properties defining instance-of:
+   *
+   * <ul>
+   *   <li>instanceOfClassName
+   *   <li>instanceOfClassNameExclusive
+   *   <li>instanceOfClassConstant
+   *   <li>extendsClassName
+   *   <li>extendsClassConstant
+   *   <li>classFromBinding
+   * </ul>
+   *
+   * <p>If none are specified the default is to match any class instance.
+   */
+  Class<?> instanceOfClassConstantExclusive() default Object.class;
+
+  /**
+   * Define the instance-of pattern as classes extending the fully qualified class name.
+   *
+   * <p>The pattern is exclusive in that it does not match classes that are instances of the
+   * pattern, but only those that are instances of classes that are subclasses of the pattern.
+   *
+   * <p>This property is deprecated, use instanceOfClassName instead.
+   *
+   * <p>Mutually exclusive with the following other properties defining instance-of:
+   *
+   * <ul>
+   *   <li>instanceOfClassName
+   *   <li>instanceOfClassNameExclusive
+   *   <li>instanceOfClassConstant
+   *   <li>instanceOfClassConstantExclusive
    *   <li>extendsClassConstant
    *   <li>classFromBinding
    * </ul>
@@ -95,9 +183,15 @@ public @interface KeepCondition {
    * <p>The pattern is exclusive in that it does not match classes that are instances of the
    * pattern, but only those that are instances of classes that are subclasses of the pattern.
    *
+   * <p>This property is deprecated, use instanceOfClassConstant instead.
+   *
    * <p>Mutually exclusive with the following other properties defining instance-of:
    *
    * <ul>
+   *   <li>instanceOfClassName
+   *   <li>instanceOfClassNameExclusive
+   *   <li>instanceOfClassConstant
+   *   <li>instanceOfClassConstantExclusive
    *   <li>extendsClassName
    *   <li>classFromBinding
    * </ul>

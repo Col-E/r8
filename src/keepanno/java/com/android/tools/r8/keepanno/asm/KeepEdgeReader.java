@@ -31,11 +31,11 @@ import com.android.tools.r8.keepanno.ast.KeepDeclaration;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepEdgeMetaInfo;
-import com.android.tools.r8.keepanno.ast.KeepExtendsPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldTypePattern;
+import com.android.tools.r8.keepanno.ast.KeepInstanceOfPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemReference;
 import com.android.tools.r8.keepanno.ast.KeepMemberAccessPattern;
@@ -1139,12 +1139,108 @@ public class KeepEdgeReader implements Opcodes {
     }
   }
 
-  private static class ClassDeclaration extends SingleDeclaration<KeepClassItemReference> {
+  private static class ClassNameDeclaration
+      extends SingleDeclaration<KeepQualifiedClassNamePattern> {
+
+    @Override
+    String kind() {
+      return "class-name";
+    }
+
+    @Override
+    KeepQualifiedClassNamePattern getDefaultValue() {
+      return KeepQualifiedClassNamePattern.any();
+    }
+
+    @Override
+    KeepQualifiedClassNamePattern parse(String name, Object value) {
+      if (name.equals(Item.classConstant) && value instanceof Type) {
+        return KeepQualifiedClassNamePattern.exact(((Type) value).getClassName());
+      }
+      if (name.equals(Item.className) && value instanceof String) {
+        return KeepQualifiedClassNamePattern.exact(((String) value));
+      }
+      return null;
+    }
+  }
+
+  private static class InstanceOfDeclaration extends SingleDeclaration<KeepInstanceOfPattern> {
+
+    @Override
+    String kind() {
+      return "instance-of";
+    }
+
+    @Override
+    KeepInstanceOfPattern getDefaultValue() {
+      return KeepInstanceOfPattern.any();
+    }
+
+    @Override
+    KeepInstanceOfPattern parse(String name, Object value) {
+      if (name.equals(Item.instanceOfClassConstant) && value instanceof Type) {
+        return KeepInstanceOfPattern.builder()
+            .classPattern(KeepQualifiedClassNamePattern.exact(((Type) value).getClassName()))
+            .build();
+      }
+      if (name.equals(Item.instanceOfClassName) && value instanceof String) {
+        return KeepInstanceOfPattern.builder()
+            .classPattern(KeepQualifiedClassNamePattern.exact(((String) value)))
+            .build();
+      }
+      if (name.equals(Item.instanceOfClassConstantExclusive) && value instanceof Type) {
+        return KeepInstanceOfPattern.builder()
+            .classPattern(KeepQualifiedClassNamePattern.exact(((Type) value).getClassName()))
+            .setInclusive(false)
+            .build();
+      }
+      if (name.equals(Item.instanceOfClassNameExclusive) && value instanceof String) {
+        return KeepInstanceOfPattern.builder()
+            .classPattern(KeepQualifiedClassNamePattern.exact(((String) value)))
+            .setInclusive(false)
+            .build();
+      }
+      if (name.equals(Item.extendsClassConstant) && value instanceof Type) {
+        return KeepInstanceOfPattern.builder()
+            .classPattern(KeepQualifiedClassNamePattern.exact(((Type) value).getClassName()))
+            .setInclusive(false)
+            .build();
+      }
+      if (name.equals(Item.extendsClassName) && value instanceof String) {
+        return KeepInstanceOfPattern.builder()
+            .classPattern(KeepQualifiedClassNamePattern.exact(((String) value)))
+            .setInclusive(false)
+            .build();
+      }
+      return null;
+    }
+  }
+
+  private static class ClassDeclaration extends Declaration<KeepClassItemReference> {
 
     private final Supplier<UserBindingsHelper> getBindingsHelper;
 
+    private KeepClassItemReference boundClassItemReference = null;
+    private final ClassNameDeclaration classNameDeclaration = new ClassNameDeclaration();
+    private final InstanceOfDeclaration instanceOfDeclaration = new InstanceOfDeclaration();
+
     public ClassDeclaration(Supplier<UserBindingsHelper> getBindingsHelper) {
       this.getBindingsHelper = getBindingsHelper;
+    }
+
+    private boolean isBindingReferenceDefined() {
+      return boundClassItemReference != null;
+    }
+
+    private boolean classPatternsAreDefined() {
+      return !classNameDeclaration.isDefault() || !instanceOfDeclaration.isDefault();
+    }
+
+    private void checkAllowedDefinitions() {
+      if (isBindingReferenceDefined() && classPatternsAreDefined()) {
+        throw new KeepEdgeException(
+            "Cannot reference a class binding and class patterns for a single class item");
+      }
     }
 
     @Override
@@ -1152,56 +1248,51 @@ public class KeepEdgeReader implements Opcodes {
       return "class";
     }
 
-    KeepClassItemReference wrap(KeepQualifiedClassNamePattern namePattern) {
-      return KeepClassItemReference.fromClassNamePattern(namePattern);
+    @Override
+    boolean isDefault() {
+      return !isBindingReferenceDefined() && !classPatternsAreDefined();
     }
 
     @Override
-    KeepClassItemReference getDefaultValue() {
-      return wrap(KeepQualifiedClassNamePattern.any());
+    KeepClassItemReference getValue() {
+      if (isBindingReferenceDefined()) {
+        return boundClassItemReference;
+      }
+      if (classPatternsAreDefined()) {
+        return KeepClassItemPattern.builder()
+            .setClassNamePattern(classNameDeclaration.getValue())
+            .setInstanceOfPattern(instanceOfDeclaration.getValue())
+            .build()
+            .toClassItemReference();
+      }
+      assert isDefault();
+      return KeepClassItemPattern.any().toClassItemReference();
+    }
+
+    public void setBindingReference(KeepClassItemReference bindingReference) {
+      if (isBindingReferenceDefined()) {
+        throw new KeepEdgeException(
+            "Cannot reference multiple class bindings for a single class item");
+      }
+      this.boundClassItemReference = bindingReference;
     }
 
     @Override
-    KeepClassItemReference parse(String name, Object value) {
+    boolean tryParse(String name, Object value) {
       if (name.equals(Item.classFromBinding) && value instanceof String) {
         KeepBindingSymbol symbol = getBindingsHelper.get().resolveUserBinding((String) value);
-        return KeepBindingReference.forClass(symbol).toClassItemReference();
+        setBindingReference(KeepBindingReference.forClass(symbol).toClassItemReference());
+        return true;
       }
-      if (name.equals(Item.classConstant) && value instanceof Type) {
-        return wrap(KeepQualifiedClassNamePattern.exact(((Type) value).getClassName()));
+      if (classNameDeclaration.tryParse(name, value)) {
+        checkAllowedDefinitions();
+        return true;
       }
-      if (name.equals(Item.className) && value instanceof String) {
-        return wrap(KeepQualifiedClassNamePattern.exact(((String) value)));
+      if (instanceOfDeclaration.tryParse(name, value)) {
+        checkAllowedDefinitions();
+        return true;
       }
-      return null;
-    }
-  }
-
-  private static class ExtendsDeclaration extends SingleDeclaration<KeepExtendsPattern> {
-
-    @Override
-    String kind() {
-      return "extends";
-    }
-
-    @Override
-    KeepExtendsPattern getDefaultValue() {
-      return KeepExtendsPattern.any();
-    }
-
-    @Override
-    KeepExtendsPattern parse(String name, Object value) {
-      if (name.equals(Item.extendsClassConstant) && value instanceof Type) {
-        return KeepExtendsPattern.builder()
-            .classPattern(KeepQualifiedClassNamePattern.exact(((Type) value).getClassName()))
-            .build();
-      }
-      if (name.equals(Item.extendsClassName) && value instanceof String) {
-        return KeepExtendsPattern.builder()
-            .classPattern(KeepQualifiedClassNamePattern.exact(((String) value)))
-            .build();
-      }
-      return null;
+      return false;
     }
   }
 
@@ -1418,7 +1509,6 @@ public class KeepEdgeReader implements Opcodes {
     private String memberBindingReference = null;
     private String kind = null;
     private final ClassDeclaration classDeclaration = new ClassDeclaration(this::getBindingsHelper);
-    private final ExtendsDeclaration extendsDeclaration = new ExtendsDeclaration();
     private final MemberDeclaration memberDeclaration;
 
     public abstract UserBindingsHelper getBindingsHelper();
@@ -1540,7 +1630,6 @@ public class KeepEdgeReader implements Opcodes {
         return;
       }
       if (classDeclaration.tryParse(name, value)
-          || extendsDeclaration.tryParse(name, value)
           || memberDeclaration.tryParse(name, value)) {
         return;
       }
@@ -1559,9 +1648,8 @@ public class KeepEdgeReader implements Opcodes {
     @Override
     public void visitEnd() {
       if (memberBindingReference != null) {
-        if (!classDeclaration.getValue().equals(classDeclaration.getDefaultValue())
+        if (!classDeclaration.isDefault()
             || !memberDeclaration.getValue().isNone()
-            || !extendsDeclaration.getValue().isAny()
             || kind != null) {
           throw new KeepEdgeException(
               "Cannot define an item explicitly and via a member-binding reference");
@@ -1576,17 +1664,6 @@ public class KeepEdgeReader implements Opcodes {
         }
 
         KeepClassItemReference classReference = classDeclaration.getValue();
-        if (classReference.isClassItemPattern()) {
-          // TODO(b/248408342): The parsing of "extends" should be together with name/constant.
-          KeepClassItemPattern classItemPattern = classReference.asClassItemPattern();
-          classReference =
-              KeepClassItemPattern.builder()
-                  .setClassNamePattern(classItemPattern.getClassNamePattern())
-                  .setExtendsPattern(extendsDeclaration.getValue())
-                  .build()
-                  .toClassItemReference();
-        }
-
         if (kind.equals(Kind.ONLY_CLASS)) {
           itemReference = classReference;
         } else {

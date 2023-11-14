@@ -21,13 +21,13 @@ public class KeepClassItemPattern extends KeepItemPattern {
   public static class Builder {
 
     private KeepQualifiedClassNamePattern classNamePattern = KeepQualifiedClassNamePattern.any();
-    private KeepExtendsPattern extendsPattern = KeepExtendsPattern.any();
+    private KeepInstanceOfPattern extendsPattern = KeepInstanceOfPattern.any();
 
     private Builder() {}
 
     public Builder copyFrom(com.android.tools.r8.keepanno.ast.KeepClassItemPattern pattern) {
       return setClassNamePattern(pattern.getClassNamePattern())
-          .setExtendsPattern(pattern.getExtendsPattern());
+          .setInstanceOfPattern(pattern.getExtendsPattern());
     }
 
     public Builder setClassNamePattern(KeepQualifiedClassNamePattern classNamePattern) {
@@ -35,7 +35,7 @@ public class KeepClassItemPattern extends KeepItemPattern {
       return this;
     }
 
-    public Builder setExtendsPattern(KeepExtendsPattern extendsPattern) {
+    public Builder setInstanceOfPattern(KeepInstanceOfPattern extendsPattern) {
       this.extendsPattern = extendsPattern;
       return this;
     }
@@ -47,10 +47,10 @@ public class KeepClassItemPattern extends KeepItemPattern {
   }
 
   private final KeepQualifiedClassNamePattern classNamePattern;
-  private final KeepExtendsPattern extendsPattern;
+  private final KeepInstanceOfPattern extendsPattern;
 
   public KeepClassItemPattern(
-      KeepQualifiedClassNamePattern classNamePattern, KeepExtendsPattern extendsPattern) {
+      KeepQualifiedClassNamePattern classNamePattern, KeepInstanceOfPattern extendsPattern) {
     assert classNamePattern != null;
     assert extendsPattern != null;
     this.classNamePattern = classNamePattern;
@@ -80,7 +80,7 @@ public class KeepClassItemPattern extends KeepItemPattern {
     return classNamePattern;
   }
 
-  public KeepExtendsPattern getExtendsPattern() {
+  public KeepInstanceOfPattern getExtendsPattern() {
     return extendsPattern;
   }
 

@@ -112,6 +112,11 @@ public final class AnnotationConstants {
     public static final String className = "className";
     public static final String classConstant = "classConstant";
 
+    public static final String instanceOfClassName = "instanceOfClassName";
+    public static final String instanceOfClassConstant = "instanceOfClassConstant";
+    public static final String instanceOfClassNameExclusive = "instanceOfClassNameExclusive";
+    public static final String instanceOfClassConstantExclusive =
+        "instanceOfClassConstantExclusive";
     public static final String extendsClassName = "extendsClassName";
     public static final String extendsClassConstant = "extendsClassConstant";
 

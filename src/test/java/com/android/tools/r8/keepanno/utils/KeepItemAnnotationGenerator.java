@@ -368,10 +368,48 @@ public class KeepItemAnnotationGenerator {
           .addDocFooter("<p>If none are specified the default is to match any class name.");
     }
 
+    private GroupMember instanceOfClassName() {
+      return new GroupMember("instanceOfClassName")
+          .setDocTitle(
+              "Define the "
+                  + INSTANCE_OF_GROUP
+                  + " pattern as classes that are instances of the fully qualified class name.")
+          .defaultEmptyString();
+    }
+
+    private GroupMember instanceOfClassConstant() {
+      return new GroupMember("instanceOfClassConstant")
+          .setDocTitle(
+              "Define the "
+                  + INSTANCE_OF_GROUP
+                  + " pattern as classes that are instances the referenced Class constant.")
+          .defaultObjectClass();
+    }
+
     private String getInstanceOfExclusiveDoc() {
       return "<p>The pattern is exclusive in that it does not match classes that are"
           + " instances of the pattern, but only those that are instances of classes that"
           + " are subclasses of the pattern.";
+    }
+
+    private GroupMember instanceOfClassNameExclusive() {
+      return new GroupMember("instanceOfClassNameExclusive")
+          .setDocTitle(
+              "Define the "
+                  + INSTANCE_OF_GROUP
+                  + " pattern as classes that are instances of the fully qualified class name.")
+          .addDoc(getInstanceOfExclusiveDoc())
+          .defaultEmptyString();
+    }
+
+    private GroupMember instanceOfClassConstantExclusive() {
+      return new GroupMember("instanceOfClassConstantExclusive")
+          .setDocTitle(
+              "Define the "
+                  + INSTANCE_OF_GROUP
+                  + " pattern as classes that are instances the referenced Class constant.")
+          .addDoc(getInstanceOfExclusiveDoc())
+          .defaultObjectClass();
     }
 
     private GroupMember extendsClassName() {
@@ -381,6 +419,7 @@ public class KeepItemAnnotationGenerator {
                   + INSTANCE_OF_GROUP
                   + " pattern as classes extending the fully qualified class name.")
           .addDoc(getInstanceOfExclusiveDoc())
+          .addDoc("<p>This property is deprecated, use instanceOfClassName instead.")
           .defaultEmptyString();
     }
 
@@ -391,11 +430,16 @@ public class KeepItemAnnotationGenerator {
                   + INSTANCE_OF_GROUP
                   + " pattern as classes extending the referenced Class constant.")
           .addDoc(getInstanceOfExclusiveDoc())
+          .addDoc("<p>This property is deprecated, use instanceOfClassConstant instead.")
           .defaultObjectClass();
     }
 
     private Group createClassInstanceOfPatternGroup() {
       return new Group(INSTANCE_OF_GROUP)
+          .addMember(instanceOfClassName())
+          .addMember(instanceOfClassNameExclusive())
+          .addMember(instanceOfClassConstant())
+          .addMember(instanceOfClassConstantExclusive())
           .addMember(extendsClassName())
           .addMember(extendsClassConstant())
           .addDocFooter("<p>If none are specified the default is to match any class instance.");
