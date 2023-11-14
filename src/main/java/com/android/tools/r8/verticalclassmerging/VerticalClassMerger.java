@@ -1,7 +1,7 @@
 // Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.shaking;
+package com.android.tools.r8.verticalclassmerging;
 
 import static com.android.tools.r8.dex.Constants.TEMPORARY_INSTANCE_INITIALIZER_PREFIX;
 import static com.android.tools.r8.graph.DexClassAndMethod.asProgramMethodOrNull;
@@ -17,15 +17,12 @@ import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.features.FeatureSplitBoundaryOptimizationUtils;
 import com.android.tools.r8.graph.AccessControl;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DefaultInstanceInitializerCode;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexClassAndField;
-import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -57,9 +54,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
-import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.graph.UseRegistryWithResult;
-import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.graph.fixup.TreeFixerBase;
 import com.android.tools.r8.graph.lens.FieldLookupResult;
 import com.android.tools.r8.graph.lens.GraphLens;
@@ -70,9 +64,11 @@ import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
-import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
-import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
+import com.android.tools.r8.shaking.AnnotationFixer;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepInfoCollection;
+import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
@@ -108,8 +104,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -638,8 +632,8 @@ public class VerticalClassMerger {
     if (!profileCollectionAdditions.isNop()) {
       for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
         profileCollectionAdditions.applyIfContextIsInProfile(
-            lens.getPreviousMethodSignature(synthesizedBridge.method),
-            additionsBuilder -> additionsBuilder.addRule(synthesizedBridge.method));
+            lens.getPreviousMethodSignature(synthesizedBridge.getMethod()),
+            additionsBuilder -> additionsBuilder.addRule(synthesizedBridge.getMethod()));
       }
     }
     profileCollectionAdditions.commit(appView);
@@ -652,9 +646,9 @@ public class VerticalClassMerger {
         mutator -> {
           for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
             ProgramMethod bridge =
-                asProgramMethodOrNull(appView.definitionFor(synthesizedBridge.method));
+                asProgramMethodOrNull(appView.definitionFor(synthesizedBridge.getMethod()));
             ProgramMethod target =
-                asProgramMethodOrNull(appView.definitionFor(synthesizedBridge.invocationTarget));
+                asProgramMethodOrNull(appView.definitionFor(synthesizedBridge.getTarget()));
             if (bridge != null && target != null) {
               mutator.joinMethod(bridge, info -> info.merge(appView.getKeepInfo(target).joiner()));
               continue;
@@ -711,7 +705,7 @@ public class VerticalClassMerger {
           // the two methods map back to the same original method, and that the original method
           // can be mapped to the implementation method.
           DexMethod implementationMethod =
-              ((SynthesizedBridgeCode) encodedMethod.getCode()).invocationTarget;
+              ((SynthesizedBridgeCode) encodedMethod.getCode()).getTarget();
           DexMethod originalImplementationMethod =
               graphLens.getOriginalMethodSignature(implementationMethod);
           assert originalMethod == originalImplementationMethod;
@@ -1998,326 +1992,5 @@ public class VerticalClassMerger {
     public boolean isContextFreeForMethods(GraphLens codeLens) {
       return true;
     }
-  }
-
-  // Searches for a reference to a non-private, non-public class, field or method declared in the
-  // same package as [source].
-  public static class IllegalAccessDetector extends UseRegistryWithResult<Boolean, ProgramMethod> {
-
-    private final AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy;
-
-    public IllegalAccessDetector(
-        AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy,
-        ProgramMethod context) {
-      super(appViewWithClassHierarchy, context, false);
-      this.appViewWithClassHierarchy = appViewWithClassHierarchy;
-    }
-
-    protected boolean checkFoundPackagePrivateAccess() {
-      assert getResult();
-      return true;
-    }
-
-    protected boolean setFoundPackagePrivateAccess() {
-      setResult(true);
-      return true;
-    }
-
-    protected static boolean continueSearchForPackagePrivateAccess() {
-      return false;
-    }
-
-    private boolean checkFieldReference(DexField field) {
-      return checkRewrittenFieldReference(appViewWithClassHierarchy.graphLens().lookupField(field));
-    }
-
-    private boolean checkRewrittenFieldReference(DexField field) {
-      assert field.getHolderType().isClassType();
-      DexType fieldHolder = field.getHolderType();
-      if (fieldHolder.isSamePackage(getContext().getHolderType())) {
-        if (checkRewrittenTypeReference(fieldHolder)) {
-          return checkFoundPackagePrivateAccess();
-        }
-        DexClassAndField resolvedField =
-            appViewWithClassHierarchy.appInfo().resolveField(field).getResolutionPair();
-        if (resolvedField == null) {
-          return setFoundPackagePrivateAccess();
-        }
-        if (resolvedField.getHolder() != getContext().getHolder()
-            && !resolvedField.getAccessFlags().isPublic()) {
-          return setFoundPackagePrivateAccess();
-        }
-        if (checkRewrittenFieldType(resolvedField)) {
-          return checkFoundPackagePrivateAccess();
-        }
-      }
-      return continueSearchForPackagePrivateAccess();
-    }
-
-    protected boolean checkRewrittenFieldType(DexClassAndField field) {
-      return continueSearchForPackagePrivateAccess();
-    }
-
-    private boolean checkRewrittenMethodReference(
-        DexMethod rewrittenMethod, OptionalBool isInterface) {
-      DexType baseType =
-          rewrittenMethod.getHolderType().toBaseType(appViewWithClassHierarchy.dexItemFactory());
-      if (baseType.isClassType() && baseType.isSamePackage(getContext().getHolderType())) {
-        if (checkTypeReference(rewrittenMethod.getHolderType())) {
-          return checkFoundPackagePrivateAccess();
-        }
-        MethodResolutionResult resolutionResult =
-            isInterface.isUnknown()
-                ? appViewWithClassHierarchy
-                    .appInfo()
-                    .unsafeResolveMethodDueToDexFormat(rewrittenMethod)
-                : appViewWithClassHierarchy
-                    .appInfo()
-                    .resolveMethod(rewrittenMethod, isInterface.isTrue());
-        if (!resolutionResult.isSingleResolution()) {
-          return setFoundPackagePrivateAccess();
-        }
-        DexClassAndMethod resolvedMethod =
-            resolutionResult.asSingleResolution().getResolutionPair();
-        if (resolvedMethod.getHolder() != getContext().getHolder()
-            && !resolvedMethod.getAccessFlags().isPublic()) {
-          return setFoundPackagePrivateAccess();
-        }
-      }
-      return continueSearchForPackagePrivateAccess();
-    }
-
-    private boolean checkTypeReference(DexType type) {
-      return internalCheckTypeReference(type, appViewWithClassHierarchy.graphLens());
-    }
-
-    private boolean checkRewrittenTypeReference(DexType type) {
-      return internalCheckTypeReference(type, GraphLens.getIdentityLens());
-    }
-
-    private boolean internalCheckTypeReference(DexType type, GraphLens graphLens) {
-      DexType baseType =
-          graphLens.lookupType(type.toBaseType(appViewWithClassHierarchy.dexItemFactory()));
-      if (baseType.isClassType() && baseType.isSamePackage(getContext().getHolderType())) {
-        DexClass clazz = appViewWithClassHierarchy.definitionFor(baseType);
-        if (clazz == null || !clazz.isPublic()) {
-          return setFoundPackagePrivateAccess();
-        }
-      }
-      return continueSearchForPackagePrivateAccess();
-    }
-
-    @Override
-    public void registerInitClass(DexType clazz) {
-      if (appViewWithClassHierarchy.initClassLens().isFinal()) {
-        // The InitClass lens is always rewritten up until the most recent graph lens, so first map
-        // the class type to the most recent graph lens.
-        DexType rewrittenType = appViewWithClassHierarchy.graphLens().lookupType(clazz);
-        DexField initClassField =
-            appViewWithClassHierarchy.initClassLens().getInitClassField(rewrittenType);
-        checkRewrittenFieldReference(initClassField);
-      } else {
-        checkTypeReference(clazz);
-      }
-    }
-
-    @Override
-    public void registerInvokeVirtual(DexMethod method) {
-      MethodLookupResult lookup =
-          appViewWithClassHierarchy.graphLens().lookupInvokeVirtual(method, getContext());
-      checkRewrittenMethodReference(lookup.getReference(), OptionalBool.FALSE);
-    }
-
-    @Override
-    public void registerInvokeDirect(DexMethod method) {
-      MethodLookupResult lookup =
-          appViewWithClassHierarchy.graphLens().lookupInvokeDirect(method, getContext());
-      checkRewrittenMethodReference(lookup.getReference(), OptionalBool.UNKNOWN);
-    }
-
-    @Override
-    public void registerInvokeStatic(DexMethod method) {
-      MethodLookupResult lookup =
-          appViewWithClassHierarchy.graphLens().lookupInvokeStatic(method, getContext());
-      checkRewrittenMethodReference(lookup.getReference(), OptionalBool.UNKNOWN);
-    }
-
-    @Override
-    public void registerInvokeInterface(DexMethod method) {
-      MethodLookupResult lookup =
-          appViewWithClassHierarchy.graphLens().lookupInvokeInterface(method, getContext());
-      checkRewrittenMethodReference(lookup.getReference(), OptionalBool.TRUE);
-    }
-
-    @Override
-    public void registerInvokeSuper(DexMethod method) {
-      MethodLookupResult lookup =
-          appViewWithClassHierarchy.graphLens().lookupInvokeSuper(method, getContext());
-      checkRewrittenMethodReference(lookup.getReference(), OptionalBool.UNKNOWN);
-    }
-
-    @Override
-    public void registerInstanceFieldWrite(DexField field) {
-      checkFieldReference(field);
-    }
-
-    @Override
-    public void registerInstanceFieldRead(DexField field) {
-      checkFieldReference(field);
-    }
-
-    @Override
-    public void registerNewInstance(DexType type) {
-      checkTypeReference(type);
-    }
-
-    @Override
-    public void registerStaticFieldRead(DexField field) {
-      checkFieldReference(field);
-    }
-
-    @Override
-    public void registerStaticFieldWrite(DexField field) {
-      checkFieldReference(field);
-    }
-
-    @Override
-    public void registerTypeReference(DexType type) {
-      checkTypeReference(type);
-    }
-
-    @Override
-    public void registerInstanceOf(DexType type) {
-      checkTypeReference(type);
-    }
-  }
-
-  public static class InvokeSpecialToDefaultLibraryMethodUseRegistry
-      extends UseRegistryWithResult<Boolean, ProgramMethod> {
-
-    InvokeSpecialToDefaultLibraryMethodUseRegistry(
-        AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
-      super(appView, context, false);
-      assert context.getHolder().isInterface();
-    }
-
-    @Override
-    @SuppressWarnings("ReferenceEquality")
-    public void registerInvokeSpecial(DexMethod method) {
-      ProgramMethod context = getContext();
-      if (method.getHolderType() != context.getHolderType()) {
-        return;
-      }
-
-      DexEncodedMethod definition = context.getHolder().lookupMethod(method);
-      if (definition != null && definition.belongsToVirtualPool()) {
-        setResult(true);
-      }
-    }
-
-    @Override
-    public void registerInitClass(DexType type) {}
-
-    @Override
-    public void registerInvokeDirect(DexMethod method) {}
-
-    @Override
-    public void registerInvokeInterface(DexMethod method) {}
-
-    @Override
-    public void registerInvokeStatic(DexMethod method) {}
-
-    @Override
-    public void registerInvokeSuper(DexMethod method) {}
-
-    @Override
-    public void registerInvokeVirtual(DexMethod method) {}
-
-    @Override
-    public void registerInstanceFieldRead(DexField field) {}
-
-    @Override
-    public void registerInstanceFieldWrite(DexField field) {}
-
-    @Override
-    public void registerStaticFieldRead(DexField field) {}
-
-    @Override
-    public void registerStaticFieldWrite(DexField field) {}
-
-    @Override
-    public void registerTypeReference(DexType type) {}
-  }
-
-  public static class SynthesizedBridgeCode extends AbstractSynthesizedCode {
-
-    private DexMethod method;
-    private DexMethod invocationTarget;
-    private InvokeType type;
-    private final boolean isInterface;
-
-    public SynthesizedBridgeCode(
-        DexMethod method,
-        DexMethod invocationTarget,
-        InvokeType type,
-        boolean isInterface) {
-      this.method = method;
-      this.invocationTarget = invocationTarget;
-      this.type = type;
-      this.isInterface = isInterface;
-    }
-
-    // By the time the synthesized code object is created, vertical class merging still has not
-    // finished. Therefore it is possible that the method signatures `method` and `invocationTarget`
-    // will change as a result of additional class merging operations. To deal with this, the
-    // vertical class merger explicitly invokes this method to update `method` and `invocation-
-    // Target` when vertical class merging has finished.
-    //
-    // Note that, without this step, these method signatures might refer to intermediate signatures
-    // that are only present in the middle of vertical class merging, which means that the graph
-    // lens will not work properly (since the graph lens generated by vertical class merging only
-    // expects to be applied to method signatures from *before* vertical class merging or *after*
-    // vertical class merging).
-    public void updateMethodSignatures(Function<DexMethod, DexMethod> transformer) {
-      method = transformer.apply(method);
-      invocationTarget = transformer.apply(invocationTarget);
-    }
-
-    @Override
-    public SourceCodeProvider getSourceCodeProvider() {
-      ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
-          ForwardMethodSourceCode.builder(method);
-      forwardSourceCodeBuilder
-          .setReceiver(method.holder)
-          .setTargetReceiver(type.isStatic() ? null : method.holder)
-          .setTarget(invocationTarget)
-          .setInvokeType(type)
-          .setIsInterface(isInterface);
-      return forwardSourceCodeBuilder::build;
-    }
-
-    @Override
-    public Consumer<UseRegistry> getRegistryCallback(DexClassAndMethod method) {
-      return registry -> {
-        assert registry.getTraversalContinuation().shouldContinue();
-        switch (type) {
-          case DIRECT:
-            registry.registerInvokeDirect(invocationTarget);
-            break;
-          case STATIC:
-            registry.registerInvokeStatic(invocationTarget);
-            break;
-          case VIRTUAL:
-            registry.registerInvokeVirtual(invocationTarget);
-            break;
-          default:
-            throw new Unreachable("Unexpected invocation type: " + type);
-        }
-      };
-    }
-  }
-
-  public Collection<DexType> getRemovedClasses() {
-    return Collections.unmodifiableCollection(mergedClasses.keySet());
   }
 }
