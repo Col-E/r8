@@ -541,12 +541,6 @@
       }
     },
     {
-      "api_level_below_or_equal": 33,
-      "amend_library_method": [
-        "public java.lang.Object[] java.util.Collection#toArray(java.util.function.IntFunction)"
-      ]
-    },
-    {
       "api_level_below_or_equal": 32,
       "api_level_greater_or_equal": 26,
       "covariant_retarget_method": {

@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser.CONFIGURATION_FORMAT_VERSION_KEY;
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.AMEND_LIBRARY_FIELD_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.AMEND_LIBRARY_METHOD_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.API_GENERIC_TYPES_CONVERSION;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.API_LEVEL_BELOW_OR_EQUAL_KEY;
@@ -172,7 +173,7 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter {
         toJson.put(AMEND_LIBRARY_METHOD_KEY, amendLibraryToString(flags.getAmendLibraryMethod()));
       }
       if (!flags.getAmendLibraryField().isEmpty()) {
-        toJson.put(AMEND_LIBRARY_METHOD_KEY, amendLibraryToString(flags.getAmendLibraryField()));
+        toJson.put(AMEND_LIBRARY_FIELD_KEY, amendLibraryToString(flags.getAmendLibraryField()));
       }
       list.add(toJson);
     }

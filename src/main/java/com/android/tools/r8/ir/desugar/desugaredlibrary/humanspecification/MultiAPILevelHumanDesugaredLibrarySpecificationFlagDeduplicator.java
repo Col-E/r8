@@ -217,7 +217,7 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
       BiConsumer<T, HumanEmulatedInterfaceDescriptor> specific) {
     flags.forEach(
         (k, v) -> {
-          if (otherFlags.get(k) == v) {
+          if (otherFlags.get(k).equals(v)) {
             common.accept(k, v);
           } else {
             specific.accept(k, v);
