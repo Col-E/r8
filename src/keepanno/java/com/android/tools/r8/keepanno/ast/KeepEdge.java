@@ -22,9 +22,11 @@ package com.android.tools.r8.keepanno.ast;
  *   CONTEXT ::= class-descriptor | method-descriptor | field-descriptor
  *   DESCRIPTION ::= string-content
  *
- *   BINDINGS ::= (BINDING_NAME = ITEM_PATTERN)*
- *   BINDING_NAME ::= string-content
- *   BINDING_REFERENCE ::= BINDING_NAME
+ *   BINDINGS ::= (BINDING_SYMBOL = ITEM_PATTERN)*
+ *   BINDING_SYMBOL ::= string-content
+ *   BINDING_REFERENCE ::= CLASS_BINDING_REFERENCE | MEMBER_BINDING_REFERENCE
+ *   CLASS_BINDING_REFERENCE ::= class BINDING_SYMBOL
+ *   MEMBER_BINDING_REFERENCE ::= member BINDING_SYMBOL
  *
  *   PRECONDITIONS ::= always | CONDITION+
  *   CONDITION ::= ITEM_REFERENCE
@@ -34,10 +36,13 @@ package com.android.tools.r8.keepanno.ast;
  *   OPTIONS ::= keep-all | OPTION+
  *   OPTION ::= shrinking | optimizing | obfuscating | access-modification | annotation-removal
  *
- *   ITEM_REFERENCE  ::= BINDING_REFERENCE | ITEM_PATTERN
- *   CLASS_REFERENCE ::= BINDING_REFERENCE | QUALIFIED_CLASS_NAME_PATTERN
+ *   ITEM_REFERENCE  ::= CLASS_ITEM_REFERENCE | MEMBER_ITEM_REFERENCE
+ *   CLASS_ITEM_REFERENCE ::= CLASS_BINDING_REFERENCE | CLASS_ITEM_PATTERN
+ *   MEMBER_ITEM_REFERENCE ::= MEMBER_BINDING_REFERENCE | MEMBER_ITEM_PATTERN
  *
- *   ITEM_PATTERN ::= class CLASS_REFERENCE extends EXTENDS_PATTERN { MEMBER_PATTERN }
+ *   ITEM_PATTERN ::= CLASS_ITEM_PATTERN | MEMBER_ITEM_PATTERN
+ *   CLASS_ITEM_PATTERN ::= class QUALIFIED_CLASS_NAME_PATTERN extends EXTENDS_PATTERN
+ *   MEMBER_ITEM_PATTERN ::= CLASS_ITEM_REFERENCE { MEMBER_PATTERN }
  *
  *   TYPE_PATTERN ::= any | exact type-descriptor
  *   PACKAGE_PATTERN ::= any | exact package-name
@@ -45,7 +50,6 @@ package com.android.tools.r8.keepanno.ast;
  *   QUALIFIED_CLASS_NAME_PATTERN
  *     ::= any
  *       | PACKAGE_PATTERN UNQUALIFIED_CLASS_NAME_PATTERN
- *       | BINDING_REFERENCE
  *
  *   UNQUALIFIED_CLASS_NAME_PATTERN ::= any | exact simple-class-name
  *

@@ -18,9 +18,9 @@ public class KeepBindings {
 
   private static final KeepBindings NONE_INSTANCE = new KeepBindings(Collections.emptyMap());
 
-  private final Map<BindingSymbol, Binding> bindings;
+  private final Map<KeepBindingSymbol, Binding> bindings;
 
-  private KeepBindings(Map<BindingSymbol, Binding> bindings) {
+  private KeepBindings(Map<KeepBindingSymbol, Binding> bindings) {
     assert bindings != null;
     this.bindings = bindings;
   }
@@ -29,7 +29,11 @@ public class KeepBindings {
     return NONE_INSTANCE;
   }
 
-  public Binding get(BindingSymbol bindingReference) {
+  public Binding get(KeepBindingReference bindingReference) {
+    return bindings.get(bindingReference.getName());
+  }
+
+  public Binding get(KeepBindingSymbol bindingReference) {
     return bindings.get(bindingReference);
   }
 
@@ -41,7 +45,7 @@ public class KeepBindings {
     return bindings.isEmpty();
   }
 
-  public void forEach(BiConsumer<BindingSymbol, KeepItemPattern> fn) {
+  public void forEach(BiConsumer<KeepBindingSymbol, KeepItemPattern> fn) {
     bindings.forEach((name, binding) -> fn.accept(name, binding.getItem()));
   }
 
@@ -125,11 +129,11 @@ public class KeepBindings {
     }
   }
 
-  public static class BindingSymbol {
+  public static class KeepBindingSymbol {
     private final String hint;
     private String suffix = "";
 
-    public BindingSymbol(String hint) {
+    public KeepBindingSymbol(String hint) {
       this.hint = hint;
     }
 
@@ -155,24 +159,24 @@ public class KeepBindings {
 
   public static class Builder {
 
-    private final Map<String, BindingSymbol> reserved = new HashMap<>();
-    private final Map<BindingSymbol, KeepItemPattern> bindings = new IdentityHashMap<>();
+    private final Map<String, KeepBindingSymbol> reserved = new HashMap<>();
+    private final Map<KeepBindingSymbol, KeepItemPattern> bindings = new IdentityHashMap<>();
 
-    public BindingSymbol generateFreshSymbol(String hint) {
+    public KeepBindingSymbol generateFreshSymbol(String hint) {
       // Allocate a fresh non-forgeable symbol. The actual name is chosen at build time.
-      return new BindingSymbol(hint);
+      return new KeepBindingSymbol(hint);
     }
 
-    public BindingSymbol create(String name) {
-      BindingSymbol symbol = new BindingSymbol(name);
-      BindingSymbol old = reserved.put(name, symbol);
+    public KeepBindingSymbol create(String name) {
+      KeepBindingSymbol symbol = new KeepBindingSymbol(name);
+      KeepBindingSymbol old = reserved.put(name, symbol);
       if (old != null) {
         throw new KeepEdgeException("Multiple bindings with name '" + name + "'");
       }
       return symbol;
     }
 
-    public Builder addBinding(BindingSymbol symbol, KeepItemPattern itemPattern) {
+    public Builder addBinding(KeepBindingSymbol symbol, KeepItemPattern itemPattern) {
       if (symbol == null || itemPattern == null) {
         throw new KeepEdgeException("Invalid binding of '" + symbol + "'");
       }
@@ -183,25 +187,17 @@ public class KeepBindings {
       return this;
     }
 
-    public BindingSymbol getClassBinding(BindingSymbol bindingSymbol) {
-      KeepItemPattern pattern = bindings.get(bindingSymbol);
-      if (pattern.isClassItemPattern()) {
-        return bindingSymbol;
-      }
-      return pattern.getClassReference().asBindingReference();
-    }
-
     @SuppressWarnings("ReferenceEquality")
     public KeepBindings build() {
       if (bindings.isEmpty()) {
         return NONE_INSTANCE;
       }
-      Map<BindingSymbol, Binding> definitions = new HashMap<>(bindings.size());
-      for (BindingSymbol symbol : bindings.keySet()) {
+      Map<KeepBindingSymbol, Binding> definitions = new HashMap<>(bindings.size());
+      for (KeepBindingSymbol symbol : bindings.keySet()) {
         // The reserved symbols are a subset of all symbols. Those that are not yet reserved denote
         // symbols that must be "unique" in the set of symbols, but that do not have a specific
         // name. Now that all symbols are known we can give each of these a unique name.
-        BindingSymbol defined = reserved.get(symbol.toString());
+        KeepBindingSymbol defined = reserved.get(symbol.toString());
         if (defined != symbol) {
           // For each undefined symbol we try to use the "hint" as its name, if the name is already
           // reserved for another symbol then we search for the first non-reserved name with an
@@ -218,18 +214,20 @@ public class KeepBindings {
       return new KeepBindings(definitions);
     }
 
-    private Binding verifyAndCreateBinding(BindingSymbol bindingDefinitionSymbol) {
+    private Binding verifyAndCreateBinding(KeepBindingSymbol bindingDefinitionSymbol) {
       KeepItemPattern pattern = bindings.get(bindingDefinitionSymbol);
-      for (BindingSymbol bindingReference : pattern.getBindingReferences()) {
+      for (KeepBindingReference bindingReference : pattern.getBindingReferences()) {
         // Currently, it is not possible to define mutually recursive items, so we only need
         // to check against self.
-        if (bindingReference.equals(bindingDefinitionSymbol)) {
+        if (bindingReference.getName().equals(bindingDefinitionSymbol)) {
           throw new KeepEdgeException("Recursive binding for name '" + bindingReference + "'");
         }
-        if (!bindings.containsKey(bindingReference)) {
+        if (!bindings.containsKey(bindingReference.getName())) {
           throw new KeepEdgeException(
-              "Undefined binding for name '"
-                  + bindingReference
+              "Undefined binding for binding '"
+                  + bindingReference.getName()
+                  + "' or type '"
+                  + (bindingReference.isClassType() ? "class" : "member")
                   + "' referenced in binding of '"
                   + bindingDefinitionSymbol
                   + "'");

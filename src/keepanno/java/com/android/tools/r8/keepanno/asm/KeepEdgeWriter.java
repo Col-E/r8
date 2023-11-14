@@ -8,13 +8,14 @@ import com.android.tools.r8.keepanno.ast.AnnotationConstants.Condition;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants.Edge;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants.Item;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants.Target;
-import com.android.tools.r8.keepanno.ast.KeepClassReference;
+import com.android.tools.r8.keepanno.ast.KeepClassItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern.KeepFieldNameExactPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
+import com.android.tools.r8.keepanno.ast.KeepMemberItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepMemberPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern.KeepMethodNameExactPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
@@ -138,21 +139,34 @@ public class KeepEdgeWriter implements Opcodes {
   }
 
   private void writeItem(AnnotationVisitor itemVisitor, KeepItemPattern item) {
-    KeepClassReference classReference = item.getClassReference();
-    if (classReference.isBindingReference()) {
-      throw new Unimplemented();
+    if (item.isClassItemPattern()) {
+      writeClassItem(item.asClassItemPattern(), itemVisitor);
+    } else {
+      writeMemberItem(item.asMemberItemPattern(), itemVisitor);
     }
-    KeepQualifiedClassNamePattern namePattern = classReference.asClassNamePattern();
+  }
+
+  private void writeClassItem(
+      KeepClassItemPattern classItemPattern, AnnotationVisitor itemVisitor) {
+    KeepQualifiedClassNamePattern namePattern = classItemPattern.getClassNamePattern();
     if (namePattern.isExact()) {
       Type typeConstant = Type.getType(namePattern.getExactDescriptor());
       itemVisitor.visit(AnnotationConstants.Item.classConstant, typeConstant);
     } else {
       throw new Unimplemented();
     }
-    if (!item.getExtendsPattern().isAny()) {
+    if (!classItemPattern.getExtendsPattern().isAny()) {
       throw new Unimplemented();
     }
-    writeMember(item.getMemberPattern(), itemVisitor);
+  }
+
+  private void writeMemberItem(
+      KeepMemberItemPattern memberItemPattern, AnnotationVisitor itemVisitor) {
+    if (memberItemPattern.getClassReference().isBindingReference()) {
+      throw new Unimplemented();
+    }
+    writeClassItem(memberItemPattern.getClassReference().asClassItemPattern(), itemVisitor);
+    writeMember(memberItemPattern.getMemberPattern(), itemVisitor);
     itemVisitor.visitEnd();
   }
 

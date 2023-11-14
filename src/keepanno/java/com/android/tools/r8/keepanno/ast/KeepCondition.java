@@ -29,7 +29,7 @@ public final class KeepCondition {
     }
 
     public Builder setItemPattern(KeepItemPattern itemPattern) {
-      return setItemReference(KeepItemReference.fromItemPattern(itemPattern));
+      return setItemReference(itemPattern.toItemReference());
     }
 
     public KeepCondition build() {

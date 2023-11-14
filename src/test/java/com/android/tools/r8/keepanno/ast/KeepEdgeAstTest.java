@@ -8,7 +8,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.keepanno.ast.KeepBindings.BindingSymbol;
+import com.android.tools.r8.keepanno.ast.KeepBindings.KeepBindingSymbol;
 import com.android.tools.r8.keepanno.ast.KeepOptions.KeepOption;
 import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
 import com.android.tools.r8.utils.StringUtils;
@@ -137,7 +137,7 @@ public class KeepEdgeAstTest extends TestBase {
                 KeepConsequences.builder()
                     .addTarget(
                         target(
-                            buildClassItem(CLASS)
+                            buildMemberItem(CLASS)
                                 .setMemberPattern(defaultInitializerPattern())
                                 .build()))
                     .build())
@@ -176,7 +176,7 @@ public class KeepEdgeAstTest extends TestBase {
                     .addTarget(target(classItem(CLASS)))
                     .addTarget(
                         target(
-                            buildClassItem(CLASS)
+                            buildMemberItem(CLASS)
                                 .setMemberPattern(defaultInitializerPattern())
                                 .build()))
                     .build())
@@ -191,22 +191,24 @@ public class KeepEdgeAstTest extends TestBase {
   @Test
   public void testKeepInstanceAndInitIfReferencedWithBinding() {
     KeepBindings.Builder bindings = KeepBindings.builder();
-    BindingSymbol classSymbol = bindings.create("CLASS");
+    KeepBindingSymbol classSymbol = bindings.create("CLASS");
     KeepEdge edge =
         KeepEdge.builder()
             .setBindings(bindings.addBinding(classSymbol, classItem(CLASS)).build())
             .setPreconditions(
                 KeepPreconditions.builder()
                     .addCondition(
-                        KeepCondition.builder().setItemReference(itemBinding(classSymbol)).build())
+                        KeepCondition.builder()
+                            .setItemReference(classItemBinding(classSymbol))
+                            .build())
                     .build())
             .setConsequences(
                 KeepConsequences.builder()
-                    .addTarget(target(itemBinding(classSymbol)))
+                    .addTarget(target(classItemBinding(classSymbol)))
                     .addTarget(
                         target(
-                            KeepItemPattern.builder()
-                                .setClassReference(classBinding(classSymbol))
+                            KeepMemberItemPattern.builder()
+                                .setClassReference(classItemBinding(classSymbol))
                                 .setMemberPattern(defaultInitializerPattern())
                                 .build()))
                     .build())
@@ -221,12 +223,8 @@ public class KeepEdgeAstTest extends TestBase {
         extract(edge));
   }
 
-  private KeepItemReference itemBinding(BindingSymbol bindingName) {
-    return KeepItemReference.fromBindingReference(bindingName);
-  }
-
-  private KeepClassReference classBinding(BindingSymbol bindingName) {
-    return KeepClassReference.fromBindingReference(bindingName);
+  private KeepClassItemReference classItemBinding(KeepBindingSymbol bindingName) {
+    return KeepBindingReference.forClass(bindingName).toClassItemReference();
   }
 
   private KeepTarget target(KeepItemPattern item) {
@@ -241,10 +239,15 @@ public class KeepEdgeAstTest extends TestBase {
     return buildClassItem(typeName).build();
   }
 
-  private KeepItemPattern.Builder buildClassItem(String typeName) {
-    return KeepItemPattern.builder().setClassPattern(KeepQualifiedClassNamePattern.exact(typeName));
+  private KeepClassItemPattern.Builder buildClassItem(String typeName) {
+    return KeepClassItemPattern.builder()
+        .setClassNamePattern(KeepQualifiedClassNamePattern.exact(typeName));
   }
 
+  private KeepMemberItemPattern.Builder buildMemberItem(String typeName) {
+    return KeepMemberItemPattern.builder()
+        .setClassReference(buildClassItem(typeName).build().toClassItemReference());
+  }
 
   private KeepMemberPattern defaultInitializerPattern() {
     return KeepMethodPattern.builder()

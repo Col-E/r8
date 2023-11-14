@@ -4,14 +4,13 @@
 package com.android.tools.r8.keepanno.keeprules;
 
 import com.android.tools.r8.keepanno.ast.AccessVisibility;
-import com.android.tools.r8.keepanno.ast.KeepClassReference;
+import com.android.tools.r8.keepanno.ast.KeepClassItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepEdgeException;
 import com.android.tools.r8.keepanno.ast.KeepEdgeMetaInfo;
 import com.android.tools.r8.keepanno.ast.KeepExtendsPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
-import com.android.tools.r8.keepanno.ast.KeepItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepMemberAccessPattern;
 import com.android.tools.r8.keepanno.ast.KeepMemberPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodAccessPattern;
@@ -90,10 +89,10 @@ public abstract class RulePrintingUtils {
 
   public static StringBuilder printClassHeader(
       StringBuilder builder,
-      KeepItemPattern classPattern,
-      BiConsumer<StringBuilder, KeepClassReference> printClassReference) {
+      KeepClassItemPattern classPattern,
+      BiConsumer<StringBuilder, KeepQualifiedClassNamePattern> printClassName) {
     builder.append("class ");
-    printClassReference.accept(builder, classPattern.getClassReference());
+    printClassName.accept(builder, classPattern.getClassNamePattern());
     KeepExtendsPattern extendsPattern = classPattern.getExtendsPattern();
     if (!extendsPattern.isAny()) {
       builder.append(" extends ");
