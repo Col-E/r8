@@ -209,7 +209,6 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
             });
   }
 
-  @SuppressWarnings("ReferenceEquality")
   private static <T extends DexItem> void deduplicateEmulatedInterfaceFlags(
       Map<T, HumanEmulatedInterfaceDescriptor> flags,
       Map<T, HumanEmulatedInterfaceDescriptor> otherFlags,
