@@ -7,7 +7,6 @@ package com.android.tools.r8.keepanno.utils;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.cfmethodgeneration.CodeGenerationBase;
-import com.android.tools.r8.examples.sync.Sync.Consumer;
 import com.android.tools.r8.keepanno.annotations.CheckOptimizedOut;
 import com.android.tools.r8.keepanno.annotations.CheckRemoved;
 import com.android.tools.r8.keepanno.annotations.FieldAccessFlags;
@@ -39,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class KeepItemAnnotationGenerator {
 
@@ -940,9 +940,9 @@ public class KeepItemAnnotationGenerator {
     }
 
     private void generateAnnotationConstants(Class<?> clazz) {
-      String name = clazz.getName();
+      String name = simpleName(clazz);
       String desc = TestBase.descriptor(clazz);
-      println("public static final Class<" + name + "> CLASS = " + name + ".class;");
+      println("public static final String SIMPLE_NAME = " + quote(name) + ";");
       println("public static final String DESCRIPTOR = " + quote(desc) + ";");
     }
 

@@ -452,7 +452,7 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public String getAnnotationName() {
-      return ForApi.CLASS.getSimpleName();
+      return ForApi.SIMPLE_NAME;
     }
 
     @Override
@@ -554,7 +554,7 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public String getAnnotationName() {
-      return ForApi.CLASS.getSimpleName();
+      return ForApi.SIMPLE_NAME;
     }
 
     @Override
@@ -811,7 +811,7 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public String getAnnotationName() {
-      return UsesReflection.CLASS.getSimpleName();
+      return UsesReflection.SIMPLE_NAME;
     }
 
     @Override
@@ -1673,7 +1673,7 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public String getAnnotationName() {
-      return Binding.CLASS.getSimpleName();
+      return Binding.SIMPLE_NAME;
     }
 
     @Override
@@ -1797,7 +1797,7 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public String getAnnotationName() {
-      return Target.CLASS.getSimpleName();
+      return Target.SIMPLE_NAME;
     }
 
     @Override
@@ -1835,7 +1835,7 @@ public class KeepEdgeReader implements Opcodes {
 
     @Override
     public String getAnnotationName() {
-      return Condition.CLASS.getSimpleName();
+      return Condition.SIMPLE_NAME;
     }
 
     @Override
