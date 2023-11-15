@@ -1118,14 +1118,12 @@ public class ClassFileTransformer {
               if (object instanceof String) {
                 local[i] = rewriteASMInternalTypeName((String) object);
               }
-              i++;
             }
             for (int i = 0; i < numStack; i++) {
               Object object = stack[i];
               if (object instanceof String) {
                 stack[i] = rewriteASMInternalTypeName((String) object);
               }
-              i++;
             }
             super.visitFrame(type, numLocal, local, numStack, stack);
           }
