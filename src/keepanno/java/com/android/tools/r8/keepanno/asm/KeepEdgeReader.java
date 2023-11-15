@@ -496,7 +496,7 @@ public class KeepEdgeReader implements Opcodes {
           assert item.isMemberItemReference();
           classItemPattern = item.asMemberItemPattern().getClassReference().asClassItemPattern();
         }
-        String descriptor = AnnotationConstants.getDescriptorFromClassTypeName(className);
+        String descriptor = KeepEdgeReaderUtils.getDescriptorFromClassTypeName(className);
         String itemDescriptor = classItemPattern.getClassNamePattern().getExactDescriptor();
         if (!descriptor.equals(itemDescriptor)) {
           throw new KeepEdgeException("@KeepForApi must reference its class context " + className);
@@ -674,7 +674,7 @@ public class KeepEdgeReader implements Opcodes {
             itemPattern.isClassItemPattern()
                 ? itemPattern.asClassItemPattern()
                 : itemPattern.asMemberItemPattern().getClassReference().asClassItemPattern();
-        String descriptor = AnnotationConstants.getDescriptorFromClassTypeName(className);
+        String descriptor = KeepEdgeReaderUtils.getDescriptorFromClassTypeName(className);
         String itemDescriptor = holderPattern.getClassNamePattern().getExactDescriptor();
         if (!descriptor.equals(itemDescriptor)) {
           throw new KeepEdgeException(

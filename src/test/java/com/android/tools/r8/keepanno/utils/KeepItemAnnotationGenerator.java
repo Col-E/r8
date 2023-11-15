@@ -4,10 +4,25 @@
 
 package com.android.tools.r8.keepanno.utils;
 
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.cfmethodgeneration.CodeGenerationBase;
 import com.android.tools.r8.examples.sync.Sync.Consumer;
+import com.android.tools.r8.keepanno.annotations.CheckOptimizedOut;
+import com.android.tools.r8.keepanno.annotations.CheckRemoved;
+import com.android.tools.r8.keepanno.annotations.FieldAccessFlags;
+import com.android.tools.r8.keepanno.annotations.KeepBinding;
+import com.android.tools.r8.keepanno.annotations.KeepCondition;
+import com.android.tools.r8.keepanno.annotations.KeepEdge;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.keepanno.annotations.KeepItemKind;
+import com.android.tools.r8.keepanno.annotations.KeepOption;
+import com.android.tools.r8.keepanno.annotations.KeepTarget;
+import com.android.tools.r8.keepanno.annotations.MemberAccessFlags;
+import com.android.tools.r8.keepanno.annotations.MethodAccessFlags;
+import com.android.tools.r8.keepanno.annotations.UsedByNative;
+import com.android.tools.r8.keepanno.annotations.UsedByReflection;
+import com.android.tools.r8.keepanno.annotations.UsesReflection;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayOutputStream;
@@ -36,6 +51,10 @@ public class KeepItemAnnotationGenerator {
     return "\"" + str + "\"";
   }
 
+  private static String simpleName(Class<?> clazz) {
+    return clazz.getSimpleName();
+  }
+
   private static class GroupMember {
 
     final String name;
@@ -49,17 +68,22 @@ public class KeepItemAnnotationGenerator {
     }
 
     void generate(Generator generator) {
-      List<String> doc = new ArrayList<>();
+      assert docLines.isEmpty() || docTitle != null;
       if (docTitle != null) {
+        List<String> doc = new ArrayList<>();
         doc.add(docTitle);
+        doc.addAll(docLines);
+        generator.printDocString(doc.toArray(new String[0]));
       }
-      doc.addAll(docLines);
-      generator.printDocString(doc.toArray(new String[0]));
       if (valueDefault == null) {
         generator.println(valueType + " " + name + "();");
       } else {
         generator.println(valueType + " " + name + "() default " + valueDefault + ";");
       }
+    }
+
+    public void generateConstants(Generator generator) {
+      generator.println("public static final String " + name + " = " + quote(name) + ";");
     }
 
     public GroupMember clearDocLines() {
@@ -94,9 +118,24 @@ public class KeepItemAnnotationGenerator {
       return this;
     }
 
+    public GroupMember requiredStringValue() {
+      assert valueDefault == null;
+      return defaultType("String");
+    }
+
     public GroupMember requiredValueOfType(String type) {
       assert valueDefault == null;
       return defaultType(type);
+    }
+
+    public GroupMember requiredValueOfType(Class<?> type) {
+      assert valueDefault == null;
+      return defaultType(simpleName(type));
+    }
+
+    public GroupMember requiredValueOfArrayType(Class<?> type) {
+      assert valueDefault == null;
+      return defaultType(simpleName(type) + "[]");
     }
 
     public GroupMember defaultType(String type) {
@@ -117,8 +156,12 @@ public class KeepItemAnnotationGenerator {
       return defaultType("Class<?>").defaultValue("Object.class");
     }
 
-    public GroupMember defaultEmptyList(String valueType) {
+    public GroupMember defaultEmptyArray(String valueType) {
       return defaultType(valueType + "[]").defaultValue("{}");
+    }
+
+    public GroupMember defaultEmptyArray(Class<?> type) {
+      return defaultEmptyArray(simpleName(type));
     }
   }
 
@@ -180,6 +223,12 @@ public class KeepItemAnnotationGenerator {
       }
     }
 
+    void generateConstants(Generator generator) {
+      for (GroupMember member : members) {
+        member.generateConstants(generator);
+      }
+    }
+
     public void addMutuallyExclusiveGroups(Group... groups) {
       for (Group group : groups) {
         mutuallyExclusiveGroups.computeIfAbsent(
@@ -195,7 +244,7 @@ public class KeepItemAnnotationGenerator {
 
   private static class Generator {
 
-    private static final List<Class<?>> IMPORTS =
+    private static final List<Class<?>> ANNOTATION_IMPORTS =
         ImmutableList.of(ElementType.class, Retention.class, RetentionPolicy.class, Target.class);
 
     private final PrintStream writer;
@@ -246,13 +295,17 @@ public class KeepItemAnnotationGenerator {
               year, KeepItemAnnotationGenerator.class.getSimpleName()));
     }
 
-    private void printPackage() {
-      println("package com.android.tools.r8.keepanno.annotations;");
+    private void printPackage(String pkg) {
+      println("package com.android.tools.r8.keepanno." + pkg + ";");
       println();
     }
 
-    private void printImports() {
-      for (Class<?> clazz : IMPORTS) {
+    private void printImports(Class<?>... imports) {
+      printImports(Arrays.asList(imports));
+    }
+
+    private void printImports(List<Class<?>> imports) {
+      for (Class<?> clazz : imports) {
         println("import " + clazz.getCanonicalName() + ";");
       }
       println();
@@ -272,6 +325,11 @@ public class KeepItemAnnotationGenerator {
                   .defaultEmptyString());
     }
 
+    private Group createBindingsGroup() {
+      return new Group("bindings")
+          .addMember(new GroupMember("bindings").defaultEmptyArray(KeepBinding.class));
+    }
+
     private Group createPreconditionsGroup() {
       return new Group("preconditions")
           .addMember(
@@ -279,7 +337,32 @@ public class KeepItemAnnotationGenerator {
                   .setDocTitle(
                       "Conditions that should be satisfied for the annotation to be in effect.")
                   .addDoc("<p>Defaults to no conditions, thus trivially/unconditionally satisfied.")
-                  .defaultEmptyList("KeepCondition"));
+                  .defaultEmptyArray(KeepCondition.class));
+    }
+
+    private Group createConsequencesGroup() {
+      return new Group("consequences")
+          .addMember(
+              new GroupMember("consequences")
+                  .setDocTitle("Consequences that must be kept if the annotation is in effect.")
+                  .requiredValueOfArrayType(KeepTarget.class));
+    }
+
+    private Group createConsequencesAsValueGroup() {
+      return new Group("consequences")
+          .addMember(
+              new GroupMember("value")
+                  .setDocTitle("Targets that must be kept if the annotation is in effect.")
+                  .requiredValueOfArrayType(KeepTarget.class));
+    }
+
+    private Group createAdditionalPreconditionsGroup() {
+      return new Group("additional-preconditions")
+          .addMember(
+              new GroupMember("additionalPreconditions")
+                  .setDocTitle("Additional preconditions for the annotation to be in effect.")
+                  .addDoc("<p>Defaults to no additional preconditions.")
+                  .defaultEmptyArray("KeepTarget"));
     }
 
     private Group createAdditionalTargetsGroup(String docTitle) {
@@ -288,7 +371,7 @@ public class KeepItemAnnotationGenerator {
               new GroupMember("additionalTargets")
                   .setDocTitle(docTitle)
                   .addDoc("<p>Defaults to no additional targets.")
-                  .defaultEmptyList("KeepTarget"));
+                  .defaultEmptyArray("KeepTarget"));
     }
 
     private Group getKindGroup() {
@@ -320,12 +403,12 @@ public class KeepItemAnnotationGenerator {
                       "Define the "
                           + OPTIONS_GROUP
                           + " that do not need to be preserved for the target.")
-                  .defaultEmptyList("KeepOption"))
+                  .defaultEmptyArray("KeepOption"))
           .addMember(
               new GroupMember("disallow")
                   .setDocTitle(
                       "Define the " + OPTIONS_GROUP + " that *must* be preserved for the target.")
-                  .defaultEmptyList("KeepOption"))
+                  .defaultEmptyArray("KeepOption"))
           .addDocFooter(
               "<p>If nothing is specified for "
                   + OPTIONS_GROUP
@@ -334,6 +417,14 @@ public class KeepItemAnnotationGenerator {
                   + " / "
                   + quote("disallow all")
                   + ".");
+    }
+
+    private GroupMember bindingName() {
+      return new GroupMember("bindingName")
+          .setDocTitle(
+              "Name with which other bindings, conditions or targets "
+                  + "can reference the bound item pattern.")
+          .requiredStringValue();
     }
 
     private GroupMember classFromBinding() {
@@ -465,7 +556,7 @@ public class KeepItemAnnotationGenerator {
                   .addDoc(
                       "<p>Mutually exclusive with all field and method properties",
                       "as use restricts the match to both types of members.")
-                  .defaultEmptyList("MemberAccessFlags"));
+                  .defaultEmptyArray("MemberAccessFlags"));
     }
 
     private String getMutuallyExclusiveForMethodProperties() {
@@ -495,7 +586,7 @@ public class KeepItemAnnotationGenerator {
                   .setDocTitle("Define the method-access pattern by matching on access flags.")
                   .addDoc(getMutuallyExclusiveForMethodProperties())
                   .addDoc(getMethodDefaultDoc("any method-access flags"))
-                  .defaultEmptyList("MethodAccessFlags"));
+                  .defaultEmptyArray("MethodAccessFlags"));
     }
 
     private Group createMethodNameGroup() {
@@ -527,7 +618,7 @@ public class KeepItemAnnotationGenerator {
                       "Define the method parameters pattern by a list of fully qualified types.")
                   .addDoc(getMutuallyExclusiveForMethodProperties())
                   .addDoc(getMethodDefaultDoc("any parameters"))
-                  .defaultEmptyList("String"));
+                  .defaultEmptyArray("String"));
     }
 
     private Group createFieldAccessGroup() {
@@ -537,7 +628,7 @@ public class KeepItemAnnotationGenerator {
                   .setDocTitle("Define the field-access pattern by matching on access flags.")
                   .addDoc(getMutuallyExclusiveForFieldProperties())
                   .addDoc(getFieldDefaultDoc("any field-access flags"))
-                  .defaultEmptyList("FieldAccessFlags"));
+                  .defaultEmptyArray("FieldAccessFlags"));
     }
 
     private Group createFieldNameGroup() {
@@ -619,8 +710,8 @@ public class KeepItemAnnotationGenerator {
 
     private void generateKeepBinding() {
       printCopyRight(2022);
-      printPackage();
-      printImports();
+      printPackage("annotations");
+      printImports(ANNOTATION_IMPORTS);
       printDocString(
           "A binding of a keep item.",
           "<p>Bindings allow referencing the exact instance of a match from a condition in other "
@@ -655,8 +746,8 @@ public class KeepItemAnnotationGenerator {
 
     private void generateKeepTarget() {
       printCopyRight(2022);
-      printPackage();
-      printImports();
+      printPackage("annotations");
+      printImports(ANNOTATION_IMPORTS);
       printDocString(
           "A target for a keep edge.",
           "<p>The target denotes an item along with options for what to keep. An item can be:",
@@ -683,8 +774,8 @@ public class KeepItemAnnotationGenerator {
 
     private void generateKeepCondition() {
       printCopyRight(2022);
-      printPackage();
-      printImports();
+      printPackage("annotations");
+      printImports(ANNOTATION_IMPORTS);
       printDocString(
           "A condition for a keep edge.",
           "<p>The condition denotes an item used as a precondition of a rule. An item can be:",
@@ -707,8 +798,8 @@ public class KeepItemAnnotationGenerator {
 
     private void generateKeepForApi() {
       printCopyRight(2023);
-      printPackage();
-      printImports();
+      printPackage("annotations");
+      printImports(ANNOTATION_IMPORTS);
       printDocString(
           "Annotation to mark a class, field or method as part of a library API surface.",
           "<p>When a class is annotated, member patterns can be used to define which members are to"
@@ -757,8 +848,8 @@ public class KeepItemAnnotationGenerator {
 
     private void generateUsedByX(String annotationClassName, String doc) {
       printCopyRight(2023);
-      printPackage();
-      printImports();
+      printPackage("annotations");
+      printImports(ANNOTATION_IMPORTS);
       printDocString(
           "Annotation to mark a class, field or method as being " + doc + ".",
           "<p>Note: Before using this annotation, consider if instead you can annotate the code"
@@ -814,6 +905,289 @@ public class KeepItemAnnotationGenerator {
       return "{@link KeepItemKind#" + kind.name() + "}";
     }
 
+    private void generateConstants() {
+      printCopyRight(2023);
+      printPackage("ast");
+      printImports();
+      printDocString(
+          "Utility class for referencing the various keep annotations and their structure.",
+          "<p>Use of these references avoids polluting the Java namespace with imports of the java "
+              + "annotations which overlap in name with the actual semantic AST types.");
+      println("public final class AnnotationConstants {");
+      withIndent(
+          () -> {
+            // Root annotations.
+            generateKeepEdgeConstants();
+            generateKeepForApiConstants();
+            generateUsesReflectionConstants();
+            generateUsedByReflectionConstants();
+            generateUsedByNativeConstants();
+            generateCheckRemovedConstants();
+            generateCheckOptimizedOutConstants();
+            // Common item fields.
+            generateItemConstants();
+            // Inner annotation classes.
+            generateBindingConstants();
+            generateConditionConstants();
+            generateTargetConstants();
+            generateKindConstants();
+            generateOptionConstants();
+            generateMemberAccessConstants();
+            generateMethodAccessConstants();
+            generateFieldAccessConstants();
+          });
+      println("}");
+    }
+
+    private void generateAnnotationConstants(Class<?> clazz) {
+      String name = clazz.getName();
+      String desc = TestBase.descriptor(clazz);
+      println("public static final Class<" + name + "> CLASS = " + name + ".class;");
+      println("public static final String DESCRIPTOR = " + quote(desc) + ";");
+    }
+
+    private void generateKeepEdgeConstants() {
+      println("public static final class Edge {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(KeepEdge.class);
+            createDescriptionGroup().generateConstants(this);
+            createBindingsGroup().generateConstants(this);
+            createPreconditionsGroup().generateConstants(this);
+            createConsequencesGroup().generateConstants(this);
+          });
+      println("}");
+      println();
+    }
+
+    private void generateKeepForApiConstants() {
+      println("public static final class ForApi {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(KeepForApi.class);
+            createDescriptionGroup().generateConstants(this);
+            createAdditionalTargetsGroup(".").generateConstants(this);
+            createMemberAccessGroup().generateConstants(this);
+          });
+      println("}");
+      println();
+    }
+
+    private void generateUsesReflectionConstants() {
+      println("public static final class UsesReflection {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(UsesReflection.class);
+            createDescriptionGroup().generateConstants(this);
+            createConsequencesAsValueGroup().generateConstants(this);
+            createAdditionalPreconditionsGroup().generateConstants(this);
+          });
+      println("}");
+      println();
+    }
+
+    private void generateUsedByReflectionConstants() {
+      println("public static final class UsedByReflection {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(UsedByReflection.class);
+            createDescriptionGroup().generateConstants(this);
+            createPreconditionsGroup().generateConstants(this);
+            createAdditionalTargetsGroup(".").generateConstants(this);
+          });
+      println("}");
+      println();
+    }
+
+    private void generateUsedByNativeConstants() {
+      println("public static final class UsedByNative {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(UsedByNative.class);
+            println("// Content is the same as " + simpleName(UsedByReflection.class) + ".");
+          });
+      println("}");
+      println();
+    }
+
+    private void generateCheckRemovedConstants() {
+      println("public static final class CheckRemoved {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(CheckRemoved.class);
+          });
+      println("}");
+      println();
+    }
+
+    private void generateCheckOptimizedOutConstants() {
+      println("public static final class CheckOptimizedOut {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(CheckOptimizedOut.class);
+          });
+      println("}");
+      println();
+    }
+
+    private void generateItemConstants() {
+      printDocString("Item properties common to binding items, conditions and targets.");
+      println("public static final class Item {");
+      withIndent(
+          () -> {
+            // Bindings.
+            createClassBindingGroup().generateConstants(this);
+            createMemberBindingGroup().generateConstants(this);
+            // Classes.
+            createClassNamePatternGroup().generateConstants(this);
+            createClassInstanceOfPatternGroup().generateConstants(this);
+            // Members.
+            createMemberAccessGroup().generateConstants(this);
+            // Methods.
+            createMethodAccessGroup().generateConstants(this);
+            createMethodNameGroup().generateConstants(this);
+            createMethodReturnTypeGroup().generateConstants(this);
+            createMethodParametersGroup().generateConstants(this);
+            // Fields.
+            createFieldAccessGroup().generateConstants(this);
+            createFieldNameGroup().generateConstants(this);
+            createFieldTypeGroup().generateConstants(this);
+          });
+      println("}");
+      println();
+    }
+
+    private void generateBindingConstants() {
+      println("public static final class Binding {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(KeepBinding.class);
+            bindingName().generateConstants(this);
+          });
+      println("}");
+      println();
+    }
+
+    private void generateConditionConstants() {
+      println("public static final class Condition {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(KeepCondition.class);
+          });
+      println("}");
+      println();
+    }
+
+    private void generateTargetConstants() {
+      println("public static final class Target {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(KeepTarget.class);
+            getKindGroup().generateConstants(this);
+            getKeepOptionsGroup().generateConstants(this);
+          });
+      println("}");
+      println();
+    }
+
+    private void generateKindConstants() {
+      println("public static final class Kind {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(KeepItemKind.class);
+            for (KeepItemKind value : KeepItemKind.values()) {
+              if (value != KeepItemKind.DEFAULT) {
+                println(
+                    "public static final String "
+                        + value.name()
+                        + " = "
+                        + quote(value.name())
+                        + ";");
+              }
+            }
+          });
+      println("}");
+      println();
+    }
+
+    private void generateOptionConstants() {
+      println("public static final class Option {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(KeepOption.class);
+            for (KeepOption value : KeepOption.values()) {
+              println(
+                  "public static final String " + value.name() + " = " + quote(value.name()) + ";");
+            }
+          });
+      println("}");
+      println();
+    }
+
+    private boolean isMemberAccessProperty(String name) {
+      for (MemberAccessFlags value : MemberAccessFlags.values()) {
+        if (value.name().equals(name)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    private void generateMemberAccessConstants() {
+      println("public static final class MemberAccess {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(MemberAccessFlags.class);
+            println("public static final String NEGATION_PREFIX = \"NON_\";");
+            for (MemberAccessFlags value : MemberAccessFlags.values()) {
+              if (!value.name().startsWith("NON_")) {
+                println(
+                    "public static final String "
+                        + value.name()
+                        + " = "
+                        + quote(value.name())
+                        + ";");
+              }
+            }
+          });
+      println("}");
+      println();
+    }
+
+    private void generateMethodAccessConstants() {
+      println("public static final class MethodAccess {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(MethodAccessFlags.class);
+            for (MethodAccessFlags value : MethodAccessFlags.values()) {
+              if (value.name().startsWith("NON_") || isMemberAccessProperty(value.name())) {
+                continue;
+              }
+              println(
+                  "public static final String " + value.name() + " = " + quote(value.name()) + ";");
+            }
+          });
+      println("}");
+      println();
+    }
+
+    private void generateFieldAccessConstants() {
+      println("public static final class FieldAccess {");
+      withIndent(
+          () -> {
+            generateAnnotationConstants(FieldAccessFlags.class);
+            for (FieldAccessFlags value : FieldAccessFlags.values()) {
+              if (value.name().startsWith("NON_") || isMemberAccessProperty(value.name())) {
+                continue;
+              }
+              println(
+                  "public static final String " + value.name() + " = " + quote(value.name()) + ";");
+            }
+          });
+      println("}");
+      println();
+    }
+
     private static void writeFile(Path file, Consumer<Generator> fn) throws IOException {
       ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
       PrintStream printStream = new PrintStream(byteStream);
@@ -824,16 +1198,21 @@ public class KeepItemAnnotationGenerator {
     }
 
     public static void run() throws IOException {
-      Path dir = Paths.get("src/keepanno/java/com/android/tools/r8/keepanno/annotations");
-      writeFile(dir.resolve("KeepBinding.java"), Generator::generateKeepBinding);
-      writeFile(dir.resolve("KeepTarget.java"), Generator::generateKeepTarget);
-      writeFile(dir.resolve("KeepCondition.java"), Generator::generateKeepCondition);
-      writeFile(dir.resolve("KeepForApi.java"), Generator::generateKeepForApi);
+      Path keepAnnoRoot = Paths.get("src/keepanno/java/com/android/tools/r8/keepanno");
+
+      Path astPkg = keepAnnoRoot.resolve("ast");
+      writeFile(astPkg.resolve("AnnotationConstants.java"), Generator::generateConstants);
+
+      Path annoPkg = Paths.get("src/keepanno/java/com/android/tools/r8/keepanno/annotations");
+      writeFile(annoPkg.resolve("KeepBinding.java"), Generator::generateKeepBinding);
+      writeFile(annoPkg.resolve("KeepTarget.java"), Generator::generateKeepTarget);
+      writeFile(annoPkg.resolve("KeepCondition.java"), Generator::generateKeepCondition);
+      writeFile(annoPkg.resolve("KeepForApi.java"), Generator::generateKeepForApi);
       writeFile(
-          dir.resolve("UsedByReflection.java"),
+          annoPkg.resolve("UsedByReflection.java"),
           g -> g.generateUsedByX("UsedByReflection", "accessed reflectively"));
       writeFile(
-          dir.resolve("UsedByNative.java"),
+          annoPkg.resolve("UsedByNative.java"),
           g -> g.generateUsedByX("UsedByNative", "accessed from native code via JNI"));
     }
   }
