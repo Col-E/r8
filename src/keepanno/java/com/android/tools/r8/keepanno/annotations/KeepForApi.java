@@ -95,7 +95,7 @@ public @interface KeepForApi {
    * <p>If none, and other properties define this item as a method, the default matches any
    * parameters.
    */
-  String[] methodParameters() default {};
+  String[] methodParameters() default {"<default>"};
 
   /**
    * Define the field-access pattern by matching on access flags.

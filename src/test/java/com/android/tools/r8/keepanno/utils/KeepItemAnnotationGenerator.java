@@ -618,7 +618,8 @@ public class KeepItemAnnotationGenerator {
                       "Define the method parameters pattern by a list of fully qualified types.")
                   .addDoc(getMutuallyExclusiveForMethodProperties())
                   .addDoc(getMethodDefaultDoc("any parameters"))
-                  .defaultEmptyArray("String"));
+                  .defaultType("String[]")
+                  .defaultValue("{\"<default>\"}"));
     }
 
     private Group createFieldAccessGroup() {
