@@ -9,8 +9,8 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.desugar.LambdaDescriptor.isLambdaMetafactoryMethod;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
-import com.android.tools.r8.dex.code.CfOrDexInstruction;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicyWithPreprocessing;
 import com.android.tools.r8.horizontalclassmerging.policies.deadlock.SingleCallerInformation;
@@ -39,7 +38,6 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -408,7 +406,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
       return true;
     }
 
-    class TracerUseRegistry extends UseRegistry<ProgramMethod> {
+    class TracerUseRegistry extends DefaultUseRegistry<ProgramMethod> {
 
       TracerUseRegistry(ProgramMethod context) {
         super(appView(), context);
@@ -570,50 +568,12 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
       }
 
       @Override
-      public void registerTypeReference(DexType type) {
-        // Intentionally empty, new-array etc. does not trigger any class initialization.
-      }
-
-      @Override
       public void registerCallSite(DexCallSite callSite) {
         if (isLambdaMetafactoryMethod(callSite, appView().appInfo())) {
           // Use of lambda metafactory does not trigger any class initialization.
         } else {
           fail();
         }
-      }
-
-      @Override
-      public void registerCheckCast(DexType type, boolean ignoreCompatRules) {
-        // Intentionally empty, does not trigger any class initialization.
-      }
-
-      @Override
-      public void registerConstClass(
-          DexType type,
-          ListIterator<? extends CfOrDexInstruction> iterator,
-          boolean ignoreCompatRules) {
-        // Intentionally empty, does not trigger any class initialization.
-      }
-
-      @Override
-      public void registerInstanceFieldRead(DexField field) {
-        // Intentionally empty, does not trigger any class initialization.
-      }
-
-      @Override
-      public void registerInstanceFieldWrite(DexField field) {
-        // Intentionally empty, does not trigger any class initialization.
-      }
-
-      @Override
-      public void registerInstanceOf(DexType type) {
-        // Intentionally empty, does not trigger any class initialization.
-      }
-
-      @Override
-      public void registerExceptionGuard(DexType guard) {
-        // Intentionally empty, does not trigger any class initialization.
       }
     }
   }

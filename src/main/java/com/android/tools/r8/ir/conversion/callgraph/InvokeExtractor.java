@@ -7,16 +7,14 @@ package com.android.tools.r8.ir.conversion.callgraph;
 import static com.android.tools.r8.graph.DexClassAndMethod.asProgramMethodOrNull;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -25,7 +23,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramMethod> {
+public class InvokeExtractor<N extends NodeBase<N>> extends DefaultUseRegistry<ProgramMethod> {
 
   protected final AppView<AppInfoWithLiveness> appViewWithLiveness;
   protected final N currentMethod;
@@ -199,35 +197,5 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
   @Override
   public void registerInvokeVirtual(DexMethod method) {
     processInvoke(InvokeType.VIRTUAL, method);
-  }
-
-  @Override
-  public void registerInitClass(DexType type) {
-    // Intentionally empty. This use registry is only tracing method calls.
-  }
-
-  @Override
-  public void registerInstanceFieldRead(DexField field) {
-    // Intentionally empty. This use registry is only tracing method calls.
-  }
-
-  @Override
-  public void registerInstanceFieldWrite(DexField field) {
-    // Intentionally empty. This use registry is only tracing method calls.
-  }
-
-  @Override
-  public void registerStaticFieldRead(DexField field) {
-    // Intentionally empty. This use registry is only tracing method calls.
-  }
-
-  @Override
-  public void registerStaticFieldWrite(DexField field) {
-    // Intentionally empty. This use registry is only tracing method calls.
-  }
-
-  @Override
-  public void registerTypeReference(DexType type) {
-    // Intentionally empty. This use registry is only tracing method calls.
   }
 }

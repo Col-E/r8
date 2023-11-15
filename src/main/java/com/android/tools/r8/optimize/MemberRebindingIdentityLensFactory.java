@@ -7,17 +7,16 @@ package com.android.tools.r8.optimize;
 import com.android.tools.r8.graph.AbstractAccessContexts.ConcreteAccessContexts;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -101,7 +100,8 @@ public class MemberRebindingIdentityLensFactory {
         executorService);
   }
 
-  private static class NonReboundMemberReferencesRegistry extends UseRegistry<ProgramMethod> {
+  private static class NonReboundMemberReferencesRegistry
+      extends DefaultUseRegistry<ProgramMethod> {
 
     private final AppInfoWithClassHierarchy appInfo;
     private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection;
@@ -231,26 +231,6 @@ public class MemberRebindingIdentityLensFactory {
       // For the purpose of member rebinding, we don't care about the access contexts, so we
       // simply use the empty set.
       invokes.put(method, ProgramMethodSet.empty());
-    }
-
-    @Override
-    public void registerInitClass(DexType type) {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void registerNewInstance(DexType type) {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void registerTypeReference(DexType type) {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void registerInstanceOf(DexType type) {
-      // Intentionally empty.
     }
   }
 }

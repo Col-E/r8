@@ -6,12 +6,12 @@ package com.android.tools.r8.horizontalclassmerging.policies.deadlock;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.callgraph.CallGraph;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
@@ -94,7 +94,7 @@ public class SingleCallerInformation {
       method.registerCodeReferences(new InvokeExtractor(appView, method));
     }
 
-    private class InvokeExtractor extends UseRegistry<ProgramMethod> {
+    private class InvokeExtractor extends DefaultUseRegistry<ProgramMethod> {
 
       private final AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierachy;
 
@@ -190,16 +190,6 @@ public class SingleCallerInformation {
       }
 
       @Override
-      public void registerInstanceFieldRead(DexField field) {
-        // Intentionally empty.
-      }
-
-      @Override
-      public void registerInstanceFieldWrite(DexField field) {
-        // Intentionally empty.
-      }
-
-      @Override
       public void registerInvokeDirect(DexMethod method) {
         DexMethod rewrittenMethod =
             appViewWithClassHierachy
@@ -266,11 +256,6 @@ public class SingleCallerInformation {
       public void registerStaticFieldWrite(DexField field) {
         DexField rewrittenField = appViewWithClassHierachy.graphLens().lookupField(field);
         triggerClassInitializerIfNotAlreadyTriggeredInContext(rewrittenField.getHolderType());
-      }
-
-      @Override
-      public void registerTypeReference(DexType type) {
-        // Intentionally empty.
       }
     }
   }

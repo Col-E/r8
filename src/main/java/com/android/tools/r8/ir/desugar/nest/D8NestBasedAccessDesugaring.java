@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar.nest;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClasspathMethod;
+import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -13,10 +14,8 @@ import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
 import com.android.tools.r8.profile.rewriting.ProfileRewritingNestBasedAccessDesugaringEventConsumer;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -138,7 +137,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
                 new NestBasedAccessDesugaringUseRegistry(method, eventConsumer)));
   }
 
-  private class NestBasedAccessDesugaringUseRegistry extends UseRegistry<ClasspathMethod> {
+  private class NestBasedAccessDesugaringUseRegistry extends DefaultUseRegistry<ClasspathMethod> {
 
     private final NestBasedAccessDesugaringEventConsumer eventConsumer;
 
@@ -293,26 +292,6 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     @Override
     public void registerStaticFieldWrite(DexField field) {
       registerFieldAccessFromClasspath(field, false);
-    }
-
-    @Override
-    public void registerInitClass(DexType clazz) {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void registerInstanceOf(DexType type) {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void registerNewInstance(DexType type) {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void registerTypeReference(DexType type) {
-      // Intentionally empty.
     }
   }
 }

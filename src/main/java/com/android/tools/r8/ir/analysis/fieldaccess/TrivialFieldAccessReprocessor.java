@@ -14,19 +14,18 @@ import com.android.tools.r8.dex.code.CfOrDexStaticFieldRead;
 import com.android.tools.r8.graph.AbstractAccessContexts;
 import com.android.tools.r8.graph.AbstractAccessContexts.ConcreteAccessContexts;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
@@ -321,7 +320,7 @@ public final class TrivialFieldAccessReprocessor {
     return true;
   }
 
-  class TrivialFieldAccessUseRegistry extends UseRegistry<ProgramMethod> {
+  class TrivialFieldAccessUseRegistry extends DefaultUseRegistry<ProgramMethod> {
 
     TrivialFieldAccessUseRegistry(ProgramMethod method) {
       super(appView(), method);
@@ -494,32 +493,5 @@ public final class TrivialFieldAccessReprocessor {
     public void registerStaticFieldWrite(DexField field) {
       registerFieldAccess(field, true, true, BytecodeInstructionMetadata.none());
     }
-
-    @Override
-    public void registerInitClass(DexType clazz) {}
-
-    @Override
-    public void registerInvokeVirtual(DexMethod method) {}
-
-    @Override
-    public void registerInvokeDirect(DexMethod method) {}
-
-    @Override
-    public void registerInvokeStatic(DexMethod method) {}
-
-    @Override
-    public void registerInvokeInterface(DexMethod method) {}
-
-    @Override
-    public void registerInvokeSuper(DexMethod method) {}
-
-    @Override
-    public void registerNewInstance(DexType type) {}
-
-    @Override
-    public void registerTypeReference(DexType type) {}
-
-    @Override
-    public void registerInstanceOf(DexType type) {}
   }
 }

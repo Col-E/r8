@@ -5,13 +5,11 @@
 package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DefaultUseRegistryWithResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistryWithResult;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -72,7 +70,8 @@ class MethodResolutionOptimizationInfoReprocessingEnqueuer {
             postMethodProcessorBuilder.addAll(methodsToReprocessInClass, currentGraphLens));
   }
 
-  static class AffectedMethodUseRegistry extends UseRegistryWithResult<Boolean, ProgramMethod> {
+  static class AffectedMethodUseRegistry
+      extends DefaultUseRegistryWithResult<Boolean, ProgramMethod> {
 
     private final AppView<AppInfoWithLiveness> appViewWithLiveness;
 
@@ -143,23 +142,5 @@ class MethodResolutionOptimizationInfoReprocessingEnqueuer {
         markAffected();
       }
     }
-
-    @Override
-    public void registerInstanceFieldRead(DexField field) {}
-
-    @Override
-    public void registerInstanceFieldWrite(DexField field) {}
-
-    @Override
-    public void registerStaticFieldRead(DexField field) {}
-
-    @Override
-    public void registerStaticFieldWrite(DexField field) {}
-
-    @Override
-    public void registerInitClass(DexType type) {}
-
-    @Override
-    public void registerTypeReference(DexType type) {}
   }
 }
