@@ -54,7 +54,6 @@ import com.android.tools.r8.keepanno.ast.KeepTarget;
 import com.android.tools.r8.keepanno.ast.KeepTypePattern;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -746,9 +745,6 @@ public class KeepEdgeReader implements Opcodes {
         super.visitEnum(name, descriptor, value);
       }
       switch (value) {
-        case Kind.DEFAULT:
-          // The default value is obtained by not assigning a kind (e.g., null in the builder).
-          break;
         case Kind.ONLY_CLASS:
         case Kind.ONLY_MEMBERS:
         case Kind.CLASS_AND_MEMBERS:
@@ -1333,18 +1329,12 @@ public class KeepEdgeReader implements Opcodes {
     @Override
     boolean tryParse(String name, Object value) {
       if (name.equals(Item.methodName) && value instanceof String) {
-        String methodName = (String) value;
-        if (!Item.methodNameDefaultValue.equals(methodName)) {
-          getBuilder().setNamePattern(KeepMethodNamePattern.exact(methodName));
-        }
+        getBuilder().setNamePattern(KeepMethodNamePattern.exact((String) value));
         return true;
       }
       if (name.equals(Item.methodReturnType) && value instanceof String) {
-        String returnType = (String) value;
-        if (!Item.methodReturnTypeDefaultValue.equals(returnType)) {
-          getBuilder()
-              .setReturnTypePattern(KeepEdgeReaderUtils.methodReturnTypeFromString(returnType));
-        }
+        getBuilder()
+            .setReturnTypePattern(KeepEdgeReaderUtils.methodReturnTypeFromString((String) value));
         return true;
       }
       return false;
@@ -1360,9 +1350,6 @@ public class KeepEdgeReader implements Opcodes {
         return new StringArrayVisitor(
             annotationName,
             params -> {
-              if (Arrays.asList(Item.methodParametersDefaultValue).equals(params)) {
-                return;
-              }
               KeepMethodParametersPattern.Builder builder = KeepMethodParametersPattern.builder();
               for (String param : params) {
                 builder.addParameterTypePattern(KeepEdgeReaderUtils.typePatternFromString(param));
@@ -1412,20 +1399,14 @@ public class KeepEdgeReader implements Opcodes {
     @Override
     boolean tryParse(String name, Object value) {
       if (name.equals(Item.fieldName) && value instanceof String) {
-        String fieldName = (String) value;
-        if (!Item.fieldNameDefaultValue.equals(fieldName)) {
-          getBuilder().setNamePattern(KeepFieldNamePattern.exact(fieldName));
-        }
+        getBuilder().setNamePattern(KeepFieldNamePattern.exact((String) value));
         return true;
       }
       if (name.equals(Item.fieldType) && value instanceof String) {
-        String fieldType = (String) value;
-        if (!Item.fieldTypeDefaultValue.equals(fieldType)) {
-          getBuilder()
-              .setTypePattern(
-                  KeepFieldTypePattern.fromType(
-                      KeepEdgeReaderUtils.typePatternFromString(fieldType)));
-        }
+        getBuilder()
+            .setTypePattern(
+                KeepFieldTypePattern.fromType(
+                    KeepEdgeReaderUtils.typePatternFromString((String) value)));
         return true;
       }
       return false;
@@ -1610,9 +1591,6 @@ public class KeepEdgeReader implements Opcodes {
         super.visitEnum(name, descriptor, value);
       }
       switch (value) {
-        case Kind.DEFAULT:
-          // The default value is obtained by not assigning a kind (e.g., null in the builder).
-          break;
         case Kind.ONLY_CLASS:
         case Kind.ONLY_MEMBERS:
         case Kind.CLASS_AND_MEMBERS:

@@ -130,24 +130,6 @@ public final class AnnotationConstants {
     public static final String fieldAccess = "fieldAccess";
     public static final String fieldName = "fieldName";
     public static final String fieldType = "fieldType";
-
-    // Default values for the optional entries. The defaults should be chosen such that they do
-    // not coincide with any actual valid value. E.g., the empty string in place of a name or type.
-    // These must be 1:1 with the value defined on the actual annotation definition.
-    public static final String classNameDefault = "";
-    public static final Class<?> classConstantDefault = Object.class;
-
-    public static final String extendsClassNameDefault = "";
-    public static final Class<?> extendsClassConstantDefault = Object.class;
-
-    public static final String methodNameDefaultValue = "";
-    public static final String methodReturnTypeDefaultValue = "";
-
-    @SuppressWarnings("MutablePublicArray")
-    public static final String[] methodParametersDefaultValue = new String[] {""};
-
-    public static final String fieldNameDefaultValue = "";
-    public static final String fieldTypeDefaultValue = "";
   }
 
   public static final class Binding {
@@ -174,7 +156,6 @@ public final class AnnotationConstants {
     public static final Class<KeepItemKind> CLASS = KeepItemKind.class;
     public static final String DESCRIPTOR = getDescriptor(CLASS);
 
-    public static final String DEFAULT = "DEFAULT";
     public static final String ONLY_CLASS = "ONLY_CLASS";
     public static final String ONLY_MEMBERS = "ONLY_MEMBERS";
     public static final String CLASS_AND_MEMBERS = "CLASS_AND_MEMBERS";
