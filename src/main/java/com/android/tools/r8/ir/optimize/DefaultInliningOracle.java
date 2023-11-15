@@ -262,12 +262,9 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
           index < arguments.size();
           index++) {
         Value argument = arguments.get(index);
-        if (hints.get(index)) {
-          if ((argument.isArgument()
-              || (argument.getType().isReferenceType() && argument.isNeverNull()))) {
-            // 5-4 instructions per parameter check are expected to be removed.
-            instructionLimit += 4;
-          }
+        if (hints.get(index) && argument.getType().isReferenceType() && argument.isNeverNull()) {
+          // 5-4 instructions per parameter check are expected to be removed.
+          instructionLimit += 4;
         }
       }
     }
