@@ -380,10 +380,7 @@ public class RawMessageInfoDecoder {
       ArrayPut arrayPut = instructionIterator.next().asArrayPut();
 
       // Verify that the index correct.
-      Value indexValue = arrayPut.index().getAliasedValue();
-      if (indexValue.isPhi()
-          || !indexValue.definition.isConstNumber()
-          || indexValue.definition.asConstNumber().getIntValue() != expectedNextIndex) {
+      if (arrayPut.indexOrDefault(-1) != expectedNextIndex) {
         throw new InvalidRawMessageInfoException();
       }
 

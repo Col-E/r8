@@ -476,11 +476,8 @@ public final class IdentifierNameStringUtils {
           continue;
         }
         ArrayPut arrayPut = instruction.asArrayPut();
-        if (!arrayPut.index().isConstNumber()) {
-          return null;
-        }
-        int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
-        if (index < 0 || index >= values.length) {
+        int index = arrayPut.indexIfConstAndInBounds(values.length);
+        if (index < 0) {
           return null;
         }
         DexType type = getTypeFromConstClassOrBoxedPrimitive(arrayPut.value(), factory);

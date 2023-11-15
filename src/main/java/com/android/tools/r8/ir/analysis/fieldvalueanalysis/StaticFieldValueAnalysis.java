@@ -284,11 +284,8 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
           if (arrayPut.array() != value) {
             return null;
           }
-          if (!arrayPut.index().isConstNumber()) {
-            return null;
-          }
-          int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
-          if (index < 0 || index >= valuesSize) {
+          int index = arrayPut.indexIfConstAndInBounds(valuesSize);
+          if (index < 0) {
             return null;
           }
           if (!updateEnumValueState(valuesState, valuesTypes, index, arrayPut.value())) {

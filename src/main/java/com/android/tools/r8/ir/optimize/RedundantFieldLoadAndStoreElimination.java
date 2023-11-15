@@ -659,7 +659,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
     }
 
     private void handleArrayPut(ArrayPut arrayPut) {
-      int index = arrayPut.getIndexOrDefault(-1);
+      int index = arrayPut.indexOrDefault(-1);
       MemberType memberType = arrayPut.getMemberType();
 
       // An array-put instruction can potentially write the given array slot on all arrays because

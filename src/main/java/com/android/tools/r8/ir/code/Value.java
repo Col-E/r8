@@ -1013,6 +1013,18 @@ public class Value implements Comparable<Value> {
         && getConstInstruction().asConstNumber().isZero();
   }
 
+  public int getConstIntValueIfNonNegative() {
+    if (!isConstant()) {
+      return -1;
+    }
+    ConstNumber constNumber = definition.asConstNumber();
+    if (constNumber == null) {
+      return -1;
+    }
+    int ret = constNumber.getIntValue();
+    return ret >= 0 ? ret : -1;
+  }
+
   /**
    * Overwrites the current type lattice value without any assertions.
    *

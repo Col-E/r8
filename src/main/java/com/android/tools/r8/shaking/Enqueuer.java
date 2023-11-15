@@ -5147,7 +5147,7 @@ public class Enqueuer {
       initializer = clazz.getProgramDefaultInitializer();
     } else {
       DexType[] parameterTypes = new DexType[parametersSize];
-      int missingIndices = parametersSize;
+      int missingIndices;
 
       if (newArrayEmpty != null) {
         missingIndices = parametersSize;
@@ -5171,12 +5171,8 @@ public class Enqueuer {
             return;
           }
 
-          Value indexValue = arrayPutInstruction.index();
-          if (indexValue.isPhi() || !indexValue.definition.isConstNumber()) {
-            return;
-          }
-          int index = indexValue.definition.asConstNumber().getIntValue();
-          if (index >= parametersSize) {
+          int index = arrayPutInstruction.indexIfConstAndInBounds(parametersSize);
+          if (index < 0) {
             return;
           }
 
