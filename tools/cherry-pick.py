@@ -32,7 +32,7 @@ def parse_options():
                         metavar='<hash>',
                         nargs='+',
                         help='Hashed to merge')
-    parser.add_argument('remote',
+    parser.add_argument('--remote',
                         default='origin',
                         help='The remote name (defaults to "origin")')
     return parser.parse_args()
