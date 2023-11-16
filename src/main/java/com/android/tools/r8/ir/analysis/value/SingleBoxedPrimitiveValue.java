@@ -14,7 +14,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
-public abstract class SingleBoxedNumberValue extends SingleConstValue {
+public abstract class SingleBoxedPrimitiveValue extends SingleConstValue {
 
   @Override
   public InstanceFieldInitializationInfo fixupAfterParametersChanged(
@@ -45,7 +45,7 @@ public abstract class SingleBoxedNumberValue extends SingleConstValue {
   }
 
   @Override
-  public SingleBoxedNumberValue asSingleBoxedPrimitive() {
+  public SingleBoxedPrimitiveValue asSingleBoxedPrimitive() {
     return this;
   }
 

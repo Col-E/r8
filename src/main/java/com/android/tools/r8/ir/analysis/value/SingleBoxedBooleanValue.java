@@ -13,7 +13,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.ValueFactory;
 import com.android.tools.r8.utils.BooleanUtils;
 
-public class SingleBoxedBooleanValue extends SingleBoxedNumberValue {
+public class SingleBoxedBooleanValue extends SingleBoxedPrimitiveValue {
 
   private static final SingleBoxedBooleanValue FALSE_INSTANCE = new SingleBoxedBooleanValue(false);
   private static final SingleBoxedBooleanValue TRUE_INSTANCE = new SingleBoxedBooleanValue(true);

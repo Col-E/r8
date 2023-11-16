@@ -101,7 +101,7 @@ public abstract class AbstractValue {
     return false;
   }
 
-  public SingleBoxedNumberValue asSingleBoxedPrimitive() {
+  public SingleBoxedPrimitiveValue asSingleBoxedPrimitive() {
     return null;
   }
 

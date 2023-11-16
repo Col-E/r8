@@ -13,7 +13,7 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.MaterializingInstructionsInfo;
 import com.android.tools.r8.ir.code.ValueFactory;
 
-public class SingleBoxedDoubleValue extends SingleBoxedNumberValue {
+public class SingleBoxedDoubleValue extends SingleBoxedPrimitiveValue {
 
   private final long value;
 
