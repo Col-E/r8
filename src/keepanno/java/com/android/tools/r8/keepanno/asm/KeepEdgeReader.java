@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.asm;
 
-import com.android.tools.r8.keepanno.annotations.KeepItemKind;
 import com.android.tools.r8.keepanno.ast.AccessVisibility;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants;
 import com.android.tools.r8.keepanno.ast.AnnotationConstants.Binding;
@@ -92,9 +91,6 @@ public class KeepEdgeReader implements Opcodes {
   private static class KeepEdgeClassVisitor extends ClassVisitor {
     private final Parent<KeepDeclaration> parent;
     private String className;
-    private List<AnnotationVisitorBase> annotationVisitors = new ArrayList<>();
-    private boolean done = false;
-    private boolean hasMembers = false;
 
     KeepEdgeClassVisitor(Parent<KeepDeclaration> parent) {
       super(ASM_VERSION);
@@ -103,17 +99,6 @@ public class KeepEdgeReader implements Opcodes {
 
     private static String binaryNameToTypeName(String binaryName) {
       return binaryName.replace('/', '.');
-    }
-
-    public boolean classHasMembers() {
-      assert done;
-      return hasMembers;
-    }
-
-    @Override
-    public void visitEnd() {
-      done = true;
-      annotationVisitors.forEach(a -> a.onClassVisitEnd(this));
     }
 
     @Override
@@ -134,28 +119,20 @@ public class KeepEdgeReader implements Opcodes {
       if (visible) {
         return null;
       }
-      AnnotationVisitorBase annotationVisitor = determineAnnotationVisitor(descriptor);
-      if (annotationVisitor != null) {
-        annotationVisitors.add(annotationVisitor);
-      }
-      return annotationVisitor;
-    }
-
-    private AnnotationVisitorBase determineAnnotationVisitor(String descriptor) {
       if (descriptor.equals(Edge.DESCRIPTOR)) {
         return new KeepEdgeVisitor(parent::accept, this::setContext);
       }
-      if (descriptor.equals(UsesReflection.DESCRIPTOR)) {
+      if (descriptor.equals(AnnotationConstants.UsesReflection.DESCRIPTOR)) {
         KeepClassItemPattern classItem =
             KeepClassItemPattern.builder()
                 .setClassNamePattern(KeepQualifiedClassNamePattern.exact(className))
                 .build();
         return new UsesReflectionVisitor(parent::accept, this::setContext, classItem);
       }
-      if (descriptor.equals(ForApi.DESCRIPTOR)) {
+      if (descriptor.equals(AnnotationConstants.ForApi.DESCRIPTOR)) {
         return new ForApiClassVisitor(parent::accept, this::setContext, className);
       }
-      if (descriptor.equals(UsedByReflection.DESCRIPTOR)
+      if (descriptor.equals(AnnotationConstants.UsedByReflection.DESCRIPTOR)
           || descriptor.equals(AnnotationConstants.UsedByNative.DESCRIPTOR)) {
         return new UsedByReflectionClassVisitor(
             descriptor, parent::accept, this::setContext, className);
@@ -178,14 +155,12 @@ public class KeepEdgeReader implements Opcodes {
     @Override
     public MethodVisitor visitMethod(
         int access, String name, String descriptor, String signature, String[] exceptions) {
-      hasMembers = true;
       return new KeepEdgeMethodVisitor(parent::accept, className, name, descriptor);
     }
 
     @Override
     public FieldVisitor visitField(
         int access, String name, String descriptor, String signature, Object value) {
-      hasMembers = true;
       return new KeepEdgeFieldVisitor(parent::accept, className, name, descriptor);
     }
   }
@@ -345,8 +320,6 @@ public class KeepEdgeReader implements Opcodes {
       super(ASM_VERSION);
     }
 
-    public void onClassVisitEnd(KeepEdgeClassVisitor visitor) {}
-
     public abstract String getAnnotationName();
 
     private String errorMessagePrefix() {
@@ -468,6 +441,8 @@ public class KeepEdgeReader implements Opcodes {
       addContext.accept(metaInfoBuilder);
       // The class context/holder is the annotated class.
       visit(Item.className, className);
+      // The default kind is to target the class and its members.
+      visitEnum(null, Kind.DESCRIPTOR, Kind.CLASS_AND_MEMBERS);
     }
 
     @Override
@@ -503,16 +478,9 @@ public class KeepEdgeReader implements Opcodes {
     }
 
     @Override
-    public void onClassVisitEnd(KeepEdgeClassVisitor visitor) {
-      if (getKind() == null) {
-        // The default kind is to target the class and its members if any members exist.
-        KeepItemKind defaultKind =
-            visitor.classHasMembers() ? KeepItemKind.CLASS_AND_MEMBERS : KeepItemKind.ONLY_CLASS;
-        visitEnum(null, Kind.DESCRIPTOR, defaultKind.name());
-      }
+    public void visitEnd() {
       if (!getKind().equals(Kind.ONLY_CLASS) && isDefaultMemberDeclaration()) {
         // If no member declarations have been made, set public & protected as the default.
-        // Only do so if the class actually has any members.
         AnnotationVisitor v = visitArray(Item.memberAccess);
         v.visitEnum(null, MemberAccess.DESCRIPTOR, MemberAccess.PUBLIC);
         v.visitEnum(null, MemberAccess.DESCRIPTOR, MemberAccess.PROTECTED);

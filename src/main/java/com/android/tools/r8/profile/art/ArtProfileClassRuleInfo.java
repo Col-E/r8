@@ -5,6 +5,7 @@
 package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.keepanno.annotations.KeepForApi;
+import com.android.tools.r8.keepanno.annotations.KeepItemKind;
 
-@KeepForApi
+@KeepForApi(kind = KeepItemKind.ONLY_CLASS)
 public interface ArtProfileClassRuleInfo {}
