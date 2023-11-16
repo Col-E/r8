@@ -60,7 +60,7 @@ public class NestMethodInlinedTest extends TestBase {
         .addOptionsModification(
             options -> {
               options.enableClassInlining = false;
-              options.enableVerticalClassMerging = false;
+              options.getVerticalClassMergerOptions().disable();
             })
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()

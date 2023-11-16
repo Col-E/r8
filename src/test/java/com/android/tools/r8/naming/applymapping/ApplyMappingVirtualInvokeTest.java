@@ -108,7 +108,7 @@ public class ApplyMappingVirtualInvokeTest extends TestBase {
         .addOptionsModification(
             options -> {
               options.inlinerOptions().enableInlining = false;
-              options.enableVerticalClassMerging = false;
+              options.getVerticalClassMergerOptions().disable();
               options.enableClassInlining = false;
             })
         .compile();

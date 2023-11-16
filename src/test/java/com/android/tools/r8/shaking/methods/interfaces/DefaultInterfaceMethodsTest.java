@@ -69,8 +69,7 @@ public class DefaultInterfaceMethodsTest extends TestBase {
             .addProgramClasses(I.class, J.class)
             .setMinApi(parameters)
             .addKeepMethodRules(J.class, "void foo()")
-            .addOptionsModification(
-                internalOptions -> internalOptions.enableVerticalClassMerging = false)
+            .addOptionsModification(options -> options.getVerticalClassMergerOptions().disable())
             .addDontObfuscate()
             .compile();
     // TODO(b/144269679): We should be able to compile and run this.

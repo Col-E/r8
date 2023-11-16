@@ -272,7 +272,7 @@ public class LensCodeRewriter {
     boolean mayHaveUnreachableBlocks = false;
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
-      if (block.hasCatchHandlers() && options.enableVerticalClassMerging) {
+      if (block.hasCatchHandlers() && !appView.getVerticallyMergedClasses().isEmpty()) {
         boolean anyGuardsRenamed = block.renameGuardsInCatchHandlers(graphLens, codeLens);
         if (anyGuardsRenamed) {
           mayHaveUnreachableBlocks |= unlinkDeadCatchHandlers(block, graphLens, codeLens);
@@ -1309,7 +1309,7 @@ public class LensCodeRewriter {
   // A and B although this will lead to invalid code, because this code pattern does generally
   // not occur in practice (it leads to a verification error on the JVM, but not on Art).
   private void checkInvokeDirect(DexMethod method, InvokeDirect invoke) {
-    VerticallyMergedClasses verticallyMergedClasses = appView.verticallyMergedClasses();
+    VerticallyMergedClasses verticallyMergedClasses = appView.getVerticallyMergedClasses();
     if (verticallyMergedClasses == null) {
       // No need to check the invocation.
       return;

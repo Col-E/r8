@@ -47,6 +47,7 @@ import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.AppView.WholeProgramOptimizations;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
@@ -110,6 +111,7 @@ import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
 import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.structural.Ordered;
+import com.android.tools.r8.verticalclassmerging.VerticalClassMergerOptions;
 import com.android.tools.r8.verticalclassmerging.VerticallyMergedClasses;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence.Wrapper;
@@ -329,7 +331,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     inlinerOptions.enableInlining = false;
     enableClassInlining = false;
     enableDevirtualization = false;
-    enableVerticalClassMerging = false;
     enableEnumUnboxing = false;
     outline.enabled = false;
     enableEnumValueOptimization = false;
@@ -338,6 +339,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     enableInitializedClassesAnalysis = false;
     callSiteOptimizationOptions.disableOptimization();
     horizontalClassMergerOptions.setRestrictToSynthetics();
+    verticalClassMergerOptions.disable();
   }
 
   // Configure options according to platform build assumptions.
@@ -393,7 +395,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Optimization-related flags. These should conform to -dontoptimize and disableAllOptimizations.
   public boolean enableFieldBitAccessAnalysis =
       System.getProperty("com.android.tools.r8.fieldBitAccessAnalysis") != null;
-  public boolean enableVerticalClassMerging = true;
   public boolean enableUnusedInterfaceRemoval = true;
   public boolean enableDevirtualization = true;
   public boolean enableEnumUnboxing = true;
@@ -861,13 +862,15 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
    * and check cast instructions needs to be collected.
    */
   public boolean isClassMergingExtensionRequired(Enqueuer.Mode mode) {
+    WholeProgramOptimizations wholeProgramOptimizations = WholeProgramOptimizations.ON;
     if (mode.isInitialTreeShaking()) {
-      return (horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.INITIAL)
-              && !horizontalClassMergerOptions.isRestrictedToSynthetics())
-          || enableVerticalClassMerging;
+      return horizontalClassMergerOptions.isEnabled(
+              HorizontalClassMerger.Mode.INITIAL, wholeProgramOptimizations)
+          && !horizontalClassMergerOptions.isRestrictedToSynthetics();
     }
     if (mode.isFinalTreeShaking()) {
-      return horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.FINAL)
+      return horizontalClassMergerOptions.isEnabled(
+              HorizontalClassMerger.Mode.FINAL, wholeProgramOptimizations)
           && !horizontalClassMergerOptions.isRestrictedToSynthetics();
     }
     assert false;
@@ -919,6 +922,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   private final InlinerOptions inlinerOptions = new InlinerOptions(this);
   private final HorizontalClassMergerOptions horizontalClassMergerOptions =
       new HorizontalClassMergerOptions();
+  private final VerticalClassMergerOptions verticalClassMergerOptions =
+      new VerticalClassMergerOptions(this);
   private final OpenClosedInterfacesOptions openClosedInterfacesOptions =
       new OpenClosedInterfacesOptions();
   private final ProtoShrinkingOptions protoShrinking = new ProtoShrinkingOptions();
@@ -966,6 +971,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public HorizontalClassMergerOptions horizontalClassMergerOptions() {
     return horizontalClassMergerOptions;
+  }
+
+  public VerticalClassMergerOptions getVerticalClassMergerOptions() {
+    return verticalClassMergerOptions;
   }
 
   public ProtoShrinkingOptions protoShrinking() {
@@ -1850,12 +1859,18 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return enableClassInitializerDeadlockDetection;
     }
 
-    public boolean isEnabled(HorizontalClassMerger.Mode mode) {
+    public boolean isEnabled(
+        HorizontalClassMerger.Mode mode, WholeProgramOptimizations wholeProgramOptimizations) {
       if (!enable || debug || intermediate) {
         return false;
       }
+      if (wholeProgramOptimizations.isOn()) {
+        if (!isOptimizing() || !isShrinking()) {
+          return false;
+        }
+      }
       if (mode.isInitial()) {
-        return enableInitial && inlinerOptions.enableInlining && isShrinking();
+        return enableInitial && inlinerOptions.enableInlining;
       }
       assert mode.isFinal();
       return true;

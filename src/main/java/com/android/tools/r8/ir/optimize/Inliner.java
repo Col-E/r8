@@ -231,6 +231,10 @@ public class Inliner {
       return otherConstraint;
     }
 
+    public boolean isNever() {
+      return this == NEVER;
+    }
+
     boolean isSet(int value) {
       return (this.value & value) != 0;
     }
@@ -267,10 +271,15 @@ public class Inliner {
     }
 
     ConstraintWithTarget(Constraint constraint, DexType targetHolder) {
-      assert constraint != Constraint.NEVER && constraint != Constraint.ALWAYS;
+      assert constraint != Constraint.NEVER;
+      assert constraint != Constraint.ALWAYS;
       assert targetHolder != null;
       this.constraint = constraint;
       this.targetHolder = targetHolder;
+    }
+
+    public boolean isNever() {
+      return constraint.isNever();
     }
 
     @Override

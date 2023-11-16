@@ -131,7 +131,7 @@ public class ParameterTypeTest extends TestBase {
                 options -> {
                   options.inlinerOptions().enableInlining = false;
                   options.enableUnusedInterfaceRemoval = enableUnusedInterfaceRemoval;
-                  options.enableVerticalClassMerging = enableVerticalClassMerging;
+                  options.getVerticalClassMergerOptions().setEnabled(enableVerticalClassMerging);
                 })
             .enableNoHorizontalClassMergingAnnotations()
             .setMinApi(parameters)

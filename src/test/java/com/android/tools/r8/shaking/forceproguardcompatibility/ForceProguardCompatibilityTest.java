@@ -514,12 +514,12 @@ public class ForceProguardCompatibilityTest extends TestBase {
             .enableGraphInspector()
             .setMinApi(parameters)
             .addOptionsModification(
-                o -> {
-                  o.enableClassInlining = false;
+                options -> {
+                  options.enableClassInlining = false;
 
                   // Prevent InterfaceWithDefaultMethods from being merged into
                   // ClassImplementingInterface.
-                  o.enableVerticalClassMerging = false;
+                  options.getVerticalClassMergerOptions().disable();
                 })
             .compile();
     inspection.accept(compileResult.inspector());

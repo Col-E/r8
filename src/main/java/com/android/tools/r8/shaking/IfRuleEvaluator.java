@@ -107,9 +107,9 @@ public class IfRuleEvaluator {
             }
 
             // Check if one of the types that have been merged into `clazz` satisfies the if-rule.
-            if (appView.verticallyMergedClasses() != null) {
+            if (appView.getVerticallyMergedClasses() != null) {
               Iterable<DexType> sources =
-                  appView.verticallyMergedClasses().getSourcesFor(clazz.type);
+                  appView.getVerticallyMergedClasses().getSourcesFor(clazz.type);
               for (DexType sourceType : sources) {
                 // Note that, although `sourceType` has been merged into `type`, the dex class for
                 // `sourceType` is still available until the second round of tree shaking. This

@@ -138,7 +138,8 @@ public class B130791310 extends TestBase {
         .addKeepRules(RULES)
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters)
-        .addOptionsModification(o -> o.enableVerticalClassMerging = enableClassMerging)
+        .addOptionsModification(
+            options -> options.getVerticalClassMergerOptions().setEnabled(enableClassMerging))
         .applyIf(
             onlyForceInlining,
             builder ->

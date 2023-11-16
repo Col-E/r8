@@ -22,7 +22,7 @@ public class NoDeadLocks extends MultiClassPolicy {
   }
 
   private boolean isSynchronizationClass(DexProgramClass clazz) {
-    return appView.appInfo().isLockCandidate(clazz.type) || clazz.hasStaticSynchronizedMethods();
+    return appView.appInfo().isLockCandidate(clazz) || clazz.hasStaticSynchronizedMethods();
   }
 
   // TODO(b/270398965): Replace LinkedList.

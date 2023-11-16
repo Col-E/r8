@@ -848,8 +848,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * can potentially cause incorrect behavior when merging classes. A conservative choice is to not
    * merge any const-class classes. More info at b/142438687.
    */
-  public boolean isLockCandidate(DexType type) {
-    return lockCandidates.contains(type);
+  public boolean isLockCandidate(DexProgramClass clazz) {
+    return lockCandidates.contains(clazz.getType());
   }
 
   public Set<DexType> getDeadProtoTypes() {
@@ -1518,13 +1518,15 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   /** Predicate on types that *must* never be merged horizontally. */
-  public boolean isNoHorizontalClassMergingOfType(DexType type) {
-    return noClassMerging.contains(type) || noHorizontalClassMerging.contains(type);
+  public boolean isNoHorizontalClassMergingOfType(DexProgramClass clazz) {
+    return noClassMerging.contains(clazz.getType())
+        || noHorizontalClassMerging.contains(clazz.getType());
   }
 
   /** Predicate on types that *must* never be merged vertically. */
-  public boolean isNoVerticalClassMergingOfType(DexType type) {
-    return noClassMerging.contains(type) || noVerticalClassMerging.contains(type);
+  public boolean isNoVerticalClassMergingOfType(DexProgramClass clazz) {
+    return noClassMerging.contains(clazz.getType())
+        || noVerticalClassMerging.contains(clazz.getType());
   }
 
   public boolean verifyNoIteratingOverPrunedClasses() {

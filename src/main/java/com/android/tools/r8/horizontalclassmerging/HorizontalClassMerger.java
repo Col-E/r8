@@ -86,8 +86,8 @@ public class HorizontalClassMerger {
   public void runIfNecessary(
       ExecutorService executorService, Timing timing, RuntimeTypeCheckInfo runtimeTypeCheckInfo)
       throws ExecutionException {
-    if (options.isEnabled(mode)) {
-      timing.begin("HorizontalClassMerger (" + mode.toString() + ")");
+    timing.begin("HorizontalClassMerger (" + mode.toString() + ")");
+    if (shouldRun()) {
       IRCodeProvider codeProvider =
           appView.hasClassHierarchy()
               ? IRCodeProvider.create(appView.withClassHierarchy(), this::getConversionOptions)
@@ -99,11 +99,17 @@ public class HorizontalClassMerger {
       // Clear type elements cache after IR building.
       appView.dexItemFactory().clearTypeElementsCache();
       appView.notifyOptimizationFinishedForTesting();
-
-      timing.end();
     } else {
       appView.setHorizontallyMergedClasses(HorizontallyMergedClasses.empty(), mode);
     }
+    appView.appInfo().notifyHorizontalClassMergerFinished(mode);
+    assert ArtProfileCompletenessChecker.verify(appView);
+    timing.end();
+  }
+
+  private boolean shouldRun() {
+    return options.isEnabled(mode, appView.getWholeProgramOptimizations())
+        && !appView.hasCfByteCodePassThroughMethods();
   }
 
   private MutableMethodConversionOptions getConversionOptions() {

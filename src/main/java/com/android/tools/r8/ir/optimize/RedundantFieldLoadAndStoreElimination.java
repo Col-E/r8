@@ -507,7 +507,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
     }
 
     private boolean verifyWasInstanceInitializer() {
-      VerticallyMergedClasses verticallyMergedClasses = appView.verticallyMergedClasses();
+      VerticallyMergedClasses verticallyMergedClasses = appView.getVerticallyMergedClasses();
       assert verticallyMergedClasses != null;
       assert verticallyMergedClasses.isMergeTarget(method.getHolderType())
           || appView.horizontallyMergedClasses().isMergeTarget(method.getHolderType());

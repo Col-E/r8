@@ -59,7 +59,7 @@ public class ArtProfileCompletenessChecker {
     for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
       if (appView.horizontallyMergedClasses().hasBeenMergedIntoDifferentType(clazz.getType())
           || (appView.hasVerticallyMergedClasses()
-              && appView.verticallyMergedClasses().hasBeenMergedIntoSubtype(clazz.getType()))
+              && appView.getVerticallyMergedClasses().hasBeenMergedIntoSubtype(clazz.getType()))
           || appView.unboxedEnums().isUnboxedEnum(clazz)) {
         continue;
       }

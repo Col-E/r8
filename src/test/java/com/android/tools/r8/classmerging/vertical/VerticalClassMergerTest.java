@@ -505,7 +505,7 @@ public class VerticalClassMergerTest extends TestBase {
                 .addOptionsModification(this::configure)
                 .addOptionsModification(
                     options -> {
-                      options.enableVerticalClassMerging = false;
+                      options.getVerticalClassMergerOptions().disable();
                       options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
                     })
                 .allowUnusedProguardConfigurationRules(),
@@ -578,7 +578,7 @@ public class VerticalClassMergerTest extends TestBase {
                 .addOptionsModification(this::configure)
                 .addOptionsModification(
                     options -> {
-                      options.enableVerticalClassMerging = false;
+                      options.getVerticalClassMergerOptions().disable();
                       options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
                     })
                 .allowUnusedProguardConfigurationRules(),
@@ -663,7 +663,7 @@ public class VerticalClassMergerTest extends TestBase {
                 .addOptionsModification(this::configure)
                 .addOptionsModification(
                     options -> {
-                      options.enableVerticalClassMerging = false;
+                      options.getVerticalClassMergerOptions().disable();
                       options.testing.validInliningReasons =
                           ImmutableSet.of(Reason.ALWAYS, Reason.FORCE);
                     })

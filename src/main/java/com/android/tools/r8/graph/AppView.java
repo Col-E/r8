@@ -79,9 +79,13 @@ import java.util.function.Supplier;
 
 public class AppView<T extends AppInfo> implements DexDefinitionSupplier, LibraryModeledPredicate {
 
-  private enum WholeProgramOptimizations {
+  public enum WholeProgramOptimizations {
     ON,
-    OFF
+    OFF;
+
+    public boolean isOn() {
+      return this == ON;
+    }
   }
 
   private T appInfo;
@@ -529,6 +533,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return wholeProgramOptimizations == WholeProgramOptimizations.ON;
   }
 
+  public WholeProgramOptimizations getWholeProgramOptimizations() {
+    return wholeProgramOptimizations;
+  }
+
   /**
    * Create a new processor context.
    *
@@ -830,7 +838,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
    * Get the result of vertical class merging. Returns null if vertical class merging has not been
    * run.
    */
-  public VerticallyMergedClasses verticallyMergedClasses() {
+  public VerticallyMergedClasses getVerticallyMergedClasses() {
     return verticallyMergedClasses;
   }
 

@@ -180,7 +180,9 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
         .addProgramClassFileData(DUMP)
         .addKeepMainRule(Main.class)
         .setMinApi(parameters)
-        .addOptionsModification(o -> o.enableVerticalClassMerging = enableVerticalClassMerging)
+        .addOptionsModification(
+            options ->
+                options.getVerticalClassMergerOptions().setEnabled(enableVerticalClassMerging))
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
   }

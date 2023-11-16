@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingLens;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -462,8 +463,10 @@ public abstract class GraphLens {
   }
 
   public <T extends DexReference> boolean assertPinnedNotModified(
-      KeepInfoCollection keepInfo, InternalOptions options) {
+      AppView<AppInfoWithLiveness> appView) {
     List<DexReference> pinnedItems = new ArrayList<>();
+    KeepInfoCollection keepInfo = appView.getKeepInfo();
+    InternalOptions options = appView.options();
     keepInfo.forEachPinnedType(pinnedItems::add, options);
     keepInfo.forEachPinnedMethod(pinnedItems::add, options);
     keepInfo.forEachPinnedField(pinnedItems::add, options);

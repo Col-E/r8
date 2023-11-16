@@ -118,8 +118,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.verticalclassmerging.VerticalClassMerger;
-import com.android.tools.r8.verticalclassmerging.VerticalClassMergerGraphLens;
-import com.android.tools.r8.verticalclassmerging.VerticallyMergedClasses;
 import com.google.common.collect.Iterables;
 import com.google.common.io.ByteStreams;
 import java.io.ByteArrayOutputStream;
@@ -348,7 +346,7 @@ public class R8 {
       timing.end();
       timing.begin("Strip unused code");
       timing.begin("Before enqueuer");
-      RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder =
+      RuntimeTypeCheckInfo.Builder initialRuntimeTypeCheckInfoBuilder =
           new RuntimeTypeCheckInfo.Builder(appView);
       List<ProguardConfigurationRule> synthesizedProguardRules;
       try {
@@ -392,7 +390,7 @@ public class R8 {
                 appView,
                 profileCollectionAdditions,
                 subtypingInfo,
-                classMergingEnqueuerExtensionBuilder);
+                initialRuntimeTypeCheckInfoBuilder);
         timing.end();
         timing.begin("After enqueuer");
         assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness);
@@ -500,37 +498,12 @@ public class R8 {
 
       assert ArtProfileCompletenessChecker.verify(appView);
 
-      RuntimeTypeCheckInfo runtimeTypeCheckInfo =
-          classMergingEnqueuerExtensionBuilder.build(appView.graphLens());
-      classMergingEnqueuerExtensionBuilder = null;
-      if (!appView.hasCfByteCodePassThroughMethods()
-          && options.getProguardConfiguration().isOptimizing()) {
-        if (options.enableVerticalClassMerging) {
-          timing.begin("VerticalClassMerger");
-          VerticalClassMergerGraphLens lens =
-              new VerticalClassMerger(
-                      getDirectApp(appViewWithLiveness),
-                      appViewWithLiveness,
-                      executorService,
-                      timing)
-                  .run();
-          if (lens != null) {
-            runtimeTypeCheckInfo = runtimeTypeCheckInfo.rewriteWithLens(lens);
-          }
-          timing.end();
-        } else {
-          appView.setVerticallyMergedClasses(VerticallyMergedClasses.empty());
-        }
-        assert appView.verticallyMergedClasses() != null;
-
-        assert ArtProfileCompletenessChecker.verify(appView);
-
-        HorizontalClassMerger.createForInitialClassMerging(appViewWithLiveness)
-            .runIfNecessary(executorService, timing, runtimeTypeCheckInfo);
-      }
-      appViewWithLiveness
-          .appInfo()
-          .notifyHorizontalClassMergerFinished(HorizontalClassMerger.Mode.INITIAL);
+      VerticalClassMerger.runIfNecessary(appViewWithLiveness, executorService, timing);
+      HorizontalClassMerger.createForInitialClassMerging(appViewWithLiveness)
+          .runIfNecessary(
+              executorService,
+              timing,
+              initialRuntimeTypeCheckInfoBuilder.build(appView.graphLens()));
 
       // TODO(b/225838009): Horizontal merging currently assumes pre-phase CF conversion.
       appView.testing().enterLirSupportedPhase(appView, executorService);
@@ -567,10 +540,12 @@ public class R8 {
       // At this point all code has been mapped according to the graph lens. We cannot remove the
       // graph lens entirely, though, since it is needed for mapping all field and method signatures
       // back to the original program.
-      timing.begin("AppliedGraphLens construction");
-      appView.setGraphLens(new AppliedGraphLens(appView));
+      timing.time(
+          "AppliedGraphLens construction",
+          () -> appView.setGraphLens(new AppliedGraphLens(appView)));
       timing.end();
-      timing.end();
+
+      RuntimeTypeCheckInfo.Builder finalRuntimeTypeCheckInfoBuilder = null;
       if (options.shouldRerunEnqueuer()) {
         timing.begin("Post optimization code stripping");
         try {
@@ -592,8 +567,8 @@ public class R8 {
                   keptGraphConsumer,
                   prunedTypes);
           if (options.isClassMergingExtensionRequired(enqueuer.getMode())) {
-            classMergingEnqueuerExtensionBuilder = new RuntimeTypeCheckInfo.Builder(appView);
-            classMergingEnqueuerExtensionBuilder.attach(enqueuer);
+            finalRuntimeTypeCheckInfoBuilder = new RuntimeTypeCheckInfo.Builder(appView);
+            finalRuntimeTypeCheckInfoBuilder.attach(enqueuer);
           }
           EnqueuerResult enqueuerResult =
               enqueuer.traceApplication(appView.rootSet(), executorService, timing);
@@ -769,10 +744,9 @@ public class R8 {
           .runIfNecessary(
               executorService,
               timing,
-              classMergingEnqueuerExtensionBuilder != null
-                  ? classMergingEnqueuerExtensionBuilder.build(appView.graphLens())
+              finalRuntimeTypeCheckInfoBuilder != null
+                  ? finalRuntimeTypeCheckInfoBuilder.build(appView.graphLens())
                   : null);
-      appView.appInfo().notifyHorizontalClassMergerFinished(HorizontalClassMerger.Mode.FINAL);
 
       // Perform minification.
       if (options.getProguardConfiguration().hasApplyMappingFile()) {

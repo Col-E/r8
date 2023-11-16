@@ -52,9 +52,6 @@ public class CompatProguard {
     public final List<String> proguardConfig;
     public boolean printHelpAndExit;
 
-    // Flags to disable experimental features.
-    public boolean disableVerticalClassMerging;
-
     CompatProguardOptions(
         List<String> proguardConfig,
         String output,
@@ -67,8 +64,7 @@ public class CompatProguard {
         MapIdProvider mapIdProvider,
         SourceFileProvider sourceFileProvider,
         String depsFileOutput,
-        boolean printHelpAndExit,
-        boolean disableVerticalClassMerging) {
+        boolean printHelpAndExit) {
       this.output = output;
       this.mode = mode;
       this.minApi = minApi;
@@ -81,7 +77,6 @@ public class CompatProguard {
       this.sourceFileProvider = sourceFileProvider;
       this.depsFileOutput = depsFileOutput;
       this.printHelpAndExit = printHelpAndExit;
-      this.disableVerticalClassMerging = disableVerticalClassMerging;
     }
 
     public static CompatProguardOptions parse(String[] args) {
@@ -98,8 +93,6 @@ public class CompatProguard {
       MapIdProvider mapIdProvider = null;
       SourceFileProvider sourceFileProvider = null;
       String depsFileOutput = null;
-      // Flags to disable experimental features.
-      boolean disableVerticalClassMerging = false;
 
       ImmutableList.Builder<String> builder = ImmutableList.builder();
       if (args.length > 0) {
@@ -139,8 +132,6 @@ public class CompatProguard {
               sourceFileProvider = SourceFileTemplateProvider.create(args[++i], handler);
             } else if (arg.equals("--deps-file")) {
               depsFileOutput = args[++i];
-            } else if (arg.equals("--no-vertical-class-merging")) {
-              disableVerticalClassMerging = true;
             } else if (arg.equals("--core-library")
                 || arg.equals("--minimal-main-dex")
                 || arg.equals("--no-locals")) {
@@ -177,8 +168,7 @@ public class CompatProguard {
           mapIdProvider,
           sourceFileProvider,
           depsFileOutput,
-          printHelpAndExit,
-          disableVerticalClassMerging);
+          printHelpAndExit);
     }
 
     public static void print() {
@@ -218,8 +208,7 @@ public class CompatProguard {
       return;
     }
     CompatProguardCommandBuilder builder =
-        new CompatProguardCommandBuilder(
-            options.forceProguardCompatibility, options.disableVerticalClassMerging);
+        new CompatProguardCommandBuilder(options.forceProguardCompatibility);
     builder
         .setOutput(Paths.get(options.output), OutputMode.DexIndexed, options.includeDataResources)
         .addProguardConfiguration(options.proguardConfig, CommandLineOrigin.INSTANCE)

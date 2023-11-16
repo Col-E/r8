@@ -336,8 +336,12 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
         "}");
 
     AndroidApp processedApp =
-        runShrinker(shrinker, CLASSES_FOR_SERIALIZABLE, config,
-            o -> o.enableVerticalClassMerging = enableVerticalClassMerging);
+        runShrinker(
+            shrinker,
+            CLASSES_FOR_SERIALIZABLE,
+            config,
+            options ->
+                options.getVerticalClassMergerOptions().setEnabled(enableVerticalClassMerging));
     // TODO(b/117302947): Need to update ART binary.
     if (shrinker.generatesCf()) {
       String output = runOnVM(

@@ -130,7 +130,9 @@ public class NonVirtualOverrideTest extends TestBase {
         .addKeepMainRule(NonVirtualOverrideTestClass.class)
         .addOptionsModification(
             options -> {
-              options.enableVerticalClassMerging = dimensions.enableVerticalClassMerging;
+              options
+                  .getVerticalClassMergerOptions()
+                  .setEnabled(dimensions.enableVerticalClassMerging);
               options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
             })
         .setMinApi(AndroidApiLevel.B)

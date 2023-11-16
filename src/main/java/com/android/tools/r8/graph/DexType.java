@@ -40,6 +40,10 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
     return identical(this, other);
   }
 
+  public final boolean isNotIdenticalTo(DexType other) {
+    return !isIdenticalTo(other);
+  }
+
   public static final DexType[] EMPTY_ARRAY = {};
 
   // Bundletool is merging classes that may originate from a build with an old version of R8.

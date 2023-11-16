@@ -22,10 +22,10 @@ public class NoVerticallyMergedClasses extends SingleClassPolicy {
 
   @Override
   public boolean canMerge(DexProgramClass program) {
-    if (appView.verticallyMergedClasses() == null) {
+    if (appView.getVerticallyMergedClasses() == null) {
       return true;
     }
-    return !appView.verticallyMergedClasses().hasBeenMergedIntoSubtype(program.type);
+    return !appView.getVerticallyMergedClasses().hasBeenMergedIntoSubtype(program.type);
   }
 
   @Override

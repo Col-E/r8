@@ -21,6 +21,10 @@ public class ObjectUtils {
     return a == b;
   }
 
+  public static boolean notIdentical(Object a, Object b) {
+    return !identical(a, b);
+  }
+
   public static <S, T> T mapNotNull(S object, Function<? super S, ? extends T> fn) {
     if (object != null) {
       return fn.apply(object);

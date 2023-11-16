@@ -26,6 +26,10 @@ public class DexProto extends IndexedDexItem
     return identical(this, other);
   }
 
+  public final boolean isNotIdenticalTo(DexProto other) {
+    return !isIdenticalTo(other);
+  }
+
   public static final DexProto SENTINEL = new DexProto(null, null);
 
   public final DexType returnType;

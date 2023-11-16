@@ -9,17 +9,33 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.compatproguard.CompatProguard.CompatProguardOptions;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-public class CompatProguardTest {
+@RunWith(Parameterized.class)
+public class CompatProguardTest extends TestBase {
 
-  private CompatProguardOptions parseArgs(String... args) {
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public CompatProguardTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
+
+  private static CompatProguardOptions parseArgs(String... args) {
     return CompatProguard.CompatProguardOptions.parse(args);
   }
 
   @Test
-  public void testDefaultDataResources() throws Exception {
+  public void testDefaultDataResources() {
     CompatProguardOptions options = parseArgs();
     assertNull(options.output);
     assertEquals(1, options.minApi);
@@ -31,13 +47,13 @@ public class CompatProguardTest {
   }
 
   @Test
-  public void testShortLine() throws Exception {
+  public void testShortLine() {
     CompatProguardOptions options = parseArgs("-");
     assertEquals(1, options.proguardConfig.size());
   }
 
   @Test
-  public void testProguardOptions() throws Exception {
+  public void testProguardOptions() {
     CompatProguardOptions options;
 
     options = parseArgs("-xxx");
@@ -51,7 +67,7 @@ public class CompatProguardTest {
   }
 
   @Test
-  public void testInjarsAndOutput() throws Exception {
+  public void testInjarsAndOutput() {
     CompatProguardOptions options;
     String injars = "input.jar";
     String output = "outputdir";
@@ -63,7 +79,7 @@ public class CompatProguardTest {
   }
 
   @Test
-  public void testMainDexList() throws Exception {
+  public void testMainDexList() {
     CompatProguardOptions options;
     String mainDexList = "maindexlist.txt";
 
@@ -78,30 +94,21 @@ public class CompatProguardTest {
   }
 
   @Test
-  public void testInclude() throws Exception {
+  public void testInclude() {
     CompatProguardOptions options = parseArgs("-include --my-include-file.txt");
     assertEquals(1, options.proguardConfig.size());
     assertEquals("-include --my-include-file.txt", options.proguardConfig.get(0));
   }
 
   @Test
-  public void testNoLocalsOption() throws Exception {
+  public void testNoLocalsOption() {
     CompatProguardOptions options = parseArgs("--no-locals");
     assertEquals(0, options.proguardConfig.size());
   }
 
   @Test
-  public void testNoDataResources() throws Exception {
+  public void testNoDataResources() {
     CompatProguardOptions options = parseArgs("--no-data-resources");
     assertFalse(options.includeDataResources);
-  }
-
-  @Test
-  public void testDisableVerticalClassMerging() throws Exception {
-    CompatProguardOptions enabledOptions = parseArgs();
-    assertFalse(enabledOptions.disableVerticalClassMerging);
-
-    CompatProguardOptions disabledOptions = parseArgs("--no-vertical-class-merging");
-    assertTrue(disabledOptions.disableVerticalClassMerging);
   }
 }

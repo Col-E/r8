@@ -931,8 +931,8 @@ public class RootSetUtils {
         DexClass clazz, ProguardConfigurationRule rule, boolean isInterface) {
       // TODO(b/110141157): Figure out what to do with annotations. Should the annotations of
       // the DexClass corresponding to `sourceType` satisfy the `annotation`-matcher?
-      return appView.verticallyMergedClasses() != null
-          && appView.verticallyMergedClasses().getSourcesFor(clazz.type).stream()
+      return appView.getVerticallyMergedClasses() != null
+          && appView.getVerticallyMergedClasses().getSourcesFor(clazz.type).stream()
               .filter(
                   sourceType ->
                       appView.definitionFor(sourceType).accessFlags.isInterface() == isInterface)

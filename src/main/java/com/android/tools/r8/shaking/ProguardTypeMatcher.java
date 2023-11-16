@@ -49,8 +49,9 @@ public abstract class ProguardTypeMatcher {
     if (matches(type)) {
       return true;
     }
-    if (appView.verticallyMergedClasses() != null) {
-      return appView.verticallyMergedClasses().getSourcesFor(type).stream().anyMatch(this::matches);
+    if (appView.getVerticallyMergedClasses() != null) {
+      return appView.getVerticallyMergedClasses().getSourcesFor(type).stream()
+          .anyMatch(this::matches);
     }
     return false;
   }

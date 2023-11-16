@@ -19,7 +19,7 @@ public class NotMatchedByNoHorizontalClassMerging extends SingleClassPolicy {
 
   @Override
   public boolean canMerge(DexProgramClass clazz) {
-    return !appView.appInfo().isNoHorizontalClassMergingOfType(clazz.getType());
+    return !appView.appInfo().isNoHorizontalClassMergingOfType(clazz);
   }
 
   @Override

@@ -137,7 +137,7 @@ public enum InvokeType {
         context.getHolder().isInterface()
             || (appView.hasVerticallyMergedClasses()
                 && appView
-                    .verticallyMergedClasses()
+                    .getVerticallyMergedClasses()
                     .hasInterfaceBeenMergedIntoSubtype(originalContext.getHolderType()));
     if (originalContextIsInterface) {
       // On interfaces invoke-special should be mapped to invoke-super if the invoke-special

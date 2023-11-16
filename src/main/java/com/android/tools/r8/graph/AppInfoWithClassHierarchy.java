@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.TraversalContinuation.doBreak;
 import static com.android.tools.r8.utils.TraversalContinuation.doContinue;
 
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
-import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection.Builder;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
@@ -93,11 +92,6 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public final AppInfoWithClassHierarchy rebuildWithClassHierarchy(CommittedItems commit) {
     return new AppInfoWithClassHierarchy(
         commit, getClassToFeatureSplitMap(), getMainDexInfo(), getMissingClasses());
-  }
-
-  public void notifyHorizontalClassMergerFinished(
-      HorizontalClassMerger.Mode horizontalClassMergerMode) {
-    // Intentionally empty.
   }
 
   public void notifyMinifierFinished() {

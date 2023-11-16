@@ -123,7 +123,6 @@ public final class R8Command extends BaseCompilerCommand {
     private final List<ProguardConfigurationSource> proguardConfigs = new ArrayList<>();
     private boolean disableTreeShaking = false;
     private boolean disableMinification = false;
-    private boolean disableVerticalClassMerging = false;
     private boolean forceProguardCompatibility = false;
     private Optional<Boolean> includeDataResources = Optional.empty();
     private StringConsumer proguardUsageConsumer = null;
@@ -169,10 +168,6 @@ public final class R8Command extends BaseCompilerCommand {
     }
 
     // Internal
-
-    void setDisableVerticalClassMerging(boolean disableVerticalClassMerging) {
-      this.disableVerticalClassMerging = disableVerticalClassMerging;
-    }
 
     @Override
     Builder self() {
@@ -683,7 +678,6 @@ public final class R8Command extends BaseCompilerCommand {
               desugaring,
               configuration.isShrinking(),
               configuration.isObfuscating(),
-              disableVerticalClassMerging,
               forceProguardCompatibility,
               includeDataResources,
               proguardMapConsumer,
@@ -888,7 +882,6 @@ public final class R8Command extends BaseCompilerCommand {
   private final ProguardConfiguration proguardConfiguration;
   private final boolean enableTreeShaking;
   private final boolean enableMinification;
-  private final boolean disableVerticalClassMerging;
   private final boolean forceProguardCompatibility;
   private final Optional<Boolean> includeDataResources;
   private final StringConsumer proguardMapConsumer;
@@ -972,7 +965,6 @@ public final class R8Command extends BaseCompilerCommand {
       DesugarState enableDesugaring,
       boolean enableTreeShaking,
       boolean enableMinification,
-      boolean disableVerticalClassMerging,
       boolean forceProguardCompatibility,
       Optional<Boolean> includeDataResources,
       StringConsumer proguardMapConsumer,
@@ -1033,7 +1025,6 @@ public final class R8Command extends BaseCompilerCommand {
     this.proguardConfiguration = proguardConfiguration;
     this.enableTreeShaking = enableTreeShaking;
     this.enableMinification = enableMinification;
-    this.disableVerticalClassMerging = disableVerticalClassMerging;
     this.forceProguardCompatibility = forceProguardCompatibility;
     this.includeDataResources = includeDataResources;
     this.proguardMapConsumer = proguardMapConsumer;
@@ -1060,7 +1051,6 @@ public final class R8Command extends BaseCompilerCommand {
     proguardConfiguration = null;
     enableTreeShaking = false;
     enableMinification = false;
-    disableVerticalClassMerging = false;
     forceProguardCompatibility = false;
     includeDataResources = null;
     proguardMapConsumer = null;
@@ -1133,13 +1123,11 @@ public final class R8Command extends BaseCompilerCommand {
     assert internal.isOptimizing() || horizontalClassMergerOptions.isRestrictedToSynthetics();
 
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
-    assert internal.enableVerticalClassMerging || !internal.isOptimizing();
 
     if (!internal.isShrinking()) {
       // If R8 is not shrinking, there is no point in running various optimizations since the
       // optimized classes will still remain in the program (the application size could increase).
       internal.enableEnumUnboxing = false;
-      internal.enableVerticalClassMerging = false;
     }
 
     // Amend the proguard-map consumer with options from the proguard configuration.
@@ -1218,9 +1206,6 @@ public final class R8Command extends BaseCompilerCommand {
     // EXPERIMENTAL flags.
     assert !internal.forceProguardCompatibility;
     internal.forceProguardCompatibility = forceProguardCompatibility;
-    if (disableVerticalClassMerging) {
-      internal.enableVerticalClassMerging = false;
-    }
 
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
