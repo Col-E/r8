@@ -25,7 +25,7 @@ import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.TriFunction;
-import com.android.tools.r8.verticalclassmerging.VerticalClassMerger.SingleTypeMapperGraphLens;
+import com.android.tools.r8.verticalclassmerging.SingleTypeMapperGraphLens;
 
 // Computes the inlining constraint for a given instruction.
 public class InliningConstraints {

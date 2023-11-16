@@ -5,12 +5,12 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.function.Consumer;
 
 abstract class ClassHierarchyTraversal<
     T extends DexClass, CHT extends ClassHierarchyTraversal<T, CHT>> {
@@ -61,7 +61,8 @@ abstract class ClassHierarchyTraversal<
     return self();
   }
 
-  public void visit(Iterable<? extends DexClass> sources, Consumer<T> visitor) {
+  public <E extends Throwable> void visit(
+      Iterable<? extends DexClass> sources, ThrowingConsumer<T, E> visitor) throws E {
     Iterator<? extends DexClass> sourceIterator = sources.iterator();
 
     // Visit the program classes in the order that is implemented by addDependentsToWorklist().
