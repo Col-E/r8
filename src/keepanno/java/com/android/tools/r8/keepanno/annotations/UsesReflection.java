@@ -1,6 +1,11 @@
 // Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
+
+// ***********************************************************************************
+// GENERATED FILE. DO NOT EDIT! See KeepItemAnnotationGenerator.java.
+// ***********************************************************************************
+
 package com.android.tools.r8.keepanno.annotations;
 
 import java.lang.annotation.ElementType;
@@ -9,7 +14,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation to declare the reflective usages made by an item.
+ * Annotation to declare the reflective usages made by a class, method or field.
  *
  * <p>The annotation's 'value' is a list of targets to be kept if the annotated item is used. The
  * annotated item is a precondition for keeping any of the specified targets. Thus, if an annotated
@@ -56,10 +61,17 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.CONSTRUCTOR})
 @Retention(RetentionPolicy.CLASS)
 public @interface UsesReflection {
+
+  /** Optional description to document the reason for this annotation. */
   String description() default "";
 
+  /** Consequences that must be kept if the annotation is in effect. */
   KeepTarget[] value();
 
+  /**
+   * Additional preconditions for the annotation to be in effect.
+   *
+   * <p>Defaults to no additional preconditions.
+   */
   KeepCondition[] additionalPreconditions() default {};
-
 }

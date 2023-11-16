@@ -55,11 +55,9 @@ public class KeepItemAnnotationGenerator {
     return clazz.getSimpleName();
   }
 
-  private static class GroupMember {
+  private static class GroupMember extends DocPrinterBase<GroupMember> {
 
     final String name;
-    String docTitle = null;
-    final List<String> docLines = new ArrayList<>();
     String valueType = null;
     String valueDefault = null;
 
@@ -67,14 +65,13 @@ public class KeepItemAnnotationGenerator {
       this.name = name;
     }
 
+    @Override
+    public GroupMember self() {
+      return this;
+    }
+
     void generate(Generator generator) {
-      assert docLines.isEmpty() || docTitle != null;
-      if (docTitle != null) {
-        List<String> doc = new ArrayList<>();
-        doc.add(docTitle);
-        doc.addAll(docLines);
-        generator.printDocString(doc.toArray(new String[0]));
-      }
+      printDoc(generator::println);
       if (valueDefault == null) {
         generator.println(valueType + " " + name + "();");
       } else {
@@ -84,38 +81,6 @@ public class KeepItemAnnotationGenerator {
 
     public void generateConstants(Generator generator) {
       generator.println("public static final String " + name + " = " + quote(name) + ";");
-    }
-
-    public GroupMember clearDocLines() {
-      docLines.clear();
-      return this;
-    }
-
-    public GroupMember setDocTitle(String title) {
-      assert docTitle == null;
-      assert title.endsWith(".");
-      docTitle = title;
-      return this;
-    }
-
-    public GroupMember addDocList(List<String> items) {
-      docLines.add("<ul>");
-      for (String item : items) {
-        docLines.add("<li>" + item);
-      }
-      docLines.add("</ul>");
-      return this;
-    }
-
-    public GroupMember addDocList(String... items) {
-      return addDocList(Arrays.asList(items));
-    }
-
-    public GroupMember addDoc(String... strings) {
-      for (String string : strings) {
-        docLines.add(string);
-      }
-      return this;
     }
 
     public GroupMember requiredStringValue() {
@@ -181,7 +146,7 @@ public class KeepItemAnnotationGenerator {
       return this;
     }
 
-    Group addDocFooter(String footer) {
+    Group addDocFooterParagraph(String footer) {
       footers.add(footer);
       return this;
     }
@@ -203,22 +168,18 @@ public class KeepItemAnnotationGenerator {
               group.members.forEach(m -> mutuallyExclusiveProperties.add(m.name));
             });
         if (mutuallyExclusiveProperties.size() == 1) {
-          member.addDoc(
-              "<p>Mutually exclusive with the property `"
+          member.addParagraph(
+              "Mutually exclusive with the property `"
                   + mutuallyExclusiveProperties.get(0)
                   + "` also defining "
                   + name
                   + ".");
         } else if (mutuallyExclusiveProperties.size() > 1) {
-          StringBuilder mutualExclusiveDoc =
-              new StringBuilder()
-                  .append("<p>Mutually exclusive with the following other properties defining ")
-                  .append(name)
-                  .append(":");
-          member.addDoc(mutualExclusiveDoc.toString());
-          member.addDocList(mutuallyExclusiveProperties);
+          member.addParagraph(
+              "Mutually exclusive with the following other properties defining " + name + ":");
+          member.addUnorderedList(mutuallyExclusiveProperties);
         }
-        footers.forEach(member::addDoc);
+        footers.forEach(member::addParagraph);
         member.generate(generator);
       }
     }
@@ -271,24 +232,6 @@ public class KeepItemAnnotationGenerator {
       writer.println(line);
     }
 
-    public void printDocString(String... lines) {
-      assert lines.length > 0;
-      if (lines.length == 1) {
-        println("/** " + lines[0] + " */");
-        return;
-      }
-      println("/**");
-      println(" * " + lines[0]);
-      for (int i = 1; i < lines.length; i++) {
-        String line = lines[i];
-        if (line.startsWith("<p>")) {
-          println(" *");
-        }
-        println(" * " + line);
-      }
-      println(" */");
-    }
-
     private void printCopyRight(int year) {
       println(
           CodeGenerationBase.getHeaderString(
@@ -336,7 +279,8 @@ public class KeepItemAnnotationGenerator {
               new GroupMember("preconditions")
                   .setDocTitle(
                       "Conditions that should be satisfied for the annotation to be in effect.")
-                  .addDoc("<p>Defaults to no conditions, thus trivially/unconditionally satisfied.")
+                  .addParagraph(
+                      "Defaults to no conditions, thus trivially/unconditionally satisfied.")
                   .defaultEmptyArray(KeepCondition.class));
     }
 
@@ -361,8 +305,8 @@ public class KeepItemAnnotationGenerator {
           .addMember(
               new GroupMember("additionalPreconditions")
                   .setDocTitle("Additional preconditions for the annotation to be in effect.")
-                  .addDoc("<p>Defaults to no additional preconditions.")
-                  .defaultEmptyArray("KeepTarget"));
+                  .addParagraph("Defaults to no additional preconditions.")
+                  .defaultEmptyArray("KeepCondition"));
     }
 
     private Group createAdditionalTargetsGroup(String docTitle) {
@@ -370,7 +314,7 @@ public class KeepItemAnnotationGenerator {
           .addMember(
               new GroupMember("additionalTargets")
                   .setDocTitle(docTitle)
-                  .addDoc("<p>Defaults to no additional targets.")
+                  .addParagraph("Defaults to no additional targets.")
                   .defaultEmptyArray("KeepTarget"));
     }
 
@@ -383,13 +327,13 @@ public class KeepItemAnnotationGenerator {
           .defaultType("KeepItemKind")
           .defaultValue("KeepItemKind.DEFAULT")
           .setDocTitle("Specify the kind of this item pattern.")
-          .addDoc("<p>Possible values are:")
-          .addDocList(
+          .addParagraph("Possible values are:")
+          .addUnorderedList(
               KeepItemKind.ONLY_CLASS.name(),
               KeepItemKind.ONLY_MEMBERS.name(),
               KeepItemKind.CLASS_AND_MEMBERS.name())
-          .addDoc(
-              "<p>If unspecified the default for an item with no member patterns is",
+          .addParagraph(
+              "If unspecified the default for an item with no member patterns is",
               KeepItemKind.ONLY_CLASS.name(),
               "and if it does have member patterns the default is",
               KeepItemKind.ONLY_MEMBERS.name());
@@ -409,8 +353,8 @@ public class KeepItemAnnotationGenerator {
                   .setDocTitle(
                       "Define the " + OPTIONS_GROUP + " that *must* be preserved for the target.")
                   .defaultEmptyArray("KeepOption"))
-          .addDocFooter(
-              "<p>If nothing is specified for "
+          .addDocFooterParagraph(
+              "If nothing is specified for "
                   + OPTIONS_GROUP
                   + " the default is "
                   + quote("allow none")
@@ -436,7 +380,7 @@ public class KeepItemAnnotationGenerator {
     private Group createClassBindingGroup() {
       return new Group(CLASS_GROUP)
           .addMember(classFromBinding())
-          .addDocFooter("<p>If none are specified the default is to match any class.");
+          .addDocFooterParagraph("If none are specified the default is to match any class.");
     }
 
     private GroupMember className() {
@@ -456,7 +400,7 @@ public class KeepItemAnnotationGenerator {
       return new Group(CLASS_NAME_GROUP)
           .addMember(className())
           .addMember(classConstant())
-          .addDocFooter("<p>If none are specified the default is to match any class name.");
+          .addDocFooterParagraph("If none are specified the default is to match any class name.");
     }
 
     private GroupMember instanceOfClassName() {
@@ -478,7 +422,7 @@ public class KeepItemAnnotationGenerator {
     }
 
     private String getInstanceOfExclusiveDoc() {
-      return "<p>The pattern is exclusive in that it does not match classes that are"
+      return "The pattern is exclusive in that it does not match classes that are"
           + " instances of the pattern, but only those that are instances of classes that"
           + " are subclasses of the pattern.";
     }
@@ -489,7 +433,7 @@ public class KeepItemAnnotationGenerator {
               "Define the "
                   + INSTANCE_OF_GROUP
                   + " pattern as classes that are instances of the fully qualified class name.")
-          .addDoc(getInstanceOfExclusiveDoc())
+          .addParagraph(getInstanceOfExclusiveDoc())
           .defaultEmptyString();
     }
 
@@ -499,7 +443,7 @@ public class KeepItemAnnotationGenerator {
               "Define the "
                   + INSTANCE_OF_GROUP
                   + " pattern as classes that are instances the referenced Class constant.")
-          .addDoc(getInstanceOfExclusiveDoc())
+          .addParagraph(getInstanceOfExclusiveDoc())
           .defaultObjectClass();
     }
 
@@ -509,8 +453,8 @@ public class KeepItemAnnotationGenerator {
               "Define the "
                   + INSTANCE_OF_GROUP
                   + " pattern as classes extending the fully qualified class name.")
-          .addDoc(getInstanceOfExclusiveDoc())
-          .addDoc("<p>This property is deprecated, use instanceOfClassName instead.")
+          .addParagraph(getInstanceOfExclusiveDoc())
+          .addParagraph("This property is deprecated, use instanceOfClassName instead.")
           .defaultEmptyString();
     }
 
@@ -520,8 +464,8 @@ public class KeepItemAnnotationGenerator {
               "Define the "
                   + INSTANCE_OF_GROUP
                   + " pattern as classes extending the referenced Class constant.")
-          .addDoc(getInstanceOfExclusiveDoc())
-          .addDoc("<p>This property is deprecated, use instanceOfClassConstant instead.")
+          .addParagraph(getInstanceOfExclusiveDoc())
+          .addParagraph("This property is deprecated, use instanceOfClassConstant instead.")
           .defaultObjectClass();
     }
 
@@ -533,7 +477,8 @@ public class KeepItemAnnotationGenerator {
           .addMember(instanceOfClassConstantExclusive())
           .addMember(extendsClassName())
           .addMember(extendsClassConstant())
-          .addDocFooter("<p>If none are specified the default is to match any class instance.");
+          .addDocFooterParagraph(
+              "If none are specified the default is to match any class instance.");
     }
 
     private Group createMemberBindingGroup() {
@@ -541,8 +486,8 @@ public class KeepItemAnnotationGenerator {
           .addMember(
               new GroupMember("memberFromBinding")
                   .setDocTitle("Define the member pattern in full by a reference to a binding.")
-                  .addDoc(
-                      "<p>Mutually exclusive with all other class and member pattern properties.",
+                  .addParagraph(
+                      "Mutually exclusive with all other class and member pattern properties.",
                       "When a member binding is referenced this item is defined to be that item,",
                       "including its class and member patterns.")
                   .defaultEmptyString());
@@ -553,28 +498,28 @@ public class KeepItemAnnotationGenerator {
           .addMember(
               new GroupMember("memberAccess")
                   .setDocTitle("Define the member-access pattern by matching on access flags.")
-                  .addDoc(
-                      "<p>Mutually exclusive with all field and method properties",
+                  .addParagraph(
+                      "Mutually exclusive with all field and method properties",
                       "as use restricts the match to both types of members.")
                   .defaultEmptyArray("MemberAccessFlags"));
     }
 
     private String getMutuallyExclusiveForMethodProperties() {
-      return "<p>Mutually exclusive with all field properties.";
+      return "Mutually exclusive with all field properties.";
     }
 
     private String getMutuallyExclusiveForFieldProperties() {
-      return "<p>Mutually exclusive with all method properties.";
+      return "Mutually exclusive with all method properties.";
     }
 
     private String getMethodDefaultDoc(String suffix) {
-      return "<p>If none, and other properties define this item as a method, the default matches "
+      return "If none, and other properties define this item as a method, the default matches "
           + suffix
           + ".";
     }
 
     private String getFieldDefaultDoc(String suffix) {
-      return "<p>If none, and other properties define this item as a field, the default matches "
+      return "If none, and other properties define this item as a field, the default matches "
           + suffix
           + ".";
     }
@@ -584,8 +529,8 @@ public class KeepItemAnnotationGenerator {
           .addMember(
               new GroupMember("methodAccess")
                   .setDocTitle("Define the method-access pattern by matching on access flags.")
-                  .addDoc(getMutuallyExclusiveForMethodProperties())
-                  .addDoc(getMethodDefaultDoc("any method-access flags"))
+                  .addParagraph(getMutuallyExclusiveForMethodProperties())
+                  .addParagraph(getMethodDefaultDoc("any method-access flags"))
                   .defaultEmptyArray("MethodAccessFlags"));
     }
 
@@ -594,8 +539,8 @@ public class KeepItemAnnotationGenerator {
           .addMember(
               new GroupMember("methodName")
                   .setDocTitle("Define the method-name pattern by an exact method name.")
-                  .addDoc(getMutuallyExclusiveForMethodProperties())
-                  .addDoc(getMethodDefaultDoc("any method name"))
+                  .addParagraph(getMutuallyExclusiveForMethodProperties())
+                  .addParagraph(getMethodDefaultDoc("any method name"))
                   .defaultEmptyString());
     }
 
@@ -605,8 +550,8 @@ public class KeepItemAnnotationGenerator {
               new GroupMember("methodReturnType")
                   .setDocTitle(
                       "Define the method return-type pattern by a fully qualified type or 'void'.")
-                  .addDoc(getMutuallyExclusiveForMethodProperties())
-                  .addDoc(getMethodDefaultDoc("any return type"))
+                  .addParagraph(getMutuallyExclusiveForMethodProperties())
+                  .addParagraph(getMethodDefaultDoc("any return type"))
                   .defaultEmptyString());
     }
 
@@ -616,8 +561,8 @@ public class KeepItemAnnotationGenerator {
               new GroupMember("methodParameters")
                   .setDocTitle(
                       "Define the method parameters pattern by a list of fully qualified types.")
-                  .addDoc(getMutuallyExclusiveForMethodProperties())
-                  .addDoc(getMethodDefaultDoc("any parameters"))
+                  .addParagraph(getMutuallyExclusiveForMethodProperties())
+                  .addParagraph(getMethodDefaultDoc("any parameters"))
                   .defaultType("String[]")
                   .defaultValue("{\"<default>\"}"));
     }
@@ -627,8 +572,8 @@ public class KeepItemAnnotationGenerator {
           .addMember(
               new GroupMember("fieldAccess")
                   .setDocTitle("Define the field-access pattern by matching on access flags.")
-                  .addDoc(getMutuallyExclusiveForFieldProperties())
-                  .addDoc(getFieldDefaultDoc("any field-access flags"))
+                  .addParagraph(getMutuallyExclusiveForFieldProperties())
+                  .addParagraph(getFieldDefaultDoc("any field-access flags"))
                   .defaultEmptyArray("FieldAccessFlags"));
     }
 
@@ -637,8 +582,8 @@ public class KeepItemAnnotationGenerator {
           .addMember(
               new GroupMember("fieldName")
                   .setDocTitle("Define the field-name pattern by an exact field name.")
-                  .addDoc(getMutuallyExclusiveForFieldProperties())
-                  .addDoc(getFieldDefaultDoc("any field name"))
+                  .addParagraph(getMutuallyExclusiveForFieldProperties())
+                  .addParagraph(getFieldDefaultDoc("any field name"))
                   .defaultEmptyString());
     }
 
@@ -647,8 +592,8 @@ public class KeepItemAnnotationGenerator {
           .addMember(
               new GroupMember("fieldType")
                   .setDocTitle("Define the field-type pattern by a fully qualified type.")
-                  .addDoc(getMutuallyExclusiveForFieldProperties())
-                  .addDoc(getFieldDefaultDoc("any type"))
+                  .addParagraph(getMutuallyExclusiveForFieldProperties())
+                  .addParagraph(getFieldDefaultDoc("any type"))
                   .defaultEmptyString());
     }
 
@@ -713,17 +658,16 @@ public class KeepItemAnnotationGenerator {
       printCopyRight(2022);
       printPackage("annotations");
       printImports(ANNOTATION_IMPORTS);
-      printDocString(
-          "A binding of a keep item.",
-          "<p>Bindings allow referencing the exact instance of a match from a condition in other "
-              + " conditions and/or targets. It can also be used to reduce duplication of targets"
-              + " by sharing patterns.",
-          "<p>An item can be:",
-          "<ul>",
-          "  <li> a pattern on classes;",
-          "  <li> a pattern on methods; or",
-          "  <li> a pattern on fields.",
-          "</ul>");
+      DocPrinter.printer()
+          .setDocTitle("A binding of a keep item.")
+          .addParagraph(
+              "Bindings allow referencing the exact instance of a match from a condition in other "
+                  + " conditions and/or targets. It can also be used to reduce duplication of"
+                  + " targets by sharing patterns.")
+          .addParagraph("An item can be:")
+          .addUnorderedList(
+              "a pattern on classes;", "a pattern on methods; or", "a pattern on fields.")
+          .printDoc(this::println);
       println("@Target(ElementType.ANNOTATION_TYPE)");
       println("@Retention(RetentionPolicy.CLASS)");
       println("public @interface KeepBinding {");
@@ -749,14 +693,13 @@ public class KeepItemAnnotationGenerator {
       printCopyRight(2022);
       printPackage("annotations");
       printImports(ANNOTATION_IMPORTS);
-      printDocString(
-          "A target for a keep edge.",
-          "<p>The target denotes an item along with options for what to keep. An item can be:",
-          "<ul>",
-          "  <li> a pattern on classes;",
-          "  <li> a pattern on methods; or",
-          "  <li> a pattern on fields.",
-          "</ul>");
+      DocPrinter.printer()
+          .setDocTitle("A target for a keep edge.")
+          .addParagraph(
+              "The target denotes an item along with options for what to keep. An item can be:")
+          .addUnorderedList(
+              "a pattern on classes;", "a pattern on methods; or", "a pattern on fields.")
+          .printDoc(this::println);
       println("@Target(ElementType.ANNOTATION_TYPE)");
       println("@Retention(RetentionPolicy.CLASS)");
       println("public @interface KeepTarget {");
@@ -777,14 +720,13 @@ public class KeepItemAnnotationGenerator {
       printCopyRight(2022);
       printPackage("annotations");
       printImports(ANNOTATION_IMPORTS);
-      printDocString(
-          "A condition for a keep edge.",
-          "<p>The condition denotes an item used as a precondition of a rule. An item can be:",
-          "<ul>",
-          "  <li> a pattern on classes;",
-          "  <li> a pattern on methods; or",
-          "  <li> a pattern on fields.",
-          "</ul>");
+      DocPrinter.printer()
+          .setDocTitle("A condition for a keep edge.")
+          .addParagraph(
+              "The condition denotes an item used as a precondition of a rule. An item can be:")
+          .addUnorderedList(
+              "a pattern on classes;", "a pattern on methods; or", "a pattern on fields.")
+          .printDoc(this::println);
       println("@Target(ElementType.ANNOTATION_TYPE)");
       println("@Retention(RetentionPolicy.CLASS)");
       println("public @interface KeepCondition {");
@@ -801,13 +743,17 @@ public class KeepItemAnnotationGenerator {
       printCopyRight(2023);
       printPackage("annotations");
       printImports(ANNOTATION_IMPORTS);
-      printDocString(
-          "Annotation to mark a class, field or method as part of a library API surface.",
-          "<p>When a class is annotated, member patterns can be used to define which members are to"
-              + " be kept. When no member patterns are specified the default pattern matches all"
-              + " public and protected members.",
-          "<p>When a member is annotated, the member patterns cannot be used as the annotated"
-              + " member itself fully defines the item to be kept (i.e., itself).");
+      DocPrinter.printer()
+          .setDocTitle(
+              "Annotation to mark a class, field or method as part of a library API surface.")
+          .addParagraph(
+              "When a class is annotated, member patterns can be used to define which members are"
+                  + " to be kept. When no member patterns are specified the default pattern matches"
+                  + " all public and protected members.")
+          .addParagraph(
+              "When a member is annotated, the member patterns cannot be used as the annotated"
+                  + " member itself fully defines the item to be kept (i.e., itself).")
+          .printDoc(this::println);
       println(
           "@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD,"
               + " ElementType.CONSTRUCTOR})");
@@ -825,16 +771,16 @@ public class KeepItemAnnotationGenerator {
             GroupMember kindProperty = getKindMember();
             kindProperty
                 .clearDocLines()
-                .addDoc(
-                    "<p>Default kind is",
+                .addParagraph(
+                    "Default kind is",
                     KeepItemKind.CLASS_AND_MEMBERS.name(),
                     ", meaning the annotated class and/or member is to be kept.",
                     "When annotating a class this can be set to",
                     KeepItemKind.ONLY_CLASS.name(),
                     "to avoid patterns on any members.",
                     "That can be useful when the API members are themselves explicitly annotated.")
-                .addDoc(
-                    "<p>It is not possible to use",
+                .addParagraph(
+                    "It is not possible to use",
                     KeepItemKind.ONLY_CLASS.name(),
                     "if annotating a member. Also, it is never valid to use kind",
                     KeepItemKind.ONLY_MEMBERS.name(),
@@ -847,23 +793,95 @@ public class KeepItemAnnotationGenerator {
       println("}");
     }
 
+    private void generateUsesReflection() {
+      printCopyRight(2022);
+      printPackage("annotations");
+      printImports(ANNOTATION_IMPORTS);
+      DocPrinter.printer()
+          .setDocTitle(
+              "Annotation to declare the reflective usages made by a class, method or field.")
+          .addParagraph(
+              "The annotation's 'value' is a list of targets to be kept if the annotated item is"
+                  + " used. The annotated item is a precondition for keeping any of the specified"
+                  + " targets. Thus, if an annotated method is determined to be unused by the"
+                  + " program, the annotation itself will not be in effect and the targets will not"
+                  + " be kept (assuming nothing else is otherwise keeping them).")
+          .addParagraph(
+              "The annotation's 'additionalPreconditions' is optional and can specify additional"
+                  + " conditions that should be satisfied for the annotation to be in effect.")
+          .addParagraph(
+              "The translation of the @UsesReflection annotation into a @KeepEdge is as follows:")
+          .addParagraph(
+              "Assume the item of the annotation is denoted by 'CTX' and referred to as its"
+                  + " context.")
+          .addCodeBlock(
+              "@UsesReflection(value = targets, [additionalPreconditions = preconditions])",
+              "==>",
+              "@KeepEdge(",
+              "  consequences = targets,",
+              "  preconditions = {createConditionFromContext(CTX)} + preconditions",
+              ")",
+              "",
+              "where",
+              "  KeepCondition createConditionFromContext(ctx) {",
+              "    if (ctx.isClass()) {",
+              "      return new KeepCondition(classTypeName = ctx.getClassTypeName());",
+              "    }",
+              "    if (ctx.isMethod()) {",
+              "      return new KeepCondition(",
+              "        classTypeName = ctx.getClassTypeName(),",
+              "        methodName = ctx.getMethodName(),",
+              "        methodReturnType = ctx.getMethodReturnType(),",
+              "        methodParameterTypes = ctx.getMethodParameterTypes());",
+              "    }",
+              "    if (ctx.isField()) {",
+              "      return new KeepCondition(",
+              "        classTypeName = ctx.getClassTypeName(),",
+              "        fieldName = ctx.getFieldName()",
+              "        fieldType = ctx.getFieldType());",
+              "    }",
+              "    // unreachable",
+              "  }")
+          .printDoc(this::println);
+      println(
+          "@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD,"
+              + " ElementType.CONSTRUCTOR})");
+      println("@Retention(RetentionPolicy.CLASS)");
+      println("public @interface " + simpleName(UsesReflection.class) + " {");
+      println();
+      withIndent(
+          () -> {
+            createDescriptionGroup().generate(this);
+            println();
+            createConsequencesAsValueGroup().generate(this);
+            println();
+            createAdditionalPreconditionsGroup().generate(this);
+          });
+      println("}");
+    }
+
     private void generateUsedByX(String annotationClassName, String doc) {
       printCopyRight(2023);
       printPackage("annotations");
       printImports(ANNOTATION_IMPORTS);
-      printDocString(
-          "Annotation to mark a class, field or method as being " + doc + ".",
-          "<p>Note: Before using this annotation, consider if instead you can annotate the code"
-              + " that is doing reflection with {@link UsesReflection}. Annotating the reflecting"
-              + " code is generally more clear and maintainable, and it also naturally gives rise"
-              + " to edges that describe just the reflected aspects of the program. The {@link"
-              + " UsedByReflection} annotation is suitable for cases where the reflecting code is"
-              + " not under user control, or in migrating away from rules.",
-          "<p>When a class is annotated, member patterns can be used to define which members are to"
-              + " be kept. When no member patterns are specified the default pattern is to match"
-              + " just the class.",
-          "<p>When a member is annotated, the member patterns cannot be used as the annotated"
-              + " member itself fully defines the item to be kept (i.e., itself).");
+      DocPrinter.printer()
+          .setDocTitle("Annotation to mark a class, field or method as being " + doc + ".")
+          .addParagraph(
+              "Note: Before using this annotation, consider if instead you can annotate the code"
+                  + " that is doing reflection with {@link UsesReflection}. Annotating the"
+                  + " reflecting code is generally more clear and maintainable, and it also"
+                  + " naturally gives rise to edges that describe just the reflected aspects of the"
+                  + " program. The {@link UsedByReflection} annotation is suitable for cases where"
+                  + " the reflecting code is not under user control, or in migrating away from"
+                  + " rules.")
+          .addParagraph(
+              "When a class is annotated, member patterns can be used to define which members are"
+                  + " to be kept. When no member patterns are specified the default pattern is to"
+                  + " match just the class.")
+          .addParagraph(
+              "When a member is annotated, the member patterns cannot be used as the annotated"
+                  + " member itself fully defines the item to be kept (i.e., itself).")
+          .printDoc(this::println);
       println(
           "@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD,"
               + " ElementType.CONSTRUCTOR})");
@@ -883,17 +901,19 @@ public class KeepItemAnnotationGenerator {
             GroupMember kindProperty = getKindMember();
             kindProperty
                 .clearDocLines()
-                .addDoc(
-                    "<p>When annotating a class without member patterns, the default kind is "
+                .addParagraph(
+                    "When annotating a class without member patterns, the default kind is "
                         + docLink(KeepItemKind.ONLY_CLASS)
-                        + ".",
-                    "<p>When annotating a class with member patterns, the default kind is "
+                        + ".")
+                .addParagraph(
+                    "When annotating a class with member patterns, the default kind is "
                         + docLink(KeepItemKind.CLASS_AND_MEMBERS)
-                        + ".",
-                    "<p>When annotating a member, the default kind is "
+                        + ".")
+                .addParagraph(
+                    "When annotating a member, the default kind is "
                         + docLink(KeepItemKind.ONLY_MEMBERS)
-                        + ".",
-                    "<p>It is not possible to use ONLY_CLASS if annotating a member.")
+                        + ".")
+                .addParagraph("It is not possible to use ONLY_CLASS if annotating a member.")
                 .generate(this);
             println();
             generateMemberPropertiesNoBinding();
@@ -910,10 +930,13 @@ public class KeepItemAnnotationGenerator {
       printCopyRight(2023);
       printPackage("ast");
       printImports();
-      printDocString(
-          "Utility class for referencing the various keep annotations and their structure.",
-          "<p>Use of these references avoids polluting the Java namespace with imports of the java "
-              + "annotations which overlap in name with the actual semantic AST types.");
+      DocPrinter.printer()
+          .setDocTitle(
+              "Utility class for referencing the various keep annotations and their structure.")
+          .addParagraph(
+              "Use of these references avoids polluting the Java namespace with imports of the java"
+                  + " annotations which overlap in name with the actual semantic AST types.")
+          .printDoc(this::println);
       println("public final class AnnotationConstants {");
       withIndent(
           () -> {
@@ -1032,7 +1055,9 @@ public class KeepItemAnnotationGenerator {
     }
 
     private void generateItemConstants() {
-      printDocString("Item properties common to binding items, conditions and targets.");
+      DocPrinter.printer()
+          .setDocTitle("Item properties common to binding items, conditions and targets.")
+          .printDoc(this::println);
       println("public static final class Item {");
       withIndent(
           () -> {
@@ -1209,6 +1234,7 @@ public class KeepItemAnnotationGenerator {
       writeFile(annoPkg.resolve("KeepTarget.java"), Generator::generateKeepTarget);
       writeFile(annoPkg.resolve("KeepCondition.java"), Generator::generateKeepCondition);
       writeFile(annoPkg.resolve("KeepForApi.java"), Generator::generateKeepForApi);
+      writeFile(annoPkg.resolve("UsesReflection.java"), Generator::generateUsesReflection);
       writeFile(
           annoPkg.resolve("UsedByReflection.java"),
           g -> g.generateUsedByX("UsedByReflection", "accessed reflectively"));
