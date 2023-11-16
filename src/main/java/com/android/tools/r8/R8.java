@@ -262,7 +262,7 @@ public class R8 {
     if (options.quiet) {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));
     }
-    if (this.getClass().desiredAssertionStatus()) {
+    if (this.getClass().desiredAssertionStatus() && !options.quiet) {
       options.reporter.info(
           new StringDiagnostic(
               "Running R8 version " + Version.LABEL + " with assertions enabled."));
