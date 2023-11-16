@@ -93,7 +93,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   }
 
   protected boolean isPrivateNestMethodInvoke(DexBuilder builder) {
-    if (!builder.getOptions().emitNestAnnotationsInDex) {
+    if (!builder.getOptions().canUseNestBasedAccess()) {
       return false;
     }
     DexProgramClass holder = builder.getProgramMethod().getHolder();

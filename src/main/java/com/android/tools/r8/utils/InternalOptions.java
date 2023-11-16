@@ -490,6 +490,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Flag to allow nest annotations in DEX. See b/231930852 for context.
   public boolean emitNestAnnotationsInDex =
       System.getProperty("com.android.tools.r8.emitNestAnnotationsInDex") != null;
+  // Flag to allow force nest desugaring, even if natively supported on the chosen API level.
+  public boolean forceNestDesugaring =
+      System.getProperty("com.android.tools.r8.forceNestDesugaring") != null;
 
   // TODO(b/293591931): Remove this flag.
   // Flag to allow permitted subclasses annotations in DEX. See b/231930852 for context.
@@ -2676,7 +2679,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseNestBasedAccess() {
-    return hasFeaturePresentFrom(null) || emitNestAnnotationsInDex;
+    return (hasFeaturePresentFrom(null) || emitNestAnnotationsInDex) && !forceNestDesugaring;
   }
 
   public boolean canUseRecords() {

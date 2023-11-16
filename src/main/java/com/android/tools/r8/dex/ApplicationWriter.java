@@ -836,7 +836,7 @@ public class ApplicationWriter {
               options.itemFactory));
     }
 
-    if (options.emitNestAnnotationsInDex) {
+    if (options.canUseNestBasedAccess()) {
       if (clazz.isNestHost()) {
         annotations.add(
             DexAnnotation.createNestMembersAnnotation(

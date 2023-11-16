@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter;
@@ -29,6 +30,10 @@ public abstract class CfInstructionDesugaringCollection {
 
   public static CfInstructionDesugaringCollection create(
       AppView<?> appView, AndroidApiLevelCompute apiLevelCompute) {
+    if (appView.options().desugarState.isOff() && appView.options().forceNestDesugaring) {
+      throw new CompilationError(
+          "Cannot combine -Dcom.android.tools.r8.forceNestDesugaring with desugaring turned off");
+    }
     if (appView.options().desugarState.isOn()) {
       return new NonEmptyCfInstructionDesugaringCollection(appView, apiLevelCompute);
     }
