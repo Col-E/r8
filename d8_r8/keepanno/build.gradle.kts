@@ -34,4 +34,9 @@ tasks {
     dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
     from(sourceSets.main.get().output)
   }
+
+  val keepAnnoAnnotationsDoc by registering(Javadoc::class) {
+    source = sourceSets.main.get().allJava
+    include("com/android/tools/r8/keepanno/annotations/*")
+  }
 }

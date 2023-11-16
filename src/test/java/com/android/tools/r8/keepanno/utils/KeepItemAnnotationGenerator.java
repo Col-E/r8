@@ -784,7 +784,7 @@ public class KeepItemAnnotationGenerator {
                     KeepItemKind.ONLY_CLASS.name(),
                     "if annotating a member. Also, it is never valid to use kind",
                     KeepItemKind.ONLY_MEMBERS.name(),
-                    "as the API surface must keep the class if any member it to be accessible.")
+                    "as the API surface must keep the class if any member is to be accessible.")
                 .generate(this);
             println();
             generateMemberPropertiesNoBinding();
@@ -810,14 +810,18 @@ public class KeepItemAnnotationGenerator {
               "The annotation's 'additionalPreconditions' is optional and can specify additional"
                   + " conditions that should be satisfied for the annotation to be in effect.")
           .addParagraph(
-              "The translation of the @UsesReflection annotation into a @KeepEdge is as follows:")
+              "The translation of the "
+                  + docLink(UsesReflection.class)
+                  + " annotation into a "
+                  + docLink(KeepEdge.class)
+                  + " is as follows:")
           .addParagraph(
               "Assume the item of the annotation is denoted by 'CTX' and referred to as its"
                   + " context.")
           .addCodeBlock(
-              "@UsesReflection(value = targets, [additionalPreconditions = preconditions])",
-              "==>",
-              "@KeepEdge(",
+              "UsesReflection(value = targets, [additionalPreconditions = preconditions])",
+              "===",
+              "KeepEdge(",
               "  consequences = targets,",
               "  preconditions = {createConditionFromContext(CTX)} + preconditions",
               ")",
@@ -868,10 +872,14 @@ public class KeepItemAnnotationGenerator {
           .setDocTitle("Annotation to mark a class, field or method as being " + doc + ".")
           .addParagraph(
               "Note: Before using this annotation, consider if instead you can annotate the code"
-                  + " that is doing reflection with {@link UsesReflection}. Annotating the"
+                  + " that is doing reflection with "
+                  + docLink(UsesReflection.class)
+                  + ". Annotating the"
                   + " reflecting code is generally more clear and maintainable, and it also"
                   + " naturally gives rise to edges that describe just the reflected aspects of the"
-                  + " program. The {@link UsedByReflection} annotation is suitable for cases where"
+                  + " program. The "
+                  + docLink(UsedByReflection.class)
+                  + " annotation is suitable for cases where"
                   + " the reflecting code is not under user control, or in migrating away from"
                   + " rules.")
           .addParagraph(
@@ -920,6 +928,10 @@ public class KeepItemAnnotationGenerator {
           });
       println();
       println("}");
+    }
+
+    private String docLink(Class<?> clazz) {
+      return "{@link " + simpleName(clazz) + "}";
     }
 
     private String docLink(KeepItemKind kind) {

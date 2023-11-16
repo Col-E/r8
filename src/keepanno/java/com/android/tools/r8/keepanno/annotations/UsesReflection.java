@@ -24,14 +24,15 @@ import java.lang.annotation.Target;
  * <p>The annotation's 'additionalPreconditions' is optional and can specify additional conditions
  * that should be satisfied for the annotation to be in effect.
  *
- * <p>The translation of the @UsesReflection annotation into a @KeepEdge is as follows:
+ * <p>The translation of the {@link UsesReflection} annotation into a {@link KeepEdge} is as
+ * follows:
  *
  * <p>Assume the item of the annotation is denoted by 'CTX' and referred to as its context.
  *
  * <pre>
- * @UsesReflection(value = targets, [additionalPreconditions = preconditions])
- * ==>
- * @KeepEdge(
+ * UsesReflection(value = targets, [additionalPreconditions = preconditions])
+ * ===
+ * KeepEdge(
  *   consequences = targets,
  *   preconditions = {createConditionFromContext(CTX)} + preconditions
  * )
