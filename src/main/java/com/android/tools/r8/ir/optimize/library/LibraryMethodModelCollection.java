@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.library.LibraryMethodModelCollection.State;
+import com.android.tools.r8.ir.optimize.library.primitive.BooleanMethodOptimizer;
 import java.util.Set;
 
 /** Used to model the behavior of library methods for optimization purposes. */

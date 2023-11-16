@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.conversion.CodeOptimization;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.library.primitive.PrimitiveMethodOptimizer;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
@@ -44,16 +45,9 @@ public class LibraryMemberOptimizer implements CodeOptimization {
   public LibraryMemberOptimizer(AppView<?> appView, Timing timing) {
     this.appView = appView;
     timing.begin("Register optimizers");
-    register(new BooleanMethodOptimizer(appView));
-    register(new ByteMethodOptimizer(appView));
-    register(new CharacterMethodOptimizer(appView));
-    register(new DoubleMethodOptimizer(appView));
-    register(new FloatMethodOptimizer(appView));
-    register(new IntegerMethodOptimizer(appView));
-    register(new LongMethodOptimizer(appView));
+    PrimitiveMethodOptimizer.forEachPrimitiveOptimizer(appView, this::register);
     register(new ObjectMethodOptimizer(appView));
     register(new ObjectsMethodOptimizer(appView));
-    register(new ShortMethodOptimizer(appView));
     register(new StringBuilderMethodOptimizer(appView));
     register(new StringMethodOptimizer(appView));
     if (appView.enableWholeProgramOptimizations()) {

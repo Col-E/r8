@@ -2,35 +2,36 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.optimize.library;
+package com.android.tools.r8.ir.optimize.library.primitive;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.ir.analysis.value.SingleBoxedDoubleValue;
+import com.android.tools.r8.ir.analysis.value.SingleBoxedCharValue;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.library.StatelessLibraryMethodModelCollection;
 import java.util.Set;
 
-public class DoubleMethodOptimizer extends StatelessLibraryMethodModelCollection {
+public class CharacterMethodOptimizer extends StatelessLibraryMethodModelCollection {
 
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
 
-  DoubleMethodOptimizer(AppView<?> appView) {
+  CharacterMethodOptimizer(AppView<?> appView) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
   }
 
   @Override
   public DexType getType() {
-    return dexItemFactory.boxedDoubleType;
+    return dexItemFactory.boxedCharType;
   }
 
   @Override
@@ -42,23 +43,23 @@ public class DoubleMethodOptimizer extends StatelessLibraryMethodModelCollection
       DexClassAndMethod singleTarget,
       Set<Value> affectedValues,
       Set<BasicBlock> blocksToRemove) {
-    if (singleTarget.getReference().isIdenticalTo(dexItemFactory.doubleMembers.doubleValue)) {
-      optimizeDoubleValue(code, instructionIterator, invoke);
+    if (singleTarget.getReference().isIdenticalTo(dexItemFactory.charMembers.charValue)) {
+      optimizeCharValue(code, instructionIterator, invoke);
     }
   }
 
-  private void optimizeDoubleValue(
-      IRCode code, InstructionListIterator instructionIterator, InvokeMethod doubleValueInvoke) {
-    // Optimize Double.valueOf(d).doubleValue() into d.
+  private void optimizeCharValue(
+      IRCode code, InstructionListIterator instructionIterator, InvokeMethod charValueInvoke) {
+    // Optimize Char.valueOf(c).charValue() into c.
     AbstractValue abstractValue =
-        doubleValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
-    if (abstractValue.isSingleBoxedDouble()) {
-      if (doubleValueInvoke.hasOutValue()) {
-        SingleBoxedDoubleValue singleBoxedDouble = abstractValue.asSingleBoxedDouble();
+        charValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
+    if (abstractValue.isSingleBoxedChar()) {
+      if (charValueInvoke.hasOutValue()) {
+        SingleBoxedCharValue singleBoxedChar = abstractValue.asSingleBoxedChar();
         instructionIterator.replaceCurrentInstruction(
-            singleBoxedDouble
+            singleBoxedChar
                 .toPrimitive(appView.abstractValueFactory())
-                .createMaterializingInstruction(appView, code, doubleValueInvoke));
+                .createMaterializingInstruction(appView, code, charValueInvoke));
       } else {
         instructionIterator.removeOrReplaceByDebugLocalRead();
       }
