@@ -244,11 +244,7 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
     LinkedList<BasicBlock> blocks = code.blocks;
     for (BasicBlock block : blocks) {
       shortenLiveRangesInsideBlock(
-          code,
-          block,
-          dominatorTreeMemoization,
-          addConstantInBlock,
-          canonicalizer::isConstantCanonicalizationCandidate);
+          code, block, dominatorTreeMemoization, addConstantInBlock, canonicalizer::isConstant);
     }
 
     // Heuristic to decide if constant instructions are shared in dominator block
@@ -446,10 +442,13 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
       DominatorTree dominatorTree = dominatorTreeMemoization.computeIfAbsent();
       BasicBlock dominator = dominatorTree.closestDominator(userBlocks);
 
+      // Do not move the constant if the constant instruction can throw and the dominator or the
+      // original block has catch handlers, or if the code may have monitor instructions, since this
+      // could lead to verification errors.
       if (instruction.instructionTypeCanThrow()) {
-        if (block.hasCatchHandlers() || dominator.hasCatchHandlers()) {
-          // Do not move the constant if the constant instruction can throw
-          // and the dominator or the original block has catch handlers.
+        if (block.hasCatchHandlers()
+            || dominator.hasCatchHandlers()
+            || code.metadata().mayHaveMonitorInstruction()) {
           continue;
         }
       }
