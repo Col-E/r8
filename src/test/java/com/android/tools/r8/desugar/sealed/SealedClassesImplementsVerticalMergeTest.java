@@ -108,8 +108,7 @@ public class SealedClassesImplementsVerticalMergeTest extends TestBase {
   static class TestClass {
 
     public static void main(String[] args) {
-      new SubSub();
-      System.out.println("Success!");
+      System.out.println(new SubSub());
     }
   }
 
@@ -128,5 +127,11 @@ public class SealedClassesImplementsVerticalMergeTest extends TestBase {
 
   static class Sub2 extends Super implements Iface1 {}
 
-  static class SubSub extends Sub1 {}
+  static class SubSub extends Sub1 {
+
+    @Override
+    public String toString() {
+      return "Success!";
+    }
+  }
 }
