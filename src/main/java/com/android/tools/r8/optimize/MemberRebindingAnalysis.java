@@ -392,6 +392,8 @@ public class MemberRebindingAnalysis {
                         builder.setIsLibraryMethodOverrideIf(
                             target.isLibraryMethod(), OptionalBool.TRUE);
                       });
+              assert !bridgeMethodDefinition.belongsToVirtualPool()
+                  || !bridgeMethodDefinition.isLibraryMethodOverride().isUnknown();
               bridgeHolder.addMethod(bridgeMethodDefinition);
               eventConsumer.acceptMemberRebindingBridgeMethod(
                   bridgeMethodDefinition.asProgramMethod(bridgeHolder), target);
