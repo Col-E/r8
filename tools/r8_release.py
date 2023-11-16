@@ -452,7 +452,7 @@ def prepare_google3(args):
                 g4_open('METADATA')
                 metadata_path = os.path.join(third_party_r8, 'METADATA')
                 match_count = 0
-                match_count_expected = 11
+                match_count_expected = 10
                 version_match_regexp = r'[1-9]\.[0-9]{1,2}\.[0-9]{1,3}-dev'
                 for line in open(metadata_path, 'r'):
                     result = re.search(version_match_regexp, line)
