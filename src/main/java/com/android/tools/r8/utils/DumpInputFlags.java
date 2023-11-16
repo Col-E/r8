@@ -46,6 +46,11 @@ public abstract class DumpInputFlags {
       public boolean shouldFailCompilation() {
         throw new Unreachable();
       }
+
+      @Override
+      public boolean shouldLogDumpInfoMessage() {
+        throw new Unreachable();
+      }
     };
   }
 
@@ -85,6 +90,8 @@ public abstract class DumpInputFlags {
 
   public abstract boolean shouldFailCompilation();
 
+  public abstract boolean shouldLogDumpInfoMessage();
+
   abstract static class DumpInputToFileOrDirectoryFlags extends DumpInputFlags {
 
     @Override
@@ -97,6 +104,11 @@ public abstract class DumpInputFlags {
           return false;
         }
       }
+      return true;
+    }
+
+    @Override
+    public boolean shouldLogDumpInfoMessage() {
       return true;
     }
   }

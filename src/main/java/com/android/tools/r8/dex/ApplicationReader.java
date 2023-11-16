@@ -169,7 +169,7 @@ public class ApplicationReader {
     Diagnostic message = new StringDiagnostic("Dumped compilation inputs to: " + dumpOutput);
     if (dumpInputFlags.shouldFailCompilation()) {
       throw options.reporter.fatalError(message);
-    } else {
+    } else if (dumpInputFlags.shouldLogDumpInfoMessage()) {
       options.reporter.info(message);
     }
   }

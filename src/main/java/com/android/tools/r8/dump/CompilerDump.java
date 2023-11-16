@@ -45,6 +45,10 @@ public class CompilerDump {
     return directory.resolve("proguard.config");
   }
 
+  public boolean hasDesugaredLibrary() {
+    return Files.exists(directory.resolve("desugared-library.json"));
+  }
+
   public Path getDesugaredLibraryFile() {
     return directory.resolve("desugared-library.json");
   }
