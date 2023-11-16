@@ -352,7 +352,7 @@ public class KeepItemAnnotationGenerator {
       return new Group("consequences")
           .addMember(
               new GroupMember("value")
-                  .setDocTitle("Targets that must be kept if the annotation is in effect.")
+                  .setDocTitle("Consequences that must be kept if the annotation is in effect.")
                   .requiredValueOfArrayType(KeepTarget.class));
     }
 

@@ -21,11 +21,11 @@ public class KeepClassItemPattern extends KeepItemPattern {
   public static class Builder {
 
     private KeepQualifiedClassNamePattern classNamePattern = KeepQualifiedClassNamePattern.any();
-    private KeepInstanceOfPattern extendsPattern = KeepInstanceOfPattern.any();
+    private KeepInstanceOfPattern instanceOfPattern = KeepInstanceOfPattern.any();
 
     private Builder() {}
 
-    public Builder copyFrom(com.android.tools.r8.keepanno.ast.KeepClassItemPattern pattern) {
+    public Builder copyFrom(KeepClassItemPattern pattern) {
       return setClassNamePattern(pattern.getClassNamePattern())
           .setInstanceOfPattern(pattern.getInstanceOfPattern());
     }
@@ -35,14 +35,13 @@ public class KeepClassItemPattern extends KeepItemPattern {
       return this;
     }
 
-    public Builder setInstanceOfPattern(KeepInstanceOfPattern extendsPattern) {
-      this.extendsPattern = extendsPattern;
+    public Builder setInstanceOfPattern(KeepInstanceOfPattern instanceOfPattern) {
+      this.instanceOfPattern = instanceOfPattern;
       return this;
     }
 
-    public com.android.tools.r8.keepanno.ast.KeepClassItemPattern build() {
-      return new com.android.tools.r8.keepanno.ast.KeepClassItemPattern(
-          classNamePattern, extendsPattern);
+    public KeepClassItemPattern build() {
+      return new KeepClassItemPattern(classNamePattern, instanceOfPattern);
     }
   }
 
@@ -50,11 +49,11 @@ public class KeepClassItemPattern extends KeepItemPattern {
   private final KeepInstanceOfPattern instanceOfPattern;
 
   public KeepClassItemPattern(
-      KeepQualifiedClassNamePattern classNamePattern, KeepInstanceOfPattern extendsPattern) {
+      KeepQualifiedClassNamePattern classNamePattern, KeepInstanceOfPattern instanceOfPattern) {
     assert classNamePattern != null;
-    assert extendsPattern != null;
+    assert instanceOfPattern != null;
     this.classNamePattern = classNamePattern;
-    this.instanceOfPattern = extendsPattern;
+    this.instanceOfPattern = instanceOfPattern;
   }
 
   @Override
