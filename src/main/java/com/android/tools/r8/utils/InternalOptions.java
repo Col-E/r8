@@ -77,7 +77,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecific
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.nest.Nest;
 import com.android.tools.r8.ir.optimize.Inliner;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.lightir.IR2LirConverter;
 import com.android.tools.r8.lightir.LirCode;
@@ -1769,7 +1768,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
 
     public static void setOnlyForceInlining(InternalOptions options) {
-      options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+      options.testing.validInliningReasons = ImmutableSet.of();
     }
 
     public int getSimpleInliningInstructionLimit() {

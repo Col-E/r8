@@ -17,14 +17,13 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Objects;
@@ -130,11 +129,12 @@ public class NonVirtualOverrideTest extends TestBase {
         .addKeepMainRule(NonVirtualOverrideTestClass.class)
         .addOptionsModification(
             options -> {
+              options.enableClassInlining = false;
               options
                   .getVerticalClassMergerOptions()
                   .setEnabled(dimensions.enableVerticalClassMerging);
-              options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
             })
+        .addOptionsModification(InlinerOptions::setOnlyForceInlining)
         .setMinApi(AndroidApiLevel.B)
         .compile();
   }

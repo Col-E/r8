@@ -12,8 +12,7 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.classmerging.horizontal.testclasses.A;
 import com.android.tools.r8.classmerging.horizontal.testclasses.B;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
-import com.google.common.collect.ImmutableSet;
+import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
 import org.junit.Test;
 
 public class PackagePrivateMemberAccessTest extends HorizontalClassMergingTestBase {
@@ -28,8 +27,7 @@ public class PackagePrivateMemberAccessTest extends HorizontalClassMergingTestBa
         .addInnerClasses(getClass())
         .addProgramClasses(A.class, B.class)
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options -> options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE))
+        .addOptionsModification(InlinerOptions::setOnlyForceInlining)
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
-import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineResult;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.inliner.FixedInliningReasonStrategy;
@@ -75,7 +74,7 @@ public class MultiCallerInliner {
               int inliningInstructionAllowance = Integer.MAX_VALUE;
               return new DefaultInliningOracle(
                   appView,
-                  new FixedInliningReasonStrategy(Reason.MULTI_CALLER_CANDIDATE),
+                  new FixedInliningReasonStrategy(Reason.ALWAYS),
                   method,
                   methodProcessor,
                   inliningInstructionAllowance);
@@ -120,9 +119,6 @@ public class MultiCallerInliner {
         stopTrackingCallSitesForMethod(singleTarget);
         continue;
       }
-
-      InlineAction action = inlineResult.asInlineAction();
-      assert action.reason == Reason.MULTI_CALLER_CANDIDATE;
       recordCallEdgeForMultiCallerInlining(method, singleTarget, methodProcessor);
     }
   }

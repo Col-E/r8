@@ -142,6 +142,15 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
   }
 
   @Override
+  public int getEstimatedSizeForInliningIfLessThanOrEquals(int threshold) {
+    int estimatedSizeForInlining = estimatedDexCodeSizeUpperBoundInBytes();
+    if (estimatedSizeForInlining <= threshold) {
+      return estimatedSizeForInlining;
+    }
+    return -1;
+  }
+
+  @Override
   public TryHandler[] getHandlers() {
     return TryHandler.EMPTY_ARRAY;
   }

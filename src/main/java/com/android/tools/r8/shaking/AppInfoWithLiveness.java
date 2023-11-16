@@ -737,10 +737,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return alwaysInline.contains(method);
   }
 
-  public boolean hasNoAlwaysInlineMethods() {
-    return alwaysInline.isEmpty();
-  }
-
   public boolean isNeverInlineDueToSingleCallerMethod(ProgramMethod method) {
     return neverInlineDueToSingleCaller.contains(method.getReference());
   }

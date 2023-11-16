@@ -36,6 +36,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidApp.Builder;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -271,9 +272,7 @@ public class VerticalClassMergerTest extends TestBase {
                 testForR8(parameters.getBackend())
                     .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
                     .addOptionsModification(this::configure)
-                    .addOptionsModification(
-                        options ->
-                            options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE))
+                    .addOptionsModification(InlinerOptions::setOnlyForceInlining)
                     .allowUnusedProguardConfigurationRules(),
                 main,
                 readProgramFiles(programFiles),
@@ -504,10 +503,8 @@ public class VerticalClassMergerTest extends TestBase {
                 .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
                 .addOptionsModification(this::configure)
                 .addOptionsModification(
-                    options -> {
-                      options.getVerticalClassMergerOptions().disable();
-                      options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
-                    })
+                    options -> options.getVerticalClassMergerOptions().disable())
+                .addOptionsModification(InlinerOptions::setOnlyForceInlining)
                 .allowUnusedProguardConfigurationRules(),
             main,
             readProgramFiles(programFiles),
@@ -527,8 +524,7 @@ public class VerticalClassMergerTest extends TestBase {
             testForR8(parameters.getBackend())
                 .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
                 .addOptionsModification(this::configure)
-                .addOptionsModification(
-                    options -> options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE))
+                .addOptionsModification(InlinerOptions::setOnlyForceInlining)
                 .allowUnusedProguardConfigurationRules(),
             main,
             readProgramFiles(programFiles),
@@ -577,10 +573,8 @@ public class VerticalClassMergerTest extends TestBase {
                 .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
                 .addOptionsModification(this::configure)
                 .addOptionsModification(
-                    options -> {
-                      options.getVerticalClassMergerOptions().disable();
-                      options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
-                    })
+                    options -> options.getVerticalClassMergerOptions().disable())
+                .addOptionsModification(InlinerOptions::setOnlyForceInlining)
                 .allowUnusedProguardConfigurationRules(),
             main,
             readProgramFiles(programFiles),
@@ -608,8 +602,7 @@ public class VerticalClassMergerTest extends TestBase {
             testForR8(parameters.getBackend())
                 .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
                 .addOptionsModification(this::configure)
-                .addOptionsModification(
-                    options -> options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE))
+                .addOptionsModification(InlinerOptions::setOnlyForceInlining)
                 .allowUnusedProguardConfigurationRules(),
             main,
             readProgramFiles(programFiles),
@@ -664,8 +657,7 @@ public class VerticalClassMergerTest extends TestBase {
                 .addOptionsModification(
                     options -> {
                       options.getVerticalClassMergerOptions().disable();
-                      options.testing.validInliningReasons =
-                          ImmutableSet.of(Reason.ALWAYS, Reason.FORCE);
+                      options.testing.validInliningReasons = ImmutableSet.of(Reason.ALWAYS);
                     })
                 .allowUnusedProguardConfigurationRules(),
             main,
@@ -703,10 +695,8 @@ public class VerticalClassMergerTest extends TestBase {
                             + " method(); }"))
                 .addOptionsModification(this::configure)
                 .addOptionsModification(
-                    options -> {
-                      options.testing.validInliningReasons =
-                          ImmutableSet.of(Reason.ALWAYS, Reason.FORCE);
-                    })
+                    options ->
+                        options.testing.validInliningReasons = ImmutableSet.of(Reason.ALWAYS))
                 .allowUnusedProguardConfigurationRules(),
             main,
             readProgramFiles(programFiles),

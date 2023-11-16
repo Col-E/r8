@@ -148,6 +148,7 @@ public class HorizontalClassMergingAfterConstructorShrinkingWithRepackagingTest 
 
     @KeepConstantArguments
     @KeepUnusedArguments
+    @NeverInline
     public Parent(Parent parent) {}
   }
 

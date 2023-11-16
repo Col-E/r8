@@ -12,14 +12,13 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -142,9 +141,7 @@ public class B130791310 extends TestBase {
             options -> options.getVerticalClassMergerOptions().setEnabled(enableClassMerging))
         .applyIf(
             onlyForceInlining,
-            builder ->
-                builder.addOptionsModification(
-                    o -> o.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE)))
+            builder -> builder.addOptionsModification(InlinerOptions::setOnlyForceInlining))
         .compile()
         .inspect(this::inspect);
   }

@@ -20,7 +20,6 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.lightir.LirBuilder;
@@ -147,19 +146,11 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  public InlineAction computeInlining(
+  public InlineAction.Builder computeInlining(
       ProgramMethod singleTarget,
-      Reason reason,
       DefaultInliningOracle decider,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    // We never determine a single target for invoke-polymorphic.
-    if (singleTarget != null) {
-      throw new Unreachable(
-          "Unexpected invoke-polymorphic with `"
-              + singleTarget.toSourceString()
-              + "` as single target");
-    }
-    throw new Unreachable("Unexpected attempt to inline invoke that does not have a single target");
+    throw new Unreachable();
   }
 }

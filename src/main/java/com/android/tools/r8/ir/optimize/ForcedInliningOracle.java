@@ -15,26 +15,20 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineResult;
-import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Map;
-import java.util.Optional;
 
 final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final ProgramMethod method;
   private final Map<? extends InvokeMethod, Inliner.InliningInfo> invokesToInline;
 
   ForcedInliningOracle(
       AppView<AppInfoWithLiveness> appView,
-      ProgramMethod method,
       Map<? extends InvokeMethod, Inliner.InliningInfo> invokesToInline) {
     this.appView = appView;
-    this.method = method;
     this.invokesToInline = invokesToInline;
   }
 
@@ -50,11 +44,8 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
   @Override
   public boolean passesInliningConstraints(
-      InvokeMethod invoke,
       SingleResolutionResult<?> resolutionResult,
       ProgramMethod candidate,
-      Optional<InliningIRProvider> inliningIRProvider,
-      Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return true;
   }
@@ -78,34 +69,16 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
       ClassInitializationAnalysis classInitializationAnalysis,
       InliningIRProvider inliningIRProvider,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    InlineAction action = computeForInvoke(invoke, resolutionResult, whyAreYouNotInliningReporter);
-    if (action == null) {
-      return null;
-    }
-    if (!setDowncastTypeIfNeeded(appView, action, invoke, singleTarget, context)) {
-      return null;
-    }
-    return action;
-  }
-
-  @SuppressWarnings("ReferenceEquality")
-  private InlineAction computeForInvoke(
-      InvokeMethod invoke,
-      SingleResolutionResult<?> resolutionResult,
-      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     Inliner.InliningInfo info = invokesToInline.get(invoke);
     if (info == null) {
       return null;
     }
-    assert method.getDefinition() != info.target.getDefinition();
-    assert passesInliningConstraints(
-        invoke,
-        resolutionResult,
-        info.target,
-        Optional.empty(),
-        Reason.FORCE,
-        whyAreYouNotInliningReporter);
-    return new InlineAction(info.target, invoke, Reason.FORCE);
+    InlineAction.Builder actionBuilder =
+        InlineAction.builder().setInvoke(invoke).setTarget(info.target);
+    if (!setDowncastTypeIfNeeded(appView, actionBuilder, invoke, singleTarget, context)) {
+      return null;
+    }
+    return actionBuilder.build();
   }
 
   @Override
@@ -126,16 +99,17 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
   @Override
   public boolean willExceedBudget(
+      InlineAction action,
       IRCode code,
+      IRCode inlinee,
       InvokeMethod invoke,
-      InlineeWithReason inlinee,
       BasicBlock block,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return false; // Unlimited allowance.
   }
 
   @Override
-  public void markInlined(InlineeWithReason inlinee) {}
+  public void markInlined(IRCode inlinee) {}
 
   @Override
   public ClassTypeElement getReceiverTypeOrDefault(

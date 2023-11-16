@@ -31,15 +31,11 @@ import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.dex.code.DexConstString;
-import com.android.tools.r8.dex.code.DexInstanceOf;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.dex.code.DexInvokeDirect;
 import com.android.tools.r8.dex.code.DexInvokeStatic;
 import com.android.tools.r8.dex.code.DexNewInstance;
-import com.android.tools.r8.dex.code.DexReturn;
 import com.android.tools.r8.dex.code.DexThrow;
-import com.android.tools.r8.dex.code.DexXorIntLit8;
-import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
@@ -48,7 +44,6 @@ import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
@@ -63,7 +58,6 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
@@ -660,75 +654,43 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     this.kotlinMemberInfo = kotlinMemberInfo;
   }
 
-  public boolean isKotlinFunction() {
-    return kotlinMemberInfo.isFunction();
-  }
-
-  public boolean isKotlinExtensionFunction() {
-    return kotlinMemberInfo.isFunction() && kotlinMemberInfo.asFunction().isExtensionFunction();
-  }
-
   public boolean isOnlyInlinedIntoNestMembers() {
     return compilationState == PROCESSED_INLINING_CANDIDATE_SAME_NEST;
   }
 
   public boolean isInliningCandidate(
-      ProgramMethod container,
-      Reason inliningReason,
-      AppInfoWithClassHierarchy appInfo,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ProgramMethod context,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     checkIfObsolete();
-    return isInliningCandidate(
-        container.getHolderType(), inliningReason, appInfo, whyAreYouNotInliningReporter);
-  }
-
-  @SuppressWarnings("ReferenceEquality")
-  public boolean isInliningCandidate(
-      DexType containerType,
-      Reason inliningReason,
-      AppInfoWithClassHierarchy appInfo,
-      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    checkIfObsolete();
-
-    if (inliningReason == Reason.FORCE) {
-      // Make sure we would be able to inline this normally.
-      if (!isInliningCandidate(
-          containerType, Reason.SIMPLE, appInfo, whyAreYouNotInliningReporter)) {
-        // If not, raise a flag, because some optimizations that depend on force inlining would
-        // silently produce an invalid code, which is worse than an internal error.
-        throw new InternalCompilerError("FORCE inlining on non-inlinable: " + toSourceString());
-      }
-      return true;
-    }
-
-    // TODO(b/128967328): inlining candidate should satisfy all states if multiple states are there.
+    AppInfoWithClassHierarchy appInfo = appView.appInfo();
     switch (compilationState) {
       case PROCESSED_INLINING_CANDIDATE_ANY:
         return true;
 
       case PROCESSED_INLINING_CANDIDATE_SUBCLASS:
-        if (appInfo.isSubtype(containerType, getReference().holder)) {
+        if (appInfo.isSubtype(context.getHolderType(), getHolderType())) {
           return true;
         }
         whyAreYouNotInliningReporter.reportCallerNotSubtype();
         return false;
 
       case PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE:
-        if (containerType.isSamePackage(getReference().holder)) {
+        if (context.isSamePackage(getHolderType())) {
           return true;
         }
         whyAreYouNotInliningReporter.reportCallerNotSamePackage();
         return false;
 
       case PROCESSED_INLINING_CANDIDATE_SAME_NEST:
-        if (NestUtils.sameNest(containerType, getReference().holder, appInfo)) {
+        if (NestUtils.sameNest(context.getHolderType(), getHolderType(), appInfo)) {
           return true;
         }
         whyAreYouNotInliningReporter.reportCallerNotSameNest();
         return false;
 
       case PROCESSED_INLINING_CANDIDATE_SAME_CLASS:
-        if (containerType == getReference().holder) {
+        if (context.getHolderType().isIdenticalTo(getHolderType())) {
           return true;
         }
         whyAreYouNotInliningReporter.reportCallerNotSameClass();
@@ -968,12 +930,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         null);
   }
 
-  public Code buildInstanceOfCode(DexType type, boolean negate, InternalOptions options) {
-    return options.isGeneratingClassFiles()
-        ? buildInstanceOfCfCode(type, negate)
-        : buildInstanceOfDexCode(type, negate);
-  }
-
   public CfCode buildInstanceOfCfCode(DexType type, boolean negate) {
     CfInstruction[] instructions = new CfInstruction[3 + BooleanUtils.intValue(negate) * 2];
     int i = 0;
@@ -989,17 +945,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         1 + BooleanUtils.intValue(negate),
         getReference().getArity() + 1,
         Arrays.asList(instructions));
-  }
-
-  public DexCode buildInstanceOfDexCode(DexType type, boolean negate) {
-    DexInstruction[] instructions = new DexInstruction[2 + BooleanUtils.intValue(negate)];
-    int i = 0;
-    instructions[i++] = new DexInstanceOf(0, 0, type);
-    if (negate) {
-      instructions[i++] = new DexXorIntLit8(0, 0, 1);
-    }
-    instructions[i] = new DexReturn(0);
-    return generateCodeFromTemplate(1, 0, instructions);
   }
 
   public DexEncodedMethod toMethodThatLogsError(AppView<?> appView) {

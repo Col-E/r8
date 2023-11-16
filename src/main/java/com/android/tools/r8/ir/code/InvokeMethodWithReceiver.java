@@ -21,7 +21,6 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
@@ -55,14 +54,12 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   }
 
   @Override
-  public final InlineAction computeInlining(
+  public final InlineAction.Builder computeInlining(
       ProgramMethod singleTarget,
-      Reason reason,
       DefaultInliningOracle decider,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    return decider.computeForInvokeWithReceiver(
-        this, singleTarget, reason, whyAreYouNotInliningReporter);
+    return decider.computeForInvokeWithReceiver(this, singleTarget, whyAreYouNotInliningReporter);
   }
 
   /**

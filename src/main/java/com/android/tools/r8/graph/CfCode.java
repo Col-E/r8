@@ -296,13 +296,12 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   @Override
-  public int estimatedSizeForInlining() {
-    return countNonStackOperations(Integer.MAX_VALUE);
-  }
-
-  @Override
-  public boolean estimatedSizeForInliningAtMost(int threshold) {
-    return countNonStackOperations(threshold) <= threshold;
+  public int getEstimatedSizeForInliningIfLessThanOrEquals(int threshold) {
+    int estimatedSizeForInlining = countNonStackOperations(threshold);
+    if (estimatedSizeForInlining <= threshold) {
+      return estimatedSizeForInlining;
+    }
+    return -1;
   }
 
   @Override

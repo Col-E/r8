@@ -13,8 +13,7 @@ import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
-import com.google.common.collect.ImmutableSet;
+import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -64,11 +63,8 @@ public class TestRunner extends KotlinTestBase {
             kotlinJars.getForConfiguration(kotlinParameters), kotlinc.getKotlinAnnotationJar())
         .addKeepMainRule(Main.class)
         .addKeepAllAttributes()
-        .addOptionsModification(
-            options -> {
-              options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
-              options.enableClassInlining = false;
-            })
+        .addOptionsModification(options -> options.enableClassInlining = false)
+        .addOptionsModification(InlinerOptions::setOnlyForceInlining)
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector.assertIsCompleteMergeGroup(

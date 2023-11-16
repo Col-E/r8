@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -57,11 +58,11 @@ public class ClassInlinerPhiDirectUserAfterInlineTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> {
-              options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
               // Here we modify the IR when it is processed normally.
               options.testing.irModifier = this::modifyIr;
               options.enableClassInlining = false;
             })
+        .addOptionsModification(InlinerOptions::setOnlyForceInlining)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }

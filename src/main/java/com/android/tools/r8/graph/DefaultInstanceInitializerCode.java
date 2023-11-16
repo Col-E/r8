@@ -101,7 +101,6 @@ public class DefaultInstanceInitializerCode extends Code
     return this;
   }
 
-  @SuppressWarnings("ReferenceEquality")
   private static boolean hasDefaultInstanceInitializerCode(
       ProgramMethod method, AppView<?> appView) {
     if (!method.getDefinition().isInstanceInitializer()) {
@@ -126,7 +125,7 @@ public class DefaultInstanceInitializerCode extends Code
     Iterator<CfInstruction> instructionIterator = cfCode.getInstructions().iterator();
     // Allow skipping CfPosition instructions in instance initializers that only call Object.<init>.
     Predicate<CfInstruction> instructionOfInterest =
-        method.getHolder().getSuperType() == dexItemFactory.objectType
+        method.getHolder().getSuperType().isIdenticalTo(dexItemFactory.objectType)
             ? instruction -> !instruction.isLabel() && !instruction.isPosition()
             : instruction -> !instruction.isLabel();
     CfLoad load = IteratorUtils.nextUntil(instructionIterator, instructionOfInterest).asLoad();
@@ -136,7 +135,7 @@ public class DefaultInstanceInitializerCode extends Code
     CfInvoke invoke = instructionIterator.next().asInvoke();
     if (invoke == null
         || !invoke.isInvokeConstructor(dexItemFactory)
-        || invoke.getMethod() != getParentConstructor(method, dexItemFactory)) {
+        || invoke.getMethod().isNotIdenticalTo(getParentConstructor(method, dexItemFactory))) {
       return false;
     }
     return instructionIterator.next().isReturnVoid();
@@ -235,8 +234,17 @@ public class DefaultInstanceInitializerCode extends Code
   }
 
   @Override
+  public int getEstimatedSizeForInliningIfLessThanOrEquals(int threshold) {
+    int estimatedSizeForInlining = estimatedDexCodeSizeUpperBoundInBytes();
+    if (estimatedSizeForInlining <= threshold) {
+      return estimatedSizeForInlining;
+    }
+    return -1;
+  }
+
+  @Override
   public TryHandler[] getHandlers() {
-    return new TryHandler[0];
+    return TryHandler.EMPTY_ARRAY;
   }
 
   @Override
@@ -278,7 +286,7 @@ public class DefaultInstanceInitializerCode extends Code
 
   @Override
   public Try[] getTries() {
-    return new Try[0];
+    return Try.EMPTY_ARRAY;
   }
 
   @Override
@@ -413,7 +421,7 @@ public class DefaultInstanceInitializerCode extends Code
 
   @Override
   public DexWritableCacheKey getCacheLookupKey(ProgramMethod method, DexItemFactory factory) {
-    return new AmendedDexWritableCodeKey<DexMethod>(
+    return new AmendedDexWritableCodeKey<>(
         this,
         getParentConstructor(method, factory),
         getIncomingRegisterSize(method),

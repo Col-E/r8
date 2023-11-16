@@ -613,11 +613,14 @@ public class LirCode<EV> extends Code
   }
 
   @Override
-  public int estimatedSizeForInlining() {
+  public int getEstimatedSizeForInliningIfLessThanOrEquals(int threshold) {
     if (useDexEstimationStrategy) {
       LirSizeEstimation<EV> estimation = new LirSizeEstimation<>(this);
       for (LirInstructionView view : this) {
         estimation.onInstructionView(view);
+        if (estimation.getSizeEstimate() > threshold) {
+          return -1;
+        }
       }
       return estimation.getSizeEstimate();
     } else {
@@ -625,23 +628,11 @@ public class LirCode<EV> extends Code
       //  (even switches!) and ignores stack instructions, thus loads to arguments are not included.
       //  The result is a much smaller estimate than for DEX. Once LIR is in place we should use the
       //  same estimate for both.
-      return instructionCount;
-    }
-  }
-
-  @Override
-  public boolean estimatedSizeForInliningAtMost(int threshold) {
-    if (useDexEstimationStrategy) {
-      LirSizeEstimation<EV> estimation = new LirSizeEstimation<>(this);
-      for (LirInstructionView view : this) {
-        estimation.onInstructionView(view);
-        if (estimation.getSizeEstimate() > threshold) {
-          return false;
-        }
+      int estimatedSizedForInlining = instructionCount;
+      if (estimatedSizedForInlining <= threshold) {
+        return estimatedSizedForInlining;
       }
-      return true;
-    } else {
-      return estimatedSizeForInlining() <= threshold;
+      return -1;
     }
   }
 

@@ -141,13 +141,17 @@ public abstract class Code extends CachedHashValueDexItem {
   }
 
   /** Estimate the number of IR instructions emitted by buildIR(). */
-  public int estimatedSizeForInlining() {
-    return Integer.MAX_VALUE;
+  public final int estimatedSizeForInlining() {
+    return getEstimatedSizeForInliningIfLessThanOrEquals(Integer.MAX_VALUE);
   }
 
   /** Compute estimatedSizeForInlining() <= threshold. */
-  public boolean estimatedSizeForInliningAtMost(int threshold) {
-    return estimatedSizeForInlining() <= threshold;
+  public int getEstimatedSizeForInliningIfLessThanOrEquals(int threshold) {
+    throw new Unreachable(getClass().getTypeName());
+  }
+
+  public final boolean estimatedSizeForInliningAtMost(int threshold) {
+    return getEstimatedSizeForInliningIfLessThanOrEquals(threshold) >= 0;
   }
 
   public abstract int estimatedDexCodeSizeUpperBoundInBytes();

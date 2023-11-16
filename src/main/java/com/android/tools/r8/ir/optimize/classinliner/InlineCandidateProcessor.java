@@ -56,7 +56,6 @@ import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner.EligibilityStatus;
 import com.android.tools.r8.ir.optimize.classinliner.analysis.NonEmptyParameterUsage;
@@ -82,7 +81,6 @@ import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -422,34 +420,32 @@ final class InlineCandidateProcessor {
               continue;
             }
 
-            DexMethod invokedMethod = invoke.getInvokedMethod();
-            if (invokedMethod == dexItemFactory.objectMembers.constructor) {
+            SingleResolutionResult<?> resolutionResult =
+                invoke.resolveMethod(appView, code.context()).asSingleResolution();
+            if (resolutionResult == null) {
+              throw new IllegalClassInlinerStateException();
+            }
+
+            DexClassAndMethod resolvedMethod = resolutionResult.getResolutionPair();
+            if (resolvedMethod
+                .getReference()
+                .isIdenticalTo(dexItemFactory.objectMembers.constructor)) {
               continue;
             }
 
-            if (!dexItemFactory.isConstructor(invokedMethod)) {
+            if (!resolvedMethod.getDefinition().isInstanceInitializer()) {
               throw new IllegalClassInlinerStateException();
             }
 
-            DexProgramClass holder =
-                asProgramClassOrNull(appView.definitionForHolder(invokedMethod, method));
-            if (holder == null) {
+            if (!resolvedMethod
+                .getDefinition()
+                .isInliningCandidate(
+                    appView, method, NopWhyAreYouNotInliningReporter.getInstance())) {
               throw new IllegalClassInlinerStateException();
             }
 
-            ProgramMethod singleTarget = holder.lookupProgramMethod(invokedMethod);
-            if (singleTarget == null
-                || !singleTarget
-                    .getDefinition()
-                    .isInliningCandidate(
-                        method,
-                        Reason.ALWAYS,
-                        appView.appInfo(),
-                        NopWhyAreYouNotInliningReporter.getInstance())) {
-              throw new IllegalClassInlinerStateException();
-            }
-
-            directMethodCalls.put(invoke, new InliningInfo(singleTarget, eligibleClass));
+            directMethodCalls.put(
+                invoke, new InliningInfo(resolvedMethod.asProgramMethod(), eligibleClass));
             break;
           }
         }
@@ -483,11 +479,6 @@ final class InlineCandidateProcessor {
 
         if (instruction.isInvokeMethodWithReceiver()) {
           InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
-          DexMethod invokedMethod = invoke.getInvokedMethod();
-          if (invokedMethod == dexItemFactory.objectMembers.constructor) {
-            continue;
-          }
-
           Value receiver = invoke.getReceiver().getAliasedValue(aliasesThroughAssumeAndCheckCasts);
           if (receiver != eligibleInstance) {
             continue;
@@ -497,6 +488,14 @@ final class InlineCandidateProcessor {
               invoke.resolveMethod(appView).asSingleResolution();
           if (resolutionResult == null) {
             throw new IllegalClassInlinerStateException();
+          }
+
+          DexMethod objectConstructor = dexItemFactory.objectMembers.constructor;
+          if (resolutionResult
+              .getResolvedMethod()
+              .getReference()
+              .isIdenticalTo(objectConstructor)) {
+            continue;
           }
 
           DispatchTargetLookupResult dispatchTargetLookupResult;
@@ -979,10 +978,7 @@ final class InlineCandidateProcessor {
       }
       DexEncodedMethod encodedParentMethod = encodedParent.getDefinition();
       if (!encodedParentMethod.isInliningCandidate(
-          method,
-          Reason.ALWAYS,
-          appView.appInfo(),
-          NopWhyAreYouNotInliningReporter.getInstance())) {
+          appView, method, NopWhyAreYouNotInliningReporter.getInstance())) {
         return null;
       }
       // Check the api level is allowed to be inlined.
@@ -1164,11 +1160,8 @@ final class InlineCandidateProcessor {
     // Check if the method is inline-able by standard inliner.
     InliningOracle oracle = defaultOracle.computeIfAbsent();
     if (!oracle.passesInliningConstraints(
-        invoke,
         resolutionResult,
         singleTarget,
-        Optional.empty(),
-        Reason.ALWAYS,
         NopWhyAreYouNotInliningReporter.getInstance())) {
       return false;
     }
@@ -1305,11 +1298,7 @@ final class InlineCandidateProcessor {
     }
     if (!singleTarget
         .getDefinition()
-        .isInliningCandidate(
-            method,
-            Reason.ALWAYS,
-            appView.appInfo(),
-            NopWhyAreYouNotInliningReporter.getInstance())) {
+        .isInliningCandidate(appView, method, NopWhyAreYouNotInliningReporter.getInstance())) {
       // If `singleTarget` is not an inlining candidate, we won't be able to inline it here.
       //
       // Note that there may be some false negatives here since the method may

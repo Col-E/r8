@@ -71,8 +71,7 @@ public class FeatureSplitBoundaryOptimizationUtils {
       OptionalBool callerIsStartupMethod = isStartupMethod(caller, startupProfile);
       if (callerIsStartupMethod.isTrue()) {
         // If the caller is a startup method, then only allow inlining if the callee is also a
-        // startup
-        // method.
+        // startup method.
         if (isStartupMethod(callee, startupProfile).isFalse()) {
           return false;
         }

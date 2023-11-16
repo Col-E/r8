@@ -1842,12 +1842,6 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
-    public int estimatedSizeForInlining() {
-      // We just onlined this, so do not inline it again.
-      return Integer.MAX_VALUE;
-    }
-
-    @Override
     public int estimatedDexCodeSizeUpperBoundInBytes() {
       return Integer.MAX_VALUE;
     }

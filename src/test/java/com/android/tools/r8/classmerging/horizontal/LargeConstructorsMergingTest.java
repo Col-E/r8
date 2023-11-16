@@ -11,9 +11,8 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
 public class LargeConstructorsMergingTest extends HorizontalClassMergingTestBase {
@@ -26,11 +25,8 @@ public class LargeConstructorsMergingTest extends HorizontalClassMergingTestBase
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options -> {
-              options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
-              options.testing.verificationSizeLimitInBytesOverride = 4;
-            })
+        .addOptionsModification(options -> options.testing.verificationSizeLimitInBytesOverride = 4)
+        .addOptionsModification(InlinerOptions::setOnlyForceInlining)
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters)
         .addHorizontallyMergedClassesInspector(

@@ -18,5 +18,6 @@ public interface InliningReasonStrategy {
       ProgramMethod context,
       DefaultInliningOracle oracle,
       InliningIRProvider inliningIRProvider,
-      MethodProcessor methodProcessor);
+      MethodProcessor methodProcessor,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 }

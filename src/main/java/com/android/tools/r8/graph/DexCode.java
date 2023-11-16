@@ -286,11 +286,6 @@ public class DexCode extends Code
   }
 
   @Override
-  public int estimatedSizeForInlining() {
-    return codeSizeInBytes();
-  }
-
-  @Override
   public int estimatedDexCodeSizeUpperBoundInBytes() {
     return codeSizeInBytes();
   }

@@ -23,7 +23,6 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.lightir.LirBuilder;
@@ -120,14 +119,13 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public InlineAction computeInlining(
+  public InlineAction.Builder computeInlining(
       ProgramMethod singleTarget,
-      Reason reason,
       DefaultInliningOracle decider,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return decider.computeForInvokeStatic(
-        this, singleTarget, reason, classInitializationAnalysis, whyAreYouNotInliningReporter);
+        this, singleTarget, classInitializationAnalysis, whyAreYouNotInliningReporter);
   }
 
   @Override

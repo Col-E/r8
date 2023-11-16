@@ -247,13 +247,8 @@ public class LazyCfCode extends Code {
   }
 
   @Override
-  public int estimatedSizeForInlining() {
-    return asCfCode().estimatedSizeForInlining();
-  }
-
-  @Override
-  public boolean estimatedSizeForInliningAtMost(int threshold) {
-    return asCfCode().estimatedSizeForInliningAtMost(threshold);
+  public int getEstimatedSizeForInliningIfLessThanOrEquals(int threshold) {
+    return asCfCode().getEstimatedSizeForInliningIfLessThanOrEquals(threshold);
   }
 
   @Override

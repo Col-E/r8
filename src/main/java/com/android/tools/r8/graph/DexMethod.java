@@ -31,6 +31,10 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     return identical(this, other);
   }
 
+  public final boolean isNotIdenticalTo(DexMethod other) {
+    return !isIdenticalTo(other);
+  }
+
   public final DexProto proto;
 
   DexMethod(DexType holder, DexProto proto, DexString name, boolean skipNameValidationForTesting) {
