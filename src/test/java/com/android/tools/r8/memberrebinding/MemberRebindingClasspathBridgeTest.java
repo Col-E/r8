@@ -3,9 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.memberrebinding;
 
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
@@ -53,10 +50,8 @@ public class MemberRebindingClasspathBridgeTest extends TestBase {
   }
 
   @Test
-  public void runTestClasspath() {
-    assertThrows(
-        CompilationFailedException.class,
-        () -> runTest(builder -> builder.addClasspathClasses(ClasspathInterface.class)));
+  public void runTestClasspath() throws Exception {
+    runTest(builder -> builder.addClasspathClasses(ClasspathInterface.class));
   }
 
   @Test
