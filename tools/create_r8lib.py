@@ -103,6 +103,7 @@ def main():
     cmd.extend(['--map-id-template', map_id_template])
     cmd.extend(['--source-file-template', source_file_template])
     cmd.extend(['--output', args.output])
+    cmd.extend(['--pg-conf-output', args.output + '.config'])
     cmd.extend(['--pg-map-output', args.output + '.map'])
     cmd.extend(['--partition-map-output', args.output + '_map.zip'])
     cmd.extend(['--lib', jdk.GetJdkHome()])
