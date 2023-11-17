@@ -56,7 +56,7 @@ public class UnboxToCheckNotNullTest extends TestBase {
     Set<DexMethod> unboxMethods = Sets.newIdentityHashSet();
     unboxMethods.addAll(factory.unboxPrimitiveMethod.values());
     Set<DexType> boxedTypes = Sets.newIdentityHashSet();
-    boxedTypes.addAll(factory.primitiveToBoxed.values());
+    boxedTypes.addAll(factory.unboxPrimitiveMethod.keySet());
 
     // All unbox operations should have been replaced by checkNotNull operations.
     codeInspector

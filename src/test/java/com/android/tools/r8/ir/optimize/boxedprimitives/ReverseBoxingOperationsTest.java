@@ -55,7 +55,7 @@ public class ReverseBoxingOperationsTest extends TestBase {
 
     Set<DexMethod> unboxMethods = Sets.newIdentityHashSet();
     Set<DexMethod> boxMethods = Sets.newIdentityHashSet();
-    for (DexType primitiveType : factory.primitiveToBoxed.keySet()) {
+    for (DexType primitiveType : factory.unboxPrimitiveMethod.keySet()) {
       unboxMethods.add(factory.getUnboxPrimitiveMethod(primitiveType));
       boxMethods.add(factory.getBoxPrimitiveMethod(primitiveType));
     }
