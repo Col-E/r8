@@ -5,64 +5,33 @@
 package com.android.tools.r8.ir.optimize.library.primitive;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.ir.analysis.value.SingleBoxedCharValue;
-import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.BasicBlockIterator;
-import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.optimize.library.StatelessLibraryMethodModelCollection;
-import java.util.Set;
 
-public class CharacterMethodOptimizer extends StatelessLibraryMethodModelCollection {
-
-  private final AppView<?> appView;
-  private final DexItemFactory dexItemFactory;
+public class CharacterMethodOptimizer extends PrimitiveMethodOptimizer {
 
   CharacterMethodOptimizer(AppView<?> appView) {
-    this.appView = appView;
-    this.dexItemFactory = appView.dexItemFactory();
+    super(appView);
+  }
+
+  @Override
+  DexMethod getBoxMethod() {
+    return dexItemFactory.charMembers.valueOf;
+  }
+
+  @Override
+  DexMethod getUnboxMethod() {
+    return dexItemFactory.charMembers.charValue;
+  }
+
+  @Override
+  boolean isMatchingSingleBoxedPrimitive(AbstractValue abstractValue) {
+    return abstractValue.isSingleBoxedChar();
   }
 
   @Override
   public DexType getType() {
     return dexItemFactory.boxedCharType;
-  }
-
-  @Override
-  public void optimize(
-      IRCode code,
-      BasicBlockIterator blockIterator,
-      InstructionListIterator instructionIterator,
-      InvokeMethod invoke,
-      DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
-      Set<BasicBlock> blocksToRemove) {
-    if (singleTarget.getReference().isIdenticalTo(dexItemFactory.charMembers.charValue)) {
-      optimizeCharValue(code, instructionIterator, invoke);
-    }
-  }
-
-  private void optimizeCharValue(
-      IRCode code, InstructionListIterator instructionIterator, InvokeMethod charValueInvoke) {
-    // Optimize Char.valueOf(c).charValue() into c.
-    AbstractValue abstractValue =
-        charValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
-    if (abstractValue.isSingleBoxedChar()) {
-      if (charValueInvoke.hasOutValue()) {
-        SingleBoxedCharValue singleBoxedChar = abstractValue.asSingleBoxedChar();
-        instructionIterator.replaceCurrentInstruction(
-            singleBoxedChar
-                .toPrimitive(appView.abstractValueFactory())
-                .createMaterializingInstruction(appView, code, charValueInvoke));
-      } else {
-        instructionIterator.removeOrReplaceByDebugLocalRead();
-      }
-    }
   }
 }

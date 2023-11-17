@@ -6,11 +6,9 @@ package com.android.tools.r8.ir.optimize.library.primitive;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.ir.analysis.value.SingleBoxedBooleanValue;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.ConstString;
@@ -19,18 +17,28 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.optimize.library.StatelessLibraryMethodModelCollection;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Set;
 
-public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollection {
-
-  private final AppView<?> appView;
-  private final DexItemFactory dexItemFactory;
+public class BooleanMethodOptimizer extends PrimitiveMethodOptimizer {
 
   BooleanMethodOptimizer(AppView<?> appView) {
-    this.appView = appView;
-    this.dexItemFactory = appView.dexItemFactory();
+    super(appView);
+  }
+
+  @Override
+  DexMethod getBoxMethod() {
+    return dexItemFactory.booleanMembers.valueOf;
+  }
+
+  @Override
+  DexMethod getUnboxMethod() {
+    return dexItemFactory.booleanMembers.booleanValue;
+  }
+
+  @Override
+  boolean isMatchingSingleBoxedPrimitive(AbstractValue abstractValue) {
+    return abstractValue.isSingleBoxedBoolean();
   }
 
   @Override
@@ -47,31 +55,10 @@ public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollectio
       DexClassAndMethod singleTarget,
       Set<Value> affectedValues,
       Set<BasicBlock> blocksToRemove) {
-    DexMethod singleTargetReference = singleTarget.getReference();
-    if (singleTargetReference.isIdenticalTo(dexItemFactory.booleanMembers.booleanValue)) {
-      optimizeBooleanValue(code, instructionIterator, invoke);
-    } else if (singleTargetReference.isIdenticalTo(dexItemFactory.booleanMembers.parseBoolean)) {
+    if (singleTarget.getReference().isIdenticalTo(dexItemFactory.booleanMembers.parseBoolean)) {
       optimizeParseBoolean(code, instructionIterator, invoke);
-    } else if (singleTargetReference.isIdenticalTo(dexItemFactory.booleanMembers.valueOf)) {
-      optimizeValueOf(code, instructionIterator, invoke, affectedValues);
-    }
-  }
-
-  private void optimizeBooleanValue(
-      IRCode code, InstructionListIterator instructionIterator, InvokeMethod booleanValueInvoke) {
-    // Optimize Boolean.valueOf(b).booleanValue() into b.
-    AbstractValue abstractValue =
-        booleanValueInvoke.getFirstArgument().getAbstractValue(appView, code.context());
-    if (abstractValue.isSingleBoxedBoolean()) {
-      if (booleanValueInvoke.hasOutValue()) {
-        SingleBoxedBooleanValue singleBoxedBoolean = abstractValue.asSingleBoxedBoolean();
-        instructionIterator.replaceCurrentInstruction(
-            singleBoxedBoolean
-                .toPrimitive(appView.abstractValueFactory())
-                .createMaterializingInstruction(appView, code, booleanValueInvoke));
-      } else {
-        instructionIterator.removeOrReplaceByDebugLocalRead();
-      }
+    } else {
+      optimizeBoxingMethods(code, instructionIterator, invoke, singleTarget, affectedValues);
     }
   }
 
@@ -91,13 +78,14 @@ public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollectio
     }
   }
 
-  private void optimizeValueOf(
+  @Override
+  void optimizeBoxMethod(
       IRCode code,
       InstructionListIterator instructionIterator,
-      InvokeMethod invoke,
+      InvokeMethod boxInvoke,
       Set<Value> affectedValues) {
     // Optimize Boolean.valueOf(b) into Boolean.FALSE or Boolean.TRUE.
-    Value argument = invoke.getFirstOperand();
+    Value argument = boxInvoke.getFirstOperand();
     AbstractValue abstractValue = argument.getAbstractValue(appView, code.context());
     if (abstractValue.isSingleNumberValue()) {
       instructionIterator.replaceCurrentInstructionWithStaticGet(
@@ -107,6 +95,8 @@ public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollectio
               ? dexItemFactory.booleanMembers.TRUE
               : dexItemFactory.booleanMembers.FALSE,
           affectedValues);
+      return;
     }
+    super.optimizeBoxMethod(code, instructionIterator, boxInvoke, affectedValues);
   }
 }
