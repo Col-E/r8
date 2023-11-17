@@ -81,6 +81,7 @@ public class PrimaryR8IRConverter extends IRConverter {
     appView.withArgumentPropagator(
         argumentPropagator -> argumentPropagator.initializeCodeScanner(executorService, timing));
     enumUnboxer.prepareForPrimaryOptimizationPass(graphLensForPrimaryOptimizationPass);
+    numberUnboxer.prepareForPrimaryOptimizationPass(timing, executorService);
     outliner.prepareForPrimaryOptimizationPass(graphLensForPrimaryOptimizationPass);
 
     if (fieldAccessAnalysis != null) {
@@ -143,6 +144,7 @@ public class PrimaryR8IRConverter extends IRConverter {
     // the parameter optimization infos, and rewrite the application.
     // TODO(b/199237357): Automatically rewrite state when lens changes.
     enumUnboxer.rewriteWithLens();
+    numberUnboxer.rewriteWithLens();
     outliner.rewriteWithLens();
     appView.withArgumentPropagator(
         argumentPropagator ->
@@ -158,10 +160,15 @@ public class PrimaryR8IRConverter extends IRConverter {
           .run(executorService, feedback, timing);
     }
 
+    numberUnboxer.rewriteWithLens();
     outliner.rewriteWithLens();
     enumUnboxer.unboxEnums(
         appView, this, postMethodProcessorBuilder, executorService, feedback, timing);
     appView.unboxedEnums().checkEnumsUnboxed(appView);
+
+    numberUnboxer.rewriteWithLens();
+    outliner.rewriteWithLens();
+    numberUnboxer.unboxNumbers(postMethodProcessorBuilder, timing, executorService);
 
     GraphLens graphLensForSecondaryOptimizationPass = appView.graphLens();
 

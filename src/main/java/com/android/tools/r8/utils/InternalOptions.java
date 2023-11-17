@@ -2170,6 +2170,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public static class TestingOptions {
 
+    public boolean enableNumberUnboxer = false;
     public boolean roundtripThroughLir = false;
 
     public boolean canUseLir(AppView<?> appView) {
