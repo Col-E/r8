@@ -5,6 +5,7 @@
 package com.android.tools.r8.keepanno.utils;
 
 import com.android.tools.r8.examples.sync.Sync.Consumer;
+import com.google.common.html.HtmlEscapers;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -45,7 +46,9 @@ public abstract class DocPrinterBase<T> {
 
   public T addCodeBlock(List<String> lines) {
     additionalLines.add("<pre>");
-    additionalLines.addAll(lines);
+    for (String line : lines) {
+      additionalLines.add(HtmlEscapers.htmlEscaper().escape(line).replace("@", "&#64;"));
+    }
     additionalLines.add("</pre>");
     return self();
   }

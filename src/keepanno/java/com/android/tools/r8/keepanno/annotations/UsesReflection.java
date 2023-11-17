@@ -30,9 +30,9 @@ import java.lang.annotation.Target;
  * <p>Assume the item of the annotation is denoted by 'CTX' and referred to as its context.
  *
  * <pre>
- * UsesReflection(value = targets, [additionalPreconditions = preconditions])
- * ===
- * KeepEdge(
+ * &#64;UsesReflection(value = targets, [additionalPreconditions = preconditions])
+ * ==&gt;
+ * &#64;KeepEdge(
  *   consequences = targets,
  *   preconditions = {createConditionFromContext(CTX)} + preconditions
  * )

@@ -819,9 +819,10 @@ public class KeepItemAnnotationGenerator {
               "Assume the item of the annotation is denoted by 'CTX' and referred to as its"
                   + " context.")
           .addCodeBlock(
-              "UsesReflection(value = targets, [additionalPreconditions = preconditions])",
-              "===",
-              "KeepEdge(",
+              annoSimpleName(UsesReflection.class)
+                  + "(value = targets, [additionalPreconditions = preconditions])",
+              "==>",
+              annoSimpleName(KeepEdge.class) + "(",
               "  consequences = targets,",
               "  preconditions = {createConditionFromContext(CTX)} + preconditions",
               ")",
@@ -928,6 +929,10 @@ public class KeepItemAnnotationGenerator {
           });
       println();
       println("}");
+    }
+
+    private String annoSimpleName(Class<?> clazz) {
+      return "@" + simpleName(clazz);
     }
 
     private String docLink(Class<?> clazz) {

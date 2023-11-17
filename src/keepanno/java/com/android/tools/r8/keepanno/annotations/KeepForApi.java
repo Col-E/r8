@@ -45,7 +45,7 @@ public @interface KeepForApi {
    * can be useful when the API members are themselves explicitly annotated.
    *
    * <p>It is not possible to use ONLY_CLASS if annotating a member. Also, it is never valid to use
-   * kind ONLY_MEMBERS as the API surface must keep the class if any member it to be accessible.
+   * kind ONLY_MEMBERS as the API surface must keep the class if any member is to be accessible.
    */
   KeepItemKind kind() default KeepItemKind.DEFAULT;
 
