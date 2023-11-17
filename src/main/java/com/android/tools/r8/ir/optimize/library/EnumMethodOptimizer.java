@@ -38,7 +38,7 @@ public class EnumMethodOptimizer extends StatelessLibraryMethodModelCollection {
 
   @Override
   @SuppressWarnings("ReferenceEquality")
-  public void optimize(
+  public InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
@@ -52,6 +52,7 @@ public class EnumMethodOptimizer extends StatelessLibraryMethodModelCollection {
       insertAssumeDynamicType(
           appView.withLiveness(), code, instructionIterator, invoke, affectedValues);
     }
+    return instructionIterator;
   }
 
   @SuppressWarnings("ReferenceEquality")

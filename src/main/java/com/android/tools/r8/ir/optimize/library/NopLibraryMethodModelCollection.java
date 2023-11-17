@@ -32,12 +32,14 @@ public class NopLibraryMethodModelCollection extends StatelessLibraryMethodModel
   }
 
   @Override
-  public void optimize(
+  public InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
       AffectedValues affectedValues,
-      Set<BasicBlock> blocksToRemove) {}
+      Set<BasicBlock> blocksToRemove) {
+    return instructionIterator;
+  }
 }

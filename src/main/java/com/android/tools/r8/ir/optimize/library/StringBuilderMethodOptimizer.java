@@ -70,7 +70,7 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
 
   @Override
   @SuppressWarnings("ReferenceEquality")
-  public void optimize(
+  public InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
@@ -96,6 +96,7 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
         optimizeToString(instructionIterator, invokeWithReceiver);
       }
     }
+    return instructionIterator;
   }
 
   private void optimizeAppend(

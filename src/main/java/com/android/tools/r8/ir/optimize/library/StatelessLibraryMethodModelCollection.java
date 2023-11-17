@@ -24,7 +24,7 @@ public abstract class StatelessLibraryMethodModelCollection
     return null;
   }
 
-  public abstract void optimize(
+  public abstract InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
@@ -34,7 +34,7 @@ public abstract class StatelessLibraryMethodModelCollection
       Set<BasicBlock> blocksToRemove);
 
   @Override
-  public final void optimize(
+  public final InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
@@ -46,7 +46,7 @@ public abstract class StatelessLibraryMethodModelCollection
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     assert state == null;
-    optimize(
+    return optimize(
         code,
         blockIterator,
         instructionIterator,

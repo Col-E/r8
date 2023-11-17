@@ -108,7 +108,7 @@ public class LogMethodOptimizer extends StatelessLibraryMethodModelCollection {
   }
 
   @Override
-  public void optimize(
+  public InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
@@ -123,6 +123,7 @@ public class LogMethodOptimizer extends StatelessLibraryMethodModelCollection {
     if (VERBOSE <= logLevel && logLevel <= maxRemovedAndroidLogLevel) {
       instructionIterator.replaceCurrentInstructionWithConstFalse(code);
     }
+    return instructionIterator;
   }
 
   private int getMaxRemovedAndroidLogLevel(ProgramMethod context) {

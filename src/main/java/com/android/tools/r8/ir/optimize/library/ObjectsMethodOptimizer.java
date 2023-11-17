@@ -47,7 +47,7 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
 
   @Override
   @SuppressWarnings("ReferenceEquality")
-  public void optimize(
+  public InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
@@ -99,6 +99,7 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
         // Intentionally empty.
         break;
     }
+    return instructionIterator;
   }
 
   private void optimizeEquals(

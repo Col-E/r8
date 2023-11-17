@@ -48,7 +48,7 @@ public class BooleanMethodOptimizer extends PrimitiveMethodOptimizer {
   }
 
   @Override
-  public void optimize(
+  public InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
@@ -61,6 +61,7 @@ public class BooleanMethodOptimizer extends PrimitiveMethodOptimizer {
     } else {
       optimizeBoxingMethods(code, instructionIterator, invoke, singleTarget, affectedValues);
     }
+    return instructionIterator;
   }
 
   private void optimizeParseBoolean(

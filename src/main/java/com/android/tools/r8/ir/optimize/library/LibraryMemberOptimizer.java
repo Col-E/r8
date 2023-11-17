@@ -154,17 +154,18 @@ public class LibraryMemberOptimizer implements CodeOptimization {
         LibraryMethodModelCollection.State optimizationState =
             optimizationStates.computeIfAbsent(
                 optimizer, LibraryMethodModelCollection::createInitialState);
-        optimizer.optimize(
-            code,
-            blockIterator,
-            instructionIterator,
-            invoke,
-            singleTarget,
-            affectedValues,
-            blocksToRemove,
-            optimizationState,
-            methodProcessor,
-            methodProcessingContext);
+        instructionIterator =
+            optimizer.optimize(
+                code,
+                blockIterator,
+                instructionIterator,
+                invoke,
+                singleTarget,
+                affectedValues,
+                blocksToRemove,
+                optimizationState,
+                methodProcessor,
+                methodProcessingContext);
       }
     }
 

@@ -50,7 +50,7 @@ public abstract class PrimitiveMethodOptimizer extends StatelessLibraryMethodMod
   abstract boolean isMatchingSingleBoxedPrimitive(AbstractValue abstractValue);
 
   @Override
-  public void optimize(
+  public InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
@@ -59,6 +59,7 @@ public abstract class PrimitiveMethodOptimizer extends StatelessLibraryMethodMod
       AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove) {
     optimizeBoxingMethods(code, instructionIterator, invoke, singleTarget, affectedValues);
+    return instructionIterator;
   }
 
   void optimizeBoxingMethods(

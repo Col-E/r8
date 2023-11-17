@@ -35,7 +35,7 @@ public interface LibraryMethodModelCollection<T extends State> {
    * Invoked for instructions in {@param code} that invoke a method on the class returned by {@link
    * #getType()}. The given {@param singleTarget} is guaranteed to be non-null.
    */
-  void optimize(
+  InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
@@ -48,7 +48,7 @@ public interface LibraryMethodModelCollection<T extends State> {
       MethodProcessingContext methodProcessingContext);
 
   @SuppressWarnings("unchecked")
-  default void optimize(
+  default InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
@@ -59,7 +59,7 @@ public interface LibraryMethodModelCollection<T extends State> {
       Object state,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
-    optimize(
+    return optimize(
         code,
         blockIterator,
         instructionIterator,

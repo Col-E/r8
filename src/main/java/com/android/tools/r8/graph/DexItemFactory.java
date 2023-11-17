@@ -126,7 +126,6 @@ public class DexItemFactory {
       new ConcurrentHashMap<>();
   public final LRUCacheTable<InterfaceCollection, InterfaceCollection, InterfaceCollection>
       leastUpperBoundOfInterfacesTable = LRUCacheTable.create(8, 8);
-
   boolean sorted = false;
 
   // Internal type containing only the null value.
@@ -215,6 +214,7 @@ public class DexItemFactory {
   public final DexString compareToMethodName = createString("compareTo");
   public final DexString compareToIgnoreCaseMethodName = createString("compareToIgnoreCase");
   public final DexString cloneMethodName = createString("clone");
+  public final DexString formatMethodName = createString("format");
   public final DexString substringName = createString("substring");
   public final DexString trimName = createString("trim");
 
@@ -299,6 +299,7 @@ public class DexItemFactory {
   public final DexString serviceLoaderDescriptor = createString("Ljava/util/ServiceLoader;");
   public final DexString serviceLoaderConfigurationErrorDescriptor =
       createString("Ljava/util/ServiceConfigurationError;");
+  public final DexString localeDescriptor = createString("Ljava/util/Locale;");
   public final DexString listDescriptor = createString("Ljava/util/List;");
   public final DexString setDescriptor = createString("Ljava/util/Set;");
   public final DexString mapDescriptor = createString("Ljava/util/Map;");
@@ -604,8 +605,10 @@ public class DexItemFactory {
   public final DexType javaUtilComparatorType = createStaticallyKnownType("Ljava/util/Comparator;");
   public final DexType javaUtilConcurrentTimeUnitType =
       createStaticallyKnownType("Ljava/util/concurrent/TimeUnit;");
+  public final DexType javaUtilFormattableType =
+      createStaticallyKnownType("Ljava/util/Formattable;");
   public final DexType javaUtilListType = createStaticallyKnownType("Ljava/util/List;");
-  public final DexType javaUtilLocaleType = createStaticallyKnownType("Ljava/util/Locale;");
+  public final DexType javaUtilLocaleType = createStaticallyKnownType(localeDescriptor);
   public final DexType javaUtilLoggingLevelType =
       createStaticallyKnownType("Ljava/util/logging/Level;");
   public final DexType javaUtilLoggingLoggerType =
@@ -1021,6 +1024,8 @@ public class DexItemFactory {
               objectsMethods.requireNonNull,
               objectsMethods.requireNonNullWithMessage,
               objectsMethods.requireNonNullWithMessageSupplier,
+              stringMembers.format,
+              stringMembers.formatWithLocale,
               stringMembers.valueOf)
           .addAll(boxedValueOfMethods())
           .addAll(stringBufferMethods.appendMethods)
@@ -2213,6 +2218,9 @@ public class DexItemFactory {
     public final DexMethod compareToIgnoreCase;
 
     public final DexMethod hashCode;
+
+    public final DexMethod format;
+    public final DexMethod formatWithLocale;
     public final DexMethod valueOf;
     public final DexMethod toString;
     public final DexMethod intern;
@@ -2259,6 +2267,19 @@ public class DexItemFactory {
               needsOneString);
 
       hashCode = createMethod(stringType, createProto(intType), hashCodeMethodName);
+      format =
+          createMethod(
+              stringDescriptor,
+              formatMethodName,
+              stringDescriptor,
+              new DexString[] {stringDescriptor, objectArrayDescriptor});
+      formatWithLocale =
+          createMethod(
+              stringDescriptor,
+              formatMethodName,
+              stringDescriptor,
+              new DexString[] {localeDescriptor, stringDescriptor, objectArrayDescriptor});
+
       valueOf = createMethod(
           stringDescriptor, valueOfMethodName, stringDescriptor, needsOneObject);
       toString = createMethod(

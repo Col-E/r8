@@ -31,7 +31,7 @@ public class ObjectMethodOptimizer extends StatelessLibraryMethodModelCollection
 
   @Override
   @SuppressWarnings("ReferenceEquality")
-  public void optimize(
+  public InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
@@ -42,6 +42,7 @@ public class ObjectMethodOptimizer extends StatelessLibraryMethodModelCollection
     if (singleTarget.getReference() == dexItemFactory.objectMembers.getClass) {
       optimizeGetClass(instructionIterator, invoke);
     }
+    return instructionIterator;
   }
 
   private void optimizeGetClass(InstructionListIterator instructionIterator, InvokeMethod invoke) {
