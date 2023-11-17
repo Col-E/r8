@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.library.StatelessLibraryMethodModelCollection;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -55,7 +56,7 @@ public abstract class PrimitiveMethodOptimizer extends StatelessLibraryMethodMod
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
+      AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove) {
     optimizeBoxingMethods(code, instructionIterator, invoke, singleTarget, affectedValues);
   }
@@ -65,7 +66,7 @@ public abstract class PrimitiveMethodOptimizer extends StatelessLibraryMethodMod
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues) {
+      AffectedValues affectedValues) {
     if (singleTarget.getReference().isIdenticalTo(getUnboxMethod())) {
       optimizeUnboxMethod(code, instructionIterator, invoke);
     } else if (singleTarget.getReference().isIdenticalTo(getBoxMethod())) {
@@ -77,7 +78,7 @@ public abstract class PrimitiveMethodOptimizer extends StatelessLibraryMethodMod
       IRCode code,
       InstructionListIterator instructionIterator,
       InvokeMethod boxInvoke,
-      Set<Value> affectedValues) {
+      AffectedValues affectedValues) {
     Value firstArg = boxInvoke.getFirstArgument();
     if (firstArg
         .getAliasedValue()

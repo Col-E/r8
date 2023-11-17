@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.shaking.MaximumRemovedAndroidLogLevelRule;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import java.util.Set;
@@ -113,7 +114,7 @@ public class LogMethodOptimizer extends StatelessLibraryMethodModelCollection {
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
+      AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove) {
     // Replace Android logging statements like Log.w(...) and Log.IsLoggable(..., WARNING) at or
     // below a certain logging level by false.

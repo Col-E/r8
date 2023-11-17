@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collection;
 import java.util.ListIterator;
@@ -71,8 +72,13 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
 
   @Override
   public void replaceCurrentInstructionWithConstClass(
-      AppView<?> appView, IRCode code, DexType type, DebugLocalInfo localInfo) {
-    instructionIterator.replaceCurrentInstructionWithConstClass(appView, code, type, localInfo);
+      AppView<?> appView,
+      IRCode code,
+      DexType type,
+      DebugLocalInfo localInfo,
+      AffectedValues affectedValues) {
+    instructionIterator.replaceCurrentInstructionWithConstClass(
+        appView, code, type, localInfo, affectedValues);
   }
 
   @Override
@@ -82,8 +88,9 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
 
   @Override
   public void replaceCurrentInstructionWithConstString(
-      AppView<?> appView, IRCode code, DexString value) {
-    instructionIterator.replaceCurrentInstructionWithConstString(appView, code, value);
+      AppView<?> appView, IRCode code, DexString value, AffectedValues affectedValues) {
+    instructionIterator.replaceCurrentInstructionWithConstString(
+        appView, code, value, affectedValues);
   }
 
   @Override

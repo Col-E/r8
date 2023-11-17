@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Set;
 
@@ -53,7 +54,7 @@ public class BooleanMethodOptimizer extends PrimitiveMethodOptimizer {
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
+      AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove) {
     if (singleTarget.getReference().isIdenticalTo(dexItemFactory.booleanMembers.parseBoolean)) {
       optimizeParseBoolean(code, instructionIterator, invoke);
@@ -83,7 +84,7 @@ public class BooleanMethodOptimizer extends PrimitiveMethodOptimizer {
       IRCode code,
       InstructionListIterator instructionIterator,
       InvokeMethod boxInvoke,
-      Set<Value> affectedValues) {
+      AffectedValues affectedValues) {
     // Optimize Boolean.valueOf(b) into Boolean.FALSE or Boolean.TRUE.
     Value argument = boxInvoke.getFirstOperand();
     AbstractValue abstractValue = argument.getAbstractValue(appView, code.context());

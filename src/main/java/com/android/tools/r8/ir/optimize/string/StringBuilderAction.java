@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.string;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -87,10 +88,8 @@ public interface StringBuilderAction {
         AffectedValues affectedValues,
         StringBuilderOracle oracle) {
       assert oracle.isToString(instruction, instruction.getFirstOperand());
-      if (instruction.hasOutValue()) {
-        instruction.outValue().addAffectedValuesTo(affectedValues);
-      }
-      iterator.replaceCurrentInstructionWithConstString(appView, code, replacement);
+      DexString string = appView.dexItemFactory().createString(replacement);
+      iterator.replaceCurrentInstructionWithConstString(appView, code, string, affectedValues);
     }
   }
 

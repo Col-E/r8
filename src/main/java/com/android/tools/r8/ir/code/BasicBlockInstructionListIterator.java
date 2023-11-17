@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.code;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
-import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
 import com.android.tools.r8.graph.AppView;
@@ -21,6 +20,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
@@ -477,7 +477,11 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
   @Override
   public void replaceCurrentInstructionWithConstClass(
-      AppView<?> appView, IRCode code, DexType type, DebugLocalInfo localInfo) {
+      AppView<?> appView,
+      IRCode code,
+      DexType type,
+      DebugLocalInfo localInfo,
+      AffectedValues affectedValues) {
     if (current == null) {
       throw new IllegalStateException();
     }
@@ -485,7 +489,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     TypeElement typeElement = TypeElement.classClassType(appView, definitelyNotNull());
     Value value = code.createValue(typeElement, localInfo);
     ConstClass constClass = new ConstClass(value, type);
-    replaceCurrentInstruction(constClass);
+    replaceCurrentInstruction(constClass, affectedValues);
   }
 
   @Override
@@ -503,14 +507,14 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
   @Override
   public void replaceCurrentInstructionWithConstString(
-      AppView<?> appView, IRCode code, DexString value) {
+      AppView<?> appView, IRCode code, DexString value, AffectedValues affectedValues) {
     if (current == null) {
       throw new IllegalStateException();
     }
 
     // Replace the instruction by const-string.
     ConstString constString = code.createStringConstant(appView, value, current.getLocalInfo());
-    replaceCurrentInstruction(constString);
+    replaceCurrentInstruction(constString, affectedValues);
   }
 
   @Override
@@ -535,16 +539,10 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     }
 
     // Replace the instruction by static-get.
-    TypeElement newType = TypeElement.fromDexType(field.type, maybeNull(), appView);
-    TypeElement oldType = current.getOutType();
+    TypeElement newType = field.getTypeElement(appView);
     Value value = code.createValue(newType, current.getLocalInfo());
     StaticGet staticGet = new StaticGet(value, field);
-    replaceCurrentInstruction(staticGet);
-
-    // Update affected values.
-    if (value.hasAnyUsers() && !newType.equals(oldType)) {
-      affectedValues.addAll(value.affectedValues());
-    }
+    replaceCurrentInstruction(staticGet, affectedValues);
   }
 
   @Override

@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -22,6 +23,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import java.util.Set;
 
 public class StringMethodOptimizer extends StatelessLibraryMethodModelCollection {
@@ -47,7 +49,7 @@ public class StringMethodOptimizer extends StatelessLibraryMethodModelCollection
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
+      AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove) {
     DexMethod singleTargetReference = singleTarget.getReference();
     if (singleTargetReference == dexItemFactory.stringMembers.equals) {
@@ -74,16 +76,15 @@ public class StringMethodOptimizer extends StatelessLibraryMethodModelCollection
       IRCode code,
       InstructionListIterator instructionIterator,
       InvokeStatic invoke,
-      Set<Value> affectedValues) {
+      AffectedValues affectedValues) {
     Value object = invoke.getFirstArgument();
     TypeElement type = object.getType();
 
     // Optimize String.valueOf(null) into "null".
     if (type.isDefinitelyNull()) {
-      instructionIterator.replaceCurrentInstructionWithConstString(appView, code, "null");
-      if (invoke.hasOutValue()) {
-        affectedValues.addAll(invoke.outValue().affectedValues());
-      }
+      DexString nullString = dexItemFactory.createString("null");
+      instructionIterator.replaceCurrentInstructionWithConstString(
+          appView, code, nullString, affectedValues);
       return;
     }
 

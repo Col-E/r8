@@ -12,8 +12,8 @@ import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.library.LibraryMethodModelCollection.State;
 import com.android.tools.r8.ir.optimize.library.primitive.BooleanMethodOptimizer;
 import java.util.Set;
@@ -41,7 +41,7 @@ public interface LibraryMethodModelCollection<T extends State> {
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
+      AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove,
       T state,
       MethodProcessor methodProcessor,
@@ -54,7 +54,7 @@ public interface LibraryMethodModelCollection<T extends State> {
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
+      AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove,
       Object state,
       MethodProcessor methodProcessor,

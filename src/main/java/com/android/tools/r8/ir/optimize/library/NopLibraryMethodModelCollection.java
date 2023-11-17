@@ -12,7 +12,7 @@ import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import java.util.Set;
 
 public class NopLibraryMethodModelCollection extends StatelessLibraryMethodModelCollection {
@@ -38,6 +38,6 @@ public class NopLibraryMethodModelCollection extends StatelessLibraryMethodModel
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
+      AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove) {}
 }

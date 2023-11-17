@@ -439,9 +439,8 @@ public class StringOptimizer extends CodeRewriterPass<AppInfo> {
         Value out = invoke.outValue();
         TypeElement inType = in.getType();
         if (out != null && in.isAlwaysNull(appView)) {
-          affectedValues.addAll(out.affectedValues());
           it.replaceCurrentInstructionWithConstString(
-              appView, code, dexItemFactory.createString("null"));
+              appView, code, dexItemFactory.createString("null"), affectedValues);
         } else if (inType.nullability().isDefinitelyNotNull()
             && inType.isClassType()
             && inType.asClassType().getClassType().equals(dexItemFactory.stringType)) {

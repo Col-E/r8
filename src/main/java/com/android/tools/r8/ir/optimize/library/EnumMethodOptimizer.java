@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Set;
 
@@ -43,7 +44,7 @@ public class EnumMethodOptimizer extends StatelessLibraryMethodModelCollection {
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
+      AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove) {
     if (appView.hasLiveness()
         && singleTarget.getReference() == appView.dexItemFactory().enumMembers.valueOf

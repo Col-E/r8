@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -195,7 +196,11 @@ public interface InstructionListIterator
   }
 
   void replaceCurrentInstructionWithConstClass(
-      AppView<?> appView, IRCode code, DexType type, DebugLocalInfo localInfo);
+      AppView<?> appView,
+      IRCode code,
+      DexType type,
+      DebugLocalInfo localInfo,
+      AffectedValues affectedValues);
 
   default void replaceCurrentInstructionWithConstFalse(IRCode code) {
     replaceCurrentInstructionWithConstInt(code, 0);
@@ -203,16 +208,11 @@ public interface InstructionListIterator
 
   void replaceCurrentInstructionWithConstInt(IRCode code, int value);
 
-  void replaceCurrentInstructionWithConstString(AppView<?> appView, IRCode code, DexString value);
+  void replaceCurrentInstructionWithConstString(
+      AppView<?> appView, IRCode code, DexString value, AffectedValues affectedValues);
 
   default void replaceCurrentInstructionWithConstTrue(IRCode code) {
     replaceCurrentInstructionWithConstInt(code, 1);
-  }
-
-  default void replaceCurrentInstructionWithConstString(
-      AppView<?> appView, IRCode code, String value) {
-    replaceCurrentInstructionWithConstString(
-        appView, code, appView.dexItemFactory().createString(value));
   }
 
   void replaceCurrentInstructionWithNullCheck(AppView<?> appView, Value object);
