@@ -5,7 +5,8 @@ package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.keepanno.annotations.KeepForApi;
+import com.android.tools.r8.keepanno.annotations.KeepItemKind;
 
 /** Base interface for diagnostics related to proguard keep rules. */
-@KeepForApi
+@KeepForApi(kind = KeepItemKind.ONLY_CLASS)
 public interface ProguardKeepRuleDiagnostic extends Diagnostic {}
