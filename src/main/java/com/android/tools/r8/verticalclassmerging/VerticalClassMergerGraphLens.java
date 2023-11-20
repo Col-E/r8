@@ -26,6 +26,7 @@ import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Streams;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -133,16 +134,23 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
         }
       }
     }
+    MethodLookupResult lookupResult;
     DexMethod newMethod = methodMap.apply(previous.getReference());
     if (newMethod == null) {
-      return previous;
+      lookupResult = previous;
+    } else {
+      lookupResult =
+          MethodLookupResult.builder(this)
+              .setReference(newMethod)
+              .setPrototypeChanges(
+                  internalDescribePrototypeChanges(previous.getPrototypeChanges(), newMethod))
+              .setType(mapInvocationType(newMethod, previous.getReference(), previous.getType()))
+              .build();
     }
-    return MethodLookupResult.builder(this)
-        .setReference(newMethod)
-        .setPrototypeChanges(
-            internalDescribePrototypeChanges(previous.getPrototypeChanges(), newMethod))
-        .setType(mapInvocationType(newMethod, previous.getReference(), previous.getType()))
-        .build();
+    assert !appView.testing().enableVerticalClassMergerLensAssertion
+        || Streams.stream(lookupResult.getReference().getReferencedBaseTypes(dexItemFactory()))
+            .noneMatch(type -> mergedClasses.hasBeenMergedIntoSubtype(type));
+    return lookupResult;
   }
 
   @Override

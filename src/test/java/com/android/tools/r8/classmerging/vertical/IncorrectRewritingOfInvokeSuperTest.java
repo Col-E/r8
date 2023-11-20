@@ -4,10 +4,16 @@
 
 package com.android.tools.r8.classmerging.vertical;
 
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.codeinspector.AssertUtils;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -21,22 +27,41 @@ public class IncorrectRewritingOfInvokeSuperTest extends TestBase {
   @Parameter(0)
   public TestParameters parameters;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  @Parameter(1)
+  public boolean verifyLensLookup;
+
+  @Parameters(name = "{0}, verify: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
   @Test
   public void test() throws Exception {
-    testForR8(parameters.getBackend())
-        .addInnerClasses(IncorrectRewritingOfInvokeSuperTest.class)
-        .addKeepMainRule(TestClass.class)
-        .addOptionsModification(options -> options.enableUnusedInterfaceRemoval = false)
-        .enableInliningAnnotations()
-        .addDontObfuscate()
-        .setMinApi(parameters)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccess();
+    Box<R8TestCompileResult> compileResult = new Box<>();
+    AssertUtils.assertFailsCompilationIf(
+        verifyLensLookup,
+        () ->
+            compileResult.set(
+                testForR8(parameters.getBackend())
+                    .addInnerClasses(IncorrectRewritingOfInvokeSuperTest.class)
+                    .addKeepMainRule(TestClass.class)
+                    .addOptionsModification(
+                        options -> {
+                          options.enableUnusedInterfaceRemoval = false;
+                          options.testing.enableVerticalClassMergerLensAssertion = verifyLensLookup;
+                        })
+                    .enableInliningAnnotations()
+                    .addDontObfuscate()
+                    .setMinApi(parameters)
+                    .compile()));
+
+    if (!compileResult.isSet()) {
+      assertTrue(verifyLensLookup);
+      return;
+    }
+
+    compileResult.get().run(parameters.getRuntime(), TestClass.class).assertSuccess();
   }
 
   static class TestClass {
