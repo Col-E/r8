@@ -54,7 +54,7 @@ public class B140588497 extends TestBase {
               while (it.hasNext()) {
                 numbers.add(it.next().getConstNumber());
               }
-              assertEquals(new LongArrayList(new long[] {0, 1, 2, 3, 4, 5}), numbers);
+              assertEquals(new LongArrayList(new long[] {4, 5, 0, 1, 2, 3}), numbers);
             });
   }
 
