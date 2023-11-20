@@ -820,7 +820,15 @@ public class ProguardMapReader implements AutoCloseable {
     skipWhitespace();
     int to = parseNumber();
     if (from > to) {
-      throw new ParseException("From is larger than to in range: " + from + ":" + to);
+      // Past versions of R8 would incorrectly put 0 as the "to" range in some instances
+      // and fail to order the range. For 0-values assume the range is a singleton position.
+      if (to == 0) {
+        to = from;
+      } else {
+        int tmp = to;
+        to = from;
+        from = tmp;
+      }
     }
     return nonCardinalRangeCache.get(from, to);
   }
