@@ -634,19 +634,12 @@ public abstract class R8RunArtTestsTest extends TestBase {
           // null to static field.
           .put(
               "134-reg-promotion",
-              TestCondition.or(
-                  TestCondition.match(
-                      compilers(CompilerUnderTest.R8),
-                      TestCondition.runtimes(DexVm.Version.V10_0_0, DexVm.Version.V12_0_0)),
-                  TestCondition.match(
-                      compilers(CompilerUnderTest.D8_AFTER_R8CF, CompilerUnderTest.R8_AFTER_D8),
-                      TestCondition.runtimes(
-                          DexVm.Version.V4_0_4,
-                          DexVm.Version.V8_1_0,
-                          DexVm.Version.V9_0_0,
-                          DexVm.Version.V10_0_0,
-                          DexVm.Version.V12_0_0,
-                          DexVm.Version.DEFAULT))))
+              TestCondition.match(
+                  compilers(
+                      CompilerUnderTest.R8,
+                      CompilerUnderTest.D8_AFTER_R8CF,
+                      CompilerUnderTest.R8_AFTER_D8),
+                  TestCondition.runtimes(DexVm.Version.V10_0_0, DexVm.Version.V12_0_0)))
           .put(
               "461-get-reference-vreg",
               TestCondition.match(

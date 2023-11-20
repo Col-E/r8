@@ -20,7 +20,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.Arrays;
@@ -80,10 +79,7 @@ public class TryCatchRangeOverflowTest extends TestBase {
       compile(addCount)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("" + addCount)
-          .inspect(
-              inspector ->
-                  checkTryCatchHandlers(
-                      1 + BooleanUtils.intValue(addCount > UNSPLIT_LIMIT + 1), inspector));
+          .inspect(inspector -> checkTryCatchHandlers(2, inspector));
     }
   }
 
@@ -115,7 +111,7 @@ public class TryCatchRangeOverflowTest extends TestBase {
     compile(addCount)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("" + addCount)
-        .inspect(inspector -> checkTryCatchHandlers(2, inspector));
+        .inspect(inspector -> checkTryCatchHandlers(3, inspector));
   }
 
   private D8TestBuilder compile(int addCount) {

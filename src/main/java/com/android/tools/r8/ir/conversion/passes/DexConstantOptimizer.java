@@ -232,10 +232,6 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
   }
 
   private void shortenLiveRanges(IRCode code, ConstantCanonicalizer canonicalizer) {
-    if (options.debug) {
-      // Shorten live ranges seems to regress code size in debug mode.
-      return;
-    }
     if (options.testing.disableShortenLiveRanges) {
       return;
     }
