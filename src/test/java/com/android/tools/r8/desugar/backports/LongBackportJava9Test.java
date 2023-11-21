@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.backports;
 
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.SingleTestRunResult;
@@ -52,7 +53,11 @@ public final class LongBackportJava9Test extends AbstractBackportTest {
             runResult.applyIf(
                 parameters.getDexRuntimeVersion().isEqualTo(Version.V6_0_1)
                     && parameters.getApiLevel().isGreaterThan(AndroidApiLevel.B),
-                rr -> rr.assertFailureWithErrorThatMatches(containsString("SIGSEGV")),
+                rr ->
+                    rr.assertFailureWithErrorThatMatches(
+                        // Sometimes the failure does not have the SIGSEGV printed, so check for
+                        // the utils.cc file where the fault happens.
+                        anyOf(containsString("SIGSEGV"), containsString("art/runtime/utils.cc"))),
                 SingleTestRunResult::assertSuccess));
   }
 }
