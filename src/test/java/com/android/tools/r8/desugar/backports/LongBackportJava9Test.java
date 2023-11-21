@@ -5,18 +5,13 @@
 package com.android.tools.r8.desugar.backports;
 
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.containsString;
 
-import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -43,21 +38,5 @@ public final class LongBackportJava9Test extends AbstractBackportTest {
     ignoreInvokes("toString");
 
     registerTarget(AndroidApiLevel.T, 17);
-  }
-
-  @Test
-  @Override
-  public void testD8() throws Exception {
-    testD8(
-        runResult ->
-            runResult.applyIf(
-                parameters.getDexRuntimeVersion().isEqualTo(Version.V6_0_1)
-                    && parameters.getApiLevel().isGreaterThan(AndroidApiLevel.B),
-                rr ->
-                    rr.assertFailureWithErrorThatMatches(
-                        // Sometimes the failure does not have the SIGSEGV printed, so check for
-                        // the utils.cc file where the fault happens.
-                        anyOf(containsString("SIGSEGV"), containsString("art/runtime/utils.cc"))),
-                SingleTestRunResult::assertSuccess));
   }
 }
