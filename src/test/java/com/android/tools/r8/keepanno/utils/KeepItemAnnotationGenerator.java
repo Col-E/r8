@@ -529,7 +529,7 @@ public class KeepItemAnnotationGenerator {
                   .addParagraph(
                       "Mutually exclusive with all field and method properties",
                       "as use restricts the match to both types of members.")
-                  .setDocReturn("The access flags constraints that must be met.")
+                  .setDocReturn("The member access-flag constraints that must be met.")
                   .defaultEmptyArray("MemberAccessFlags"));
     }
 
@@ -560,7 +560,7 @@ public class KeepItemAnnotationGenerator {
                   .setDocTitle("Define the method-access pattern by matching on access flags.")
                   .addParagraph(getMutuallyExclusiveForMethodProperties())
                   .addParagraph(getMethodDefaultDoc("any method-access flags"))
-                  .setDocReturn("The access flags constraints that must be met.")
+                  .setDocReturn("The method access-flag constraints that must be met.")
                   .defaultEmptyArray("MethodAccessFlags"));
     }
 
@@ -607,7 +607,7 @@ public class KeepItemAnnotationGenerator {
                   .setDocTitle("Define the field-access pattern by matching on access flags.")
                   .addParagraph(getMutuallyExclusiveForFieldProperties())
                   .addParagraph(getFieldDefaultDoc("any field-access flags"))
-                  .setDocReturn("The access flags constraints that must be met.")
+                  .setDocReturn("The field access-flag constraints that must be met.")
                   .defaultEmptyArray("FieldAccessFlags"));
     }
 

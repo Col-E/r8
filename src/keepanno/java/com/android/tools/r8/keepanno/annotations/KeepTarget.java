@@ -278,7 +278,7 @@ public @interface KeepTarget {
    * <p>Mutually exclusive with all field and method properties as use restricts the match to both
    * types of members.
    *
-   * @return The access flags constraints that must be met.
+   * @return The member access-flag constraints that must be met.
    */
   MemberAccessFlags[] memberAccess() default {};
 
@@ -290,7 +290,7 @@ public @interface KeepTarget {
    * <p>If none, and other properties define this item as a method, the default matches any
    * method-access flags.
    *
-   * @return The access flags constraints that must be met.
+   * @return The method access-flag constraints that must be met.
    */
   MethodAccessFlags[] methodAccess() default {};
 
@@ -338,7 +338,7 @@ public @interface KeepTarget {
    * <p>If none, and other properties define this item as a field, the default matches any
    * field-access flags.
    *
-   * @return The access flags constraints that must be met.
+   * @return The field access-flag constraints that must be met.
    */
   FieldAccessFlags[] fieldAccess() default {};
 
