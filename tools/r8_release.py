@@ -121,9 +121,7 @@ def prepare_release(args):
                 validate_version_change_diff(version_diff_output, "main",
                                              version)
 
-                cmd = ['git', 'cl', 'upload', '--no-squash']
-                if args.bypass_hooks:
-                    cmd.append('--bypass-hooks')
+                cmd = ['git', 'cl', 'upload', '--no-squash', '--bypass-hooks']
                 maybe_check_call(args, cmd)
 
                 if args.dry_run:
