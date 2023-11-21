@@ -43,6 +43,7 @@ REPO_SOURCE = 'https://r8.googlesource.com/r8'
 GRADLE_TASK_CLEAN_TEST = ':test:cleanTest'
 GRADLE_TASK_CONSOLIDATED_LICENSE = ':main:consolidatedLicense'
 GRADLE_TASK_KEEP_ANNO_JAR = ':keepanno:keepAnnoAnnotationsJar'
+GRADLE_TASK_KEEP_ANNO_DOC = ':keepanno:keepAnnoAnnotationsDoc'
 GRADLE_TASK_R8 = ':main:r8WithRelocatedDeps'
 GRADLE_TASK_R8LIB = ':test:assembleR8LibWithRelocatedDeps'
 GRADLE_TASK_R8LIB_NO_DEPS = ':test:assembleR8LibNoDeps'
@@ -77,6 +78,7 @@ LIBRARY_DESUGAR_CONVERSIONS_LEGACY_ZIP = os.path.join(
 LIBRARY_DESUGAR_CONVERSIONS_ZIP = os.path.join(
     CUSTOM_CONVERSION_DIR, 'library_desugar_conversions.jar')
 KEEPANNO_ANNOTATIONS_JAR = os.path.join(LIBS, 'keepanno-annotations.jar')
+KEEPANNO_ANNOTATIONS_DOC = os.path.join('d8_r8', 'keepanno', 'build', 'docs', 'javadoc')
 
 DESUGAR_CONFIGURATION = os.path.join('src', 'library_desugar',
                                      'desugar_jdk_libs.json')
@@ -391,6 +393,14 @@ def upload_file_to_cloud_storage(source, destination):
     PrintCmd(cmd)
     subprocess.check_call(cmd)
 
+def upload_directory_to_cloud_storage(source, destination, parallel=True):
+    cmd = [get_gsutil()]
+    if parallel:
+        cmd += ['-m']
+    cmd += ['cp', '-R']
+    cmd += [source, destination]
+    PrintCmd(cmd)
+    subprocess.check_call(cmd)
 
 def delete_file_from_cloud_storage(destination):
     cmd = [get_gsutil(), 'rm', destination]
