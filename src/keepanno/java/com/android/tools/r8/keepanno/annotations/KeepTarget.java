@@ -218,8 +218,6 @@ public @interface KeepTarget {
    * <p>The pattern is exclusive in that it does not match classes that are instances of the
    * pattern, but only those that are instances of classes that are subclasses of the pattern.
    *
-   * <p>This property is deprecated, use instanceOfClassName instead.
-   *
    * <p>Mutually exclusive with the following other properties defining instance-of:
    *
    * <ul>
@@ -234,7 +232,9 @@ public @interface KeepTarget {
    * <p>If none are specified the default is to match any class instance.
    *
    * @return The class name that defines what the class must extend.
+   * @deprecated This property is deprecated, use {@link #instanceOfClassName} instead.
    */
+  @Deprecated
   String extendsClassName() default "";
 
   /**
@@ -242,8 +242,6 @@ public @interface KeepTarget {
    *
    * <p>The pattern is exclusive in that it does not match classes that are instances of the
    * pattern, but only those that are instances of classes that are subclasses of the pattern.
-   *
-   * <p>This property is deprecated, use instanceOfClassConstant instead.
    *
    * <p>Mutually exclusive with the following other properties defining instance-of:
    *
@@ -259,7 +257,9 @@ public @interface KeepTarget {
    * <p>If none are specified the default is to match any class instance.
    *
    * @return The class constant that defines what the class must extend.
+   * @deprecated This property is deprecated, use {@link #instanceOfClassConstant} instead.
    */
+  @Deprecated
   Class<?> extendsClassConstant() default Object.class;
 
   /**

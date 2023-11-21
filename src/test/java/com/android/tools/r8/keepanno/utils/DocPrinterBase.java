@@ -14,12 +14,13 @@ public abstract class DocPrinterBase<T> {
 
   private String title = null;
   private String returnDesc = null;
+  private String deprecatedDesc = null;
   private final List<String> additionalLines = new ArrayList<>();
 
   public abstract T self();
 
   private boolean isEmptyOrJustTitle() {
-    return returnDesc == null && additionalLines.isEmpty();
+    return returnDesc == null && deprecatedDesc == null && additionalLines.isEmpty();
   }
 
   public T clearDocLines() {
@@ -36,6 +37,15 @@ public abstract class DocPrinterBase<T> {
 
   public T setDocReturn(String desc) {
     returnDesc = desc;
+    return self();
+  }
+
+  public boolean isDeprecated() {
+    return deprecatedDesc != null;
+  }
+
+  public T setDeprecated(String desc) {
+    deprecatedDesc = desc;
     return self();
   }
 
@@ -95,6 +105,9 @@ public abstract class DocPrinterBase<T> {
     }
     if (returnDesc != null) {
       println.accept(" * @return " + returnDesc);
+    }
+    if (deprecatedDesc != null) {
+      println.accept(" * @deprecated " + deprecatedDesc);
     }
     println.accept(" */");
   }

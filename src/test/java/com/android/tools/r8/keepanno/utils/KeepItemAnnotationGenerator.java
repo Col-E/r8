@@ -72,6 +72,9 @@ public class KeepItemAnnotationGenerator {
 
     void generate(Generator generator) {
       printDoc(generator::println);
+      if (isDeprecated()) {
+        generator.println("@Deprecated");
+      }
       if (valueDefault == null) {
         generator.println(valueType + " " + name + "();");
       } else {
@@ -472,7 +475,8 @@ public class KeepItemAnnotationGenerator {
                   + INSTANCE_OF_GROUP
                   + " pattern as classes extending the fully qualified class name.")
           .addParagraph(getInstanceOfExclusiveDoc())
-          .addParagraph("This property is deprecated, use instanceOfClassName instead.")
+          .setDeprecated(
+              "This property is deprecated, use " + docLink(instanceOfClassName()) + " instead.")
           .setDocReturn("The class name that defines what the class must extend.")
           .defaultEmptyString();
     }
@@ -484,7 +488,10 @@ public class KeepItemAnnotationGenerator {
                   + INSTANCE_OF_GROUP
                   + " pattern as classes extending the referenced Class constant.")
           .addParagraph(getInstanceOfExclusiveDoc())
-          .addParagraph("This property is deprecated, use instanceOfClassConstant instead.")
+          .setDeprecated(
+              "This property is deprecated, use "
+                  + docLink(instanceOfClassConstant())
+                  + " instead.")
           .setDocReturn("The class constant that defines what the class must extend.")
           .defaultObjectClass();
     }
@@ -961,6 +968,10 @@ public class KeepItemAnnotationGenerator {
 
     private String docLink(Class<?> clazz) {
       return "{@link " + simpleName(clazz) + "}";
+    }
+
+    private String docLink(GroupMember member) {
+      return "{@link #" + member.name + "}";
     }
 
     private String docLink(KeepItemKind kind) {
