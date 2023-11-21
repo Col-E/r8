@@ -35,8 +35,7 @@ public class RetentionPolicyTest extends TestBase {
   private static final Collection<Class<?>> CLASSES =
       ImmutableList.of(ClassRetained.class, SourceRetained.class, RuntimeRetained.class, A.class);
 
-  private static final String EXPECTED =
-      StringUtils.lines("@" + RuntimeRetained.class.getName() + "()");
+  private static final String EXPECTED = StringUtils.lines(RuntimeRetained.class.getName());
 
   @Parameters(name = "{0}, intermediate:{1}")
   public static List<Object[]> data() {
@@ -66,7 +65,7 @@ public class RetentionPolicyTest extends TestBase {
 
     public static void main(String[] args) {
       for (Annotation annotation : A.class.getAnnotations()) {
-        System.out.println(annotation);
+        System.out.println(annotation.annotationType().getName());
       }
     }
   }
