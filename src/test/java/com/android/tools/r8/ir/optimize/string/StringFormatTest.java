@@ -96,7 +96,6 @@ public class StringFormatTest extends TestBase {
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(MAIN, TestFormattable.class)
-            .addOptionsModification(options -> options.enableStringFormatOptimization = true)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .setMinApi(parameters)
@@ -110,7 +109,6 @@ public class StringFormatTest extends TestBase {
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(MAIN, TestFormattable.class)
-            .addOptionsModification(options -> options.enableStringFormatOptimization = true)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .setMinApi(parameters)

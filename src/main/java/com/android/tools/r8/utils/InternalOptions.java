@@ -280,9 +280,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     itemFactory = proguardConfiguration.getDexItemFactory();
     enableTreeShaking = proguardConfiguration.isShrinking();
     enableMinification = proguardConfiguration.isObfuscating();
-    // TODO(b/244238384): Enable.
-    enableStringFormatOptimization =
-        System.getProperty("com.android.tools.r8.optimizeStringFormat") != null;
 
     if (!proguardConfiguration.isOptimizing()) {
       // TODO(b/171457102): Avoid the need for this.
@@ -328,7 +325,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     disableGlobalOptimizations();
     enableNameReflectionOptimization = false;
     enableStringConcatenationOptimization = false;
-    enableStringFormatOptimization = false;
   }
 
   public void disableGlobalOptimizations() {
@@ -413,7 +409,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableNameReflectionOptimization = true;
   public boolean enableStringConcatenationOptimization = true;
   // Enabled only for R8 (not D8).
-  public boolean enableStringFormatOptimization;
   public boolean enableTreeShakingOfLibraryMethodOverrides = false;
   public boolean encodeChecksums = false;
   public BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;

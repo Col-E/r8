@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.AffectedValues;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ValueUtils;
 import com.android.tools.r8.utils.ValueUtils.ArrayValues;
 import com.google.common.collect.ImmutableMap;
@@ -54,7 +55,12 @@ public class StringMethodOptimizer extends StatelessLibraryMethodModelCollection
   StringMethodOptimizer(AppView<?> appView) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
-    this.enableStringFormatOptimizations = appView.options().enableStringFormatOptimization;
+    InternalOptions options = appView.options();
+    this.enableStringFormatOptimizations =
+        appView.enableWholeProgramOptimizations()
+            && !options.debug
+            && options.isOptimizing()
+            && options.isShrinking();
     this.valueOfToStringAppend =
         ImmutableMap.<DexMethod, DexMethod>builder()
             .put(
