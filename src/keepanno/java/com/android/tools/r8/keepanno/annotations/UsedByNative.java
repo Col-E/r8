@@ -32,20 +32,25 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 public @interface UsedByNative {
 
-  /** Optional description to document the reason for this annotation. */
+  /**
+   * Optional description to document the reason for this annotation.
+   *
+   * @return The descriptive message. Defaults to no description.
+   */
   String description() default "";
 
   /**
    * Conditions that should be satisfied for the annotation to be in effect.
    *
-   * <p>Defaults to no conditions, thus trivially/unconditionally satisfied.
+   * @return The list of preconditions. Defaults to no conditions, thus trivially/unconditionally
+   *     satisfied.
    */
   KeepCondition[] preconditions() default {};
 
   /**
    * Additional targets to be kept in addition to the annotated class/members.
    *
-   * <p>Defaults to no additional targets.
+   * @return List of additional target consequences. Defaults to no additional target consequences.
    */
   KeepTarget[] additionalTargets() default {};
 
@@ -61,6 +66,8 @@ public @interface UsedByNative {
    * <p>When annotating a member, the default kind is {@link KeepItemKind#ONLY_MEMBERS}.
    *
    * <p>It is not possible to use ONLY_CLASS if annotating a member.
+   *
+   * @return The kind for this pattern.
    */
   KeepItemKind kind() default KeepItemKind.DEFAULT;
 
@@ -69,6 +76,8 @@ public @interface UsedByNative {
    *
    * <p>Mutually exclusive with all field and method properties as use restricts the match to both
    * types of members.
+   *
+   * @return The access flags constraints that must be met.
    */
   MemberAccessFlags[] memberAccess() default {};
 
@@ -79,6 +88,8 @@ public @interface UsedByNative {
    *
    * <p>If none, and other properties define this item as a method, the default matches any
    * method-access flags.
+   *
+   * @return The access flags constraints that must be met.
    */
   MethodAccessFlags[] methodAccess() default {};
 
@@ -89,6 +100,8 @@ public @interface UsedByNative {
    *
    * <p>If none, and other properties define this item as a method, the default matches any method
    * name.
+   *
+   * @return The exact method name of the method.
    */
   String methodName() default "";
 
@@ -99,6 +112,8 @@ public @interface UsedByNative {
    *
    * <p>If none, and other properties define this item as a method, the default matches any return
    * type.
+   *
+   * @return The qualified type name of the method return type.
    */
   String methodReturnType() default "";
 
@@ -109,6 +124,8 @@ public @interface UsedByNative {
    *
    * <p>If none, and other properties define this item as a method, the default matches any
    * parameters.
+   *
+   * @return The list of qualified type names of the method parameters.
    */
   String[] methodParameters() default {"<default>"};
 
@@ -119,6 +136,8 @@ public @interface UsedByNative {
    *
    * <p>If none, and other properties define this item as a field, the default matches any
    * field-access flags.
+   *
+   * @return The access flags constraints that must be met.
    */
   FieldAccessFlags[] fieldAccess() default {};
 
@@ -129,6 +148,8 @@ public @interface UsedByNative {
    *
    * <p>If none, and other properties define this item as a field, the default matches any field
    * name.
+   *
+   * @return The exact field name of the field.
    */
   String fieldName() default "";
 
@@ -138,6 +159,8 @@ public @interface UsedByNative {
    * <p>Mutually exclusive with all method properties.
    *
    * <p>If none, and other properties define this item as a field, the default matches any type.
+   *
+   * @return The qualified type name of the field type.
    */
   String fieldType() default "";
 }

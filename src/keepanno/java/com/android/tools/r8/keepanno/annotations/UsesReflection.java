@@ -63,16 +63,24 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 public @interface UsesReflection {
 
-  /** Optional description to document the reason for this annotation. */
+  /**
+   * Optional description to document the reason for this annotation.
+   *
+   * @return The descriptive message. Defaults to no description.
+   */
   String description() default "";
 
-  /** Consequences that must be kept if the annotation is in effect. */
+  /**
+   * Consequences that must be kept if the annotation is in effect.
+   *
+   * @return The list of target consequences.
+   */
   KeepTarget[] value();
 
   /**
    * Additional preconditions for the annotation to be in effect.
    *
-   * <p>Defaults to no additional preconditions.
+   * @return The list of additional preconditions. Defaults to no additional preconditions.
    */
   KeepCondition[] additionalPreconditions() default {};
 }

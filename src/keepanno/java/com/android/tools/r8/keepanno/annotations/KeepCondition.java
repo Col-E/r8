@@ -45,6 +45,8 @@ public @interface KeepCondition {
    * </ul>
    *
    * <p>If none are specified the default is to match any class.
+   *
+   * @return The name of the binding that defines the class.
    */
   String classFromBinding() default "";
 
@@ -59,6 +61,8 @@ public @interface KeepCondition {
    * </ul>
    *
    * <p>If none are specified the default is to match any class name.
+   *
+   * @return The qualified class name that defines the class.
    */
   String className() default "";
 
@@ -73,6 +77,8 @@ public @interface KeepCondition {
    * </ul>
    *
    * <p>If none are specified the default is to match any class name.
+   *
+   * @return The class-constant that defines the class.
    */
   Class<?> classConstant() default Object.class;
 
@@ -91,6 +97,8 @@ public @interface KeepCondition {
    * </ul>
    *
    * <p>If none are specified the default is to match any class instance.
+   *
+   * @return The qualified class name that defines what instance-of the class must be.
    */
   String instanceOfClassName() default "";
 
@@ -112,6 +120,8 @@ public @interface KeepCondition {
    * </ul>
    *
    * <p>If none are specified the default is to match any class instance.
+   *
+   * @return The qualified class name that defines what instance-of the class must be.
    */
   String instanceOfClassNameExclusive() default "";
 
@@ -130,6 +140,8 @@ public @interface KeepCondition {
    * </ul>
    *
    * <p>If none are specified the default is to match any class instance.
+   *
+   * @return The class constant that defines what instance-of the class must be.
    */
   Class<?> instanceOfClassConstant() default Object.class;
 
@@ -151,6 +163,8 @@ public @interface KeepCondition {
    * </ul>
    *
    * <p>If none are specified the default is to match any class instance.
+   *
+   * @return The class constant that defines what instance-of the class must be.
    */
   Class<?> instanceOfClassConstantExclusive() default Object.class;
 
@@ -174,6 +188,8 @@ public @interface KeepCondition {
    * </ul>
    *
    * <p>If none are specified the default is to match any class instance.
+   *
+   * @return The class name that defines what the class must extend.
    */
   String extendsClassName() default "";
 
@@ -197,6 +213,8 @@ public @interface KeepCondition {
    * </ul>
    *
    * <p>If none are specified the default is to match any class instance.
+   *
+   * @return The class constant that defines what the class must extend.
    */
   Class<?> extendsClassConstant() default Object.class;
 
@@ -205,6 +223,8 @@ public @interface KeepCondition {
    *
    * <p>Mutually exclusive with all other class and member pattern properties. When a member binding
    * is referenced this item is defined to be that item, including its class and member patterns.
+   *
+   * @return The binding name that defines the member.
    */
   String memberFromBinding() default "";
 
@@ -213,6 +233,8 @@ public @interface KeepCondition {
    *
    * <p>Mutually exclusive with all field and method properties as use restricts the match to both
    * types of members.
+   *
+   * @return The access flags constraints that must be met.
    */
   MemberAccessFlags[] memberAccess() default {};
 
@@ -223,6 +245,8 @@ public @interface KeepCondition {
    *
    * <p>If none, and other properties define this item as a method, the default matches any
    * method-access flags.
+   *
+   * @return The access flags constraints that must be met.
    */
   MethodAccessFlags[] methodAccess() default {};
 
@@ -233,6 +257,8 @@ public @interface KeepCondition {
    *
    * <p>If none, and other properties define this item as a method, the default matches any method
    * name.
+   *
+   * @return The exact method name of the method.
    */
   String methodName() default "";
 
@@ -243,6 +269,8 @@ public @interface KeepCondition {
    *
    * <p>If none, and other properties define this item as a method, the default matches any return
    * type.
+   *
+   * @return The qualified type name of the method return type.
    */
   String methodReturnType() default "";
 
@@ -253,6 +281,8 @@ public @interface KeepCondition {
    *
    * <p>If none, and other properties define this item as a method, the default matches any
    * parameters.
+   *
+   * @return The list of qualified type names of the method parameters.
    */
   String[] methodParameters() default {"<default>"};
 
@@ -263,6 +293,8 @@ public @interface KeepCondition {
    *
    * <p>If none, and other properties define this item as a field, the default matches any
    * field-access flags.
+   *
+   * @return The access flags constraints that must be met.
    */
   FieldAccessFlags[] fieldAccess() default {};
 
@@ -273,6 +305,8 @@ public @interface KeepCondition {
    *
    * <p>If none, and other properties define this item as a field, the default matches any field
    * name.
+   *
+   * @return The exact field name of the field.
    */
   String fieldName() default "";
 
@@ -282,6 +316,8 @@ public @interface KeepCondition {
    * <p>Mutually exclusive with all method properties.
    *
    * <p>If none, and other properties define this item as a field, the default matches any type.
+   *
+   * @return The qualified type name of the field type.
    */
   String fieldType() default "";
 }
