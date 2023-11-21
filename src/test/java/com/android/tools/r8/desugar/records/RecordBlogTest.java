@@ -83,9 +83,10 @@ public class RecordBlogTest extends TestBase {
         .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .applyIf(
-            canUseNativeRecords(parameters) && !runtimeWithRecordsSupport(parameters.getRuntime()),
-            r -> r.assertFailureWithErrorThatThrows(ClassNotFoundException.class),
-            r -> r.assertSuccessWithOutput(computeOutput(REFERENCE_OUTPUT_FORMAT)));
+            isRecordsDesugaredForD8(parameters)
+                || runtimeWithRecordsSupport(parameters.getRuntime()),
+            r -> r.assertSuccessWithOutput(computeOutput(REFERENCE_OUTPUT_FORMAT)),
+            r -> r.assertFailureWithErrorThatThrows(ClassNotFoundException.class));
   }
 
   @Test

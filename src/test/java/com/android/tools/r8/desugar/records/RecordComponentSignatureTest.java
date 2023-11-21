@@ -13,8 +13,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.TestShrinkerBuilder;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -50,9 +48,9 @@ public class RecordComponentSignatureTest extends TestBase {
           "0");
   private static final String EXPECTED_RESULT_R8 =
       StringUtils.lines("Jane Doe", "42", "Jane Doe", "42", "true", "0");
-  private static final String EXPECTED_RESULT_DESUGARED =
+  private static final String EXPECTED_RESULT_DESUGARED_NO_NATIVE_RECORDS_SUPPORT =
       StringUtils.lines("Jane Doe", "42", "Jane Doe", "42", "Class.isRecord not present");
-  private static final String EXPECTED_RESULT_DESUGARED_ART_14 =
+  private static final String EXPECTED_RESULT_DESUGARED_NATIVE_RECORD_SUPPORT =
       StringUtils.lines("Jane Doe", "42", "Jane Doe", "42", "false");
 
   @Parameter(0)
@@ -86,29 +84,23 @@ public class RecordComponentSignatureTest extends TestBase {
   public void testDesugaring() throws Exception {
     parameters.assumeDexRuntime();
     assumeTrue(keepSignatures);
-    // Android U will support records.
-    boolean compilingForNativeRecordSupport =
-        parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U);
-    boolean runningWithNativeRecordSupport =
-        parameters.getRuntime().isDex()
-            && parameters.getRuntime().asDex().getVersion().isNewerThanOrEqual(Version.V14_0_0);
     testForDesugaring(parameters)
         .addProgramClassFileData(PROGRAM_DATA)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .applyIf(
-            compilingForNativeRecordSupport,
+            !isRecordsDesugaredForD8(parameters),
             // Current Art 14 build does not support the java.lang.Record class.
             r -> r.assertSuccessWithOutput(EXPECTED_RESULT),
             r ->
                 r.assertSuccessWithOutput(
-                        runningWithNativeRecordSupport
-                            ? EXPECTED_RESULT_DESUGARED_ART_14
-                            : EXPECTED_RESULT_DESUGARED)
+                        runtimeWithRecordsSupport(parameters.getRuntime())
+                            ? EXPECTED_RESULT_DESUGARED_NATIVE_RECORD_SUPPORT
+                            : EXPECTED_RESULT_DESUGARED_NO_NATIVE_RECORDS_SUPPORT)
                     .inspect(
                         inspector -> {
                           ClassSubject person =
                               inspector.clazz("records.RecordWithSignature$Person");
-                          if (compilingForNativeRecordSupport) {
+                          if (!isRecordsDesugaredForD8(parameters)) {
                             assertEquals(2, person.getFinalRecordComponents().size());
 
                             assertEquals(
@@ -146,16 +138,10 @@ public class RecordComponentSignatureTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     parameters.assumeR8TestParameters();
-    boolean compilingForNativeRecordSupport =
-        parameters.isCfRuntime()
-            || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U);
-    boolean runningWithNativeRecordSupport =
-        parameters.getRuntime().isDex()
-            && parameters.getRuntime().asDex().getVersion().isNewerThanOrEqual(Version.V14_0_0);
     testForR8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         // TODO(b/231930852): Change to android.jar for Android U when that contains
-        //  java.lang.Record.
+        // java.lang.Record.
         .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
         .addKeepMainRule(MAIN_TYPE)
         .applyIf(keepSignatures, TestShrinkerBuilder::addKeepAttributeSignature)
@@ -169,14 +155,13 @@ public class RecordComponentSignatureTest extends TestBase {
               assertEquals(0, person.getFinalRecordComponents().size());
             })
         .run(parameters.getRuntime(), MAIN_TYPE)
-        // No Art VM actually supports the java.lang.Record class.
         .applyIf(
-            compilingForNativeRecordSupport,
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_R8),
+            runtimeWithRecordsSupport(parameters.getRuntime()),
             r ->
                 r.assertSuccessWithOutput(
-                    runningWithNativeRecordSupport
-                        ? EXPECTED_RESULT_DESUGARED_ART_14
-                        : EXPECTED_RESULT_DESUGARED));
+                    isRecordsDesugaredForR8(parameters)
+                        ? EXPECTED_RESULT_DESUGARED_NATIVE_RECORD_SUPPORT
+                        : EXPECTED_RESULT_R8),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_DESUGARED_NO_NATIVE_RECORDS_SUPPORT));
   }
 }

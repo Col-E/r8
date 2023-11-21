@@ -59,15 +59,14 @@ public class EmptyRecordAnnotationTest extends TestBase {
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .applyIf(
-            canUseNativeRecords(parameters),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_NATIVE_RECORD),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_DESUGARED_RECORD));
+            isRecordsDesugaredForD8(parameters),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_DESUGARED_RECORD),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_NATIVE_RECORD));
   }
 
   @Test
   public void testR8() throws Exception {
     parameters.assumeR8TestParameters();
-    boolean willDesugarRecords = parameters.isDexRuntime() && !canUseNativeRecords(parameters);
     testForR8(parameters.getBackend())
         .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
         .addProgramClassFileData(PROGRAM_DATA)
@@ -77,13 +76,15 @@ public class EmptyRecordAnnotationTest extends TestBase {
         .addKeepRules("-keep class records.EmptyRecordAnnotation$Empty")
         .addKeepMainRule(MAIN_TYPE)
         // This is used to avoid renaming com.android.tools.r8.RecordTag.
-        .applyIf(willDesugarRecords, b -> b.addKeepRules("-keep class java.lang.Record"))
+        .applyIf(
+            isRecordsDesugaredForR8(parameters),
+            b -> b.addKeepRules("-keep class java.lang.Record"))
         .compile()
         .applyIf(parameters.isCfRuntime(), r -> r.inspect(RecordTestUtils::assertRecordsAreRecords))
         .run(parameters.getRuntime(), MAIN_TYPE)
         .applyIf(
-            !willDesugarRecords,
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_NATIVE_RECORD),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_DESUGARED_RECORD));
+            isRecordsDesugaredForR8(parameters),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_DESUGARED_RECORD),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_NATIVE_RECORD));
   }
 }

@@ -1742,8 +1742,25 @@ public class TestBase {
     return AndroidApiLevel.O;
   }
 
-  public static boolean canUseNativeRecords(TestParameters parameters) {
-    return parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U);
+  public static AndroidApiLevel apiLevelWithRecordSupport() {
+    // TODO(b/293591931): Return something when records are stable in Platform (expecting Android
+    // V).
+    throw new Unreachable();
+  }
+
+  public static boolean isRecordsDesugaredForD8(TestParameters parameters) {
+    assert parameters.getApiLevel() != null;
+    // TODO(b/293591931): Return true for some API level when records are stable in Platform
+    //  (expecting Android V) using TestBase.apiLevelWithRecordSupport().
+    return true;
+  }
+
+  public static boolean isRecordsDesugaredForR8(TestParameters parameters) {
+    assert parameters.getApiLevel() != null;
+    // TODO(b/293591931): Also return true for some API level when records are stable in Platform
+    //  (expecting Android V) using TestBase.apiLevelWithRecordSupport(). Note that R8 with class
+    //  file output never performs desugaring.
+    return !parameters.getRuntime().isCf();
   }
 
   public static boolean canUseJavaUtilObjects(TestParameters parameters) {

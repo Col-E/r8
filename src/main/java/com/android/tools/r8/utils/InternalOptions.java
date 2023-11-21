@@ -488,7 +488,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean createSingletonsForStatelessLambdas =
       System.getProperty("com.android.tools.r8.createSingletonsForStatelessLambdas") != null;
 
-  // TODO(b/293591931): Remove this flag.
+  // TODO(b/293591931): Remove this flag when records are stable in Platform
   //  Flag to allow record annotations in DEX. See b/231930852 for context.
   private final boolean emitRecordAnnotationsInDex =
       System.getProperty("com.android.tools.r8.emitRecordAnnotationsInDex") != null;
@@ -2691,7 +2691,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseRecords() {
-    return hasFeaturePresentFrom(AndroidApiLevel.U) || emitRecordAnnotationsInDex;
+    return hasFeaturePresentFrom(null) || emitRecordAnnotationsInDex;
   }
 
   public boolean canUseSealedClasses() {

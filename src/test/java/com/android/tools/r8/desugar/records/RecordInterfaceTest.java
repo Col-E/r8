@@ -66,9 +66,10 @@ public class RecordInterfaceTest extends TestBase {
         .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .applyIf(
-            canUseNativeRecords(parameters) && !runtimeWithRecordsSupport(parameters.getRuntime()),
-            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
+            isRecordsDesugaredForD8(parameters)
+                || runtimeWithRecordsSupport(parameters.getRuntime()),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT),
+            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
   }
 
   @Test
@@ -80,11 +81,11 @@ public class RecordInterfaceTest extends TestBase {
     testForD8()
         .addProgramFiles(path)
         .applyIf(
-            canUseNativeRecords(parameters),
-            b -> assertFalse(globals.hasGlobals()),
+            isRecordsDesugaredForD8(parameters),
             b ->
                 b.getBuilder()
-                    .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()))
+                    .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()),
+            b -> assertFalse(globals.hasGlobals()))
         .apply(b -> b.getBuilder().setDesugarGraphConsumer(consumer))
         .setMinApi(parameters)
         .setIncludeClassesChecksum(true)
@@ -104,11 +105,11 @@ public class RecordInterfaceTest extends TestBase {
     testForD8()
         .addProgramFiles(path)
         .applyIf(
-            canUseNativeRecords(parameters),
-            b -> assertFalse(globals.hasGlobals()),
+            isRecordsDesugaredForD8(parameters),
             b ->
                 b.getBuilder()
-                    .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()))
+                    .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()),
+            b -> assertFalse(globals.hasGlobals()))
         .apply(b -> b.getBuilder().setDesugarGraphConsumer(consumer))
         .setMinApi(parameters)
         .setIncludeClassesChecksum(true)

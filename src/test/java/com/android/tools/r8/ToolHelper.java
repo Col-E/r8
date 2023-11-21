@@ -416,6 +416,7 @@ public class ToolHelper {
       }
 
       public boolean hasRecordsSupport() {
+        // Records support is present from Android U.
         return isNewerThanOrEqual(V14_0_0);
       }
 

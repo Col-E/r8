@@ -74,9 +74,7 @@ public class RecordMergeTest extends TestBase {
             .addProgramClassFileData(PROGRAM_DATA_1)
             .setMinApi(parameters)
             .setIntermediate(true);
-    if (canUseNativeRecords(parameters)) {
-      builder.compile();
-    } else {
+    if (isRecordsDesugaredForD8(parameters)) {
       assertThrows(
           CompilationFailedException.class,
           () ->
@@ -86,6 +84,8 @@ public class RecordMergeTest extends TestBase {
                           .assertOnlyErrors()
                           .assertErrorsMatch(
                               diagnosticType(MissingGlobalSyntheticsConsumerDiagnostic.class))));
+    } else {
+      builder.compile();
     }
   }
 
@@ -129,8 +129,8 @@ public class RecordMergeTest extends TestBase {
             .inspect(this::assertDoesNotHaveRecordTag)
             .writeToZip();
 
-    assertTrue(canUseNativeRecords(parameters) ^ globals1.hasGlobals());
-    assertTrue(canUseNativeRecords(parameters) ^ globals2.hasGlobals());
+    assertTrue(isRecordsDesugaredForD8(parameters) ^ !globals1.hasGlobals());
+    assertTrue(isRecordsDesugaredForD8(parameters) ^ !globals2.hasGlobals());
 
     D8TestCompileResult result =
         testForD8(parameters.getBackend())
@@ -147,15 +147,17 @@ public class RecordMergeTest extends TestBase {
     result
         .run(parameters.getRuntime(), MAIN_TYPE_1)
         .applyIf(
-            canUseNativeRecords(parameters) && !runtimeWithRecordsSupport(parameters.getRuntime()),
-            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_1));
+            isRecordsDesugaredForD8(parameters)
+                || runtimeWithRecordsSupport(parameters.getRuntime()),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_1),
+            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
     result
         .run(parameters.getRuntime(), MAIN_TYPE_2)
         .applyIf(
-            canUseNativeRecords(parameters) && !runtimeWithRecordsSupport(parameters.getRuntime()),
-            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_2));
+            isRecordsDesugaredForD8(parameters)
+                || runtimeWithRecordsSupport(parameters.getRuntime()),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_2),
+            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
   }
 
   @Test
@@ -181,15 +183,17 @@ public class RecordMergeTest extends TestBase {
     result
         .run(parameters.getRuntime(), MAIN_TYPE_1)
         .applyIf(
-            canUseNativeRecords(parameters) && !runtimeWithRecordsSupport(parameters.getRuntime()),
-            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_1));
+            isRecordsDesugaredForD8(parameters)
+                || runtimeWithRecordsSupport(parameters.getRuntime()),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_1),
+            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
     result
         .run(parameters.getRuntime(), MAIN_TYPE_2)
         .applyIf(
-            canUseNativeRecords(parameters) && !runtimeWithRecordsSupport(parameters.getRuntime()),
-            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_2));
+            isRecordsDesugaredForD8(parameters)
+                || runtimeWithRecordsSupport(parameters.getRuntime()),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT_2),
+            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
   }
 
   @Test
@@ -210,7 +214,7 @@ public class RecordMergeTest extends TestBase {
             .inspect(this::assertHasRecordTag)
             .writeToZip();
 
-    if (canUseNativeRecords(parameters)) {
+    if (!isRecordsDesugaredForD8(parameters)) {
       D8TestCompileResult result =
           testForD8(parameters.getBackend())
               .addProgramFiles(output1, output2)
@@ -219,17 +223,17 @@ public class RecordMergeTest extends TestBase {
       result
           .run(parameters.getRuntime(), MAIN_TYPE_1)
           .applyIf(
-              canUseNativeRecords(parameters)
-                  && !runtimeWithRecordsSupport(parameters.getRuntime()),
-              r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-              r -> r.assertSuccessWithOutput(EXPECTED_RESULT_1));
+              isRecordsDesugaredForD8(parameters)
+                  || runtimeWithRecordsSupport(parameters.getRuntime()),
+              r -> r.assertSuccessWithOutput(EXPECTED_RESULT_1),
+              r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
       result
           .run(parameters.getRuntime(), MAIN_TYPE_2)
           .applyIf(
-              canUseNativeRecords(parameters)
-                  && !runtimeWithRecordsSupport(parameters.getRuntime()),
-              r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-              r -> r.assertSuccessWithOutput(EXPECTED_RESULT_2));
+              isRecordsDesugaredForD8(parameters)
+                  || runtimeWithRecordsSupport(parameters.getRuntime()),
+              r -> r.assertSuccessWithOutput(EXPECTED_RESULT_2),
+              r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
     } else {
       assertThrows(
           CompilationFailedException.class,
@@ -247,7 +251,8 @@ public class RecordMergeTest extends TestBase {
 
   private void assertHasRecordTag(CodeInspector inspector) {
     // Note: this should be asserting on record tag.
-    assertThat(inspector.clazz("java.lang.Record"), isPresentIf(!canUseNativeRecords(parameters)));
+    assertThat(
+        inspector.clazz("java.lang.Record"), isPresentIf(isRecordsDesugaredForD8(parameters)));
   }
 
   private void assertDoesNotHaveRecordTag(CodeInspector inspector) {

@@ -19,7 +19,6 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.desugar.records.RecordTestUtils;
 import com.android.tools.r8.profile.art.model.ExternalArtProfile;
 import com.android.tools.r8.profile.art.utils.ArtProfileInspector;
@@ -102,9 +101,10 @@ public class RecordProfileRewritingTest extends TestBase {
                     options -> options.testing.disableRecordApplicationReaderMap = true))
         .run(parameters.getRuntime(), MAIN_REFERENCE.getTypeName())
         .applyIf(
-            canUseNativeRecords(parameters) && !runtimeWithRecordsSupport(parameters.getRuntime()),
-            r -> r.assertFailureWithErrorThatThrows(ClassNotFoundException.class),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
+            isRecordsDesugaredForD8(parameters)
+                || runtimeWithRecordsSupport(parameters.getRuntime()),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT),
+            r -> r.assertFailureWithErrorThatThrows(ClassNotFoundException.class));
   }
 
   @Test
@@ -166,7 +166,7 @@ public class RecordProfileRewritingTest extends TestBase {
         SyntheticItemsTestUtils.syntheticRecordTagClass(),
         false,
         parameters.canUseNestBasedAccessesWhenDesugaring(),
-        canUseNativeRecords(parameters));
+        !isRecordsDesugaredForD8(parameters));
   }
 
   private void inspectR8(ArtProfileInspector profileInspector, CodeInspector inspector) {
@@ -176,7 +176,7 @@ public class RecordProfileRewritingTest extends TestBase {
         RECORD_REFERENCE,
         parameters.canHaveNonReboundConstructorInvoke(),
         parameters.canUseNestBasedAccesses(),
-        canUseNativeRecords(parameters) || parameters.isCfRuntime());
+        !isRecordsDesugaredForR8(parameters));
   }
 
   private void inspect(
@@ -211,15 +211,7 @@ public class RecordProfileRewritingTest extends TestBase {
             ? inspector.getTypeSubject(RECORD_REFERENCE.getTypeName())
             : recordTagClassSubject.asTypeSubject(),
         personRecordClassSubject.getSuperType());
-    assertEquals(
-        canUseRecords
-            ? (parameters.isCfRuntime()
-                    && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17)
-                    && !canUseNativeRecords(parameters)
-                ? 6
-                : 8)
-            : 10,
-        personRecordClassSubject.allMethods().size());
+    assertEquals(canUseRecords ? 6 : 10, personRecordClassSubject.allMethods().size());
 
     MethodSubject personInstanceInitializerSubject =
         personRecordClassSubject.uniqueInstanceInitializer();

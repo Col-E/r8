@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
@@ -77,7 +76,6 @@ public class SimpleRecordTest extends TestBase {
   @Test
   public void testD8() throws Exception {
     assumeFalse(forceInvokeRangeForInvokeCustom);
-    boolean runningWithNativeRecordSupport = runtimeWithRecordsSupport(parameters.getRuntime());
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters)
@@ -87,9 +85,10 @@ public class SimpleRecordTest extends TestBase {
             options -> options.testing.disableRecordApplicationReaderMap = true)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .applyIf(
-            canUseNativeRecords(parameters) && !runningWithNativeRecordSupport,
-            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-            r -> r.assertSuccessWithOutput(EXPECTED_RESULT));
+            isRecordsDesugaredForD8(parameters)
+                || runtimeWithRecordsSupport(parameters.getRuntime()),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT),
+            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
     ;
   }
 
@@ -101,9 +100,7 @@ public class SimpleRecordTest extends TestBase {
     Path path = compileIntermediate(globals);
     testForD8()
         .addProgramFiles(path)
-        .applyIf(
-            parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U),
-            b -> assertFalse(globals.hasGlobals()),
+        .apply(
             b ->
                 b.getBuilder()
                     .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()))
@@ -122,9 +119,7 @@ public class SimpleRecordTest extends TestBase {
     // In Android Studio they disable desugaring at this point to improve build speed.
     testForD8()
         .addProgramFiles(path)
-        .applyIf(
-            parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.U),
-            b -> assertFalse(globals.hasGlobals()),
+        .apply(
             b ->
                 b.getBuilder()
                     .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()))
