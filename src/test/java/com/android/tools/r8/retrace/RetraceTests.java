@@ -7,7 +7,6 @@ package com.android.tools.r8.retrace;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
@@ -487,19 +486,15 @@ public class RetraceTests extends TestBase {
   }
 
   @Test
-  public void testInvalidMinifiedRangeStackTrace() {
+  public void testInvalidMinifiedRangeStackTrace() throws Exception {
     assumeFalse(external);
-    assertThrows(
-        InvalidMappingFileException.class,
-        () -> runRetraceTest(new InvalidMinifiedRangeStackTrace()));
+    runRetraceTest(new InvalidMinifiedRangeStackTrace());
   }
 
   @Test
-  public void testInvalidOriginalRangeStackTrace() {
+  public void testInvalidOriginalRangeStackTrace() throws Exception {
     assumeFalse(external);
-    assertThrows(
-        InvalidMappingFileException.class,
-        () -> runRetraceTest(new InvalidOriginalRangeStackTrace()));
+    runRetraceTest(new InvalidOriginalRangeStackTrace());
   }
 
   private void inspectRetraceTest(
