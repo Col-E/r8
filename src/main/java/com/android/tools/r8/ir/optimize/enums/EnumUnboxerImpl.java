@@ -166,9 +166,6 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       checkNotNullMethodsBuilder;
 
   private final DexClassAndField ordinalField;
-
-  private EnumUnboxingRewriter enumUnboxerRewriter;
-
   private final boolean debugLogEnabled;
   private final Map<DexType, List<Reason>> debugLogs;
 
@@ -741,7 +738,6 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         new EnumUnboxingTreeFixer(
                 appView, checkNotNullMethods, enumDataMap, enumClassesToUnbox, utilityClasses)
             .fixupTypeReferences(converter, executorService, timing);
-    EnumUnboxingLens enumUnboxingLens = treeFixerResult.getLens();
 
     // Enqueue the (lens rewritten) methods that require reprocessing.
     //
@@ -763,14 +759,6 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     methodsDependingOnLibraryModelisation.clear();
 
     updateOptimizationInfos(executorService, feedback, treeFixerResult, previousLens);
-
-    enumUnboxerRewriter =
-        new EnumUnboxingRewriter(
-            appView,
-            treeFixerResult.getCheckNotNullToCheckNotZeroMapping(),
-            enumUnboxingLens,
-            enumDataMap,
-            utilityClasses);
 
     // Ensure determinism of method-to-reprocess set.
     appView.testing().checkDeterminism(postMethodProcessorBuilder::dump);
@@ -1784,23 +1772,5 @@ public class EnumUnboxerImpl extends EnumUnboxer {
   public void onMethodCodePruned(ProgramMethod method) {
     enumUnboxingCandidatesInfo.addPrunedMethod(method);
     methodsDependingOnLibraryModelisation.remove(method.getReference(), appView.graphLens());
-  }
-
-  @Override
-  public Set<Phi> rewriteCode(
-      IRCode code,
-      MethodProcessor methodProcessor,
-      RewrittenPrototypeDescription prototypeChanges) {
-    // This has no effect during primary processing since the enumUnboxerRewriter is set
-    // in between primary and post processing.
-    if (enumUnboxerRewriter != null) {
-      return enumUnboxerRewriter.rewriteCode(code, methodProcessor, prototypeChanges);
-    }
-    return Sets.newIdentityHashSet();
-  }
-
-  @Override
-  public void unsetRewriter() {
-    enumUnboxerRewriter = null;
   }
 }

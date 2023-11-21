@@ -107,7 +107,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.passes.TrivialPhiSimplifier;
 import com.android.tools.r8.ir.optimize.AffectedValues;
-import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
+import com.android.tools.r8.ir.optimize.CustomLensCodeRewriter;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.argumentpropagation.lenscoderewriter.NullCheckInserter;
 import com.android.tools.r8.utils.ArrayUtils;
@@ -159,13 +159,11 @@ public class LensCodeRewriter {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final DexItemFactory factory;
-  private final EnumUnboxer enumUnboxer;
   private final InternalOptions options;
 
-  LensCodeRewriter(AppView<? extends AppInfoWithClassHierarchy> appView, EnumUnboxer enumUnboxer) {
+  LensCodeRewriter(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
-    this.enumUnboxer = enumUnboxer;
     this.options = appView.options();
   }
 
@@ -228,9 +226,10 @@ public class LensCodeRewriter {
     rewriteArguments(
         code, originalMethodReference, prototypeChanges, affectedPhis, unusedArguments);
     if (graphLens.hasCustomCodeRewritings()) {
-      assert graphLens.isEnumUnboxerLens();
       assert graphLens.getPrevious() == codeLens;
-      affectedPhis.addAll(enumUnboxer.rewriteCode(code, methodProcessor, prototypeChanges));
+      CustomLensCodeRewriter customLensCodeRewriter = graphLens.getCustomCodeRewriting();
+      affectedPhis.addAll(
+          customLensCodeRewriter.rewriteCode(code, methodProcessor, prototypeChanges, graphLens));
     }
     if (!unusedArguments.isEmpty()) {
       for (UnusedArgument unusedArgument : unusedArguments) {

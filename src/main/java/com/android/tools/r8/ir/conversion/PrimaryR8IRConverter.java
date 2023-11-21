@@ -212,8 +212,6 @@ public class PrimaryR8IRConverter extends IRConverter {
 
     appView.clearMethodResolutionOptimizationInfoCollection();
 
-    enumUnboxer.unsetRewriter();
-
     // All the code that should be impacted by the lenses inserted between phase 1 and phase 2
     // have now been processed and rewritten, we clear code lens rewriting so that the class
     // staticizer and phase 3 does not perform again the rewriting.
