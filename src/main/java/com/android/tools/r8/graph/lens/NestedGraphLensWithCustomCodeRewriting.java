@@ -32,8 +32,8 @@ public class NestedGraphLensWithCustomCodeRewriting extends NestedGraphLens {
       BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
       BidirectionalManyToManyRepresentativeMap<DexType, DexType> typeMap,
-      BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> newMethodSignatures,
-      CustomLensCodeRewriter customLensCodeRewriter) {
+      CustomLensCodeRewriter customLensCodeRewriter,
+      BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> newMethodSignatures) {
     super(appView, fieldMap, methodMap, typeMap, newMethodSignatures);
     this.customLensCodeRewriter = customLensCodeRewriter;
   }

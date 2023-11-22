@@ -60,7 +60,7 @@ public class EnumUnboxingLens extends NestedGraphLensWithCustomCodeRewriting {
       Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod,
       Set<DexMethod> dispatchMethods,
       EnumUnboxingRewriter enumUnboxingRewriter) {
-    super(appView, fieldMap, methodMap, typeMap, renamedSignatures, enumUnboxingRewriter);
+    super(appView, fieldMap, methodMap, typeMap, enumUnboxingRewriter, renamedSignatures);
     assert !appView.unboxedEnums().isEmpty();
     this.abstractValueFactory = appView.abstractValueFactory();
     this.prototypeChangesPerMethod = prototypeChangesPerMethod;
