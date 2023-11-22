@@ -122,6 +122,21 @@ def PrintResourceInfo():
     print('INFO: Open files hard limit: %s' % hard)
 
 
+def UploadDir(src_dir, version_or_path, dst_dir, is_main, options):
+    destination = GetUploadDestination(version_or_path, dst_dir, is_main)
+    print(f'Uploading {src_dir} to {destination}')
+    if options.dry_run:
+        if options.dry_run_output:
+            dry_run_destination = os.path.join(options.dry_run_output, version_or_path, dst_dir)
+            print(f'Dry run, not actually uploading. Copying to {dry_run_destination}')
+            shutil.copytree(src_dir, dry_run_destination)
+        else:
+            print('Dry run, not actually uploading')
+    else:
+        utils.upload_directory_to_cloud_storage(src_dir, destination)
+        print(f'Directory available at: {GetUrl(version_or_path, dst_dir, is_main)}')
+
+
 def Main():
     (options, args) = ParseOptions()
     Run(options)
@@ -231,23 +246,18 @@ def Run(options):
             '-PspdxRevision=' + GetGitHash()
         ])
 
+        # Upload keep-anno javadoc to a fixed "docs" location.
+        if is_main:
+            version_or_path = 'docs'
+            dst_dir = 'keepanno/javadoc'
+            UploadDir(utils.KEEPANNO_ANNOTATIONS_DOC, version_or_path, dst_dir, is_main, options)
+
         # Upload directories.
         dirs_for_archiving = [
-            (utils.KEEPANNO_ANNOTATIONS_DOC, "keepanno/javadoc"),
+            (utils.KEEPANNO_ANNOTATIONS_DOC, 'keepanno/javadoc'),
         ]
         for (src_dir, dst_dir) in dirs_for_archiving:
-            destination = GetUploadDestination(version, dst_dir, is_main)
-            print(f'Uploading {src_dir} to {destination}')
-            if options.dry_run:
-                if options.dry_run_output:
-                    dry_run_destination = os.path.join(options.dry_run_output, dst_dir)
-                    print(f'Dry run, not actually uploading. Copying to {dry_run_destination}')
-                    shutil.copytree(src_dir, dry_run_destination)
-                else:
-                    print('Dry run, not actually uploading')
-            else:
-                utils.upload_directory_to_cloud_storage(src_dir, destination)
-                print(f'Directory available at: {GetUrl(version, dst_dir, is_main)}')
+            UploadDir(src_dir, version, dst_dir, is_main, options)
 
         # Upload files.
         for_archiving = [
@@ -279,8 +289,8 @@ def Run(options):
             print('Uploading %s to %s' % (tagged_jar, destination))
             if options.dry_run:
                 if options.dry_run_output:
-                    dry_run_destination = os.path.join(options.dry_run_output,
-                                                       file_name)
+                    dry_run_destination = os.path.join(
+                        options.dry_run_output, version, file_name)
                     print('Dry run, not actually uploading. Copying to ' +
                           dry_run_destination)
                     shutil.copyfile(tagged_jar, dry_run_destination)
