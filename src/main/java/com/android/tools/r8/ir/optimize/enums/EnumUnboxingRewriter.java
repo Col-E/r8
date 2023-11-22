@@ -63,7 +63,7 @@ import java.util.Set;
 public class EnumUnboxingRewriter implements CustomLensCodeRewriter {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping;
+  private Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping;
   private final DexItemFactory factory;
   private final InternalOptions options;
   private final EnumDataMap unboxedEnumsData;
@@ -71,15 +71,18 @@ public class EnumUnboxingRewriter implements CustomLensCodeRewriter {
 
   EnumUnboxingRewriter(
       AppView<AppInfoWithLiveness> appView,
-      Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping,
       EnumDataMap unboxedEnumsInstanceFieldData,
       EnumUnboxingUtilityClasses utilityClasses) {
     this.appView = appView;
-    this.checkNotNullToCheckNotZeroMapping = checkNotNullToCheckNotZeroMapping;
     this.factory = appView.dexItemFactory();
     this.options = appView.options();
     this.unboxedEnumsData = unboxedEnumsInstanceFieldData;
     this.utilityClasses = utilityClasses;
+  }
+
+  public void setCheckNotNullToCheckNotZeroMapping(
+      Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping) {
+    this.checkNotNullToCheckNotZeroMapping = checkNotNullToCheckNotZeroMapping;
   }
 
   private LocalEnumUnboxingUtilityClass getLocalUtilityClass(DexType enumType) {
@@ -649,6 +652,7 @@ public class EnumUnboxingRewriter implements CustomLensCodeRewriter {
       return;
     }
 
+    assert checkNotNullToCheckNotZeroMapping != null;
     if (singleTarget.isProgramMethod()
         && checkNotNullToCheckNotZeroMapping.containsKey(singleTarget.getReference())) {
       DexMethod checkNotZeroMethodReference =

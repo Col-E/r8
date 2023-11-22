@@ -154,22 +154,22 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     new ConcurrentMethodFixup(appView, this)
         .fixupClassesConcurrentlyByConnectedProgramComponents(Timing.empty(), executorService);
 
-    // Create mapping from checkNotNull() to checkNotZero() methods.
-    BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping =
-        duplicateCheckNotNullMethods(converter, executorService);
-
     // Install the new graph lens before processing any checkNotZero() methods.
     Set<DexMethod> dispatchMethodReferences = Sets.newIdentityHashSet();
     dispatchMethods.forEach((method, code) -> dispatchMethodReferences.add(method.getReference()));
     EnumUnboxingRewriter enumUnboxingRewriter =
-        new EnumUnboxingRewriter(
-            appView, checkNotNullToCheckNotZeroMapping, enumDataMap, utilityClasses);
+        new EnumUnboxingRewriter(appView, enumDataMap, utilityClasses);
     EnumUnboxingLens lens =
         lensBuilder.build(appView, dispatchMethodReferences, enumUnboxingRewriter);
     appView.rewriteWithLens(lens, executorService, timing);
 
     // Rewrite outliner with lens.
     converter.outliner.rewriteWithLens();
+
+    // Create mapping from checkNotNull() to checkNotZero() methods.
+    BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping =
+        duplicateCheckNotNullMethods(converter, executorService);
+    enumUnboxingRewriter.setCheckNotNullToCheckNotZeroMapping(checkNotNullToCheckNotZeroMapping);
 
     dispatchMethods.forEach((method, code) -> code.setCodeLens(lens));
     profileCollectionAdditions
