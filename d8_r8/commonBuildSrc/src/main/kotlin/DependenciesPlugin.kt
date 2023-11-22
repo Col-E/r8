@@ -251,7 +251,7 @@ fun Project.getJavaHome(jdk : Jdk) : File {
     osFolder = "windows"
   }
   if (os.isMacOsX) {
-    osFolder = "osx"
+    osFolder = "osx/Contents/Home"
   }
   return getRoot().resolveAll("third_party", "openjdk", jdk.folder, osFolder)
 }
