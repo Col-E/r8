@@ -8,14 +8,18 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.lens.GraphLens;
+import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor.Builder;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 public class EmptyEnumUnboxer extends EnumUnboxer {
@@ -54,6 +58,14 @@ public class EmptyEnumUnboxer extends EnumUnboxer {
   }
 
   @Override
+  public Set<Phi> rewriteCode(
+      IRCode code,
+      MethodProcessor methodProcessor,
+      RewrittenPrototypeDescription prototypeChanges) {
+    return Collections.emptySet();
+  }
+
+  @Override
   @SuppressWarnings("BadImport")
   public void rewriteWithLens() {
     // Intentionally empty.
@@ -69,6 +81,11 @@ public class EmptyEnumUnboxer extends EnumUnboxer {
       OptimizationFeedbackDelayed feedback,
       Timing timing) {
     appView.setUnboxedEnums(EnumDataMap.empty());
+  }
+
+  @Override
+  public void unsetRewriter() {
+    // Intentionally empty.
   }
 
   @Override

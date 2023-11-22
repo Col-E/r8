@@ -259,7 +259,7 @@ public class IRConverter {
               : null;
       this.enumUnboxer = EnumUnboxer.create(appViewWithLiveness);
       this.numberUnboxer = NumberUnboxer.create(appViewWithLiveness);
-      this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness);
+      this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, enumUnboxer);
       this.inliner = new Inliner(appViewWithLiveness, this, lensCodeRewriter);
       this.outliner = Outliner.create(appViewWithLiveness);
       this.memberValuePropagation = new R8MemberValuePropagation(appViewWithLiveness);

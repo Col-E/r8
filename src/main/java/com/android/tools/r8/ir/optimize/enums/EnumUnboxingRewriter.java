@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.proto.ArgumentInfo;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
@@ -43,7 +42,6 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
-import com.android.tools.r8.ir.optimize.CustomLensCodeRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldKnownData;
 import com.android.tools.r8.ir.optimize.enums.classification.CheckNotNullEnumUnboxerMethodClassification;
 import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodClassification;
@@ -60,29 +58,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class EnumUnboxingRewriter implements CustomLensCodeRewriter {
+public class EnumUnboxingRewriter {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping;
+  private final Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping;
   private final DexItemFactory factory;
   private final InternalOptions options;
   private final EnumDataMap unboxedEnumsData;
+  private final EnumUnboxingLens enumUnboxingLens;
   private final EnumUnboxingUtilityClasses utilityClasses;
 
   EnumUnboxingRewriter(
       AppView<AppInfoWithLiveness> appView,
+      Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping,
+      EnumUnboxingLens enumUnboxingLens,
       EnumDataMap unboxedEnumsInstanceFieldData,
       EnumUnboxingUtilityClasses utilityClasses) {
     this.appView = appView;
+    this.checkNotNullToCheckNotZeroMapping = checkNotNullToCheckNotZeroMapping;
     this.factory = appView.dexItemFactory();
     this.options = appView.options();
+    this.enumUnboxingLens = enumUnboxingLens;
     this.unboxedEnumsData = unboxedEnumsInstanceFieldData;
     this.utilityClasses = utilityClasses;
-  }
-
-  public void setCheckNotNullToCheckNotZeroMapping(
-      Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping) {
-    this.checkNotNullToCheckNotZeroMapping = checkNotNullToCheckNotZeroMapping;
   }
 
   private LocalEnumUnboxingUtilityClass getLocalUtilityClass(DexType enumType) {
@@ -148,19 +146,15 @@ public class EnumUnboxingRewriter implements CustomLensCodeRewriter {
     return convertedEnums;
   }
 
-  @Override
-  public Set<Phi> rewriteCode(
+  Set<Phi> rewriteCode(
       IRCode code,
       MethodProcessor methodProcessor,
-      RewrittenPrototypeDescription prototypeChanges,
-      NonIdentityGraphLens graphLens) {
+      RewrittenPrototypeDescription prototypeChanges) {
     // We should not process the enum methods, they will be removed and they may contain invalid
     // rewriting rules.
     if (unboxedEnumsData.isEmpty()) {
       return Sets.newIdentityHashSet();
     }
-    assert graphLens.isEnumUnboxerLens();
-    EnumUnboxingLens enumUnboxingLens = graphLens.asEnumUnboxerLens();
     assert code.isConsistentSSABeforeTypesAreCorrect(appView);
     EnumUnboxerMethodProcessorEventConsumer eventConsumer = methodProcessor.getEventConsumer();
     Set<Phi> affectedPhis = Sets.newIdentityHashSet();
@@ -198,8 +192,7 @@ public class EnumUnboxingRewriter implements CustomLensCodeRewriter {
               blocks,
               block,
               iterator,
-              instruction.asInvokeMethodWithReceiver(),
-              enumUnboxingLens);
+              instruction.asInvokeMethodWithReceiver());
         } else if (instruction.isNewArrayFilled()) {
           rewriteNewArrayFilled(instruction.asNewArrayFilled(), code, convertedEnums, iterator);
         } else if (instruction.isInvokeStatic()) {
@@ -386,8 +379,7 @@ public class EnumUnboxingRewriter implements CustomLensCodeRewriter {
       BasicBlockIterator blocks,
       BasicBlock block,
       InstructionListIterator iterator,
-      InvokeMethodWithReceiver invoke,
-      EnumUnboxingLens enumUnboxingLens) {
+      InvokeMethodWithReceiver invoke) {
     ProgramMethod context = code.context();
     // If the receiver is null, then the invoke is not rewritten even if the receiver is an
     // unboxed enum, but we end up with null.ordinal() or similar which has the correct behavior.
@@ -652,7 +644,6 @@ public class EnumUnboxingRewriter implements CustomLensCodeRewriter {
       return;
     }
 
-    assert checkNotNullToCheckNotZeroMapping != null;
     if (singleTarget.isProgramMethod()
         && checkNotNullToCheckNotZeroMapping.containsKey(singleTarget.getReference())) {
       DexMethod checkNotZeroMethodReference =
@@ -708,7 +699,7 @@ public class EnumUnboxingRewriter implements CustomLensCodeRewriter {
     }
   }
 
-  private void rewriteNullCheck(
+  public void rewriteNullCheck(
       InstructionListIterator iterator,
       InvokeMethod invoke,
       ProgramMethod context,

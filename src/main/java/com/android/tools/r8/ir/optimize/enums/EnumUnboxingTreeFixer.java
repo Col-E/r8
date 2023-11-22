@@ -157,10 +157,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     // Install the new graph lens before processing any checkNotZero() methods.
     Set<DexMethod> dispatchMethodReferences = Sets.newIdentityHashSet();
     dispatchMethods.forEach((method, code) -> dispatchMethodReferences.add(method.getReference()));
-    EnumUnboxingRewriter enumUnboxingRewriter =
-        new EnumUnboxingRewriter(appView, enumDataMap, utilityClasses);
-    EnumUnboxingLens lens =
-        lensBuilder.build(appView, dispatchMethodReferences, enumUnboxingRewriter);
+    EnumUnboxingLens lens = lensBuilder.build(appView, dispatchMethodReferences);
     appView.rewriteWithLens(lens, executorService, timing);
 
     // Rewrite outliner with lens.
@@ -169,7 +166,6 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     // Create mapping from checkNotNull() to checkNotZero() methods.
     BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping =
         duplicateCheckNotNullMethods(converter, executorService);
-    enumUnboxingRewriter.setCheckNotNullToCheckNotZeroMapping(checkNotNullToCheckNotZeroMapping);
 
     dispatchMethods.forEach((method, code) -> code.setCodeLens(lens));
     profileCollectionAdditions
@@ -177,7 +173,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
         .commit(appView);
 
     return new Result(
-        checkNotNullToCheckNotZeroMapping, methodsToProcess, prunedItemsBuilder.build());
+        checkNotNullToCheckNotZeroMapping, methodsToProcess, lens, prunedItemsBuilder.build());
   }
 
   private void cleanUpOldClass(DexProgramClass clazz) {
@@ -1102,14 +1098,17 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
 
     private final BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping;
     private final ProgramMethodSet methodsToProcess;
+    private final EnumUnboxingLens lens;
     private final PrunedItems prunedItems;
 
     Result(
         BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping,
         ProgramMethodSet methodsToProcess,
+        EnumUnboxingLens lens,
         PrunedItems prunedItems) {
       this.checkNotNullToCheckNotZeroMapping = checkNotNullToCheckNotZeroMapping;
       this.methodsToProcess = methodsToProcess;
+      this.lens = lens;
       this.prunedItems = prunedItems;
     }
 
@@ -1119,6 +1118,10 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
 
     public ProgramMethodSet getMethodsToProcess() {
       return methodsToProcess;
+    }
+
+    EnumUnboxingLens getLens() {
+      return lens;
     }
 
     PrunedItems getPrunedItems() {

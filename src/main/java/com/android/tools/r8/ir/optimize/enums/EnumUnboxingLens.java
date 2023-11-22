@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
-import com.android.tools.r8.graph.lens.NestedGraphLensWithCustomCodeRewriting;
+import com.android.tools.r8.graph.lens.NestedGraphLens;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
@@ -44,7 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class EnumUnboxingLens extends NestedGraphLensWithCustomCodeRewriting {
+public class EnumUnboxingLens extends NestedGraphLens {
 
   private final AbstractValueFactory abstractValueFactory;
   private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod;
@@ -58,14 +58,18 @@ public class EnumUnboxingLens extends NestedGraphLensWithCustomCodeRewriting {
       BidirectionalManyToOneRepresentativeMap<DexType, DexType> typeMap,
       Map<DexMethod, DexMethod> methodMap,
       Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod,
-      Set<DexMethod> dispatchMethods,
-      EnumUnboxingRewriter enumUnboxingRewriter) {
-    super(appView, fieldMap, methodMap, typeMap, enumUnboxingRewriter, renamedSignatures);
+      Set<DexMethod> dispatchMethods) {
+    super(appView, fieldMap, methodMap, typeMap, renamedSignatures);
     assert !appView.unboxedEnums().isEmpty();
     this.abstractValueFactory = appView.abstractValueFactory();
     this.prototypeChangesPerMethod = prototypeChangesPerMethod;
     this.unboxedEnums = appView.unboxedEnums();
     this.dispatchMethods = dispatchMethods;
+  }
+
+  @Override
+  public boolean hasCustomCodeRewritings() {
+    return true;
   }
 
   @Override
@@ -76,10 +80,6 @@ public class EnumUnboxingLens extends NestedGraphLensWithCustomCodeRewriting {
   @Override
   public EnumUnboxingLens asEnumUnboxerLens() {
     return this;
-  }
-
-  public EnumDataMap getUnboxedEnums() {
-    return unboxedEnums;
   }
 
   @Override
@@ -383,10 +383,7 @@ public class EnumUnboxingLens extends NestedGraphLensWithCustomCodeRewriting {
           originalCheckNotNullMethodSignature, checkNotNullMethod.getReference());
     }
 
-    public EnumUnboxingLens build(
-        AppView<AppInfoWithLiveness> appView,
-        Set<DexMethod> dispatchMethods,
-        EnumUnboxingRewriter enumUnboxingRewriter) {
+    public EnumUnboxingLens build(AppView<?> appView, Set<DexMethod> dispatchMethods) {
       assert !typeMap.isEmpty();
       return new EnumUnboxingLens(
           appView,
@@ -395,8 +392,7 @@ public class EnumUnboxingLens extends NestedGraphLensWithCustomCodeRewriting {
           typeMap,
           methodMap,
           ImmutableMap.copyOf(prototypeChangesPerMethod),
-          dispatchMethods,
-          enumUnboxingRewriter);
+          dispatchMethods);
     }
   }
 }
