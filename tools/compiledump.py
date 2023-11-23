@@ -141,6 +141,13 @@ def make_parser():
                         choices=['debug', 'release'],
                         default=None)
     parser.add_argument(
+        '--ignore-features',
+        help="Don't split into features when features are present."
+            ' Instead include feature code in main app output.'
+            ' This is always the case when compiler is d8.',
+        default=False,
+        action='store_true')
+    parser.add_argument(
         '--no-build',
         help="Don't build when using --version main",
         default=False,
@@ -354,7 +361,9 @@ def determine_desugared_lib_pg_conf_output(temp):
 
 
 def determine_feature_output(feature_jar, temp):
-    return os.path.join(temp, os.path.basename(feature_jar)[:-4] + ".out.jar")
+    return os.path.join(
+        args.output if args.output and os.path.isdir(args.output) else temp,
+        os.path.basename(feature_jar)[:-4] + ".out.jar")
 
 
 def determine_program_jar(args, dump):
@@ -584,10 +593,13 @@ def run1(out, args, otherargs, jdkhome=None, worker_id=None):
         else:
             cmd.extend(['--source', program_jar])
         for feature_jar in dump.feature_jars():
-            cmd.extend([
-                '--feature-jar', feature_jar,
-                determine_feature_output(feature_jar, temp)
-            ])
+            if not args.ignore_features and compiler != 'd8':
+                cmd.extend([
+                    '--feature-jar', feature_jar,
+                    determine_feature_output(feature_jar, temp)
+                ])
+            else:
+                cmd.append(feature_jar)
         if dump.library_jar():
             cmd.extend(['--lib', dump.library_jar()])
         if dump.classpath_jar() and not is_l8_compiler(compiler):
