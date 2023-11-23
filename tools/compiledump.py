@@ -11,6 +11,7 @@ import sys
 import zipfile
 
 import archive
+import gradle
 import jdk
 import retrace
 import utils
@@ -139,6 +140,11 @@ def make_parser():
                         help='Run compilation in specified mode',
                         choices=['debug', 'release'],
                         default=None)
+    parser.add_argument(
+        '--no-build',
+        help="Don't build when using --version main",
+        default=False,
+        action='store_true')
     return parser
 
 
@@ -401,6 +407,10 @@ def determine_properties(build_properties):
 def download_distribution(version, args, temp):
     nolib = args.nolib
     if version == 'main':
+        if not args.no_build:
+          gradle.RunGradle(
+            [utils.GRADLE_TASK_R8] if nolib else [utils.GRADLE_TASK_R8LIB]
+          )
         return utils.R8_JAR if nolib else utils.R8LIB_JAR
     if version == 'source':
         return '%s:%s' % (utils.BUILD_JAVA_MAIN_DIR, utils.ALL_DEPS_JAR)
