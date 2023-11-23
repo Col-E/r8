@@ -11,7 +11,8 @@ public class NoResourceClasses extends SingleClassPolicy {
 
   @Override
   public boolean canMerge(DexProgramClass program) {
-    return !program.getSimpleName().startsWith("R$");
+    String simpleName = program.getSimpleName();
+    return !simpleName.startsWith("R$") && !simpleName.contains("$R$");
   }
 
   @Override

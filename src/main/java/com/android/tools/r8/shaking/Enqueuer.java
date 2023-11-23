@@ -3778,7 +3778,7 @@ public class Enqueuer {
     }
   }
 
-  private void applyMinimumKeepInfoWhenLive(
+  public void applyMinimumKeepInfoWhenLive(
       ProgramField field, KeepFieldInfo.Joiner minimumKeepInfo) {
     applyMinimumKeepInfoWhenLive(field, minimumKeepInfo, EnqueuerEvent.unconditional());
   }

@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph.analysis;
 
 import com.android.build.shrinker.r8integration.R8ResourceShrinkerState;
+import com.android.build.shrinker.r8integration.R8ResourceShrinkerState.R8ResourceShrinkerModel;
 import com.android.tools.r8.AndroidResourceInput;
 import com.android.tools.r8.AndroidResourceInput.Kind;
 import com.android.tools.r8.ResourceException;
@@ -12,9 +13,12 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult.SingleFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
@@ -23,8 +27,10 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
+import com.android.tools.r8.shaking.KeepFieldInfo;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.Timing;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.IdentityHashMap;
@@ -34,18 +40,15 @@ import java.util.Map;
 public class ResourceAccessAnalysis implements EnqueuerFieldAccessAnalysis {
 
   private final R8ResourceShrinkerState resourceShrinkerState;
-  private final Map<DexProgramClass, RClassFieldToValueStore> fieldToValueMapping =
-      new IdentityHashMap<>();
+  private final Map<DexType, RClassFieldToValueStore> fieldToValueMapping = new IdentityHashMap<>();
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final Enqueuer enqueuer;
 
-  @SuppressWarnings("UnusedVariable")
   private ResourceAccessAnalysis(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
-      Enqueuer enqueuer,
-      R8ResourceShrinkerState resourceShrinkerState) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, Enqueuer enqueuer) {
     this.appView = appView;
-    this.resourceShrinkerState = resourceShrinkerState;
-    appView.setResourceShrinkerState(resourceShrinkerState);
+    this.enqueuer = enqueuer;
+    this.resourceShrinkerState = new R8ResourceShrinkerState();
     try {
       for (AndroidResourceInput androidResource :
           appView.options().androidResourceProvider.getAndroidResources()) {
@@ -62,14 +65,14 @@ public class ResourceAccessAnalysis implements EnqueuerFieldAccessAnalysis {
   public static void register(
       AppView<? extends AppInfoWithClassHierarchy> appView, Enqueuer enqueuer) {
     if (enabled(appView, enqueuer)) {
-      enqueuer.registerFieldAccessAnalysis(
-          new ResourceAccessAnalysis(appView, enqueuer, new R8ResourceShrinkerState()));
+      enqueuer.registerFieldAccessAnalysis(new ResourceAccessAnalysis(appView, enqueuer));
     }
   }
 
   @Override
   public void done(Enqueuer enqueuer) {
-    appView.setResourceShrinkerState(resourceShrinkerState);
+    appView.setResourceAnalysisResult(
+        new ResourceAnalysisResult(resourceShrinkerState, fieldToValueMapping));
     EnqueuerFieldAccessAnalysis.super.done(enqueuer);
   }
 
@@ -93,13 +96,15 @@ public class ResourceAccessAnalysis implements EnqueuerFieldAccessAnalysis {
       return;
     }
     if (getMaybeCachedIsRClass(resolvedField.getHolder())) {
-      DexProgramClass holderType = resolvedField.getHolder();
+      DexType holderType = resolvedField.getHolderType();
       if (!fieldToValueMapping.containsKey(holderType)) {
         populateRClassValues(resolvedField);
       }
       assert fieldToValueMapping.containsKey(holderType);
       RClassFieldToValueStore rClassFieldToValueStore = fieldToValueMapping.get(holderType);
       IntList integers = rClassFieldToValueStore.valueMapping.get(field);
+      enqueuer.applyMinimumKeepInfoWhenLive(
+          resolvedField, KeepFieldInfo.newEmptyJoiner().disallowOptimization());
       for (Integer integer : integers) {
         resourceShrinkerState.trace(integer);
       }
@@ -161,7 +166,7 @@ public class ResourceAccessAnalysis implements EnqueuerFieldAccessAnalysis {
       rClassValueBuilder.addMapping(staticPut.getField(), values);
     }
 
-    fieldToValueMapping.put(field.getHolder(), rClassValueBuilder.build());
+    fieldToValueMapping.put(field.getHolderType(), rClassValueBuilder.build());
   }
 
   private final Map<DexProgramClass, Boolean> cachedClassLookups = new IdentityHashMap<>();
@@ -189,11 +194,101 @@ public class ResourceAccessAnalysis implements EnqueuerFieldAccessAnalysis {
     return isRClass;
   }
 
+  public static class ResourceAnalysisResult {
+
+    private final R8ResourceShrinkerState resourceShrinkerState;
+    private Map<DexType, RClassFieldToValueStore> rClassFieldToValueStoreMap;
+
+    private ResourceAnalysisResult(
+        R8ResourceShrinkerState resourceShrinkerState,
+        Map<DexType, RClassFieldToValueStore> rClassFieldToValueStoreMap) {
+      this.resourceShrinkerState = resourceShrinkerState;
+      this.rClassFieldToValueStoreMap = rClassFieldToValueStoreMap;
+    }
+
+    public R8ResourceShrinkerModel getModel() {
+      return resourceShrinkerState.getR8ResourceShrinkerModel();
+    }
+
+    @SuppressWarnings("ReferenceEquality")
+    public void rewrittenWithLens(GraphLens lens, Timing timing) {
+      Map<DexType, DexType> changed = new IdentityHashMap<>();
+      for (DexType dexType : rClassFieldToValueStoreMap.keySet()) {
+        DexType rewritten = lens.lookupClassType(dexType);
+        if (rewritten != dexType) {
+          changed.put(dexType, rewritten);
+        }
+      }
+      if (changed.size() > 0) {
+        Map<DexType, RClassFieldToValueStore> rewrittenMap = new IdentityHashMap<>();
+        rClassFieldToValueStoreMap.forEach(
+            (type, map) -> {
+              rewrittenMap.put(changed.getOrDefault(type, type), map);
+              map.rewrittenWithLens(lens);
+            });
+        rClassFieldToValueStoreMap = rewrittenMap;
+      }
+    }
+
+    public void withoutPrunedItems(PrunedItems prunedItems, Timing timing) {
+      rClassFieldToValueStoreMap.keySet().removeIf(prunedItems::isRemoved);
+      rClassFieldToValueStoreMap.values().forEach(store -> store.pruneItems(prunedItems));
+    }
+
+    public String getSingleStringValueForField(ProgramField programField) {
+      RClassFieldToValueStore rClassFieldToValueStore =
+          rClassFieldToValueStoreMap.get(programField.getHolderType());
+      if (rClassFieldToValueStore == null) {
+        return null;
+      }
+      if (!rClassFieldToValueStore.hasField(programField.getReference())) {
+        return null;
+      }
+      return getModel()
+          .getStringResourcesWithSingleValue()
+          .get(rClassFieldToValueStore.getResourceId(programField.getReference()));
+    }
+  }
+
   private static class RClassFieldToValueStore {
-    private final Map<DexField, IntList> valueMapping;
+    private Map<DexField, IntList> valueMapping;
 
     private RClassFieldToValueStore(Map<DexField, IntList> valueMapping) {
       this.valueMapping = valueMapping;
+    }
+
+    boolean hasField(DexField field) {
+      return valueMapping.containsKey(field);
+    }
+
+    void pruneItems(PrunedItems prunedItems) {
+      valueMapping.keySet().removeIf(prunedItems::isRemoved);
+    }
+
+    int getResourceId(DexField field) {
+      IntList integers = valueMapping.get(field);
+      assert integers.size() == 1;
+      return integers.get(0);
+    }
+
+    @SuppressWarnings("ReferenceEquality")
+    public void rewrittenWithLens(GraphLens lens) {
+      Map<DexField, DexField> changed = new IdentityHashMap<>();
+      valueMapping
+          .keySet()
+          .forEach(
+              dexField -> {
+                DexField rewritten = lens.lookupField(dexField);
+                if (rewritten != dexField) {
+                  changed.put(dexField, rewritten);
+                }
+              });
+      if (changed.size() > 0) {
+        Map<DexField, IntList> rewrittenMapping = new IdentityHashMap<>();
+        valueMapping.forEach(
+            (key, value) -> rewrittenMapping.put(changed.getOrDefault(key, key), value));
+        valueMapping = rewrittenMapping;
+      }
     }
 
     public static class Builder {

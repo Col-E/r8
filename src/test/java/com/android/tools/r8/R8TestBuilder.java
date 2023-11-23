@@ -291,6 +291,11 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
+  public T enableOptimizedShrinking() {
+    builder.setResourceShrinkerConfiguration(b -> b.enableOptimizedShrinkingWithR8().build());
+    return self();
+  }
+
   /**
    * Allow info, warning, and error diagnostics.
    *

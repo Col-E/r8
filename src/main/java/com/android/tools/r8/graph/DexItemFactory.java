@@ -93,6 +93,7 @@ public class DexItemFactory {
   public static final String androidMediaMediaDrmDescriptorString = "Landroid/media/MediaDrm;";
   public static final String androidMediaMediaMetadataRetrieverDescriptorString =
       "Landroid/media/MediaMetadataRetriever;";
+  public static final String androidResourcesDescriptorString = "Landroid/content/res/Resources;";
 
   /** Set of types that may be synthesized during compilation. */
   private final Set<DexType> possibleCompilerSynthesizedTypes = Sets.newIdentityHashSet();
@@ -643,6 +644,13 @@ public class DexItemFactory {
       createStaticallyKnownType(androidMediaMediaDrmDescriptorString);
   public final DexType androidMediaMediaMetadataRetrieverType =
       createStaticallyKnownType(androidMediaMediaMetadataRetrieverDescriptorString);
+  public final DexType androidResourcesType =
+      createStaticallyKnownType(androidResourcesDescriptorString);
+  public final DexString androidResourcesGetStringName = createString("getString");
+  public final DexProto androidResourcesGetStringProto = createProto(stringType, intType);
+  public final DexMethod androidResourcesGetStringMethod =
+      createMethod(
+          androidResourcesType, androidResourcesGetStringProto, androidResourcesGetStringName);
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);

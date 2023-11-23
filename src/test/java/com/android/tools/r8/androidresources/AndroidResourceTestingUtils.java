@@ -10,9 +10,12 @@ import com.android.aapt.Resources;
 import com.android.aapt.Resources.ConfigValue;
 import com.android.aapt.Resources.Item;
 import com.android.aapt.Resources.ResourceTable;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.transformers.ClassTransformer;
 import com.android.tools.r8.transformers.MethodTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -34,12 +37,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.rules.TemporaryFolder;
 
 public class AndroidResourceTestingUtils {
+  private static final String RESOURCES_DESCRIPTOR =
+      TestBase.descriptor(com.android.tools.r8.androidresources.Resources.class);
 
   enum RClassType {
     STRING,
@@ -51,6 +58,32 @@ public class AndroidResourceTestingUtils {
       String type = rClassWithoutNamespaceAndOuter(clazz).substring(2);
       return RClassType.valueOf(type.toUpperCase());
     }
+  }
+
+  public static Path resourcesClassAsDex(TemporaryFolder temp) throws Exception {
+    return TestBase.testForD8(temp, Backend.DEX)
+        .addProgramClassFileData(resouresClassAsJavaClass())
+        .compile()
+        .writeToZip();
+  }
+
+  public static byte[] resouresClassAsJavaClass() throws IOException {
+    return transformer(com.android.tools.r8.androidresources.Resources.class)
+        .setClassDescriptor(DexItemFactory.androidResourcesDescriptorString)
+        .replaceClassDescriptorInMethodInstructions(
+            RESOURCES_DESCRIPTOR, DexItemFactory.androidResourcesDescriptorString)
+        .replaceClassDescriptorInMembers(
+            RESOURCES_DESCRIPTOR, DexItemFactory.androidResourcesDescriptorString)
+        .transform();
+  }
+
+  public static byte[] transformResourcesReferences(Class clazz) throws IOException {
+    return transformer(clazz)
+        .replaceClassDescriptorInMethodInstructions(
+            RESOURCES_DESCRIPTOR, DexItemFactory.androidResourcesDescriptorString)
+        .replaceClassDescriptorInMembers(
+            RESOURCES_DESCRIPTOR, DexItemFactory.androidResourcesDescriptorString)
+        .transform();
   }
 
   private static String rClassWithoutNamespaceAndOuter(Class clazz) {
@@ -223,6 +256,8 @@ public class AndroidResourceTestingUtils {
   public static class AndroidTestResourceBuilder {
     private String manifest;
     private final Map<String, String> stringValues = new TreeMap<>();
+    private final Set<String> stringValuesWithExtraLanguage = new TreeSet<>();
+    private final Map<String, String> overlayableValues = new TreeMap<>();
     private final Map<String, Integer> styleables = new TreeMap<>();
     private final Map<String, byte[]> drawables = new TreeMap<>();
     private final Map<String, String> xmlFiles = new TreeMap<>();
@@ -282,6 +317,16 @@ public class AndroidResourceTestingUtils {
       return this;
     }
 
+    AndroidTestResourceBuilder addExtraLanguageString(String name) {
+      stringValuesWithExtraLanguage.add(name);
+      return this;
+    }
+
+    AndroidTestResourceBuilder setOverlayableFor(String type, String name) {
+      overlayableValues.put(type, name);
+      return this;
+    }
+
     AndroidTestResourceBuilder setPackageId(int packageId) {
       this.packageId = packageId;
       return this;
@@ -298,7 +343,16 @@ public class AndroidResourceTestingUtils {
       Path resFolder = temp.newFolder("res").toPath();
       Path valuesFolder = temp.newFolder("res", "values").toPath();
       if (stringValues.size() > 0) {
-        FileUtils.writeTextFile(valuesFolder.resolve("strings.xml"), createStringResourceXml());
+        FileUtils.writeTextFile(
+            valuesFolder.resolve("strings.xml"), createStringResourceXml(false));
+        if (stringValuesWithExtraLanguage.size() > 0) {
+          Path languageValues = temp.newFolder("res", "values-da").toPath();
+          FileUtils.writeTextFile(
+              languageValues.resolve("strings.xml"), createStringResourceXml(true));
+        }
+      }
+      if (overlayableValues.size() > 0) {
+        FileUtils.writeTextFile(valuesFolder.resolve("overlayable.xml"), createOverlayableXml());
       }
       if (styleables.size() > 0) {
         FileUtils.writeTextFile(
@@ -401,11 +455,30 @@ public class AndroidResourceTestingUtils {
           new AndroidTestRClass(rClassJavaFile, rewrittenRClassFiles), output);
     }
 
-    private String createStringResourceXml() {
+    private String createOverlayableXml() {
       StringBuilder stringBuilder = new StringBuilder("<resources>\n");
+
+      stringBuilder.append("<overlayable name=\"OurOverlayables\">\n");
+      stringBuilder.append("<policy type=\"public\">\n");
+      overlayableValues.forEach(
+          (type, name) ->
+              stringBuilder.append("<item type=\"" + type + "\" name=\"" + name + "\" />\n"));
+      stringBuilder.append("</policy>\n");
+      stringBuilder.append("</overlayable>");
+      stringBuilder.append("</resources>");
+      return stringBuilder.toString();
+    }
+
+    private String createStringResourceXml(boolean nonDefaultLanguage) {
+      StringBuilder stringBuilder = new StringBuilder("<resources>\n");
+      String languagePostFix = nonDefaultLanguage ? "_da" : "";
       stringValues.forEach(
-          (name, value) ->
-              stringBuilder.append("<string name=\"" + name + "\">" + value + "</string>\n"));
+          (name, value) -> {
+            if (!nonDefaultLanguage || stringValuesWithExtraLanguage.contains(name)) {
+              stringBuilder.append(
+                  "<string name=\"" + name + "\">" + value + languagePostFix + "</string>\n");
+            }
+          });
       stringBuilder.append("</resources>");
       return stringBuilder.toString();
     }
@@ -496,4 +569,5 @@ public class AndroidResourceTestingUtils {
   // The XML document <x/> as a proto packed with AAPT2
   public static final byte[] TINY_PROTO_XML =
       new byte[] {0xa, 0x3, 0x1a, 0x1, 0x78, 0x1a, 0x2, 0x8, 0x1};
+
 }

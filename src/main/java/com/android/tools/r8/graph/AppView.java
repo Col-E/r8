@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.graph;
 
-import com.android.build.shrinker.r8integration.R8ResourceShrinkerState;
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.contexts.CompilationContext;
@@ -13,6 +12,7 @@ import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis.InitializedClassesInInstanceMethods;
+import com.android.tools.r8.graph.analysis.ResourceAccessAnalysis.ResourceAnalysisResult;
 import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.InitClassLens;
@@ -149,7 +149,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   private SeedMapper applyMappingSeedMapper;
 
-  R8ResourceShrinkerState resourceShrinkerState = null;
+  private ResourceAnalysisResult resourceAnalysisResult = null;
 
   // When input has been (partially) desugared these are the classes which has been library
   // desugared. This information is populated in the IR converter.
@@ -871,12 +871,12 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     testing().unboxedEnumsConsumer.accept(dexItemFactory(), unboxedEnums);
   }
 
-  public R8ResourceShrinkerState getResourceShrinkerState() {
-    return resourceShrinkerState;
+  public void setResourceAnalysisResult(ResourceAnalysisResult resourceAnalysisResult) {
+    this.resourceAnalysisResult = resourceAnalysisResult;
   }
 
-  public void setResourceShrinkerState(R8ResourceShrinkerState resourceShrinkerState) {
-    this.resourceShrinkerState = resourceShrinkerState;
+  public ResourceAnalysisResult getResourceAnalysisResult() {
+    return resourceAnalysisResult;
   }
 
   public boolean validateUnboxedEnumsHaveBeenPruned() {
@@ -970,6 +970,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     if (hasProguardCompatibilityActions()) {
       setProguardCompatibilityActions(
           getProguardCompatibilityActions().withoutPrunedItems(prunedItems, timing));
+    }
+    if (resourceAnalysisResult != null) {
+      resourceAnalysisResult.withoutPrunedItems(prunedItems, timing);
     }
     if (hasRootSet()) {
       rootSet.pruneItems(prunedItems, timing);
@@ -1170,6 +1173,17 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
                 @Override
                 public boolean shouldRun() {
                   return !appView.getOpenClosedInterfacesCollection().isEmpty();
+                }
+              },
+              new ThreadTask() {
+                @Override
+                public void run(Timing threadTiming) {
+                  appView.resourceAnalysisResult.rewrittenWithLens(lens, threadTiming);
+                }
+
+                @Override
+                public boolean shouldRun() {
+                  return appView.resourceAnalysisResult != null;
                 }
               },
               new ThreadTask() {
