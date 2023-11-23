@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -96,6 +97,15 @@ public class ZipUtils {
         try (InputStream entryStream = zipFile.getInputStream(entry)) {
           handler.onEntry(entry, entryStream);
         }
+      }
+    }
+  }
+
+  public static void iter(Path zipFilePath, Consumer<ZipEntry> entryConsumer) throws IOException {
+    try (ZipFile zipFile = new ZipFile(zipFilePath.toFile(), StandardCharsets.UTF_8)) {
+      final Enumeration<? extends ZipEntry> entries = zipFile.entries();
+      while (entries.hasMoreElements()) {
+        entryConsumer.accept(entries.nextElement());
       }
     }
   }

@@ -279,7 +279,7 @@ public class AndroidResourceTestingUtils {
             addStringValue(name, name);
           }
           if (rClassType == RClassType.DRAWABLE) {
-            addDrawable(name, TINY_PNG);
+            addDrawable(name + ".png", TINY_PNG);
           }
           if (rClassType == RClassType.STYLEABLE) {
             // Add 4 different values, i.e., the array will be 4 integers.
