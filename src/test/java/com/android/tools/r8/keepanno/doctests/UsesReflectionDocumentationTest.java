@@ -67,25 +67,21 @@ public class UsesReflectionDocumentationTest extends TestBase {
     }
   }
 
-  /// DOC START: UsesReflection on virtual method
-  /* DOC TEXT START:
-  <p>If for example, your program is reflectively invoking a virtual method on some base class, you
-  should annotate the method that is performing the reflection with an annotation describing what
-  assumptions the reflective code is making.
+  /* INCLUDE DOC: UsesReflectionOnVirtualMethod
+  For example, if your program is reflectively invoking a method, you
+  should annotate the method that is doing the reflection. The annotation must describe the
+  assumptions the reflective code makes.
 
-  <p>In the following example, the method `foo` is looking up the method with the name
+  In the following example, the method `foo` is looking up the method with the name
   `hiddenMethod` on objects that are instances of `BaseClass`. It is then invoking the method with
-   no other arguments than the receiver.
+  no other arguments than the receiver.
 
-  <p>The minimal requirement for this code to work is therefore that all methods with the name
-  `hiddenMethod` and the empty list of parameters are targeted if they are objects that are
-  instances of the class `BaseClass` or subclasses thereof.
+  The assumptions the code makes are that all methods with the name
+  `hiddenMethod` and the empty list of parameters must remain valid for `getDeclaredMethod` if they
+  are objects that are instances of the class `BaseClass` or subclasses thereof.
+  INCLUDE END */
 
-  <p>By placing the `UsesReflection` annotation on the method `foo` the annotation is only in
-  effect if the method `foo` is determined to be used by the shrinker.
-  So, if `foo` turns out to be dead code then the shrinker can remove `foo` and also ignore the
-  keep annotation.
-  DOC TEXT END */
+  // INCLUDE CODE: UsesReflectionOnVirtualMethod
   static class MyClass {
 
     @UsesReflection({
@@ -99,7 +95,7 @@ public class UsesReflectionDocumentationTest extends TestBase {
     }
   }
 
-  // DOC END
+  // INCLUDE END
 
   static class TestClass {
 

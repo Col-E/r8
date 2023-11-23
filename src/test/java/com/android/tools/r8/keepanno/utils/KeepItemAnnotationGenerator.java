@@ -206,7 +206,7 @@ public class KeepItemAnnotationGenerator {
     }
   }
 
-  private static class Generator {
+  public static class Generator {
 
     private static final List<Class<?>> ANNOTATION_IMPORTS =
         ImmutableList.of(ElementType.class, Retention.class, RetentionPolicy.class, Target.class);
@@ -225,13 +225,14 @@ public class KeepItemAnnotationGenerator {
     }
 
     private void println() {
-      // Don't indent empty lines.
-      writer.println();
+      println("");
     }
 
-    private void println(String line) {
-      assert line.length() > 0;
-      writer.print(Strings.repeat(" ", indent));
+    public void println(String line) {
+      // Don't indent empty lines.
+      if (line.length() > 0) {
+        writer.print(Strings.repeat(" ", indent));
+      }
       writer.println(line);
     }
 
@@ -1271,11 +1272,16 @@ public class KeepItemAnnotationGenerator {
       PrintStream printStream = new PrintStream(byteStream);
       Generator generator = new Generator(printStream);
       fn.accept(generator);
-      String formatted = CodeGenerationBase.formatRawOutput(byteStream.toString());
+      String formatted = byteStream.toString();
+      if (file.toString().endsWith(".java")) {
+        formatted = CodeGenerationBase.formatRawOutput(formatted);
+      }
       Files.write(Paths.get(ToolHelper.getProjectRoot()).resolve(file), formatted.getBytes());
     }
 
     public static void run() throws IOException {
+      writeFile(Paths.get("doc/keepanno-guide.md"), KeepAnnoMarkdownGenerator::generateMarkdownDoc);
+
       Path keepAnnoRoot = Paths.get("src/keepanno/java/com/android/tools/r8/keepanno");
 
       Path astPkg = keepAnnoRoot.resolve("ast");
@@ -1295,4 +1301,5 @@ public class KeepItemAnnotationGenerator {
           g -> g.generateUsedByX("UsedByNative", "accessed from native code via JNI"));
     }
   }
+
 }
