@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import com.android.tools.r8.ir.optimize.CustomLensCodeRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingLens;
@@ -384,8 +385,13 @@ public abstract class GraphLens {
     return true;
   }
 
-  public boolean hasCustomCodeRewritings() {
+  public boolean hasCustomLensCodeRewriter() {
     return false;
+  }
+
+  public CustomLensCodeRewriter getCustomLensCodeRewriter() {
+    assert hasCustomLensCodeRewriter();
+    return null;
   }
 
   public boolean isAppliedLens() {

@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
-import com.android.tools.r8.graph.lens.NestedGraphLens;
+import com.android.tools.r8.graph.lens.NestedGraphLensWithCustomLensCodeRewriter;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
@@ -44,7 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class EnumUnboxingLens extends NestedGraphLens {
+public class EnumUnboxingLens extends NestedGraphLensWithCustomLensCodeRewriter {
 
   private final AbstractValueFactory abstractValueFactory;
   private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod;
@@ -68,11 +68,6 @@ public class EnumUnboxingLens extends NestedGraphLens {
   }
 
   @Override
-  public boolean hasCustomCodeRewritings() {
-    return true;
-  }
-
-  @Override
   public boolean isEnumUnboxerLens() {
     return true;
   }
@@ -80,6 +75,10 @@ public class EnumUnboxingLens extends NestedGraphLens {
   @Override
   public EnumUnboxingLens asEnumUnboxerLens() {
     return this;
+  }
+
+  public EnumDataMap getUnboxedEnums() {
+    return unboxedEnums;
   }
 
   @Override
@@ -383,7 +382,8 @@ public class EnumUnboxingLens extends NestedGraphLens {
           originalCheckNotNullMethodSignature, checkNotNullMethod.getReference());
     }
 
-    public EnumUnboxingLens build(AppView<?> appView, Set<DexMethod> dispatchMethods) {
+    public EnumUnboxingLens build(
+        AppView<AppInfoWithLiveness> appView, Set<DexMethod> dispatchMethods) {
       assert !typeMap.isEmpty();
       return new EnumUnboxingLens(
           appView,

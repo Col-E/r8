@@ -54,6 +54,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessorEventConsumer;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
+import com.android.tools.r8.ir.optimize.CustomLensCodeRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.optimize.enums.classification.CheckNotNullEnumUnboxerMethodClassification;
 import com.android.tools.r8.ir.optimize.enums.code.CheckNotZeroCode;
@@ -164,6 +165,8 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
     converter.outliner.rewriteWithLens();
 
     // Create mapping from checkNotNull() to checkNotZero() methods.
+    // The customLensCodeRewriter has to be non null for the duplication but is effectively unused.
+    lens.setCustomLensCodeRewriter(CustomLensCodeRewriter.EMPTY);
     BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping =
         duplicateCheckNotNullMethods(converter, executorService);
 
@@ -1120,7 +1123,7 @@ class EnumUnboxingTreeFixer implements ProgramClassFixer {
       return methodsToProcess;
     }
 
-    EnumUnboxingLens getLens() {
+    public EnumUnboxingLens getLens() {
       return lens;
     }
 
