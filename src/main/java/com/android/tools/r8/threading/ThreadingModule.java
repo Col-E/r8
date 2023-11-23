@@ -10,8 +10,6 @@ import com.android.tools.r8.keepanno.annotations.KeepTarget;
 import com.android.tools.r8.keepanno.annotations.MemberAccessFlags;
 import com.android.tools.r8.keepanno.annotations.UsedByReflection;
 import com.android.tools.r8.keepanno.annotations.UsesReflection;
-import com.android.tools.r8.threading.providers.blocking.ThreadingModuleBlockingProvider;
-import com.android.tools.r8.threading.providers.singlethreaded.ThreadingModuleSingleThreadedProvider;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -43,20 +41,20 @@ public interface ThreadingModule {
     // Splitting up the names to make reflective identification unlikely.
     // We explicitly don't want R8 to optimize out the reflective lookup.
     private static final String PACKAGE = "com.android.tools.r8.threading.providers";
-    private static final String[] IMPLEMENTATIONS = {
-      "blocking.ThreadingModuleBlockingProvider",
-      "singlethreaded.ThreadingModuleSingleThreadedProvider"
-    };
+    private static final String BLOCKING_PROVIDER = "blocking.ThreadingModuleBlockingProvider";
+    private static final String SINGLE_THREADED_PROVIDER =
+        "singlethreaded.ThreadingModuleSingleThreadedProvider";
+    private static final String[] IMPLEMENTATIONS = {BLOCKING_PROVIDER, SINGLE_THREADED_PROVIDER};
 
     @UsesReflection({
       @KeepTarget(
           kind = KeepItemKind.CLASS_AND_MEMBERS,
-          classConstant = ThreadingModuleBlockingProvider.class,
+          className = PACKAGE + "." + "blocking.ThreadingModuleBlockingProvider",
           methodName = "<init>",
           methodParameters = {}),
       @KeepTarget(
           kind = KeepItemKind.CLASS_AND_MEMBERS,
-          classConstant = ThreadingModuleSingleThreadedProvider.class,
+          className = PACKAGE + "." + "singlethreaded.ThreadingModuleSingleThreadedProvider",
           methodName = "<init>",
           methodParameters = {})
     })
