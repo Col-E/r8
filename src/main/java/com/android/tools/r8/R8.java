@@ -856,15 +856,15 @@ public class R8 {
       assert appView.getDontWarnConfiguration().validate(options);
 
       options.printWarnings();
+
+      if (options.printTimes) {
+        timing.report();
+      }
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);
     } finally {
       inputApp.signalFinishedToProviders(options.reporter);
       options.signalFinishedToConsumers();
-      // Dump timings.
-      if (options.printTimes) {
-        timing.report();
-      }
     }
   }
 
