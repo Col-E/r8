@@ -95,6 +95,21 @@ def make_parser():
         'Disable Java assertions when running the compiler (default enabled)',
         default=False,
         action='store_true')
+    parser.add_argument(
+        '--enable-test-assertions',
+        '--enable_test_assertions',
+        help=
+        'Enable additional test assertions when running the compiler (default disabled)',
+        default=False,
+        action='store_true')
+    parser.add_argument(
+        '--java-opts',
+        '--java-opts',
+        '-J',
+        metavar='<JVM argument(s)>',
+        default=[],
+        action='append',
+        help='Additional options to pass to JVM invocation')
     parser.add_argument('--classfile',
                         help='Run with classfile output',
                         default=False,
@@ -559,6 +574,7 @@ def run1(out, args, otherargs, jdkhome=None, worker_id=None):
             cmd.append('-Xmx' + args.xmx)
         if not args.disable_assertions:
             cmd.append('-ea')
+        if args.enable_test_assertions:
             cmd.append('-Dcom.android.tools.r8.enableTestAssertions=1')
         if args.print_times:
             cmd.append('-Dcom.android.tools.r8.printtimes=1')
@@ -567,6 +583,7 @@ def run1(out, args, otherargs, jdkhome=None, worker_id=None):
         if hasattr(args, 'properties'):
             cmd.extend(args.properties)
         cmd.extend(determine_properties(build_properties))
+        cmd.extend(args.java_opts)
         cmd.extend(['-cp', '%s:%s' % (temp, jar)])
         if compiler == 'd8':
             prepare_d8_wrapper(jar, temp, jdkhome)
