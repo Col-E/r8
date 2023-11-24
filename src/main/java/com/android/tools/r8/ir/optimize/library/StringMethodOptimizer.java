@@ -301,8 +301,7 @@ public class StringMethodOptimizer extends StatelessLibraryMethodModelCollection
     if (paramsValue.isAlwaysNull(appView)) {
       elementValues = Collections.emptyList();
     } else {
-      ArrayValues arrayValues =
-          ValueUtils.computeSingleUseArrayValues(paramsValue, formatInvoke, code);
+      ArrayValues arrayValues = ValueUtils.computeSingleUseArrayValues(paramsValue, formatInvoke);
       if (arrayValues == null) {
         return instructionIterator;
       }
