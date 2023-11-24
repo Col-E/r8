@@ -13,4 +13,8 @@ public class Resources {
   public String getString(int id) {
     return GET_STRING_VALUE;
   }
+
+  public int getIdentifier(String name, String defType, String defPackage) {
+    return 42;
+  }
 }
