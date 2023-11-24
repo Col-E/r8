@@ -743,6 +743,7 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
         'properties': app.compiler_properties,
         'disable_desugared_lib': False,
         'print_times': options.print_times,
+        'java_opts': [],
     })
 
     app_jar = os.path.join(
