@@ -52,6 +52,8 @@ import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public final class BackportedMethods {
 
@@ -191,9 +193,9 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.throwableType)
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(
-                        FrameType.initializedNonNullReference(
-                            factory.createType("Ljava/lang/Exception;"))))),
+                        List.of(
+                                FrameType.initializedNonNullReference(
+                                        factory.createType("Ljava/lang/Exception;"))))),
             CfStore.ASTORE_2,
             label5,
             new CfNew(factory.createType("Ljava/lang/AssertionError;")),
@@ -440,7 +442,7 @@ public final class BackportedMethods {
         1,
         ImmutableList.of(
             label0,
-            new CfLoad(ValueType.OBJECT, 0),
+            CfLoad.ALOAD_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -451,13 +453,13 @@ public final class BackportedMethods {
             new CfIf(IfType.NE, ValueType.INT, label2),
             label1,
             new CfNew(factory.createType("Ljava/math/BigDecimal;")),
-            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            CfStackInstruction.DUP,
             new CfStaticFieldRead(
                 factory.createField(
                     factory.createType("Ljava/math/BigInteger;"),
                     factory.createType("Ljava/math/BigInteger;"),
                     factory.createString("ZERO"))),
-            new CfConstNumber(0, ValueType.INT),
+            CfConstNumber.ICONST_0,
             new CfInvoke(
                 183,
                 factory.createMethod(
@@ -477,7 +479,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/math/BigDecimal;"))
                     })),
-            new CfLoad(ValueType.OBJECT, 0),
+            CfLoad.ALOAD_0,
             new CfInvoke(
                 182,
                 factory.createMethod(
@@ -525,7 +527,7 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()}),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
@@ -554,7 +556,7 @@ public final class BackportedMethods {
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.intType()}),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
@@ -939,9 +941,9 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(
-                        FrameType.initializedNonNullReference(
-                            factory.createType("Ljava/lang/Exception;"))))),
+                        List.of(
+                                FrameType.initializedNonNullReference(
+                                        factory.createType("Ljava/lang/Exception;"))))),
             CfStore.ASTORE_2,
             label6,
             new CfNew(factory.createType("Ljava/lang/RuntimeException;")),
@@ -1004,7 +1006,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(FrameType.initializedNonNullReference(factory.throwableType)))),
+                        List.of(FrameType.initializedNonNullReference(factory.throwableType)))),
             CfStore.ASTORE_2,
             label8,
             new CfNew(factory.createType("Ljava/lang/RuntimeException;")),
@@ -1067,9 +1069,9 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(
-                        FrameType.initializedNonNullReference(
-                            factory.createType("Ljava/lang/reflect/InvocationTargetException;"))))),
+                        List.of(
+                                FrameType.initializedNonNullReference(
+                                        factory.createType("Ljava/lang/reflect/InvocationTargetException;"))))),
             CfStore.ASTORE_2,
             label10,
             CfLoad.ALOAD_2,
@@ -1099,7 +1101,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(FrameType.initializedNonNullReference(factory.throwableType)))),
+                        List.of(FrameType.initializedNonNullReference(factory.throwableType)))),
             CfStore.ASTORE_2,
             label13,
             CfLoad.ALOAD_0,
@@ -1156,9 +1158,9 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.throwableType)
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(
-                        FrameType.initializedNonNullReference(
-                            factory.createType("Ljava/lang/Exception;"))))),
+                        List.of(
+                                FrameType.initializedNonNullReference(
+                                        factory.createType("Ljava/lang/Exception;"))))),
              CfStore.ASTORE_3,
             label18,
             new CfFrame(
@@ -2280,7 +2282,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1},
                     new FrameType[] {FrameType.doubleType(), FrameType.doubleHighType()}),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
@@ -2325,7 +2327,7 @@ public final class BackportedMethods {
             label2,
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(new int[] {0}, new FrameType[] {FrameType.floatType()}),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
@@ -2367,7 +2369,7 @@ public final class BackportedMethods {
             new CfFrame(
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0, 1}, new FrameType[] {FrameType.intType(), FrameType.intType()}),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
@@ -3085,7 +3087,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.longType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.longType()))),
             CfConstNumber.ICONST_0,
             label14,
             new CfFrame(
@@ -3466,7 +3468,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
              CfStore.ISTORE_7,
             label9,
             CfConstNumber.LCONST_0,
@@ -3858,7 +3860,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.longType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.longType()))),
             CfConstNumber.LCONST_0,
             label14,
             new CfFrame(
@@ -4436,7 +4438,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_4,
             CfLogicalBinop.LXOR,
@@ -4457,7 +4459,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfConstNumber.ICONST_0,
             label5,
             new CfFrame(
@@ -4662,7 +4664,7 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType()
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label8),
         ImmutableList.of(),
@@ -4768,7 +4770,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.longType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.longType()))),
             CfReturn.LRETURN,
             label8),
         ImmutableList.of(),
@@ -4868,7 +4870,7 @@ public final class BackportedMethods {
                       FrameType.intType(),
                       FrameType.intType()
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label7),
         ImmutableList.of(),
@@ -4960,7 +4962,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.longType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.longType()))),
             CfReturn.LRETURN,
             label7),
         ImmutableList.of(),
@@ -5248,7 +5250,7 @@ public final class BackportedMethods {
                       FrameType.longHighType(),
                       FrameType.intType()
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfLoad.LLOAD_2,
             CfConstNumber.constNumber(-9223372036854775808L, ValueType.LONG),
             CfCmp.LCMP,
@@ -5266,7 +5268,7 @@ public final class BackportedMethods {
                       FrameType.longHighType(),
                       FrameType.intType()
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfConstNumber.ICONST_0,
             label11,
             new CfFrame(
@@ -5725,7 +5727,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfLoad.LLOAD_0,
             CfLoad.LLOAD_4,
             CfLogicalBinop.LXOR,
@@ -5746,7 +5748,7 @@ public final class BackportedMethods {
                       FrameType.longType(),
                       FrameType.longHighType()
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfConstNumber.ICONST_0,
             label5,
             new CfFrame(
@@ -6629,7 +6631,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/util/Comparator;"))
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
@@ -6747,7 +6749,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label6,
             new CfFrame(
@@ -6796,7 +6798,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label10,
             new CfFrame(
@@ -6845,7 +6847,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label14,
             new CfFrame(
@@ -6894,7 +6896,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label18,
             new CfFrame(
@@ -6943,7 +6945,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label22,
             new CfFrame(
@@ -6992,7 +6994,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label26,
             new CfFrame(
@@ -7041,7 +7043,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label30,
             new CfFrame(
@@ -7090,7 +7092,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label34,
             new CfFrame(
@@ -7141,7 +7143,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label38,
             new CfFrame(
@@ -7220,7 +7222,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.objectType),
                       FrameType.initializedNonNullReference(factory.objectType)
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label4),
         ImmutableList.of(),
@@ -7260,7 +7262,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)}),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
@@ -7293,7 +7295,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)}),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
@@ -7326,7 +7328,7 @@ public final class BackportedMethods {
                 new Int2ObjectAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)}),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
@@ -7520,7 +7522,7 @@ public final class BackportedMethods {
                           factory.createType("Ljava/util/function/Supplier;"))
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(FrameType.initializedNonNullReference(factory.stringType)))),
+                        List.of(FrameType.initializedNonNullReference(factory.stringType)))),
             CfStore.ASTORE_2,
             label4,
             new CfNew(factory.createType("Ljava/lang/NullPointerException;")),
@@ -7614,7 +7616,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.stringType)
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(FrameType.initializedNonNullReference(factory.stringType)))),
+                        List.of(FrameType.initializedNonNullReference(factory.stringType)))),
             CfReturn.ARETURN,
             label3),
         ImmutableList.of(),
@@ -7971,7 +7973,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/util/Optional;"))
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
@@ -8017,7 +8019,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/util/OptionalDouble;"))
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
@@ -8063,7 +8065,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/util/OptionalInt;"))
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
@@ -8109,7 +8111,7 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(
                           factory.createType("Ljava/util/OptionalLong;"))
                     }),
-                new ArrayDeque<>(Arrays.asList(FrameType.intType()))),
+                new ArrayDeque<>(Collections.singletonList(FrameType.intType()))),
             CfReturn.IRETURN,
             label3),
         ImmutableList.of(),
@@ -8564,9 +8566,9 @@ public final class BackportedMethods {
                     new int[] {0},
                     new FrameType[] {FrameType.initializedNonNullReference(factory.objectType)}),
                 new ArrayDeque<>(
-                    Arrays.asList(
-                        FrameType.initializedNonNullReference(
-                            factory.createType("Ljava/util/stream/Stream;"))))),
+                        List.of(
+                                FrameType.initializedNonNullReference(
+                                        factory.createType("Ljava/util/stream/Stream;"))))),
             CfReturn.ARETURN,
             label3),
         ImmutableList.of(),
@@ -9718,9 +9720,9 @@ public final class BackportedMethods {
                       FrameType.initializedNonNullReference(factory.throwableType)
                     }),
                 new ArrayDeque<>(
-                    Arrays.asList(
-                        FrameType.initializedNonNullReference(
-                            factory.createType("Ljava/lang/Exception;"))))),
+                        List.of(
+                                FrameType.initializedNonNullReference(
+                                        factory.createType("Ljava/lang/Exception;"))))),
             CfStore.ASTORE_2,
             label4,
             new CfFrame(
@@ -9793,9 +9795,9 @@ public final class BackportedMethods {
                     new int[] {0},
                     new FrameType[] {FrameType.initializedNonNullReference(factory.throwableType)}),
                 new ArrayDeque<>(
-                    Arrays.asList(
-                        FrameType.initializedNonNullReference(
-                            factory.createType("Ljava/lang/Exception;"))))),
+                        List.of(
+                                FrameType.initializedNonNullReference(
+                                        factory.createType("Ljava/lang/Exception;"))))),
             CfStore.ASTORE_1,
             label4,
             CfConstNumber.ICONST_0,

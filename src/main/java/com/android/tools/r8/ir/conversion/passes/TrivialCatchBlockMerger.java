@@ -34,7 +34,7 @@ public class TrivialCatchBlockMerger extends CodeRewriterPass<AppInfo> {
 	}
 
 	@Override
-	protected String getTimingId() {
+	protected String getRewriterId() {
 		return "DuplicateCatchBlockMerger";
 	}
 

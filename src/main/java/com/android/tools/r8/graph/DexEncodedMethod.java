@@ -67,6 +67,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -1339,6 +1340,53 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     DexEncodedMethod newMethod = newHolder.lookupMethod(newMethodReference);
     assert newMethod != null;
     return newMethod;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    DexEncodedMethod that = (DexEncodedMethod) o;
+
+    if (deprecated != that.deprecated) return false;
+    if (obsolete != that.obsolete) return false;
+    if (!Objects.equals(accessFlags, that.accessFlags)) return false;
+    if (!Objects.equals(parameterAnnotationsList, that.parameterAnnotationsList))
+      return false;
+    if (!Objects.equals(code, that.code)) return false;
+    if (compilationState != that.compilationState) return false;
+    if (!Objects.equals(optimizationInfo, that.optimizationInfo))
+      return false;
+    if (!Objects.equals(classFileVersion, that.classFileVersion))
+      return false;
+    if (!Objects.equals(apiLevelForCode, that.apiLevelForCode))
+      return false;
+    if (!Objects.equals(kotlinMemberInfo, that.kotlinMemberInfo))
+      return false;
+    if (!Objects.equals(genericSignature, that.genericSignature))
+      return false;
+    if (!Objects.equals(isLibraryMethodOverride, that.isLibraryMethodOverride))
+      return false;
+    return Objects.equals(parameterInfo, that.parameterInfo);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = accessFlags != null ? accessFlags.hashCode() : 0;
+    result = 31 * result + (deprecated ? 1 : 0);
+    result = 31 * result + (parameterAnnotationsList != null ? parameterAnnotationsList.hashCode() : 0);
+    result = 31 * result + (code != null ? code.hashCode() : 0);
+    result = 31 * result + (compilationState != null ? compilationState.hashCode() : 0);
+    result = 31 * result + (optimizationInfo != null ? optimizationInfo.hashCode() : 0);
+    result = 31 * result + (classFileVersion != null ? classFileVersion.hashCode() : 0);
+    result = 31 * result + (apiLevelForCode != null ? apiLevelForCode.hashCode() : 0);
+    result = 31 * result + (kotlinMemberInfo != null ? kotlinMemberInfo.hashCode() : 0);
+    result = 31 * result + (genericSignature != null ? genericSignature.hashCode() : 0);
+    result = 31 * result + (isLibraryMethodOverride != null ? isLibraryMethodOverride.hashCode() : 0);
+    result = 31 * result + (parameterInfo != null ? parameterInfo.hashCode() : 0);
+    result = 31 * result + (obsolete ? 1 : 0);
+    return result;
   }
 
   public static Builder syntheticBuilder() {

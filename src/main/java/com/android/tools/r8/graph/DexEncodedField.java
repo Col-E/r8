@@ -21,6 +21,8 @@ import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
+
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -356,6 +358,36 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     }
     markAsInlinableByJavaC();
     return true;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    DexEncodedField that = (DexEncodedField) o;
+
+    if (deprecated != that.deprecated) return false;
+    if (isInlinableByJavaC != that.isInlinableByJavaC) return false;
+    if (!Objects.equals(accessFlags, that.accessFlags)) return false;
+    if (!Objects.equals(staticValue, that.staticValue)) return false;
+    if (!Objects.equals(genericSignature, that.genericSignature))
+      return false;
+    if (!Objects.equals(optimizationInfo, that.optimizationInfo))
+      return false;
+    return Objects.equals(kotlinMemberInfo, that.kotlinMemberInfo);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = accessFlags != null ? accessFlags.hashCode() : 0;
+    result = 31 * result + (staticValue != null ? staticValue.hashCode() : 0);
+    result = 31 * result + (deprecated ? 1 : 0);
+    result = 31 * result + (genericSignature != null ? genericSignature.hashCode() : 0);
+    result = 31 * result + (optimizationInfo != null ? optimizationInfo.hashCode() : 0);
+    result = 31 * result + (kotlinMemberInfo != null ? kotlinMemberInfo.hashCode() : 0);
+    result = 31 * result + (isInlinableByJavaC ? 1 : 0);
+    return result;
   }
 
   public static class Builder {

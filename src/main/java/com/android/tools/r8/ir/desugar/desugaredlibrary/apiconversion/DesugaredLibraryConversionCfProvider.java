@@ -332,7 +332,7 @@ public class DesugaredLibraryConversionCfProvider {
                       + " in "
                       + context.getReference());
         }
-        cfInstructions.add(new CfLoad(ValueType.OBJECT, 0));
+        cfInstructions.add(CfLoad.ALOAD_0);
       }
       cfInstructions.add(new CfInvoke(Opcodes.INVOKESTATIC, returnConversion, false));
     }

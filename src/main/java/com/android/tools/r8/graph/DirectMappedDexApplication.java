@@ -137,6 +137,11 @@ public class DirectMappedDexApplication extends DexApplication {
   }
 
   @Override
+  public DexLibraryClass libraryDefinitionFor(DexType type) {
+    return libraryClasses.get(type);
+  }
+
+  @Override
   public Builder builder() {
     return new Builder(this);
   }

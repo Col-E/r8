@@ -35,10 +35,10 @@ public class ThrowCfCodeProvider extends SyntheticCfCodeProvider {
   public CfCode generateCfCode() {
     List<CfInstruction> instructions = new ArrayList<>();
     instructions.add(new CfNew(exceptionType));
-    instructions.add(new CfStackInstruction(Opcode.Dup));
+    instructions.add(CfStackInstruction.DUP);
     DexMethod init = appView.dexItemFactory().createInstanceInitializer(exceptionType);
     instructions.add(new CfInvoke(INVOKESPECIAL, init, false));
-    instructions.add(new CfThrow());
+    instructions.add(CfThrow.INSTANCE);
     return standardCfCodeFromInstructions(instructions);
   }
 }
