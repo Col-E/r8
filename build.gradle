@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'com.android.tools'
-version '8.3.0'
+version '8.3.2'
 
 repositories {
     mavenCentral()
@@ -26,18 +26,18 @@ compileJava {
 
 ext {
     androidSupportVersion = '25.4.0'
-    asmVersion = '9.5'  // When updating update tools/asmifier.py, build.src and Toolhelper as well.
+    asmVersion = '9.6'
     javassistVersion = '3.29.2-GA'
     espressoVersion = '3.0.0'
     fastutilVersion = '8.5.12'
-    guavaVersion = '32.1.2-jre'
+    guavaVersion = '32.1.3-jre'
     gsonVersion = '2.10.1'
     junitVersion = '4.13-beta-2'
     mockitoVersion = '2.10.0'
     // The kotlin version is only here to specify the kotlin language level,
     // all kotlin compilations are done in tests.
     kotlinVersion = '1.8.0'
-    kotlinExtMetadataJVMVersion = '0.6.0'
+    kotlinExtMetadataJVMVersion = '0.7.0'
     smaliVersion = '3.0.3'
     errorproneVersion = '2.18.0'
     testngVersion = '6.10'
@@ -64,7 +64,7 @@ dependencies {
     implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
 
-    // Dependencies from google's maven
+    // Dependencies from google's maven (these are huge so in this fork we dont support anything that uses them)
     //  implementation 'com.android.tools.build:aapt2-proto:8.2.0-alpha16-10154469'
     //  implementation 'com.android.tools:sdk-common:31.2.0-alpha16'
     //  implementation 'androidx.multidex:multidex:2.0.1'
