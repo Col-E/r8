@@ -55,7 +55,11 @@ public class DiscardedChecker {
     assert failed.isEmpty();
 
     // TODO(b/131668850): Consider only iterating the items matched by a -checkdiscard rule.
-    ThreadUtils.processItems(classes, this::checkClassAndMembers, executorService);
+    ThreadUtils.processItems(
+        classes,
+        this::checkClassAndMembers,
+        appView.options().getThreadingModule(),
+        executorService);
 
     // Sort the failures for determinism.
     failed.sort((item, other) -> item.getReference().compareTo(other.getReference()));

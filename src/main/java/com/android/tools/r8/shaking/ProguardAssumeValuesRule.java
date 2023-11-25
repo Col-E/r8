@@ -9,6 +9,7 @@ import java.util.List;
 
 public class ProguardAssumeValuesRule extends ProguardConfigurationRule {
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<ProguardAssumeValuesRule, Builder> {
 

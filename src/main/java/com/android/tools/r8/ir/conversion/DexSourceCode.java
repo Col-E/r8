@@ -68,29 +68,28 @@ public class DexSourceCode implements SourceCode {
   private final CanonicalPositions canonicalPositions;
 
   private List<DexDebugEntry> debugEntries = null;
-  // In case of inlining the position of the invoke in the caller.
-  private final DexMethod originalMethod;
 
   public DexSourceCode(
       DexCode code,
       ProgramMethod method,
-      DexMethod originalMethod,
       Position callerPosition,
       DexItemFactory factory) {
     this.code = code;
     this.method = method;
-    this.originalMethod = originalMethod;
+    DexMethod reference = method.getReference();
+    boolean d8R8Synthesized = method.getDefinition().isD8R8Synthesized();
     EventBasedDebugInfo info = DexDebugInfo.convertToEventBased(code, factory);
     if (info != null) {
-      debugEntries = info.computeEntries(originalMethod);
+      debugEntries = info.computeEntries(reference, d8R8Synthesized);
     }
     canonicalPositions =
         new CanonicalPositions(
             callerPosition,
             debugEntries == null ? 0 : debugEntries.size(),
-            originalMethod,
-            method.getDefinition().isD8R8Synthesized(),
-            DexDebugUtils.computePreamblePosition(originalMethod, info).getFramePosition());
+            reference,
+            d8R8Synthesized,
+            DexDebugUtils.computePreamblePosition(reference, d8R8Synthesized, info)
+                .getFramePosition());
   }
 
   @Override
@@ -212,6 +211,7 @@ public class DexSourceCode implements SourceCode {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void updateCurrentCatchHandlers(int instructionIndex, DexItemFactory factory) {
     Try tryRange = getTryForOffset(instructionOffset(instructionIndex));
     if (Objects.equals(tryRange, currentTryRange)) {
@@ -255,17 +255,7 @@ public class DexSourceCode implements SourceCode {
   }
 
   private Position getCanonicalPositionAppendCaller(DexDebugEntry entry) {
-    // If this instruction has already been inlined then the original method must be in the caller
-    // chain.
-    Position position = entry.getPosition();
-    // TODO(b/261971803): The original method should probably always be in the chain.
-    assert !position.hasCallerPosition() || position.hasMethodInChain(originalMethod);
-    return canonicalPositions.getCanonical(
-        position
-            .builderWithCopy()
-            .setCallerPosition(
-                canonicalPositions.canonicalizeCallerPosition(position.getCallerPosition()))
-            .build());
+    return canonicalPositions.canonicalizePositionWithCaller(entry.getPosition());
   }
 
   @Override
@@ -418,6 +408,7 @@ public class DexSourceCode implements SourceCode {
     return new CatchHandlers<>(handlerGuards, handlerOffsets);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void forEachTryRange(
       Try tryRange, DexItemFactory factory, BiConsumer<DexType, Integer> fn) {
     TryHandler handler = code.handlers[tryRange.handlerIndex];

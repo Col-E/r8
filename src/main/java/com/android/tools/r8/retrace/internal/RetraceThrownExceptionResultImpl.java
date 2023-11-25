@@ -16,7 +16,9 @@ import java.util.stream.Stream;
 
 public class RetraceThrownExceptionResultImpl implements RetraceThrownExceptionResult {
 
+  @SuppressWarnings("UnusedVariable")
   private final RetraceStackTraceContextImpl context;
+
   private final ClassReference obfuscatedReference;
   private final ClassNamingForNameMapper mapper;
 

@@ -178,7 +178,7 @@ public abstract class SyntheticClassBuilder<
     EnclosingMethodAttribute enclosingMembers = null;
     List<InnerClassAttribute> innerClasses = Collections.emptyList();
     for (SyntheticMethodBuilder builder : methods) {
-      DexEncodedMethod method = builder.build();
+      DexEncodedMethod method = builder.build(getClassKind());
       if (method.isNonPrivateVirtualMethod()) {
         virtualMethods.add(method);
       } else {

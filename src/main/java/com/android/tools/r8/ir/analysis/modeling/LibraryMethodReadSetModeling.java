@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 /** Models if a given library method may cause a program field to be read. */
 public class LibraryMethodReadSetModeling {
 
+  @SuppressWarnings("ReferenceEquality")
   public static AbstractFieldSet getModeledReadSetOrUnknown(
       AppView<?> appView, InvokeMethod invoke) {
     DexMethod invokedMethod = invoke.getInvokedMethod();

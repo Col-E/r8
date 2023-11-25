@@ -826,6 +826,87 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
   }
 
   @Test
+  public void testArgumentsWithWhitespace() {
+    runRetraceTest(
+        "%c.%m\\(%a\\)",
+        new StackTraceForTest() {
+          @Override
+          public List<String> obfuscatedStackTrace() {
+            return ImmutableList.of("a.b.c.a(int, a.a.a[], a.b.c)");
+          }
+
+          @Override
+          public String mapping() {
+            return StringUtils.lines(
+                "com.android.tools.r8.D8 -> a.a.a:",
+                "com.android.tools.r8.R8 -> a.b.c:",
+                "  void foo(int,original.signature) -> a");
+          }
+
+          @Override
+          public List<String> retracedStackTrace() {
+            return ImmutableList.of(
+                "com.android.tools.r8.R8.foo"
+                    + "(int, com.android.tools.r8.D8[], com.android.tools.r8.R8)");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of(
+                "com.android.tools.r8.R8.void foo"
+                    + "(int,original.signature)"
+                    + "(int, com.android.tools.r8.D8[], com.android.tools.r8.R8)");
+          }
+
+          @Override
+          public int expectedWarnings() {
+            return 0;
+          }
+        });
+  }
+
+  @Test
+  public void testArgumentsWithDifferentWhitespace() {
+    runRetraceTest(
+        "%c.%m\\(%a\\)",
+        new StackTraceForTest() {
+          @Override
+          public List<String> obfuscatedStackTrace() {
+            return ImmutableList.of("a.b.c.a(int,a.a.a[], a.a.a,  a.b.c)");
+          }
+
+          @Override
+          public String mapping() {
+            return StringUtils.lines(
+                "com.android.tools.r8.D8 -> a.a.a:",
+                "com.android.tools.r8.R8 -> a.b.c:",
+                "  void foo(int,original.signature) -> a");
+          }
+
+          @Override
+          public List<String> retracedStackTrace() {
+            return ImmutableList.of(
+                "com.android.tools.r8.R8.foo(int,com.android.tools.r8.D8[],"
+                    + " com.android.tools.r8.D8,  com.android.tools.r8.R8)");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of(
+                "com.android.tools.r8.R8.void foo"
+                    + "(int,original.signature)"
+                    + "(int,com.android.tools.r8.D8[],"
+                    + " com.android.tools.r8.D8,  com.android.tools.r8.R8)");
+          }
+
+          @Override
+          public int expectedWarnings() {
+            return 0;
+          }
+        });
+  }
+
+  @Test
   public void testNoArguments() {
     runRetraceTest(
         "%c.%m\\(%a\\)",
@@ -1140,6 +1221,60 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
   @Test()
   public void testLongLine() {
     runRetraceTest("(?:.*?\\(\\s*%s(?:\\s*:\\s*%l\\s*)?\\)\\s*%c\\.%m)|", new LongLineStackTrace());
+  }
+
+  /** This is a regression test for b/300416467. */
+  @Test
+  public void testGraphsModule() {
+    runRetraceTest(
+        "(?:.*, %c,.*)",
+        new StackTraceForTest() {
+          @Override
+          public List<String> obfuscatedStackTrace() {
+            return ImmutableList.of(
+                "TaskGraph@4b0b0f5(\"SomePipeline\") [created at 08-19 18:02:01.531]",
+                "                                     method                 future  (Note: all"
+                    + " times are in ms. relative to TaskGraph creation)",
+                "    requested,   queued,  started, finished (+  latency), finished, task",
+                "        0.057,    1.290,    2.690,    3.408 (+    0.718),    66.376,"
+                    + " foo.bar.baz.c.b.a.c.b.a.a.b, 0, 6, 0",
+                "");
+          }
+
+          @Override
+          public String mapping() {
+            return StringUtils.unixLines("some.original.factory -> foo.bar.baz.c.b.a.c.b.a.a.b:");
+          }
+
+          @Override
+          public List<String> retracedStackTrace() {
+            return ImmutableList.of(
+                "TaskGraph@4b0b0f5(\"SomePipeline\") [created at 08-19 18:02:01.531]",
+                "                                     method                 future  (Note: all"
+                    + " times are in ms. relative to TaskGraph creation)",
+                "    requested,   queued,  started, finished (+  latency), finished, task",
+                "        0.057,    1.290,    2.690,    3.408 (+    0.718),    66.376,"
+                    + " some.original.factory, 0, 6, 0",
+                "");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of(
+                "TaskGraph@4b0b0f5(\"SomePipeline\") [created at 08-19 18:02:01.531]",
+                "                                     method                 future  (Note: all"
+                    + " times are in ms. relative to TaskGraph creation)",
+                "    requested,   queued,  started, finished (+  latency), finished, task",
+                "        0.057,    1.290,    2.690,    3.408 (+    0.718),    66.376,"
+                    + " some.original.factory, 0, 6, 0",
+                "");
+          }
+
+          @Override
+          public int expectedWarnings() {
+            return 0;
+          }
+        });
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(

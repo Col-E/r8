@@ -7,7 +7,6 @@ package com.android.tools.r8.retrace;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
@@ -35,6 +34,7 @@ import com.android.tools.r8.retrace.stacktraces.CircularReferenceStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ClassWithDashStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ColonInFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.DifferentLineNumberSpanStackTrace;
+import com.android.tools.r8.retrace.stacktraces.ExceptionMessageWithClassNameInMessage;
 import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FoundMethodVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.IdentityMappingStackTrace;
@@ -46,6 +46,7 @@ import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberAssumeNoInline
 import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineNoLineWithBaseEntryNumberAssumeNoInlineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlinePreambleNoOriginalStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InlineRemoveFrameJava17StackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineSourceFileContextStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineSourceFileStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
@@ -279,9 +280,6 @@ public class RetraceTests extends TestBase {
 
   @Test
   public void testCircularReferenceStackTrace() throws Exception {
-    // Proguard retrace (and therefore the default regular expression) will not retrace circular
-    // reference exceptions.
-    assumeTrue("b/178599214", false);
     runRetraceTest(new CircularReferenceStackTrace());
   }
 
@@ -292,8 +290,12 @@ public class RetraceTests extends TestBase {
 
   @Test
   public void testBootLoaderAndNamedModulesStackTrace() throws Exception {
-    assumeTrue("b/170293908", false);
     runRetraceTest(new NamedModuleStackTrace());
+  }
+
+  @Test
+  public void testExceptionMessageWithClassNameInMessage() throws Exception {
+    runRetraceTest(new ExceptionMessageWithClassNameInMessage());
   }
 
   @Test
@@ -309,6 +311,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testInlineSourceFileStackTrace() throws Exception {
     runRetraceTest(new InlineSourceFileStackTrace());
+  }
+
+  @Test
+  public void testInlineRemoveFrameJava17StackTrace() throws Exception {
+    runRetraceTest(new InlineRemoveFrameJava17StackTrace());
   }
 
   @Test
@@ -479,19 +486,15 @@ public class RetraceTests extends TestBase {
   }
 
   @Test
-  public void testInvalidMinifiedRangeStackTrace() {
+  public void testInvalidMinifiedRangeStackTrace() throws Exception {
     assumeFalse(external);
-    assertThrows(
-        InvalidMappingFileException.class,
-        () -> runRetraceTest(new InvalidMinifiedRangeStackTrace()));
+    runRetraceTest(new InvalidMinifiedRangeStackTrace());
   }
 
   @Test
-  public void testInvalidOriginalRangeStackTrace() {
+  public void testInvalidOriginalRangeStackTrace() throws Exception {
     assumeFalse(external);
-    assertThrows(
-        InvalidMappingFileException.class,
-        () -> runRetraceTest(new InvalidOriginalRangeStackTrace()));
+    runRetraceTest(new InvalidOriginalRangeStackTrace());
   }
 
   private void inspectRetraceTest(
@@ -538,7 +541,7 @@ public class RetraceTests extends TestBase {
       command.add(parameters.getRuntime().asCf().getJavaExecutable().toString());
       command.add("-ea");
       command.add("-cp");
-      command.add(ToolHelper.R8_RETRACE_JAR.toString());
+      command.add(ToolHelper.getRetracePath().toString());
       if (allowExperimentalMapping) {
         command.add("-Dcom.android.tools.r8.experimentalmapping");
       }

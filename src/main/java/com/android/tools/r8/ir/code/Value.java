@@ -38,7 +38,6 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
@@ -51,6 +50,7 @@ import java.util.function.Predicate;
 
 public class Value implements Comparable<Value> {
 
+  @SuppressWarnings("ReferenceEquality")
   public void constrainType(
       ValueTypeConstraint constraint, DexMethod method, Origin origin, Reporter reporter) {
     TypeElement constrainedType = constrainedType(constraint);
@@ -372,25 +372,19 @@ public class Value implements Comparable<Value> {
   }
 
   public Set<Instruction> aliasedUsers(AliasedValueConfiguration configuration) {
-    Set<Instruction> users = SetUtils.newIdentityHashSet(uniqueUsers());
-    Set<Instruction> visited = Sets.newIdentityHashSet();
-    collectAliasedUsersViaAssume(configuration, visited, uniqueUsers(), users);
+    Set<Instruction> users = Sets.newIdentityHashSet();
+    collectAliasedUsersViaAssume(configuration, this, users);
     return users;
   }
 
   private static void collectAliasedUsersViaAssume(
-      AliasedValueConfiguration configuration,
-      Set<Instruction> visited,
-      Set<Instruction> usersToTest,
-      Set<Instruction> collectedUsers) {
-    for (Instruction user : usersToTest) {
-      if (!visited.add(user)) {
+      AliasedValueConfiguration configuration, Value value, Set<Instruction> collectedUsers) {
+    for (Instruction user : value.uniqueUsers()) {
+      if (!collectedUsers.add(user)) {
         continue;
       }
       if (configuration.isIntroducingAnAlias(user)) {
-        collectedUsers.addAll(user.outValue().uniqueUsers());
-        collectAliasedUsersViaAssume(
-            configuration, visited, user.outValue().uniqueUsers(), collectedUsers);
+        collectAliasedUsersViaAssume(configuration, user.outValue(), collectedUsers);
       }
     }
   }
@@ -782,10 +776,26 @@ public class Value implements Comparable<Value> {
     boolean isConstant = definition != null && definition.isConstNumber();
     if (isConstant || hasLocalInfo()) {
       builder.append("(");
-      if (isConstant && definition.asConstNumber().outValue != null) {
+      if (isConstant && definition.asConstNumber().hasOutValue()) {
         ConstNumber constNumber = definition.asConstNumber();
         if (constNumber.getOutType().isSinglePrimitive()) {
-          builder.append((int) constNumber.getRawValue());
+          Value constNumberValue = constNumber.outValue();
+          int intValue = (int) constNumber.getRawValue();
+          boolean useBinaryRepresentation =
+              !constNumberValue.hasPhiUsers()
+                  && constNumberValue.uniqueUsers().stream()
+                      .allMatch(
+                          user ->
+                              user.isAnd()
+                                  || user.isOr()
+                                  || ((user.isShl() || user.isShr() || user.isUshr())
+                                      && constNumberValue == user.getFirstOperand())
+                                  || user.isXor());
+          if (useBinaryRepresentation) {
+            builder.append("0b").append(Integer.toBinaryString(intValue));
+          } else {
+            builder.append(intValue);
+          }
         } else {
           builder.append(constNumber.getRawValue());
         }
@@ -815,6 +825,12 @@ public class Value implements Comparable<Value> {
 
   public boolean isConstNumber() {
     return isConstant() && getConstInstruction().isConstNumber();
+  }
+
+  public boolean isConstNumber(long rawValue) {
+    return isConstant()
+        && getConstInstruction().isConstNumber()
+        && getConstInstruction().asConstNumber().getRawValue() == rawValue;
   }
 
   public boolean isConstBoolean(boolean value) {
@@ -861,7 +877,7 @@ public class Value implements Comparable<Value> {
     }
 
     if (getType().nullability().isDefinitelyNull()) {
-      return appView.abstractValueFactory().createNullValue();
+      return appView.abstractValueFactory().createNullValue(getType());
     }
 
     Value root = getAliasedValue();
@@ -990,6 +1006,18 @@ public class Value implements Comparable<Value> {
     return isConstant()
         && getConstInstruction().isConstNumber()
         && getConstInstruction().asConstNumber().isZero();
+  }
+
+  public int getConstIntValueIfNonNegative() {
+    if (!isConstant()) {
+      return -1;
+    }
+    ConstNumber constNumber = definition.asConstNumber();
+    if (constNumber == null) {
+      return -1;
+    }
+    int ret = constNumber.getIntValue();
+    return ret >= 0 ? ret : -1;
   }
 
   /**

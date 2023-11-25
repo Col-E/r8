@@ -16,6 +16,9 @@ import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.NumberGenerator;
+import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxerImpl;
@@ -49,7 +52,28 @@ public class CheckNotZeroCode extends Code {
       Origin origin,
       MutableMethodConversionOptions conversionOptions) {
     // Build IR from the checkNotNull() method.
-    IRCode code = checkNotNullMethod.buildIR(appView);
+    Position callerPosition =
+        SyntheticPosition.builder()
+            .setMethod(checkNotZeroMethod.getReference())
+            .setLine(0)
+            .setIsD8R8Synthesized(checkNotZeroMethod.getDefinition().isD8R8Synthesized())
+            .build();
+    NumberGenerator valueNumberGenerator = new NumberGenerator();
+    IRCode code =
+        checkNotNullMethod
+            .getDefinition()
+            .getCode()
+            .buildInliningIR(
+                checkNotZeroMethod,
+                checkNotNullMethod,
+                appView,
+                appView.graphLens(),
+                valueNumberGenerator,
+                callerPosition,
+                checkNotZeroMethod.getOrigin(),
+                appView
+                    .graphLens()
+                    .lookupPrototypeChangesForMethodDefinition(checkNotNullMethod.getReference()));
     InstructionListIterator instructionIterator = code.instructionListIterator();
 
     // Start iterating at the argument instruction for the checked argument.

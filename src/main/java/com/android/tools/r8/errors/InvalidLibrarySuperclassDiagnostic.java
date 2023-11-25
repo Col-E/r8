@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.errors;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.ClassReference;
@@ -16,7 +16,7 @@ import java.util.List;
  * Diagnostic for super types of library classes which are not library classes but required for
  * desugaring.
  */
-@Keep
+@KeepForApi
 public class InvalidLibrarySuperclassDiagnostic implements DesugarDiagnostic {
 
   private final Origin origin;

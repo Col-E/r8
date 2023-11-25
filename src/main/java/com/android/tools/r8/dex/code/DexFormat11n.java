@@ -24,6 +24,7 @@ abstract class DexFormat11n extends DexBase1Format {
     spec.withInt(i -> i.A).withInt(i -> i.B);
   }
 
+  @SuppressWarnings("UnnecessaryParentheses")
   // #+B | vA | op
   /*package*/ DexFormat11n(int high, BytecodeStream stream) {
     super(stream);

@@ -38,7 +38,7 @@ public class Regress {
         System.out.print(index++ + ": ");
       }
       for (Annotation annotation : annotations[i]) {
-        System.out.println(annotation);
+        System.out.println(annotation.annotationType().getName());
       }
     }
   }

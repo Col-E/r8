@@ -16,9 +16,11 @@
 
 package com.android.build.shrinker.usages
 
+import com.android.SdkConstants.TOOLS_NS_NAME
 import com.android.SdkConstants.VALUE_STRICT
 import com.android.build.shrinker.ResourceShrinkerModel
 import com.android.utils.XmlUtils
+import com.google.common.collect.ImmutableMap
 import com.google.common.collect.ImmutableMap.copyOf
 import java.io.Reader
 import java.nio.file.Files
@@ -37,9 +39,6 @@ import javax.xml.stream.XMLInputFactory
  * @param rawResourcesPath path to folder with resources in raw format.
  */
 class ToolsAttributeUsageRecorder(val rawResourcesPath: Path) : ResourceUsageRecorder {
-    companion object {
-        private val TOOLS_NAMESPACE = "http://schemas.android.com/tools"
-    }
 
     override fun recordUsages(model: ResourceShrinkerModel) {
         Files.walk(rawResourcesPath)
@@ -48,42 +47,48 @@ class ToolsAttributeUsageRecorder(val rawResourcesPath: Path) : ResourceUsageRec
     }
 
     private fun processRawXml(path: Path, model: ResourceShrinkerModel) {
-        processResourceToolsAttributes(path).forEach { key, value ->
-            when (key) {
-                "keep" -> model.resourceStore.recordKeepToolAttribute(value)
-                "discard" -> model.resourceStore.recordDiscardToolAttribute(value)
-                "shrinkMode" ->
-                    if (value == VALUE_STRICT) {
-                        model.resourceStore.safeMode = false
-                    }
-            }
-        }
-    }
-
-    private fun processResourceToolsAttributes(path: Path): Map<String, String> {
-        val toolsAttributes = mutableMapOf<String, String>()
-        XmlUtils.getUtfReader(path).use { reader: Reader ->
-            val factory = XMLInputFactory.newInstance()
-            val xmlStreamReader = factory.createXMLStreamReader(reader)
-
-            var rootElementProcessed = false
-            while (!rootElementProcessed && xmlStreamReader.hasNext()) {
-                xmlStreamReader.next()
-                if (xmlStreamReader.isStartElement) {
-                    if (xmlStreamReader.localName == "resources") {
-                        for (i in 0 until xmlStreamReader.attributeCount) {
-                            if (xmlStreamReader.getAttributeNamespace(i) == TOOLS_NAMESPACE) {
-                                toolsAttributes.put(
-                                    xmlStreamReader.getAttributeLocalName(i),
-                                    xmlStreamReader.getAttributeValue(i)
-                                )
-                            }
-                        }
-                    }
-                    rootElementProcessed = true
-                }
-            }
-        }
-        return copyOf(toolsAttributes)
+        processRawXml(XmlUtils.getUtfReader(path.toFile()), model)
     }
 }
+
+fun processRawXml(reader: Reader, model: ResourceShrinkerModel) {
+    processResourceToolsAttributes(reader).forEach { key, value ->
+        when (key) {
+            "keep" -> model.resourceStore.recordKeepToolAttribute(value)
+            "discard" -> model.resourceStore.recordDiscardToolAttribute(value)
+            "shrinkMode" ->
+                if (value == VALUE_STRICT) {
+                    model.resourceStore.safeMode = false
+                }
+        }
+    }
+}
+
+fun processResourceToolsAttributes(utfReader: Reader?): ImmutableMap<String, String> {
+    val toolsAttributes = mutableMapOf<String, String>()
+    utfReader.use { reader: Reader? ->
+        val factory = XMLInputFactory.newInstance()
+        val xmlStreamReader = factory.createXMLStreamReader(reader)
+
+        var rootElementProcessed = false
+        while (!rootElementProcessed && xmlStreamReader.hasNext()) {
+            xmlStreamReader.next()
+            if (xmlStreamReader.isStartElement) {
+                if (xmlStreamReader.localName == "resources") {
+                    for (i in 0 until xmlStreamReader.attributeCount) {
+                        val namespace = "http://schemas.android.com/tools"
+                        if (xmlStreamReader.getAttributeNamespace(i) == namespace) {
+                            toolsAttributes.put(
+                                xmlStreamReader.getAttributeLocalName(i),
+                                xmlStreamReader.getAttributeValue(i)
+                            )
+                        }
+                    }
+                }
+                rootElementProcessed = true
+            }
+        }
+    }
+    return copyOf(toolsAttributes)
+}
+

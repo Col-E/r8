@@ -23,11 +23,14 @@ public class RemovedReceiverInfo extends RemovedArgumentInfo {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public RemovedReceiverInfo rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
-    SingleValue rewrittenSingleValue =
-        hasSingleValue() ? getSingleValue().rewrittenWithLens(appView, graphLens, codeLens) : null;
     DexType rewrittenType = graphLens.lookupType(getType(), codeLens);
+    SingleValue rewrittenSingleValue =
+        hasSingleValue()
+            ? getSingleValue().rewrittenWithLens(appView, rewrittenType, graphLens, codeLens)
+            : null;
     if (rewrittenSingleValue != getSingleValue() || rewrittenType != getType()) {
       return new RemovedReceiverInfo(rewrittenSingleValue, rewrittenType);
     }
@@ -35,6 +38,7 @@ public class RemovedReceiverInfo extends RemovedArgumentInfo {
   }
 
   @Override
+  @SuppressWarnings({"EqualsGetClass", "ReferenceEquality"})
   public boolean equals(Object obj) {
     if (obj == null || getClass() != obj.getClass()) {
       return false;

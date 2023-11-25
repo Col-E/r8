@@ -129,6 +129,15 @@ public class ThrowExceptionCode extends Code implements DexWritableCode, Copyabl
   }
 
   @Override
+  public int getEstimatedSizeForInliningIfLessThanOrEquals(int threshold) {
+    int estimatedSizeForInlining = estimatedDexCodeSizeUpperBoundInBytes();
+    if (estimatedSizeForInlining <= threshold) {
+      return estimatedSizeForInlining;
+    }
+    return -1;
+  }
+
+  @Override
   public TryHandler[] getHandlers() {
     return new TryHandler[0];
   }

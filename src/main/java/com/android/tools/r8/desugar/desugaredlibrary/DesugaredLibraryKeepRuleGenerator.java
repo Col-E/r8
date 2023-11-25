@@ -119,6 +119,7 @@ public class DesugaredLibraryKeepRuleGenerator {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public void acceptType(TracedClass tracedClass, DiagnosticsHandler handler) {
       ClassReference rewrittenReference = rewrittenWithLens(tracedClass.getReference());
       super.acceptType(
@@ -132,6 +133,7 @@ public class DesugaredLibraryKeepRuleGenerator {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public void acceptField(TracedField tracedField, DiagnosticsHandler handler) {
       FieldReference rewrittenReference = rewrittenWithLens(tracedField.getReference());
       super.acceptField(
@@ -145,6 +147,7 @@ public class DesugaredLibraryKeepRuleGenerator {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public void acceptMethod(TracedMethod tracedMethod, DiagnosticsHandler handler) {
       MethodReference rewrittenReference = rewrittenWithLens(tracedMethod.getReference());
       super.acceptMethod(
@@ -198,6 +201,7 @@ public class DesugaredLibraryKeepRuleGenerator {
       return internalRewrittenWithLens(classReference, type);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private ClassReference internalRewrittenWithLens(ClassReference classReference, DexType type) {
       DexString rewrittenDescriptor = namingLens.lookupClassDescriptor(type);
       return addCacheEntry(

@@ -2,13 +2,7 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-# TODO(b/204058761): Remove when we can use test proguard options.
--keep @com.android.tools.r8.Keep class * { public *; }
--keep @com.android.tools.r8.KeepForSubclassing class * { public *; protected *; }
 -keepclasseswithmembers class * { @com.android.tools.r8.KeepMethodForCompileDump <methods>; }
-
-# Keep all things that can be reached from the retrace api and keep the annotation
--keep @com.android.tools.r8.KeepForRetraceApi class * { public *; }
 
 -keep public class com.android.tools.r8.D8 { public static void main(java.lang.String[]); }
 -keep public class com.android.tools.r8.R8 { public static void main(java.lang.String[]); }
@@ -33,22 +27,6 @@
 # TODO(b/176783536): Avoid need to use -dontwarn.
 -include dontwarn.txt
 
-# TODO(b/185756596): Remove when no longer needed
--keep class com.android.tools.r8.jetbrains.kotlinx.metadata.jvm.KotlinClassMetadata$FileFacade {
-  com.android.tools.r8.jetbrains.kotlin.Lazy packageData$delegate;
-}
--keep class com.android.tools.r8.jetbrains.kotlinx.metadata.jvm.KotlinClassMetadata$Class {
-  com.android.tools.r8.jetbrains.kotlin.Lazy classData$delegate;
-}
--keep class com.android.tools.r8.jetbrains.kotlinx.metadata.jvm.KotlinClassMetadata$SyntheticClass {
-  com.android.tools.r8.jetbrains.kotlin.Lazy functionData$delegate;
-}
--keep class com.android.tools.r8.jetbrains.kotlinx.metadata.jvm.KotlinClassMetadata$MultiFileClassPart {
-  com.android.tools.r8.jetbrains.kotlin.Lazy packageData$delegate;
-}
--keep class com.android.tools.r8.jetbrains.kotlin.SafePublicationLazyImpl {
-  java.lang.Object getValue();
-}
 # Test in this class is using the class name to fing the original .java file.
 -keep class com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringMethods
 

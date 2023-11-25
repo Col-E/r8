@@ -93,7 +93,10 @@ public class RepackagingConstraintGraph {
   public void populateConstraints(ExecutorService executorService) throws ExecutionException {
     // Concurrently add references from methods to the graph.
     ThreadUtils.processItems(
-        pkg::forEachMethod, this::registerReferencesFromMethod, executorService);
+        pkg::forEachMethod,
+        this::registerReferencesFromMethod,
+        appView.options().getThreadingModule(),
+        executorService);
 
     // TODO(b/165783399): Evaluate if it is worth to parallelize this. The work per field and class
     //  should be little, so it may not be.

@@ -320,6 +320,20 @@ public class DesugaredLibraryConversionCfProvider {
     cfInstructions.add(new CfInvoke(invoke.getOpcode(), convertedMethod, invoke.isInterface()));
 
     if (returnConversion != null) {
+      assert returnConversion.getArity() == 1 || returnConversion.getArity() == 2;
+      if (returnConversion.getArity() == 2) {
+        // If there is a second parameter, pass the receiver.
+        if (!invoke.isInvokeSuper(context.getHolderType())) {
+          appView
+              .reporter()
+              .error(
+                  "Cannot generate inlined api conversion for return type for "
+                      + invoke.getMethod()
+                      + " in "
+                      + context.getReference());
+        }
+        cfInstructions.add(new CfLoad(ValueType.OBJECT, 0));
+      }
       cfInstructions.add(new CfInvoke(Opcodes.INVOKESTATIC, returnConversion, false));
     }
 
@@ -383,6 +397,7 @@ public class DesugaredLibraryConversionCfProvider {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private CfCode computeParameterConversionCfCode(
       DexType holder, DexMethod invokedMethod, DexMethod[] parameterConversions) {
     ArrayList<CfInstruction> cfInstructions = new ArrayList<>();
@@ -581,6 +596,7 @@ public class DesugaredLibraryConversionCfProvider {
         method.getHolderType());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod convertedMethod(
       DexMethod method,
       boolean parameterDestIsVivified,
@@ -619,6 +635,7 @@ public class DesugaredLibraryConversionCfProvider {
     return convertedAPI;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static DexType invalidType(
       DexMethod invokedMethod,
       DexMethod returnConversion,

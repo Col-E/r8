@@ -42,6 +42,7 @@ public class KotlinModuleSynthesizer {
     return file.getName().endsWith(".kotlin_module");
   }
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   public List<DataEntryResource> synthesizeKotlinModuleFiles() {
     Map<String, KotlinModuleInfoBuilder> kotlinModuleBuilders = new HashMap<>();
     // We cannot obtain the module name for multi class file facades. But, we can for a multi class
@@ -180,7 +181,7 @@ public class KotlinModuleSynthesizer {
       }
       return Optional.of(
           DataEntryResource.fromBytes(
-              writer.write(metadataVersion.get()).getBytes(),
+              writer.write(metadataVersion.get()),
               "META-INF/" + moduleName + ".kotlin_module",
               Origin.unknown()));
     }

@@ -84,13 +84,12 @@ public abstract class DepthFirstTopDownClassHierarchyTraversal {
   }
 
   public boolean isRoot(DexProgramClass clazz) {
-    DexType superType = clazz.getSuperType();
-    if (superType == null) {
-      return true;
-    }
-    DexProgramClass superclass = asProgramClassOrNull(appView.definitionFor(superType));
-    if (superclass != null) {
-      return false;
+    if (clazz.hasSuperType()) {
+      DexType superType = clazz.getSuperType();
+      DexProgramClass superClass = asProgramClassOrNull(appView.definitionFor(superType));
+      if (superClass != null) {
+        return false;
+      }
     }
     for (DexType implementedType : clazz.getInterfaces()) {
       DexProgramClass implementedClass =
@@ -159,11 +158,11 @@ public abstract class DepthFirstTopDownClassHierarchyTraversal {
     immediateSubtypingInfo.getSubclasses(clazz).forEach(consumer);
   }
 
-  private void processClass(DexProgramClass interfaceDefinition) {
-    assert !isClassSeenButNotFinished(interfaceDefinition);
-    assert !isClassFinished(interfaceDefinition);
-    visit(interfaceDefinition);
-    markSeenButNotFinished(interfaceDefinition);
+  private void processClass(DexProgramClass clazz) {
+    assert !isClassSeenButNotFinished(clazz);
+    assert !isClassFinished(clazz);
+    visit(clazz);
+    markSeenButNotFinished(clazz);
   }
 
   protected boolean isClassUnseen(DexProgramClass clazz) {

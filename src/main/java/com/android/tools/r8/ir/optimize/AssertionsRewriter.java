@@ -181,6 +181,7 @@ public class AssertionsRewriter {
     return result;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isDescriptorForClassOrInnerClass(
       DexString classDescriptor, DexString classOrInnerClassDescriptor) {
     // Same string same class.
@@ -354,6 +355,7 @@ public class AssertionsRewriter {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean runInternal(DexEncodedMethod method, IRCode code) {
     ConfigurationEntryWithDexString configuration = getTransformationForMethod(method);
     if (configuration.isPassthrough()) {
@@ -504,6 +506,7 @@ public class AssertionsRewriter {
     return needsDeadCodeRemoval;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void rewriteKotlinAssertionEnable(
       IRCode code,
       ConfigurationEntryWithDexString configuration,
@@ -546,6 +549,7 @@ public class AssertionsRewriter {
         || isUsingKotlinAssertionsEnabledField(instruction);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isUsingJavaAssertionsDisabledField(FieldInstruction instruction) {
     // This does not check the holder, as for inner classe the field is read from the outer class
     // and not the class itself.
@@ -553,6 +557,7 @@ public class AssertionsRewriter {
         && instruction.getField().getType() == dexItemFactory.booleanType;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isUsingKotlinAssertionsEnabledField(FieldInstruction instruction) {
     return instruction.getField() == dexItemFactory.kotlin.assertions.enabledField;
   }
@@ -574,6 +579,7 @@ public class AssertionsRewriter {
         : null;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Throw dominatedBlocksHasSingleThrow(BasicBlock block, List<BasicBlock> dominatedBlocks) {
     Throw theThrow = null;
     for (BasicBlock current : dominatedBlocks) {

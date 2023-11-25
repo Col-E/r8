@@ -31,15 +31,11 @@ import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.dex.code.DexConstString;
-import com.android.tools.r8.dex.code.DexInstanceOf;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.dex.code.DexInvokeDirect;
 import com.android.tools.r8.dex.code.DexInvokeStatic;
 import com.android.tools.r8.dex.code.DexNewInstance;
-import com.android.tools.r8.dex.code.DexReturn;
 import com.android.tools.r8.dex.code.DexThrow;
-import com.android.tools.r8.dex.code.DexXorIntLit8;
-import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
@@ -48,7 +44,6 @@ import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
@@ -63,7 +58,6 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.RetracerForCodePrinting;
 import com.android.tools.r8.utils.structural.*;
@@ -210,11 +204,12 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   /**
    * Flags this method as no longer being obsolete.
    *
-   * Example use case: The vertical class merger optimistically merges two classes before it is
+   * <p>Example use case: The vertical class merger optimistically merges two classes before it is
    * guaranteed that the two classes can be merged. In this process, methods are moved from the
-   * source class to the target class using {@link #toTypeSubstitutedMethod(DexMethod)}, which
-   * causes the original methods of the source class to become obsolete. If vertical class merging
-   * is aborted, the original methods of the source class needs to be marked as not being obsolete.
+   * source class to the target class using {@link #toTypeSubstitutedMethodAsInlining(DexMethod,
+   * DexItemFactory)}, which causes the original methods of the source class to become obsolete. If
+   * vertical class merging is aborted, the original methods of the source class needs to be marked
+   * as not being obsolete.
    */
   public void unsetObsolete() {
     obsolete = false;
@@ -296,6 +291,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
             DexEncodedMethod::hashCodeObject);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static int compareCodeObject(Code code1, Code code2, CompareToVisitor visitor) {
     if (code1 == code2) {
       return 0;
@@ -408,6 +404,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public ProgramMethod asProgramMethod(DexProgramClass holder) {
     assert getHolderType() == holder.getType();
     return new ProgramMethod(holder, this);
@@ -578,11 +575,13 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean isStaticMember() {
     checkIfObsolete();
     return isStatic();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isAtLeastAsVisibleAsOtherInSameHierarchy(
       DexEncodedMethod other, AppView<? extends AppInfoWithClassHierarchy> appView) {
     assert getReference().getProto() == other.getReference().getProto();
@@ -602,6 +601,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isSameVisibility(DexEncodedMethod other) {
     AccessFlags<MethodAccessFlags> accessFlags = getAccessFlags();
     if (accessFlags.getVisibilityOrdinal() != other.getAccessFlags().getVisibilityOrdinal()) {
@@ -623,6 +623,12 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public boolean isSyntheticMethod() {
     checkIfObsolete();
     return accessFlags.isSynthetic();
+  }
+
+  /** Returns true if this method is synthetic and a bridge method. */
+  public boolean isSyntheticBridgeMethod() {
+    checkIfObsolete();
+    return accessFlags.isSynthetic() && accessFlags.isBridge();
   }
 
   public boolean belongsToDirectPool() {
@@ -657,74 +663,43 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     this.kotlinMemberInfo = kotlinMemberInfo;
   }
 
-  public boolean isKotlinFunction() {
-    return kotlinMemberInfo.isFunction();
-  }
-
-  public boolean isKotlinExtensionFunction() {
-    return kotlinMemberInfo.isFunction() && kotlinMemberInfo.asFunction().isExtensionFunction();
-  }
-
   public boolean isOnlyInlinedIntoNestMembers() {
     return compilationState == PROCESSED_INLINING_CANDIDATE_SAME_NEST;
   }
 
   public boolean isInliningCandidate(
-      ProgramMethod container,
-      Reason inliningReason,
-      AppInfoWithClassHierarchy appInfo,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ProgramMethod context,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     checkIfObsolete();
-    return isInliningCandidate(
-        container.getHolderType(), inliningReason, appInfo, whyAreYouNotInliningReporter);
-  }
-
-  public boolean isInliningCandidate(
-      DexType containerType,
-      Reason inliningReason,
-      AppInfoWithClassHierarchy appInfo,
-      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    checkIfObsolete();
-
-    if (inliningReason == Reason.FORCE) {
-      // Make sure we would be able to inline this normally.
-      if (!isInliningCandidate(
-          containerType, Reason.SIMPLE, appInfo, whyAreYouNotInliningReporter)) {
-        // If not, raise a flag, because some optimizations that depend on force inlining would
-        // silently produce an invalid code, which is worse than an internal error.
-        throw new InternalCompilerError("FORCE inlining on non-inlinable: " + toSourceString());
-      }
-      return true;
-    }
-
-    // TODO(b/128967328): inlining candidate should satisfy all states if multiple states are there.
+    AppInfoWithClassHierarchy appInfo = appView.appInfo();
     switch (compilationState) {
       case PROCESSED_INLINING_CANDIDATE_ANY:
         return true;
 
       case PROCESSED_INLINING_CANDIDATE_SUBCLASS:
-        if (appInfo.isSubtype(containerType, getReference().holder)) {
+        if (appInfo.isSubtype(context.getHolderType(), getHolderType())) {
           return true;
         }
         whyAreYouNotInliningReporter.reportCallerNotSubtype();
         return false;
 
       case PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE:
-        if (containerType.isSamePackage(getReference().holder)) {
+        if (context.isSamePackage(getHolderType())) {
           return true;
         }
         whyAreYouNotInliningReporter.reportCallerNotSamePackage();
         return false;
 
       case PROCESSED_INLINING_CANDIDATE_SAME_NEST:
-        if (NestUtils.sameNest(containerType, getReference().holder, appInfo)) {
+        if (NestUtils.sameNest(context.getHolderType(), getHolderType(), appInfo)) {
           return true;
         }
         whyAreYouNotInliningReporter.reportCallerNotSameNest();
         return false;
 
       case PROCESSED_INLINING_CANDIDATE_SAME_CLASS:
-        if (containerType == getReference().holder) {
+        if (context.getHolderType().isIdenticalTo(getHolderType())) {
           return true;
         }
         whyAreYouNotInliningReporter.reportCallerNotSameClass();
@@ -964,12 +939,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         null);
   }
 
-  public Code buildInstanceOfCode(DexType type, boolean negate, InternalOptions options) {
-    return options.isGeneratingClassFiles()
-        ? buildInstanceOfCfCode(type, negate)
-        : buildInstanceOfDexCode(type, negate);
-  }
-
   public CfCode buildInstanceOfCfCode(DexType type, boolean negate) {
     CfInstruction[] instructions = new CfInstruction[3 + BooleanUtils.intValue(negate) * 2];
     int i = 0;
@@ -987,17 +956,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         Arrays.asList(instructions));
   }
 
-  public DexCode buildInstanceOfDexCode(DexType type, boolean negate) {
-    DexInstruction[] instructions = new DexInstruction[2 + BooleanUtils.intValue(negate)];
-    int i = 0;
-    instructions[i++] = new DexInstanceOf(0, 0, type);
-    if (negate) {
-      instructions[i++] = new DexXorIntLit8(0, 0, 1);
-    }
-    instructions[i] = new DexReturn(0);
-    return generateCodeFromTemplate(1, 0, instructions);
-  }
-
   public DexEncodedMethod toMethodThatLogsError(AppView<?> appView) {
     Builder builder =
         builder(this)
@@ -1007,7 +965,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
                     : toDexCodeThatLogsError(appView.dexItemFactory()))
             .setIsLibraryMethodOverrideIf(
                 belongsToVirtualPool() && !isLibraryMethodOverride().isUnknown(),
-                isLibraryMethodOverride());
+                isLibraryMethodOverride())
+            .setApiLevelForCode(appView.computedMinApiLevel())
+            .setApiLevelForDefinition(ComputedApiLevel.unknown());
     setObsolete();
     return builder.build();
   }
@@ -1119,16 +1079,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return new CfCode(getReference().holder, 3, locals, instructionBuilder.build());
   }
 
-  public DexEncodedMethod toTypeSubstitutedMethod(DexMethod method) {
-    checkIfObsolete();
-    return toTypeSubstitutedMethodHelper(method, isD8R8Synthesized(), null);
-  }
-
-  public DexEncodedMethod toTypeSubstitutedMethod(DexMethod method, Consumer<Builder> consumer) {
-    checkIfObsolete();
-    return toTypeSubstitutedMethodHelper(method, isD8R8Synthesized(), consumer);
-  }
-
   public DexEncodedMethod toTypeSubstitutedMethodAsInlining(
       DexMethod method, DexItemFactory factory) {
     checkIfObsolete();
@@ -1137,12 +1087,20 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public DexEncodedMethod toTypeSubstitutedMethodAsInlining(
       DexMethod method, DexItemFactory factory, Consumer<Builder> consumer) {
+    boolean isCallerD8R8Synthesized = true;
     return toTypeSubstitutedMethodHelper(
         method,
-        true,
+        isCallerD8R8Synthesized,
         builder -> {
           if (code != null) {
-            builder.setCode(getCode().getCodeAsInlining(method, this, factory));
+            builder.setCode(
+                getCode()
+                    .getCodeAsInlining(
+                        method,
+                        isCallerD8R8Synthesized,
+                        getReference(),
+                        isD8R8Synthesized(),
+                        factory));
           }
           if (consumer != null) {
             consumer.accept(builder);
@@ -1150,6 +1108,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexEncodedMethod toTypeSubstitutedMethodHelper(
       DexMethod method, boolean isD8R8Synthesized, Consumer<Builder> consumer) {
     checkIfObsolete();
@@ -1175,23 +1134,26 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return builder.build();
   }
 
-  public ProgramMethod toPrivateSyntheticMethod(DexProgramClass holder, DexMethod method) {
+  public ProgramMethod toPrivateSyntheticMethod(
+      DexProgramClass holder, DexMethod method, DexItemFactory factory) {
     assert !isStatic();
     assert !isPrivate();
-    assert getHolderType() == method.getHolderType();
+    assert getHolderType().isIdenticalTo(method.getHolderType());
     checkIfObsolete();
-    return new ProgramMethod(
-        holder,
-        syntheticBuilder(this)
-            .setMethod(method)
-            .modifyAccessFlags(
-                accessFlags -> {
-                  accessFlags.setSynthetic();
-                  accessFlags.unsetProtected();
-                  accessFlags.unsetPublic();
-                  accessFlags.setPrivate();
-                })
-            .build());
+    DexEncodedMethod newMethod =
+        toTypeSubstitutedMethodAsInlining(
+            method,
+            factory,
+            builder -> {
+              builder.modifyAccessFlags(
+                  accessFlags -> {
+                    accessFlags.setSynthetic();
+                    accessFlags.unsetProtected();
+                    accessFlags.unsetPublic();
+                    accessFlags.setPrivate();
+                  });
+            });
+    return new ProgramMethod(holder, newMethod);
   }
 
   public DexEncodedMethod toForwardingMethod(DexClass newHolder, AppView<?> definitions) {
@@ -1367,6 +1329,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return code == null ? null : code.asDexWritableCode();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexEncodedMethod rewrittenWithLens(
       GraphLens lens, GraphLens appliedLens, DexDefinitionSupplier definitions) {
     assert this != SENTINEL;

@@ -71,6 +71,7 @@ public class NoInstanceInitializerMerging
   }
 
   @Override
+  @SuppressWarnings("MixedMutabilityReturnType")
   public Map<DexProgramClass, Set<DexMethod>> preprocess(
       Collection<MergeGroup> groups, ExecutorService executorService) {
     if (!appView.options().canHaveNonReboundConstructorInvoke()) {
@@ -116,6 +117,7 @@ public class NoInstanceInitializerMerging
   }
 
   @Override
+  @SuppressWarnings("MixedMutabilityReturnType")
   public Collection<MergeGroup> apply(
       MergeGroup group, Map<DexProgramClass, Set<DexMethod>> absentInstanceInitializers) {
     assert !group.hasTarget();
@@ -280,6 +282,7 @@ public class NoInstanceInitializerMerging
     return getRelaxedSignature(instanceInitializer.getReference());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod getRelaxedSignature(DexMethod instanceInitializerReference) {
     DexType objectType = appView.dexItemFactory().objectType;
     DexTypeList parameters = instanceInitializerReference.getParameters();

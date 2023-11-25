@@ -34,11 +34,15 @@ public class EmptyRecordTest extends TestBase {
   public boolean enableMinification;
 
   @Parameter(1)
+  public boolean enableRepackaging;
+
+  @Parameter(2)
   public TestParameters parameters;
 
-  @Parameters(name = "{1}, minification: {0}")
+  @Parameters(name = "{2}, minification: {0}, repackage: {1}")
   public static List<Object[]> data() {
     return buildParameters(
+        BooleanUtils.values(),
         BooleanUtils.values(),
         getTestParameters()
             .withCfRuntimesStartingFromIncluding(CfVm.JDK17)
@@ -59,7 +63,7 @@ public class EmptyRecordTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeFalse("Only applicable for R8", enableMinification);
+    assumeFalse("Only applicable for R8", enableMinification || enableRepackaging);
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters)
@@ -70,7 +74,6 @@ public class EmptyRecordTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    // TODO(b/288360309): Correctly deal with non-identity lenses in R8 record rewriting.
     assumeTrue(parameters.isDexRuntime());
     parameters.assumeR8TestParameters();
     testForR8(parameters.getBackend())
@@ -80,6 +83,7 @@ public class EmptyRecordTest extends TestBase {
             parameters.isCfRuntime(),
             testBuilder -> testBuilder.addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp)))
         .minification(enableMinification)
+        .applyIf(enableRepackaging, b -> b.addKeepRules("-repackageclasses p"))
         .setMinApi(parameters)
         .compile()
         .applyIf(

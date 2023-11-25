@@ -480,7 +480,7 @@ public class Timing {
   }
 
   public void report() {
-    assert stack.size() == 1;
+    assert stack.size() == 1 : "Unexpected non-singleton stack: " + stack;
     Node top = stack.peek();
     assert top == this.top;
     top.end();

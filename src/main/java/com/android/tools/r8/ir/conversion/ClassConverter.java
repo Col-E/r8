@@ -160,6 +160,7 @@ public abstract class ClassConverter {
       ThreadUtils.processItems(
           wave,
           clazz -> convertClass(clazz, instructionDesugaringEventConsumerForWave),
+          appView.options().getThreadingModule(),
           executorService);
       methodProcessor.awaitMethodProcessing();
 
@@ -185,6 +186,7 @@ public abstract class ClassConverter {
                 interfaceProcessor.processMethod(method, instructionDesugaringEventConsumerForWave);
               }
             },
+            appView.options().getThreadingModule(),
             executorService);
 
         // Verify there is nothing to finalize once method processing finishes.

@@ -39,7 +39,6 @@ public abstract class TreeFixerBase {
   private final DexItemFactory dexItemFactory;
 
   private final Map<DexType, DexProgramClass> programClassCache = new IdentityHashMap<>();
-  private final Map<DexType, DexProgramClass> synthesizedFromClasses = new IdentityHashMap<>();
   private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
 
   public TreeFixerBase(AppView<?> appView) {
@@ -70,6 +69,7 @@ public abstract class TreeFixerBase {
   }
 
   /** Rewrite missing references */
+  @SuppressWarnings("ReferenceEquality")
   public void recordFailedResolutionChanges() {
     // In order for optimizations to correctly rewrite field and method references that do not
     // resolve, we create a mapping from each failed resolution target to its reference reference.
@@ -113,6 +113,7 @@ public abstract class TreeFixerBase {
     return newProgramClasses;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Should remain private as the correctness of the fixup requires the lazy 'newProgramClasses'.
   private DexProgramClass fixupClass(DexProgramClass clazz) {
     DexProgramClass newClass =
@@ -156,6 +157,7 @@ public abstract class TreeFixerBase {
     return newClass;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   protected EnclosingMethodAttribute fixupEnclosingMethodAttribute(
       EnclosingMethodAttribute enclosingMethodAttribute) {
     if (enclosingMethodAttribute == null) {
@@ -194,6 +196,7 @@ public abstract class TreeFixerBase {
     return newFields;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexEncodedField fixupField(
       DexEncodedField field, Consumer<DexEncodedField.Builder> consumer) {
     DexField fieldReference = field.getReference();
@@ -212,6 +215,7 @@ public abstract class TreeFixerBase {
     return dexItemFactory.createField(newHolder, newType, field.name);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   protected List<InnerClassAttribute> fixupInnerClassAttributes(
       List<InnerClassAttribute> innerClassAttributes) {
     if (innerClassAttributes.isEmpty()) {
@@ -257,8 +261,9 @@ public abstract class TreeFixerBase {
   public DexEncodedMethod fixupMethod(DexEncodedMethod method) {
     DexMethod methodReference = method.getReference();
     DexMethod newMethodReference = fixupMethodReference(methodReference);
-    if (newMethodReference != methodReference) {
-      return recordMethodChange(method, method.toTypeSubstitutedMethod(newMethodReference));
+    if (!methodReference.isIdenticalTo(newMethodReference)) {
+      return recordMethodChange(
+          method, method.toTypeSubstitutedMethodAsInlining(newMethodReference, dexItemFactory));
     }
     return method;
   }
@@ -275,6 +280,7 @@ public abstract class TreeFixerBase {
         : null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   protected List<NestMemberClassAttribute> fixupNestMemberAttributes(
       List<NestMemberClassAttribute> nestMemberAttributes) {
     if (nestMemberAttributes.isEmpty()) {
@@ -292,6 +298,7 @@ public abstract class TreeFixerBase {
     return changed ? newNestMemberAttributes : nestMemberAttributes;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   protected List<PermittedSubclassAttribute> fixupPermittedSubclassAttribute(
       List<PermittedSubclassAttribute> permittedSubclassAttributes) {
     if (permittedSubclassAttributes.isEmpty()) {
@@ -317,6 +324,7 @@ public abstract class TreeFixerBase {
     return newPermittedSubclassAttributes;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   protected List<RecordComponentInfo> fixupRecordComponents(
       List<RecordComponentInfo> recordComponents) {
     if (recordComponents.isEmpty()) {
@@ -352,6 +360,7 @@ public abstract class TreeFixerBase {
   }
 
   /** Fixup a type reference. */
+  @SuppressWarnings("ReferenceEquality")
   public DexType fixupType(DexType type) {
     if (type.isArrayType()) {
       DexType base = type.toBaseType(dexItemFactory);
@@ -367,6 +376,7 @@ public abstract class TreeFixerBase {
     return type;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexType[] fixupTypes(DexType[] types) {
     boolean changed = false;
     DexType[] newTypes = new DexType[types.length];

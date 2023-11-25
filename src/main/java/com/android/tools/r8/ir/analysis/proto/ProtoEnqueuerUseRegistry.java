@@ -75,6 +75,7 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
    * traced manually by {@link ProtoEnqueuerExtension#tracePendingInstructionsInDynamicMethods}.
    */
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void registerStaticFieldRead(DexField field) {
     if (references.isDynamicMethod(getContextMethod())
         && field.getHolderType() != getContextHolder().getType()
@@ -85,11 +86,13 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
     super.registerStaticFieldRead(field);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isStaticFieldReadForProtoSchemaDefinition(DexField field) {
     if (field == references.getDefaultInstanceField(getContextHolder())) {
       return true;
     }
-    DexProgramClass holder = asProgramClassOrNull(appView.definitionFor(field.getHolderType()));
+    DexProgramClass holder =
+        asProgramClassOrNull(appViewWithClassHierarchy.definitionFor(field.getHolderType()));
     return holder != null
         && holder.getInterfaces().contains(references.enumVerifierType)
         && field == references.getEnumVerifierInstanceField(holder);

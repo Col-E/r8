@@ -72,6 +72,7 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,
@@ -82,12 +83,12 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
                     invoke,
                     localStackAllocator,
                     eventConsumer,
-                    context,
                     methodProcessingContext,
                     getMethodSynthesizerForThrowing(appView, invoke, resolutionResult, context)))
         .build();
   }
 
+  @SuppressWarnings("UnusedVariable")
   public static DesugarDescription computeInvokeAsThrowNSMERewrite(
       AppView<?> appView, CfInvoke invoke, ScanCallback scanCallback) {
     DesugarDescription.Builder builder =
@@ -95,6 +96,7 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
             .setDesugarRewrite(
                 (freshLocalProvider,
                     localStackAllocator,
+                    desugaringInfo,
                     eventConsumer,
                     context,
                     methodProcessingContext,
@@ -105,7 +107,6 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
                         invoke,
                         localStackAllocator,
                         eventConsumer,
-                        context,
                         methodProcessingContext,
                         UtilityMethodsForCodeOptimizations
                             ::synthesizeThrowNoSuchMethodErrorMethod));
@@ -118,7 +119,6 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
       CfInvoke invoke,
       LocalStackAllocator localStackAllocator,
       CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
       MethodProcessingContext methodProcessingContext,
       MethodSynthesizerConsumer methodSynthesizerConsumer) {
     if (methodSynthesizerConsumer == null) {

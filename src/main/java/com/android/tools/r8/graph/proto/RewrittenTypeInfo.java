@@ -82,6 +82,7 @@ public class RewrittenTypeInfo extends ArgumentInfo {
     return combine(info.asRewrittenTypeInfo());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public RewrittenTypeInfo combine(RewrittenTypeInfo other) {
     assert !getNewType().isVoidType();
     assert getNewType() == other.getOldType();
@@ -90,12 +91,15 @@ public class RewrittenTypeInfo extends ArgumentInfo {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public RewrittenTypeInfo rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
     DexType rewrittenCastType = castType != null ? graphLens.lookupType(castType, codeLens) : null;
     DexType rewrittenNewType = graphLens.lookupType(newType, codeLens);
     SingleValue rewrittenSingleValue =
-        hasSingleValue() ? getSingleValue().rewrittenWithLens(appView, graphLens, codeLens) : null;
+        hasSingleValue()
+            ? getSingleValue().rewrittenWithLens(appView, rewrittenNewType, graphLens, codeLens)
+            : null;
     if (rewrittenCastType != castType
         || rewrittenNewType != newType
         || rewrittenSingleValue != singleValue) {
@@ -107,6 +111,7 @@ public class RewrittenTypeInfo extends ArgumentInfo {
   }
 
   @Override
+  @SuppressWarnings({"EqualsGetClass", "ReferenceEquality"})
   public boolean equals(Object obj) {
     if (obj == null || getClass() != obj.getClass()) {
       return false;

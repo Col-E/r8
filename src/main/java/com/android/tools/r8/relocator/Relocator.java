@@ -7,7 +7,6 @@ package com.android.tools.r8.relocator;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
@@ -16,6 +15,7 @@ import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.jar.CfApplicationWriter;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.AndroidApp;
@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-@Keep
+@KeepForApi
 public class Relocator {
 
   private Relocator() {}

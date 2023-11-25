@@ -73,6 +73,10 @@ public class BasicBlockIterator implements ListIterator<BasicBlock> {
     return next();
   }
 
+  public BasicBlock previousUntil(BasicBlock stoppingCriterion) {
+    return previousUntil(block -> block == stoppingCriterion);
+  }
+
   public BasicBlock previousUntil(Predicate<BasicBlock> predicate) {
     return IteratorUtils.previousUntil(this, predicate);
   }

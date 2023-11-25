@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
@@ -46,7 +47,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 public abstract class Instruction
-    implements AbstractInstruction, InstructionOrPhi, TypeAndLocalInfoSupplier {
+    implements AbstractInstruction, InstructionOrPhi, MaterializingInstructionsInfo {
 
   protected Value outValue = null;
   protected final List<Value> inValues = new ArrayList<>();
@@ -81,13 +82,14 @@ public abstract class Instruction
     return position != null;
   }
 
+  @Override
   public final Position getPosition() {
     assert position != null;
     return position;
   }
 
   public void setPosition(Position position) {
-    assert this.position == null;
+    assert !hasPosition();
     this.position = position;
   }
 
@@ -265,6 +267,7 @@ public abstract class Instruction
     oldValue.removeUser(this);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void replaceDebugValue(Value oldValue, Value newValue) {
     assert oldValue.hasLocalInfo();
     assert newValue.hasLocalInfo();
@@ -304,6 +307,7 @@ public abstract class Instruction
     assert false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public Value removeDebugValue(DebugLocalInfo localInfo) {
     if (debugValues != null) {
       Iterator<Value> it = debugValues.iterator();
@@ -516,6 +520,7 @@ public abstract class Instruction
     return true;
   }
 
+  @SuppressWarnings("UnusedVariable")
   public boolean identicalAfterRegisterAllocation(
       Instruction other, RegisterAllocator allocator, MethodConversionOptions conversionOptions) {
     if (other.getClass() != getClass()) {
@@ -1324,6 +1329,10 @@ public abstract class Instruction
     return false;
   }
 
+  public boolean isInvokeMethod(DexMethod invokedMethod) {
+    return false;
+  }
+
   public InvokeMethod asInvokeMethod() {
     return null;
   }
@@ -1699,8 +1708,24 @@ public abstract class Instruction
       return self();
     }
 
+    public B setPositionForNonThrowingInstruction(Position position, InternalOptions options) {
+      assert verifyInstructionTypeCannotThrow();
+      if (options.debug) {
+        return setPosition(position);
+      } else {
+        return setPosition(Position.none());
+      }
+    }
+
     public B setPosition(Instruction other) {
       return setPosition(other.getPosition());
+    }
+
+    protected boolean verifyInstructionTypeCannotThrow() {
+      // Intentionally implemented as throw new Unreachable(). Instruction builders that allow using
+      // setPositionForNonThrowingInstruction(Position, InternalOptions) must explicitly override
+      // this method and return true.
+      throw new Unreachable();
     }
   }
 }

@@ -23,16 +23,16 @@ import java.util.ListIterator;
 
 public class DefaultEnqueuerUseRegistry extends ComputeApiLevelUseRegistry {
 
-  protected final AppView<? extends AppInfoWithClassHierarchy> appView;
+  protected final AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy;
   protected final Enqueuer enqueuer;
 
   public DefaultEnqueuerUseRegistry(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy,
       ProgramMethod context,
       Enqueuer enqueuer,
       AndroidApiLevelCompute apiLevelCompute) {
-    super(appView, context, apiLevelCompute);
-    this.appView = appView;
+    super(appViewWithClassHierarchy, context, apiLevelCompute);
+    this.appViewWithClassHierarchy = appViewWithClassHierarchy;
     this.enqueuer = enqueuer;
   }
 
@@ -193,8 +193,7 @@ public class DefaultEnqueuerUseRegistry extends ComputeApiLevelUseRegistry {
   @Override
   public void registerCallSite(DexCallSite callSite) {
     super.registerCallSiteExceptBootstrapArgs(callSite);
-    if (isInvokeDynamicOnRecord(callSite, appView, getContext())
-        && appView.options().testing.enableRecordModeling) {
+    if (isInvokeDynamicOnRecord(callSite, appViewWithClassHierarchy, getContext())) {
       registerRecordCallSiteBootstrapArgs(callSite);
     } else {
       super.registerCallSiteBootstrapArgs(callSite, 0, callSite.bootstrapArgs.size());
@@ -202,6 +201,7 @@ public class DefaultEnqueuerUseRegistry extends ComputeApiLevelUseRegistry {
     enqueuer.traceCallSite(callSite, getContext());
   }
 
+  @SuppressWarnings("HidingField")
   private void registerRecordCallSiteBootstrapArgs(DexCallSite callSite) {
     // The Instance Get method handle in invokeDynamicOnRecord are considered:
     // - a record use if not a constant value,
@@ -210,7 +210,7 @@ public class DefaultEnqueuerUseRegistry extends ComputeApiLevelUseRegistry {
     for (int i = 2; i < callSite.getBootstrapArgs().size(); i++) {
       DexField field = callSite.getBootstrapArgs().get(i).asDexValueMethodHandle().value.asField();
       DexEncodedField encodedField =
-          appView.appInfo().resolveField(field, getContext()).getResolvedField();
+          appViewWithClassHierarchy.appInfo().resolveField(field, getContext()).getResolvedField();
       // Member value propagation does not rewrite method handles, special handling for this
       // method handle access is done after the final tree shaking.
       if (!encodedField.getOptimizationInfo().isDead()) {

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.utils.ArchiveBuilder;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DirectoryBuilder;
@@ -24,7 +25,7 @@ import java.util.zip.ZipOutputStream;
  *
  * <p>This consumer can only be provided to R8.
  */
-@KeepForSubclassing
+@KeepForApi
 public interface ClassFileConsumer extends ProgramConsumer {
 
   /**
@@ -51,7 +52,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
   }
 
   /** Forwarding consumer to delegate to an optional existing consumer. */
-  @Keep
+  @KeepForApi
   class ForwardingConsumer implements ClassFileConsumer {
 
     private static final ClassFileConsumer EMPTY_CONSUMER = new ForwardingConsumer(null);
@@ -83,7 +84,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
   }
 
   /** Consumer to write program resources to an output. */
-  @Keep
+  @KeepForApi
   class ArchiveConsumer extends ForwardingConsumer
       implements DataResourceConsumer, InternalProgramOutputPathConsumer {
     private final OutputBuilder outputBuilder;
@@ -164,7 +165,7 @@ public interface ClassFileConsumer extends ProgramConsumer {
   }
 
   /** Directory consumer to write program resources to a directory. */
-  @Keep
+  @KeepForApi
   class DirectoryConsumer extends ForwardingConsumer implements InternalProgramOutputPathConsumer {
     private final OutputBuilder outputBuilder;
     protected final boolean consumeDataResouces;

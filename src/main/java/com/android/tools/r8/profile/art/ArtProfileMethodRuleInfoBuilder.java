@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.profile.art;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /** API for providing metadata related to a method rule for an ART profile. */
-@Keep
+@KeepForApi
 public interface ArtProfileMethodRuleInfoBuilder {
 
   ArtProfileMethodRuleInfoBuilder setIsHot(boolean isHot);

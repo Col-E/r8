@@ -111,7 +111,7 @@ public class ComposePcEncodingTest extends TestBase {
         // We only optimize line info in release mode and with a mapping file output enabled.
         .release()
         .internalEnableMappingOutput()
-        .apply(b -> b.getBuilder().setProguardInputMapFile(r8OutputMap))
+        .apply(b -> b.getBuilder().setProguardMapInputFile(r8OutputMap))
         // Forcing jumbo processing will shift the PC values on the methods.
         .addOptionsModification(o -> o.testing.forceJumboStringProcessing = true)
         .compile()

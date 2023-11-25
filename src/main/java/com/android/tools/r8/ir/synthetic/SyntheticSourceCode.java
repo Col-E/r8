@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.DexSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -44,16 +43,12 @@ public abstract class SyntheticSourceCode implements SourceCode {
 
   private final Position position;
 
-  protected SyntheticSourceCode(DexType receiver, DexMethod method, Position callerPosition) {
-    this(receiver, method, callerPosition, method);
-  }
-
-  protected SyntheticSourceCode(
-      DexType receiver, DexMethod method, Position callerPosition, DexMethod originalMethod) {
+  protected SyntheticSourceCode(DexType receiver, DexMethod method, Position position) {
     assert method != null;
     this.receiver = receiver;
     this.method = method;
     this.proto = method.proto;
+    this.position = position;
 
     // Initialize register values for receiver and arguments
     this.receiverRegister = receiver != null ? nextRegister(ValueType.OBJECT) : -1;
@@ -64,14 +59,6 @@ public abstract class SyntheticSourceCode implements SourceCode {
     for (int i = 0; i < paramCount; i++) {
       this.paramRegisters[i] = nextRegister(ValueType.fromDexType(params[i]));
     }
-
-    position =
-        SyntheticPosition.builder()
-            .setLine(0)
-            .setMethod(originalMethod)
-            .setCallerPosition(callerPosition)
-            .setIsD8R8Synthesized(true)
-            .build();
   }
 
   protected final void add(Consumer<IRBuilder> constructor) {

@@ -259,6 +259,7 @@ public class GenericSignatureContextBuilder {
     return typeParameterContext.combine(methodFormals, prunedHere);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean hasPrunedRelationship(
       AppView<?> appView,
       DexReference enclosingReference,

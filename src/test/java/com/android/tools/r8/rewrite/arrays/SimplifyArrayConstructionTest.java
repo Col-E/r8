@@ -316,7 +316,7 @@ public class SimplifyArrayConstructionTest extends TestBase {
       twoDimensionalArrays();
       objectArraysFilledNewArrayRange();
       arraysThatUseFilledData();
-      arraysThatUseNewArrayEmpty();
+      arraysThatUseNewArrayEmpty(args.length);
       reversedArray();
       arrayWithCorrectCountButIncompleteCoverage();
       arrayWithExtraInitialPuts();
@@ -536,7 +536,7 @@ public class SimplifyArrayConstructionTest extends TestBase {
     }
 
     @NeverInline
-    private static void arraysThatUseNewArrayEmpty() {
+    private static void arraysThatUseNewArrayEmpty(int trickyZero) {
       // int/object of size zero should not use filled-new-array.
       int[] intArr = {};
       System.out.println(Arrays.toString(intArr));
@@ -569,7 +569,6 @@ public class SimplifyArrayConstructionTest extends TestBase {
       System.out.println(Arrays.toString(partialArray));
 
       // Non-constant array size.
-      int trickyZero = (int) (System.currentTimeMillis() / System.nanoTime());
       Object[] nonConstSize = new Object[trickyZero + 1];
       nonConstSize[0] = "a";
       System.out.println(Arrays.toString(nonConstSize));

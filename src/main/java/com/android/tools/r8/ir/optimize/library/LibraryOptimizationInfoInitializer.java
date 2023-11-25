@@ -6,12 +6,15 @@ package com.android.tools.r8.ir.optimize.library;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexItemFactory.EnumMembers;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.optimize.info.LibraryOptimizationInfoInitializerFeedback;
 import com.android.tools.r8.ir.optimize.info.field.EmptyInstanceFieldInitializationInfoCollection;
@@ -25,7 +28,6 @@ import java.util.Set;
 
 public class LibraryOptimizationInfoInitializer {
 
-  private final AbstractValueFactory abstractValueFactory;
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
 
@@ -34,13 +36,13 @@ public class LibraryOptimizationInfoInitializer {
   private final Set<DexType> modeledLibraryTypes = Sets.newIdentityHashSet();
 
   LibraryOptimizationInfoInitializer(AppView<?> appView) {
-    this.abstractValueFactory = appView.abstractValueFactory();
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
   }
 
   void run() {
     modelInstanceInitializers();
+    modelLibraryFields();
     modelLibraryMethodsNonNullParamOrThrow();
     modelLibraryMethodsReturningNonNull();
     modelLibraryMethodsReturningReceiver();
@@ -82,6 +84,27 @@ public class LibraryOptimizationInfoInitializer {
               NonTrivialInstanceInitializerInfo.builder(fieldInitializationInfos)
                   .setParent(dexItemFactory.objectMembers.constructor)
                   .build()));
+    }
+  }
+
+  private void modelLibraryFields() {
+    AbstractValueFactory abstractValueFactory = appView.abstractValueFactory();
+    modelLibraryField(
+        dexItemFactory.booleanMembers.FALSE,
+        abstractValueFactory.createBoxedBooleanFalse(),
+        DynamicType.definitelyNotNull());
+    modelLibraryField(
+        dexItemFactory.booleanMembers.TRUE,
+        abstractValueFactory.createBoxedBooleanTrue(),
+        DynamicType.definitelyNotNull());
+  }
+
+  private void modelLibraryField(
+      DexField field, AbstractValue abstractValue, DynamicType dynamicType) {
+    DexEncodedField definition = lookupField(field);
+    if (definition != null) {
+      feedback.setAbstractFieldValue(abstractValue, definition);
+      feedback.markFieldHasDynamicType(definition, dynamicType);
     }
   }
 
@@ -148,6 +171,16 @@ public class LibraryOptimizationInfoInitializer {
         feedback.methodReturnsArgument(definition, 0);
       }
     }
+  }
+
+  private DexEncodedField lookupField(DexField field) {
+    DexClass holder = appView.definitionForHolder(field);
+    DexEncodedField definition = field.lookupOnClass(holder);
+    if (definition != null) {
+      modeledLibraryTypes.add(field.holder);
+      return definition;
+    }
+    return null;
   }
 
   private DexEncodedMethod lookupMethod(DexMethod method) {

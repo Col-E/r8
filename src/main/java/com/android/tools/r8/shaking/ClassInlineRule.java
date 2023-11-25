@@ -15,6 +15,7 @@ public class ClassInlineRule extends ProguardConfigurationRule {
     NEVER
   }
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder extends ProguardConfigurationRule.Builder<ClassInlineRule, Builder> {
 
     private Builder() {

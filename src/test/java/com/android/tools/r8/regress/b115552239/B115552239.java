@@ -10,7 +10,11 @@ import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.code.DexCmpgFloat;
 import com.android.tools.r8.dex.code.DexIfGez;
@@ -26,6 +30,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 class TestClass {
   public float f(float d) {
@@ -36,7 +43,17 @@ class TestClass {
   }
 }
 
-public class B115552239 {
+@RunWith(Parameterized.class)
+public class B115552239 extends TestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public B115552239(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   private MethodSubject compileTestClassAndGetMethod(int apiLevel)
       throws IOException, CompilationFailedException {
@@ -44,7 +61,8 @@ public class B115552239 {
         ToolHelper.runD8(
             D8Command.builder()
                 .addClassProgramData(ToolHelper.getClassAsBytes(TestClass.class), Origin.unknown())
-                .setMinApiLevel(apiLevel));
+                .setMinApiLevel(apiLevel)
+                .setMode(CompilationMode.RELEASE));
     CodeInspector inspector = new CodeInspector(app);
     ClassSubject clazz = inspector.clazz(TestClass.class);
     assertThat(clazz, isPresent());
@@ -72,8 +90,7 @@ public class B115552239 {
   }
 
   @Test
-  public void lowering()
-      throws IOException, CompilationFailedException, ExecutionException {
+  public void lowering() throws IOException, CompilationFailedException {
     MethodSubject method = compileTestClassAndGetMethod(AndroidApiLevel.M.getLevel());
     boolean previousWasCmp = false;
     DexInstruction[] instructions = method.getMethod().getCode().asDexCode().instructions;

@@ -79,6 +79,7 @@ public abstract class TypeRewriter {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public void rewriteType(DexType type, DexType rewrittenType) {
       rewriteType.compute(
           type,

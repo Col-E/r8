@@ -109,6 +109,7 @@ public class FieldCollection {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean verifyCorrectnessOfFieldHolder(DexEncodedField field) {
     assert field.getHolderType() == holder.type
         : "Expected field `"

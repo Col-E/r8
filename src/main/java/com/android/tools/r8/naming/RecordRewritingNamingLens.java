@@ -41,6 +41,7 @@ public class RecordRewritingNamingLens extends NonIdentityNamingLens {
     return getRenaming(type) != null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexString getRenaming(DexType type) {
     if (type == factory.recordType) {
       return factory.recordTagType.descriptor;

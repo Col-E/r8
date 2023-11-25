@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AbortException;
@@ -29,7 +30,7 @@ import java.util.List;
  * <p>For concrete builders, see for example {@link D8Command.Builder} and {@link
  * R8Command.Builder}.
  */
-@Keep
+@KeepForApi
 public abstract class BaseCommand {
 
   private final boolean printHelp;
@@ -103,7 +104,7 @@ public abstract class BaseCommand {
    * @param <B> Concrete builder extending this base, e.g., {@link R8Command.Builder} or {@link
    *     D8Command.Builder}.
    */
-  @Keep
+  @KeepForApi
   public abstract static class Builder<C extends BaseCommand, B extends Builder<C, B>> {
 
     private final Reporter reporter;

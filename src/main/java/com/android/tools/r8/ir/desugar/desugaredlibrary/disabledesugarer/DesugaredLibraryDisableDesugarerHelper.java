@@ -36,6 +36,7 @@ public class DesugaredLibraryDisableDesugarerHelper {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   DexMethod rewriteMethod(DexMethod method, boolean isInterface, ProgramMethod context) {
     DexType newHolder = rewriteType(method.getHolderType());
     DexMethod rewrittenMethod = methodWithVivifiedTypeInSignature(method, newHolder, appView);
@@ -48,6 +49,7 @@ public class DesugaredLibraryDisableDesugarerHelper {
     return rewrittenMethod;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   DexField rewriteField(DexField field, ProgramDefinition context) {
     if (isRewrittenType(field.getHolderType())) {
       // This case never happens within the supported set of classes. We can support it if required.

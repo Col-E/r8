@@ -99,6 +99,7 @@ public class RemoveVerificationErrorForUnknownReturnedValues {
     timing.end();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private Set<Return> getReturnsPotentiallyNeedingCheckCast(
       AppInfoWithClassHierarchy appInfo, ProgramMethod context, IRCode code) {
     if (syntheticItems.isSyntheticOfKind(context.getHolderType(), kinds -> kinds.API_MODEL_OUTLINE)

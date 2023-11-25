@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.profile.art;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.MethodReference;
 import java.util.function.Consumer;
 
 /** API for defining a method rule for an ART profile. */
-@Keep
+@KeepForApi
 public interface ArtProfileMethodRuleBuilder {
 
   ArtProfileMethodRuleBuilder setMethodReference(MethodReference methodReference);

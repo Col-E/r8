@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
@@ -23,7 +24,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-@Keep
+@KeepForApi
 public class GenerateMainDexListCommand extends BaseCommand {
 
   private final List<ProguardConfigurationRule> mainDexKeepRules;
@@ -32,7 +33,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
   private final DexItemFactory factory;
   private final Reporter reporter;
 
-  @Keep
+  @KeepForApi
   public static class Builder extends BaseCommand.Builder<GenerateMainDexListCommand, Builder> {
 
     private final DexItemFactory factory = new DexItemFactory();

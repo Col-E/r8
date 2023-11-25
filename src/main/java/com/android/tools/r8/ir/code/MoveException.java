@@ -62,6 +62,7 @@ public class MoveException extends Instruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     if (!other.isMoveException()) {
       return false;

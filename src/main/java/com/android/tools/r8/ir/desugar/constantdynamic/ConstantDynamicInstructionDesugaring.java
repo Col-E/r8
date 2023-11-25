@@ -49,6 +49,7 @@ public class ConstantDynamicInstructionDesugaring implements CfInstructionDesuga
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (!instruction.isConstDynamic()) {
       return DesugarDescription.nothing();
@@ -96,6 +97,7 @@ public class ConstantDynamicInstructionDesugaring implements CfInstructionDesuga
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context1,
                 methodProcessingContext,

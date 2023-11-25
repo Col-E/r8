@@ -433,6 +433,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context1,
                   methodProcessingContext,
@@ -482,6 +483,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context12,
                 methodProcessingContext,
@@ -528,6 +530,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context1,
                 methodProcessingContext,
@@ -541,6 +544,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         .build();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DesugarDescription computeInvokeDirect(
       DexClass clazz, CfInvoke invoke, ProgramMethod context) {
     DexMethod invokedMethod = invoke.getMethod();
@@ -575,6 +579,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context1,
                   methodProcessingContext,
@@ -615,6 +620,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
             .setDesugarRewrite(
                 (freshLocalProvider,
                     localStackAllocator,
+                    desugaringInfo,
                     eventConsumer,
                     context12,
                     methodProcessingContext,
@@ -692,6 +698,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DesugarDescription rewriteInvokeSuper(CfInvoke invoke, ProgramMethod context) {
     DexMethod invokedMethod = invoke.getMethod();
     DexClass clazz = appView.definitionFor(invokedMethod.holder, context);
@@ -734,6 +741,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
             .setDesugarRewrite(
                 (freshLocalProvider,
                     localStackAllocator,
+                    desugaringInfo,
                     eventConsumer,
                     context1,
                     methodProcessingContext,
@@ -757,6 +765,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
             .setDesugarRewrite(
                 (freshLocalProvider,
                     localStackAllocator,
+                    desugaringInfo,
                     eventConsumer,
                     context12,
                     methodProcessingContext,
@@ -821,6 +830,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
               .setDesugarRewrite(
                   (freshLocalProvider,
                       localStackAllocator,
+                      desugaringInfo,
                       eventConsumer,
                       context13,
                       methodProcessingContext,
@@ -848,6 +858,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context14,
                 methodProcessingContext,

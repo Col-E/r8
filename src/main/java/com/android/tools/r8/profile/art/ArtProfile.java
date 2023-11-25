@@ -89,6 +89,7 @@ public class ArtProfile implements AbstractProfile<ArtProfileClassRule, ArtProfi
     return (ArtProfileMethodRule) rules.get(method);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public int size() {
     return rules.size();
   }
@@ -111,6 +112,7 @@ public class ArtProfile implements AbstractProfile<ArtProfileClassRule, ArtProfi
                         methodRuleInfoBuilder.merge(methodRule.getMethodRuleInfo())));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public ArtProfile rewrittenWithLens(AppView<?> appView, EnumUnboxingLens lens) {
     return transform(
         (classRule, classRuleBuilderFactory) -> {

@@ -14,10 +14,11 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
-import com.android.tools.r8.graph.lens.NestedGraphLens;
+import com.android.tools.r8.graph.lens.NestedGraphLensWithCustomLensCodeRewriter;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
@@ -43,7 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class EnumUnboxingLens extends NestedGraphLens {
+public class EnumUnboxingLens extends NestedGraphLensWithCustomLensCodeRewriter {
 
   private final AbstractValueFactory abstractValueFactory;
   private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod;
@@ -67,11 +68,6 @@ public class EnumUnboxingLens extends NestedGraphLens {
   }
 
   @Override
-  public boolean hasCustomCodeRewritings() {
-    return true;
-  }
-
-  @Override
   public boolean isEnumUnboxerLens() {
     return true;
   }
@@ -79,6 +75,10 @@ public class EnumUnboxingLens extends NestedGraphLens {
   @Override
   public EnumUnboxingLens asEnumUnboxerLens() {
     return this;
+  }
+
+  public EnumDataMap getUnboxedEnums() {
+    return unboxedEnums;
   }
 
   @Override
@@ -91,6 +91,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean verifyIsContextFreeForMethod(DexMethod method, GraphLens codeLens) {
     if (codeLens == this) {
       return true;
@@ -134,6 +135,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public MethodLookupResult internalDescribeLookupMethod(
       MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
     assert context != null || verifyIsContextFreeForMethod(previous.getReference(), codeLens);
@@ -174,6 +176,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   protected RewrittenPrototypeDescription internalDescribePrototypeChanges(
       RewrittenPrototypeDescription prototypeChanges, DexMethod method) {
     // Rewrite the single value of the given RewrittenPrototypeDescription if it is referring to an
@@ -209,13 +212,14 @@ public class EnumUnboxingLens extends NestedGraphLens {
       SingleFieldValue singleFieldValue = singleValue.asSingleFieldValue();
       if (unboxedEnums.hasUnboxedValueFor(singleFieldValue.getField())) {
         return abstractValueFactory.createSingleNumberValue(
-            unboxedEnums.getUnboxedValue(singleFieldValue.getField()));
+            unboxedEnums.getUnboxedValue(singleFieldValue.getField()), TypeElement.getInt());
       }
     }
     return singleValue;
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   protected InvokeType mapInvocationType(
       DexMethod newMethod, DexMethod originalMethod, InvokeType type) {
     if (typeMap.containsKey(originalMethod.getHolderType())) {
@@ -261,6 +265,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
       return this;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public void move(DexField from, DexField to) {
       if (from == to) {
         return;
@@ -308,6 +313,7 @@ public class EnumUnboxingLens extends NestedGraphLens {
       return prototypeChanges;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private RewrittenPrototypeDescription computePrototypeChanges(
         DexMethod from,
         DexMethod to,
@@ -376,7 +382,8 @@ public class EnumUnboxingLens extends NestedGraphLens {
           originalCheckNotNullMethodSignature, checkNotNullMethod.getReference());
     }
 
-    public EnumUnboxingLens build(AppView<?> appView, Set<DexMethod> dispatchMethods) {
+    public EnumUnboxingLens build(
+        AppView<AppInfoWithLiveness> appView, Set<DexMethod> dispatchMethods) {
       assert !typeMap.isEmpty();
       return new EnumUnboxingLens(
           appView,

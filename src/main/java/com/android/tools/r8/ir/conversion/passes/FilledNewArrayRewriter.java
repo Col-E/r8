@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.ir.conversion.passes;
 
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.passes.result.CodeRewriterResult;
 import com.android.tools.r8.utils.InternalOptions.RewriteArrayOptions;
@@ -52,7 +53,7 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "FilledNewArrayRemover";
   }
 
@@ -113,6 +114,7 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
     return CodeRewriterResult.HAS_CHANGED;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean canUseNewArrayFilled(NewArrayFilled newArrayFilled) {
     if (!options.isGeneratingDex()) {
       return false;
@@ -167,6 +169,7 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean canStoreElementInNewArrayFilled(TypeElement valueType, DexType elementType) {
     if (elementType == dexItemFactory.objectType) {
       return true;
@@ -301,13 +304,15 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
 
   private static class ConstantMaterializingInstructionCache {
 
-    // All DEX aput instructions takes an 8-bit wide register value for the source.
-    private final int MAX_MATERIALIZING_CONSTANTS = Constants.U8BIT_MAX - 16;
+    private final RewriteArrayOptions rewriteArrayOptions;
+
     // Track constants as DexItems, DexString for string constants and DexType for class constants.
     private final Map<DexItem, Integer> constantOccurrences = new IdentityHashMap<>();
     private final Map<DexItem, Value> constantValue = new IdentityHashMap<>();
 
-    private ConstantMaterializingInstructionCache(NewArrayFilled newArrayFilled) {
+    private ConstantMaterializingInstructionCache(
+        RewriteArrayOptions rewriteArrayOptions, NewArrayFilled newArrayFilled) {
+      this.rewriteArrayOptions = rewriteArrayOptions;
       for (Value elementValue : newArrayFilled.inValues()) {
         if (elementValue.hasAnyUsers()) {
           continue;
@@ -316,6 +321,8 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
           addOccurrence(elementValue.getDefinition().asConstString().getValue());
         } else if (elementValue.isConstClass()) {
           addOccurrence(elementValue.getDefinition().asConstClass().getValue());
+        } else if (elementValue.isDefinedByInstructionSatisfying(Instruction::isStaticGet)) {
+          addOccurrence(elementValue.getDefinition().asStaticGet().getField());
         }
         // Don't canonicalize numbers, as on DEX FilledNewArray is supported for primitives
         // on all versions.
@@ -337,25 +344,45 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
           seenOcourence(type);
           return value;
         }
+      } else if (elementValue.isDefinedByInstructionSatisfying(Instruction::isStaticGet)) {
+        DexField field = elementValue.getDefinition().asStaticGet().getField();
+        Value value = constantValue.get(field);
+        if (value != null) {
+          seenOcourence(field);
+          return value;
+        }
       }
       return null;
     }
 
+    // Order: String > field > class.
     private DexItem smallestConstant(DexItem c1, DexItem c2) {
       if (c1 instanceof DexString) {
         if (c2 instanceof DexString) {
           return ((DexString) c1).compareTo((DexString) c2) < 0 ? c1 : c2;
         } else {
-          assert c2 instanceof DexType;
-          return c2; // String larger than class.
+          assert c2 instanceof DexField || c2 instanceof DexType;
+          return c2; // String larger than field and class.
+        }
+      } else if (c1 instanceof DexField) {
+        if (c2 instanceof DexField) {
+          return ((DexField) c1).compareTo((DexField) c2) < 0 ? c1 : c2;
+        } else {
+          // Field less than string, larger than class
+          if (c2 instanceof DexString) {
+            return c1;
+          } else {
+            assert c2 instanceof DexType;
+            return c2;
+          }
         }
       } else {
         assert c1 instanceof DexType;
         if (c2 instanceof DexType) {
           return ((DexType) c1).compareTo((DexType) c2) < 0 ? c1 : c2;
         } else {
-          assert c2 instanceof DexString;
-          return c1; // String larger than class.
+          assert c2 instanceof DexString || c2 instanceof DexField;
+          return c1; // Class less than string and field.
         }
       }
     }
@@ -364,6 +391,8 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
       Instruction instruction = value.getDefinition();
       if (instruction.isConstString()) {
         return instruction.asConstString().getValue();
+      } else if (instruction.isStaticGet()) {
+        return instruction.asStaticGet().getField();
       } else {
         assert instruction.isConstClass();
         return instruction.asConstClass().getValue();
@@ -374,10 +403,10 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
       DexItem constant = getConstant(value);
       assert constantOccurrences.containsKey(constant);
       assert !constantValue.containsKey(constant);
-      if (constantValue.size() < MAX_MATERIALIZING_CONSTANTS) {
+      if (constantValue.size() < rewriteArrayOptions.maxMaterializingConstants) {
         constantValue.put(constant, value);
       } else {
-        assert constantValue.size() == MAX_MATERIALIZING_CONSTANTS;
+        assert constantValue.size() == rewriteArrayOptions.maxMaterializingConstants;
         // Find the least valuable active constant.
         int leastOccurrences = Integer.MAX_VALUE;
         DexItem valueWithLeastOccurrences = null;
@@ -401,7 +430,7 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
           constantValue.remove(valueWithLeastOccurrences);
           constantValue.put(constant, value);
         }
-        assert constantValue.size() == MAX_MATERIALIZING_CONSTANTS;
+        assert constantValue.size() == rewriteArrayOptions.maxMaterializingConstants;
       }
       seenOcourence(constant);
     }
@@ -435,7 +464,7 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
     NewArrayEmpty newArrayEmpty = rewriteToNewArrayEmpty(code, instructionIterator, newArrayFilled);
 
     ConstantMaterializingInstructionCache constantMaterializingInstructionCache =
-        new ConstantMaterializingInstructionCache(newArrayFilled);
+        new ConstantMaterializingInstructionCache(rewriteArrayOptions, newArrayFilled);
 
     int index = 0;
     for (Value elementValue : newArrayFilled.inValues()) {
@@ -482,25 +511,29 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
     if (elementValue.hasAnyUsers()
         || !(elementValue.isConstString()
             || elementValue.isConstNumber()
-            || elementValue.isConstClass())) {
+            || elementValue.isConstClass()
+            || elementValue.isDefinedByInstructionSatisfying(Instruction::isStaticGet))) {
       return elementValue;
     }
 
     Value existingValue = constantMaterializingInstructionCache.getValue(elementValue);
     if (existingValue != null) {
-      addToRemove(elementValue.definition);
+      addToRemove(elementValue.getDefinition());
       return existingValue;
     }
 
     Instruction copy;
     if (elementValue.isConstNumber()) {
-      copy = ConstNumber.copyOf(code, elementValue.definition.asConstNumber());
+      copy = ConstNumber.copyOf(code, elementValue.getDefinition().asConstNumber());
     } else if (elementValue.isConstString()) {
-      copy = ConstString.copyOf(code, elementValue.definition.asConstString());
+      copy = ConstString.copyOf(code, elementValue.getDefinition().asConstString());
       constantMaterializingInstructionCache.putNewValue(copy.asConstString().outValue());
     } else if (elementValue.isConstClass()) {
-      copy = ConstClass.copyOf(code, elementValue.definition.asConstClass());
+      copy = ConstClass.copyOf(code, elementValue.getDefinition().asConstClass());
       constantMaterializingInstructionCache.putNewValue(copy.asConstClass().outValue());
+    } else if (elementValue.isDefinedByInstructionSatisfying(Instruction::isStaticGet)) {
+      copy = StaticGet.copyOf(code, elementValue.getDefinition().asStaticGet());
+      constantMaterializingInstructionCache.putNewValue(copy.asStaticGet().outValue());
     } else {
       assert false;
       return elementValue;
@@ -508,7 +541,7 @@ public class FilledNewArrayRewriter extends CodeRewriterPass<AppInfo> {
     copy.setBlock(instructionIterator.getBlock());
     copy.setPosition(newArrayEmpty.getPosition());
     instructionIterator.add(copy);
-    addToRemove(elementValue.definition);
+    addToRemove(elementValue.getDefinition());
     return copy.outValue();
   }
 

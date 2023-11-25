@@ -106,6 +106,7 @@ public class EnumValuesObjectState extends ObjectState {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object o) {
     if (getClass() != o.getClass()) {
       return false;
@@ -133,6 +134,7 @@ public class EnumValuesObjectState extends ObjectState {
           : new VariableObjectClassForOrdinal(valuesClass);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     static boolean sameType(DexType[] valuesClass) {
       DexType defaultType = valuesClass[0];
       for (DexType type : valuesClass) {
@@ -184,6 +186,7 @@ public class EnumValuesObjectState extends ObjectState {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean equals(Object obj) {
       if (!(obj instanceof UniformObjectClassForOrdinal)) {
         return false;

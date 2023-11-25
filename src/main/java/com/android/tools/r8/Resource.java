@@ -4,22 +4,23 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 
 /**
  * Base interface for application resources.
  *
- * Resources are inputs to the compilation that are provided from outside sources, e.g., the
- * command-line interface or API clients such as gradle. Each resource has an associated
- * {@link Origin} which is some opaque description of where the resource comes from. The D8/R8
- * compiler does not assume any particular structure of origin and does not rely on it for
- * compilation. The origin will be provided to diagnostics handlers so that they may detail what
- * resource was cause of some particular error.
+ * <p>Resources are inputs to the compilation that are provided from outside sources, e.g., the
+ * command-line interface or API clients such as gradle. Each resource has an associated {@link
+ * Origin} which is some opaque description of where the resource comes from. The D8/R8 compiler
+ * does not assume any particular structure of origin and does not rely on it for compilation. The
+ * origin will be provided to diagnostics handlers so that they may detail what resource was cause
+ * of some particular error.
  *
- * The D8/R8 compilers uses default implementations for various file-system resources, but the
+ * <p>The D8/R8 compilers uses default implementations for various file-system resources, but the
  * client is free to provide their own.
  */
-@KeepForSubclassing
+@KeepForApi
 public interface Resource {
   /**
    * Get the origin of the resource.

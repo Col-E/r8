@@ -14,22 +14,22 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
+import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 
 /**
- * Equivalent to the {@link InliningReasonStrategy} in {@link #parent} except for invocations to
- * dynamicMethod().
+ * Equivalent to the {@link InliningReasonStrategy} in {@link #parent} except for invocations
+ * to @SuppressWarnings("UnusedVariable") dynamicMethod().
  */
 public class ProtoInliningReasonStrategy implements InliningReasonStrategy {
 
   private static final int METHOD_TO_INVOKE_ARGUMENT_POSITION_IN_DYNAMIC_METHOD = 1;
 
-  private final AppView<?> appView;
   private final InliningReasonStrategy parent;
   private final ProtoReferences references;
 
   public ProtoInliningReasonStrategy(AppView<?> appView, InliningReasonStrategy parent) {
-    this.appView = appView;
     this.parent = parent;
     this.references = appView.protoShrinker().references;
   }
@@ -40,7 +40,9 @@ public class ProtoInliningReasonStrategy implements InliningReasonStrategy {
       ProgramMethod target,
       ProgramMethod context,
       DefaultInliningOracle oracle,
-      MethodProcessor methodProcessor) {
+      InliningIRProvider inliningIRProvider,
+      MethodProcessor methodProcessor,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     if (references.isAbstractGeneratedMessageLiteBuilder(context.getHolder())
         && invoke.isInvokeSuper()) {
       // Aggressively inline invoke-super calls inside the GeneratedMessageLite builders. Such
@@ -50,9 +52,17 @@ public class ProtoInliningReasonStrategy implements InliningReasonStrategy {
     }
     return references.isDynamicMethod(target) || references.isDynamicMethodBridge(target)
         ? computeInliningReasonForDynamicMethod(invoke, target, context)
-        : parent.computeInliningReason(invoke, target, context, oracle, methodProcessor);
+        : parent.computeInliningReason(
+            invoke,
+            target,
+            context,
+            oracle,
+            inliningIRProvider,
+            methodProcessor,
+            whyAreYouNotInliningReporter);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private Reason computeInliningReasonForDynamicMethod(
       InvokeMethod invoke, ProgramMethod target, ProgramMethod context) {
     // Do not allow inlining of dynamicMethod() into a proto library class. This should only happen

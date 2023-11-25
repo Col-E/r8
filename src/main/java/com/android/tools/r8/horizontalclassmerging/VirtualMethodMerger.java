@@ -124,7 +124,8 @@ public class VirtualMethodMerger {
             group.getTarget().getType(),
             classMethodsBuilder::isFresh);
 
-    DexEncodedMethod encodedMethod = oldMethod.getDefinition().toTypeSubstitutedMethod(method);
+    DexEncodedMethod encodedMethod =
+        oldMethod.getDefinition().toTypeSubstitutedMethodAsInlining(method, dexItemFactory);
     MethodAccessFlags flags = encodedMethod.getAccessFlags();
     flags.unsetProtected();
     flags.unsetPublic();
@@ -200,6 +201,7 @@ public class VirtualMethodMerger {
    * If there is only a single method that does not override anything then it is safe to just move
    * it to the target type if it is not already in it.
    */
+  @SuppressWarnings("ReferenceEquality")
   private void mergeTrivial(
       ClassMethodsBuilder classMethodsBuilder, HorizontalClassMergerGraphLens.Builder lensBuilder) {
     DexMethod newMethodReference = getNewMethodReference();
@@ -234,8 +236,9 @@ public class VirtualMethodMerger {
       newMethod =
           representative
               .getDefinition()
-              .toTypeSubstitutedMethod(
+              .toTypeSubstitutedMethodAsInlining(
                   newMethodReference,
+                  dexItemFactory,
                   builder -> builder.setIsLibraryMethodOverrideIfKnown(isLibraryMethodOverride));
     }
 

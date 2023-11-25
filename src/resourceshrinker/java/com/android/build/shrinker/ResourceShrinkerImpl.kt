@@ -243,7 +243,7 @@ class ResourceShrinkerImpl(
         }
         zos.putNextEntry(outEntry)
         if (!entry.isDirectory) {
-            zos.write(ByteStreams.toByteArray(zis))
+            zis.transferTo(zos);
         }
         zos.closeEntry()
     }
@@ -299,6 +299,11 @@ private fun ResourceStore.isJarPathReachable(
         .filterNot { it == ResourceType.ID }
         .flatMap { getResources(it, resourceName) }
         .any { it.isReachable }
+}
+
+fun ResourceStore.isJarPathReachable(path: String) : Boolean {
+    val (_, folder, name) = path.split('/', limit = 3)
+    return isJarPathReachable(folder, name);
 }
 
 private fun ResourceStore.getResourceId(

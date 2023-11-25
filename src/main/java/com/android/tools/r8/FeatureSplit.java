@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,11 +28,11 @@ import java.util.List;
  *     .build();
  * </pre>
  */
-@Keep
+@KeepForApi
 public class FeatureSplit {
 
   public static final FeatureSplit BASE =
-      new FeatureSplit(null, null) {
+      new FeatureSplit(null, null, null, null) {
         @Override
         public boolean isBase() {
           return true;
@@ -39,7 +40,7 @@ public class FeatureSplit {
       };
 
   public static final FeatureSplit BASE_STARTUP =
-      new FeatureSplit(null, null) {
+      new FeatureSplit(null, null, null, null) {
         @Override
         public boolean isBase() {
           return true;
@@ -51,13 +52,20 @@ public class FeatureSplit {
         }
       };
 
-  private final ProgramConsumer programConsumer;
+  private ProgramConsumer programConsumer;
   private final List<ProgramResourceProvider> programResourceProviders;
+  private final AndroidResourceProvider androidResourceProvider;
+  private final AndroidResourceConsumer androidResourceConsumer;
 
   private FeatureSplit(
-      ProgramConsumer programConsumer, List<ProgramResourceProvider> programResourceProviders) {
+      ProgramConsumer programConsumer,
+      List<ProgramResourceProvider> programResourceProviders,
+      AndroidResourceProvider androidResourceProvider,
+      AndroidResourceConsumer androidResourceConsumer) {
     this.programConsumer = programConsumer;
     this.programResourceProviders = programResourceProviders;
+    this.androidResourceProvider = androidResourceProvider;
+    this.androidResourceConsumer = androidResourceConsumer;
   }
 
   public boolean isBase() {
@@ -66,6 +74,10 @@ public class FeatureSplit {
 
   public boolean isStartupBase() {
     return false;
+  }
+
+  void internalSetProgramConsumer(ProgramConsumer consumer) {
+    this.programConsumer = consumer;
   }
 
   public List<ProgramResourceProvider> getProgramResourceProviders() {
@@ -80,16 +92,29 @@ public class FeatureSplit {
     return new Builder(handler);
   }
 
+  public AndroidResourceProvider getAndroidResourceProvider() {
+    return androidResourceProvider;
+  }
+
+  public AndroidResourceConsumer getAndroidResourceConsumer() {
+    return androidResourceConsumer;
+  }
+
   /**
    * Builder for constructing a FeatureSplit.
    *
    * <p>A builder is obtained by calling addFeatureSplit on a {@link R8Command.Builder}.
    */
-  @Keep
+  @KeepForApi
   public static class Builder {
     private ProgramConsumer programConsumer;
     private final List<ProgramResourceProvider> programResourceProviders = new ArrayList<>();
+    private AndroidResourceProvider androidResourceProvider;
+    private AndroidResourceConsumer androidResourceConsumer;
+
+    @SuppressWarnings("UnusedVariable")
     private final DiagnosticsHandler handler;
+
 
     private Builder(DiagnosticsHandler handler) {
       this.handler = handler;
@@ -118,9 +143,23 @@ public class FeatureSplit {
       return this;
     }
 
+    public Builder setAndroidResourceProvider(AndroidResourceProvider androidResourceProvider) {
+      this.androidResourceProvider = androidResourceProvider;
+      return this;
+    }
+
+    public Builder setAndroidResourceConsumer(AndroidResourceConsumer androidResourceConsumer) {
+      this.androidResourceConsumer = androidResourceConsumer;
+      return this;
+    }
+
     /** Build and return the {@link FeatureSplit} */
     public FeatureSplit build() {
-      return new FeatureSplit(programConsumer, programResourceProviders);
+      return new FeatureSplit(
+          programConsumer,
+          programResourceProviders,
+          androidResourceProvider,
+          androidResourceConsumer);
     }
   }
 }

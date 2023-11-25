@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.origin.Origin;
 import java.util.IdentityHashMap;
@@ -20,6 +21,7 @@ public class InliningIRProvider {
 
   private final AppView<?> appView;
   private final ProgramMethod context;
+  private final LensCodeRewriter lensCodeRewriter;
   private final NumberGenerator valueNumberGenerator;
   private final MethodProcessor methodProcessor;
 
@@ -28,14 +30,20 @@ public class InliningIRProvider {
   private InliningIRProvider() {
     this.appView = null;
     this.context = null;
+    this.lensCodeRewriter = null;
     this.valueNumberGenerator = null;
     this.methodProcessor = null;
   }
 
   public InliningIRProvider(
-      AppView<?> appView, ProgramMethod context, IRCode code, MethodProcessor methodProcessor) {
+      AppView<?> appView,
+      ProgramMethod context,
+      IRCode code,
+      LensCodeRewriter lensCodeRewriter,
+      MethodProcessor methodProcessor) {
     this.appView = appView;
     this.context = context;
+    this.lensCodeRewriter = lensCodeRewriter;
     this.valueNumberGenerator = code.valueNumberGenerator;
     this.methodProcessor = methodProcessor;
   }
@@ -66,11 +74,6 @@ public class InliningIRProvider {
       public boolean verifyIRCacheIsEmpty() {
         throw new Unreachable();
       }
-
-      @Override
-      public boolean shouldApplyCodeRewritings(ProgramMethod method) {
-        throw new Unreachable();
-      }
     };
   }
 
@@ -80,13 +83,18 @@ public class InliningIRProvider {
       return cached;
     }
     Origin origin = method.getOrigin();
-    return method.buildInliningIR(
-        context,
-        appView,
-        valueNumberGenerator,
-        Position.getPositionForInlining(appView, invoke, context),
-        origin,
-        methodProcessor);
+    IRCode code =
+        method.buildInliningIR(
+            context,
+            appView,
+            valueNumberGenerator,
+            Position.getPositionForInlining(invoke, context),
+            origin,
+            methodProcessor);
+    if (lensCodeRewriter != null && methodProcessor.shouldApplyCodeRewritings(method)) {
+      lensCodeRewriter.rewrite(code, method, methodProcessor);
+    }
+    return code;
   }
 
   public IRCode getAndCacheInliningIR(InvokeMethod invoke, ProgramMethod method) {
@@ -107,9 +115,5 @@ public class InliningIRProvider {
   public boolean verifyIRCacheIsEmpty() {
     assert cache.isEmpty();
     return true;
-  }
-
-  public boolean shouldApplyCodeRewritings(ProgramMethod method) {
-    return methodProcessor.shouldApplyCodeRewritings(method);
   }
 }

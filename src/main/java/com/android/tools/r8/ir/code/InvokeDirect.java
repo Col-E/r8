@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.graph.DexEncodedMethod.asDexClassAndMethodOrNull;
-
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.code.DexInstruction;
@@ -12,7 +10,6 @@ import com.android.tools.r8.dex.code.DexInvokeDirect;
 import com.android.tools.r8.dex.code.DexInvokeDirectRange;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -23,7 +20,6 @@ import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssu
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.modeling.LibraryMethodReadSetModeling;
-import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
@@ -134,25 +130,6 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   @Override
   public InvokeDirect asInvokeDirect() {
     return this;
-  }
-
-  @Override
-  public DexClassAndMethod lookupSingleTarget(
-      AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType) {
-    DexMethod invokedMethod = getInvokedMethod();
-    DexEncodedMethod result;
-    if (appView.hasLiveness()) {
-      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      AppInfoWithLiveness appInfo = appViewWithLiveness.appInfo();
-      result = appInfo.lookupDirectTarget(invokedMethod, context, appViewWithLiveness);
-      assert verifyD8LookupResult(
-          result, appView.appInfo().lookupDirectTargetOnItself(invokedMethod, context));
-    } else {
-      // In D8, we can treat invoke-direct instructions as having a single target if the invoke is
-      // targeting a method in the enclosing class.
-      result = appView.appInfo().lookupDirectTargetOnItself(invokedMethod, context);
-    }
-    return asDexClassAndMethodOrNull(result, appView);
   }
 
   @Override

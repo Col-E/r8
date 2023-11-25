@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 /** Tool to verify various aspects of class file inputs. */
 public class CfVerifierTool {
 
+  @SuppressWarnings("BadImport")
   public static void main(String[] args) throws IOException {
     Builder builder = AndroidApp.builder();
     for (String arg : args) {

@@ -13,8 +13,8 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.LibraryFilesHelper;
-import com.android.tools.r8.examples.hello.HelloTestRunner;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.Assume;
 import org.junit.BeforeClass;
@@ -33,7 +33,13 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class Java17R8BootstrapTest extends TestBase {
 
-  private static final Class<?> HELLO_CLASS = HelloTestRunner.getHelloClass();
+  static class HelloWorldProgram {
+    public static void main(String[] args) {
+      System.out.println("Hello, world!");
+    }
+  }
+
+  private static final Class<?> HELLO_CLASS = HelloWorldProgram.class;
   private static final String[] HELLO_KEEP = {
     "-keep class " + HELLO_CLASS.getTypeName() + " {  public static void main(...);}"
   };
@@ -77,6 +83,12 @@ public class Java17R8BootstrapTest extends TestBase {
     return new Path[] {ToolHelper.R8_WITH_RELOCATED_DEPS_17_JAR, r8Lib17NoDesugar, r8Lib17Desugar};
   }
 
+  private Path writeHelloProgramJar() throws IOException {
+    Path jar = temp.newFolder().toPath().resolve("hello.jar");
+    writeClassesToJar(jar, HELLO_CLASS);
+    return jar;
+  }
+
   @Test
   public void testHello() throws Exception {
     Assume.assumeTrue(!ToolHelper.isWindows());
@@ -84,7 +96,7 @@ public class Java17R8BootstrapTest extends TestBase {
     Assume.assumeTrue(supportsSealedClassesWhenGeneratingCf());
     Path prevGeneratedJar = null;
     String prevRunResult = null;
-    Path helloJar = HelloTestRunner.writeHelloProgramJar(temp);
+    Path helloJar = writeHelloProgramJar();
     for (Path jar : jarsToCompare()) {
       Path generatedJar =
           testForExternalR8(Backend.CF, parameters.getRuntime())
@@ -119,7 +131,7 @@ public class Java17R8BootstrapTest extends TestBase {
     Assume.assumeTrue(JavaBootstrapUtils.exists(ToolHelper.R8_WITH_RELOCATED_DEPS_17_JAR));
     Assume.assumeTrue(supportsSealedClassesWhenGeneratingCf());
     Path prevGeneratedJar = null;
-    Path helloJar = HelloTestRunner.writeHelloProgramJar(temp);
+    Path helloJar = writeHelloProgramJar();
     for (Path jar : jarsToCompare()) {
       Path generatedJar =
           testForExternalR8(Backend.CF, parameters.getRuntime())

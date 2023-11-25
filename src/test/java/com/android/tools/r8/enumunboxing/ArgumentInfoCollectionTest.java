@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.graph.proto.RemovedArgumentInfo;
 import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
+import com.android.tools.r8.utils.InternalOptions;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -127,21 +128,22 @@ public class ArgumentInfoCollectionTest extends TestBase {
 
   @Test
   public void testCombineRemoveRewritten() {
-    DexItemFactory factory = new DexItemFactory();
-    AbstractValueFactory abstractValueFactory = new AbstractValueFactory();
+    InternalOptions options = new InternalOptions();
+    DexItemFactory factory = options.dexItemFactory();
+    AbstractValueFactory abstractValueFactory = new AbstractValueFactory(options);
 
     ArgumentInfoCollection.Builder builder1 = ArgumentInfoCollection.builder();
     builder1.addArgumentInfo(
         1,
         RemovedArgumentInfo.builder()
             .setType(factory.intType)
-            .setSingleValue(abstractValueFactory.createNullValue())
+            .setSingleValue(abstractValueFactory.createZeroValue())
             .build());
     builder1.addArgumentInfo(
         3,
         RemovedArgumentInfo.builder()
             .setType(factory.intType)
-            .setSingleValue(abstractValueFactory.createNullValue())
+            .setSingleValue(abstractValueFactory.createZeroValue())
             .build());
     ArgumentInfoCollection arguments1 = builder1.setArgumentInfosSize(5).build();
 

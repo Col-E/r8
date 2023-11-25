@@ -5,16 +5,15 @@
 package com.android.tools.r8.optimize.argumentpropagation;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DefaultUseRegistryWithResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistryWithResult;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
@@ -109,6 +108,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
     }
   }
 
+  @SuppressWarnings("HidingField")
   // TODO(b/190154391): This could invalidate the @NeverReprocessMethod testing annotations (non
   //  critical). If @NeverReprocessMethod is used, we would need to scan the application to mark
   //  methods as unoptimizable prior to removing parameters from the application.
@@ -137,23 +137,25 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
                   });
               return methodsToReprocessInClass;
             },
+            appView.options().getThreadingModule(),
             executorService);
     methodsToReprocess.forEach(
         methodsToReprocessInClass ->
             postMethodProcessorBuilder.addAll(methodsToReprocessInClass, currentGraphLens));
   }
 
-  static class AffectedMethodUseRegistry extends UseRegistryWithResult<Boolean, ProgramMethod> {
+  static class AffectedMethodUseRegistry
+      extends DefaultUseRegistryWithResult<Boolean, ProgramMethod> {
 
-    private final AppView<AppInfoWithLiveness> appView;
+    private final AppView<AppInfoWithLiveness> appViewWithLiveness;
     private final ArgumentPropagatorGraphLens graphLens;
 
     AffectedMethodUseRegistry(
-        AppView<AppInfoWithLiveness> appView,
+        AppView<AppInfoWithLiveness> appViewWithLiveness,
         ProgramMethod context,
         ArgumentPropagatorGraphLens graphLens) {
-      super(appView, context, false);
-      this.appView = appView;
+      super(appViewWithLiveness, context, false);
+      this.appViewWithLiveness = appViewWithLiveness;
       this.graphLens = graphLens;
     }
 
@@ -186,9 +188,13 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
       registerInvokeMethod(method);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void registerInvokeMethod(DexMethod method) {
       SingleResolutionResult<?> resolutionResult =
-          appView.appInfo().unsafeResolveMethodDueToDexFormatLegacy(method).asSingleResolution();
+          appViewWithLiveness
+              .appInfo()
+              .unsafeResolveMethodDueToDexFormatLegacy(method)
+              .asSingleResolution();
       if (resolutionResult == null || !resolutionResult.getResolvedHolder().isProgramClass()) {
         return;
       }
@@ -222,8 +228,9 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
       registerFieldAccess(field);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void registerFieldAccess(DexField field) {
-      FieldResolutionResult resolutionResult = appView.appInfo().resolveField(field);
+      FieldResolutionResult resolutionResult = appViewWithLiveness.appInfo().resolveField(field);
       if (resolutionResult.getSingleProgramField() == null) {
         return;
       }
@@ -235,11 +242,5 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
         markAffected();
       }
     }
-
-    @Override
-    public void registerInitClass(DexType type) {}
-
-    @Override
-    public void registerTypeReference(DexType type) {}
   }
 }

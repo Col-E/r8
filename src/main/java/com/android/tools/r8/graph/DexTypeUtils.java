@@ -19,6 +19,7 @@ public class DexTypeUtils {
     return findApiSafeUpperBound(appView, toDexType(appView, join));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static DexType toDexType(
       AppView<? extends AppInfoWithClassHierarchy> appView, TypeElement type) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();

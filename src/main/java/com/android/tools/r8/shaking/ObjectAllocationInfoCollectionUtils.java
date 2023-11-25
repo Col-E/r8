@@ -20,6 +20,7 @@ public class ObjectAllocationInfoCollectionUtils {
         appView, type, appView.appInfo().getObjectAllocationInfoCollection());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean mayHaveFinalizeMethodDirectlyOrIndirectly(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ClassTypeElement type,
@@ -35,6 +36,7 @@ public class ObjectAllocationInfoCollectionUtils {
         appView, type.getClassType(), objectAllocationInfoCollection);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean mayHaveFinalizeMethodDirectlyOrIndirectly(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       DexType type,

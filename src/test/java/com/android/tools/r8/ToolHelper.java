@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.ToolHelper.TestDataSourceSet.computeLegacyOrGradleSpecifiedLocation;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
@@ -11,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
+import com.android.tools.r8.ResourceShrinker.ReferenceChecker;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
@@ -39,6 +41,7 @@ import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
@@ -68,6 +71,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -80,6 +84,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -94,27 +99,57 @@ import org.junit.rules.TemporaryFolder;
 
 public class ToolHelper {
 
-  public static boolean isNewGradleSetup() {
-    return "true".equals(System.getenv("USE_NEW_GRADLE_SETUP"));
-  }
-
   public static String getProjectRoot() {
     String current = System.getProperty("user.dir");
-    if (!current.contains("test_modules")) {
+    if (!current.contains("d8_r8")) {
       return "";
     }
-    while (current.contains("test_modules")) {
+    while (current.contains("d8_r8")) {
       current = Paths.get(current).getParent().toString();
     }
-    return Paths.get(current).getParent().toString() + "/";
+    return current + "/";
+  }
+
+  public enum TestDataSourceSet {
+    LEGACY(null),
+    TESTS_JAVA_8("tests_java_8/build/classes/java/test"),
+    TESTS_BOOTSTRAP("tests_bootstrap/build/classes/java/test"),
+    SPECIFIED_BY_GRADLE_PROPERTY(null);
+
+    private final String destination;
+
+    TestDataSourceSet(String destination) {
+      this.destination = destination;
+    }
+
+    public boolean isLegacy() {
+      return this == LEGACY;
+    }
+
+    public boolean isSpecifiedByGradleProperty() {
+      return this == SPECIFIED_BY_GRADLE_PROPERTY;
+    }
+
+    public Path getBuildDir() {
+      if (isLegacy()) {
+        return Paths.get(BUILD_DIR, "classes", "java", "test");
+      } else if (isSpecifiedByGradleProperty()) {
+        assert System.getProperty("TEST_DATA_LOCATION") != null;
+        return Paths.get(System.getProperty("TEST_DATA_LOCATION"));
+      } else {
+        return Paths.get(getProjectRoot(), "d8_r8", "test_modules", destination);
+      }
+    }
+
+    public static TestDataSourceSet computeLegacyOrGradleSpecifiedLocation() {
+      return TestDataSourceSet.SPECIFIED_BY_GRADLE_PROPERTY;
+    }
   }
 
   public static final String SOURCE_DIR = getProjectRoot() + "src/";
   public static final String MAIN_SOURCE_DIR = getProjectRoot() + "src/main/java/";
   public static final String LIBRARY_DESUGAR_SOURCE_DIR = getProjectRoot() + "src/library_desugar/";
   public static final String BUILD_DIR = getProjectRoot() + "build/";
-  public static final String TEST_MODULE_DIR = getProjectRoot() + "d8_r8/test_modules/";
-  public static final String GENERATED_TEST_BUILD_DIR = BUILD_DIR + "generated/test/";
   public static final String LIBS_DIR = BUILD_DIR + "libs/";
   public static final String THIRD_PARTY_DIR = getProjectRoot() + "third_party/";
   public static final String DEPENDENCIES = THIRD_PARTY_DIR + "dependencies/";
@@ -125,44 +160,35 @@ public class ToolHelper {
   public static final String EXAMPLES_DIR = TESTS_DIR + "examples/";
   public static final String EXAMPLES_ANDROID_O_DIR = TESTS_DIR + "examplesAndroidO/";
   public static final String EXAMPLES_ANDROID_P_DIR = TESTS_DIR + "examplesAndroidP/";
-  public static final String TESTS_BUILD_DIR = BUILD_DIR + "test/";
-  public static final String EXAMPLES_BUILD_DIR = TESTS_BUILD_DIR + "examples/";
+  public static final String EXAMPLES_BUILD_DIR = THIRD_PARTY_DIR + "examples/";
   public static final String EXAMPLES_CF_DIR = EXAMPLES_BUILD_DIR + "classes/";
-  public static final String EXAMPLES_ANDROID_N_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidN/";
-  public static final String EXAMPLES_ANDROID_O_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidO/";
-  public static final String EXAMPLES_ANDROID_P_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidP/";
+  public static final String EXAMPLES_ANDROID_N_BUILD_DIR = THIRD_PARTY_DIR + "examplesAndroidN/";
+  public static final String EXAMPLES_ANDROID_O_BUILD_DIR = THIRD_PARTY_DIR + "examplesAndroidO/";
+  public static final String EXAMPLES_ANDROID_P_BUILD_DIR = THIRD_PARTY_DIR + "examplesAndroidP/";
+  public static final String TESTS_BUILD_DIR = BUILD_DIR + "test/";
   public static final String EXAMPLES_JAVA9_BUILD_DIR = TESTS_BUILD_DIR + "examplesJava9/";
   public static final String EXAMPLES_JAVA10_BUILD_DIR = TESTS_BUILD_DIR + "examplesJava10/";
   public static final String EXAMPLES_JAVA11_JAR_DIR = TESTS_BUILD_DIR + "examplesJava11/";
-  public static final String EXAMPLES_PROTO_BUILD_DIR = TESTS_BUILD_DIR + "examplesProto/";
-  public static final String GENERATED_PROTO_BUILD_DIR = GENERATED_TEST_BUILD_DIR + "proto/";
   public static final String SMALI_BUILD_DIR = THIRD_PARTY_DIR + "smali/";
 
   public static String getExamplesJava11BuildDir() {
-    // TODO(b/270105162): This changes when new gradle setup is default.
-    if (ToolHelper.isNewGradleSetup()) {
-      return System.getenv("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR");
-    } else {
-      return BUILD_DIR + "classes/java/examplesJava11/";
-    }
+    assert System.getProperty("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR") != null;
+    return System.getProperty("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR");
   }
 
   public static Path getR8MainPath() {
-    // TODO(b/270105162): This changes when new gradle setup is default.
-    if (ToolHelper.isNewGradleSetup()) {
-      return Paths.get(System.getenv("R8_RUNTIME_PATH"));
-    } else {
-      return isTestingR8Lib() ? R8LIB_JAR : R8_JAR_OLD;
-    }
+    assert System.getProperty("R8_RUNTIME_PATH") != null;
+    return Paths.get(System.getProperty("R8_RUNTIME_PATH"));
   }
 
   public static Path getRetracePath() {
-    // TODO(b/270105162): This changes when new gradle setup is default.
-    if (ToolHelper.isNewGradleSetup()) {
-      return Paths.get(System.getenv("RETRACE_RUNTIME_PATH"));
-    } else {
-      return isTestingR8Lib() ? ToolHelper.R8_RETRACE_JAR : ToolHelper.R8_JAR_OLD;
-    }
+    assert System.getProperty("RETRACE_RUNTIME_PATH") != null;
+    return Paths.get(System.getProperty("RETRACE_RUNTIME_PATH"));
+  }
+
+  public static Path getKeepAnnoPath() {
+    assert System.getProperty("KEEP_ANNO_JAVAC_BUILD_DIR") != null;
+    return Paths.get(System.getProperty("KEEP_ANNO_JAVAC_BUILD_DIR").split(File.pathSeparator)[0]);
   }
 
   public static final Path CHECKED_IN_R8_17_WITH_DEPS =
@@ -170,8 +196,8 @@ public class ToolHelper {
 
   public static final String R8_TEST_BUCKET = "r8-test-results";
 
-  public static final String ASM_JAR = BUILD_DIR + "deps/asm-9.5.jar";
-  public static final String ASM_UTIL_JAR = BUILD_DIR + "deps/asm-util-9.5.jar";
+  public static final String ASM_JAR = BUILD_DIR + "deps/asm-9.6.jar";
+  public static final String ASM_UTIL_JAR = BUILD_DIR + "deps/asm-util-9.6.jar";
 
   public static final Path API_SAMPLE_JAR =
       Paths.get(getProjectRoot(), "tests", "r8_api_usage_sample.jar");
@@ -196,6 +222,7 @@ public class ToolHelper {
   private static final AndroidApiLevel DEFAULT_MIN_SDK = AndroidApiLevel.I;
 
   public static final String OPEN_JDK_DIR = THIRD_PARTY_DIR + "openjdk/";
+  public static final String CUSTOM_CONVERSION_DIR = OPEN_JDK_DIR + "custom_conversion/";
   public static final String JAVA_8_RUNTIME = OPEN_JDK_DIR + "openjdk-rt-1.8/rt.jar";
   public static final String JDK_11_TESTS_DIR = OPEN_JDK_DIR + "jdk-11-test/";
   public static final String JDK_11_TIME_TESTS_DIR = JDK_11_TESTS_DIR + "java/time/";
@@ -221,30 +248,23 @@ public class ToolHelper {
   public static final Path RETRACE_MAPS_DIR = Paths.get(THIRD_PARTY_DIR, "r8mappings");
 
   // TODO(b/270105162): These should be removed when finished transitioning.
-  public static final Path R8_JAR_OLD = Paths.get(LIBS_DIR, "r8.jar");
   public static final Path R8_WITH_RELOCATED_DEPS_17_JAR =
       Paths.get(LIBS_DIR, "r8_with_relocated_deps_17.jar");
   public static final Path R8LIB_JAR = Paths.get(LIBS_DIR, "r8lib.jar");
   public static final Path R8LIB_MAP = Paths.get(LIBS_DIR, "r8lib.jar.map");
+  public static final Path R8LIB_MAP_PARTITIONED = Paths.get(LIBS_DIR, "r8lib.jar_map.zip");
   public static final Path R8LIB_EXCLUDE_DEPS_JAR = Paths.get(LIBS_DIR, "r8lib-exclude-deps.jar");
   public static final Path R8LIB_EXCLUDE_DEPS_MAP =
       Paths.get(LIBS_DIR, "r8lib-exclude-deps.jar.map");
-  public static final Path R8_RETRACE_JAR = Paths.get(LIBS_DIR, "r8retrace.jar");
 
   public static Path getDeps() {
-    if (isNewGradleSetup()) {
-      return Paths.get(System.getenv("R8_DEPS"));
-    } else {
-      return Paths.get(LIBS_DIR, "deps_all.jar");
-    }
+    assert System.getProperty("R8_DEPS") != null;
+    return Paths.get(System.getProperty("R8_DEPS"));
   }
 
   public static Path getR8WithRelocatedDeps() {
-    if (isNewGradleSetup()) {
-      return Paths.get(System.getenv("R8_WITH_RELOCATED_DEPS"));
-    } else {
-      return Paths.get(LIBS_DIR, "r8_with_relocated_deps.jar");
-    }
+    assert System.getProperty("R8_WITH_RELOCATED_DEPS") != null;
+    return Paths.get(System.getProperty("R8_WITH_RELOCATED_DEPS"));
   }
 
   public static final String DESUGARED_LIB_RELEASES_DIR =
@@ -257,9 +277,7 @@ public class ToolHelper {
   public static final Path AAPT2 = Paths.get(THIRD_PARTY_DIR, "aapt2", "aapt2");
 
   public static Path getDesugarLibConversions(CustomConversionVersion legacy) {
-    return legacy == CustomConversionVersion.LEGACY
-        ? Paths.get(LIBS_DIR, "library_desugar_conversions_legacy.jar")
-        : Paths.get(LIBS_DIR, "library_desugar_conversions.jar");
+    return Paths.get(CUSTOM_CONVERSION_DIR, legacy.getFileName());
   }
 
   public static boolean isLocalDevelopment() {
@@ -397,6 +415,11 @@ public class ToolHelper {
         return isNewerThanOrEqual(start) && isOlderThanOrEqual(end);
       }
 
+      public boolean hasRecordsSupport() {
+        // Records support is present from Android U.
+        return isNewerThanOrEqual(V14_0_0);
+      }
+
       public String toString() {
         return shortName;
       }
@@ -435,7 +458,7 @@ public class ToolHelper {
         return shortName;
       }
 
-      private String shortName;
+      private final String shortName;
     }
 
     public String toString() {
@@ -447,7 +470,7 @@ public class ToolHelper {
     }
 
     public static DexVm fromVersion(Version version) {
-      return SHORT_NAME_MAP.get(version.shortName + "_" + Kind.HOST.toString());
+      return SHORT_NAME_MAP.get(version.shortName + "_" + Kind.HOST);
     }
 
     public boolean isEqualTo(DexVm other) {
@@ -538,9 +561,7 @@ public class ToolHelper {
         result.add("/bin/bash");
       }
       result.add(getExecutable());
-      for (String option : options) {
-        result.add(option);
-      }
+      result.addAll(options);
       for (Map.Entry<String, String> entry : systemProperties.entrySet()) {
         StringBuilder builder = new StringBuilder("-D");
         builder.append(entry.getKey());
@@ -585,7 +606,7 @@ public class ToolHelper {
 
     private DexVm version;
     private boolean withArtFrameworks;
-    private ArtResultCacheLookupKey artResultCacheLookupKey;
+    private CacheLookupKey artResultCacheLookupKey;
     private boolean noCaching = false;
 
     public ArtCommandBuilder() {
@@ -640,7 +661,7 @@ public class ToolHelper {
     }
 
     private boolean useCache() {
-      return !noCaching && CommandResultCache.getInstance() != null;
+      return !noCaching && CommandResultCache.isEnabled();
     }
 
     public void cacheResult(ProcessResult result) {
@@ -648,7 +669,7 @@ public class ToolHelper {
       // put invalid entries into the cache.
       if (useCache() && result.exitCode == 0) {
         assert artResultCacheLookupKey != null;
-        CommandResultCache.getInstance().putResult(result, artResultCacheLookupKey);
+        CommandResultCache.getInstance().putResult(result, artResultCacheLookupKey, null);
       }
     }
 
@@ -658,8 +679,10 @@ public class ToolHelper {
       }
       assert artResultCacheLookupKey == null;
       // Reuse the key when storing results if this is not already cached.
-      artResultCacheLookupKey = new ArtResultCacheLookupKey(this::hashParts);
-      return CommandResultCache.getInstance().lookup(artResultCacheLookupKey);
+      artResultCacheLookupKey = new CacheLookupKey(this::hashParts);
+      Pair<ProcessResult, Path> lookup =
+          CommandResultCache.getInstance().lookup(artResultCacheLookupKey);
+      return lookup == null ? null : lookup.getFirst();
     }
 
     private void hashParts(Hasher hasher) {
@@ -690,11 +713,11 @@ public class ToolHelper {
     }
   }
 
-  private static class ArtResultCacheLookupKey {
+  public static class CacheLookupKey {
     private final Consumer<Hasher> hasherConsumer;
     private String hash;
 
-    public ArtResultCacheLookupKey(Consumer<Hasher> hasherConsumer) {
+    public CacheLookupKey(Consumer<Hasher> hasherConsumer) {
       this.hasherConsumer = hasherConsumer;
     }
 
@@ -708,7 +731,62 @@ public class ToolHelper {
     }
   }
 
-  private static class CommandResultCache {
+  public static class CommandCacheStatistics {
+
+    public static CommandCacheStatistics INSTANCE = new CommandCacheStatistics();
+    private final Path cachePutCounter;
+    private final Path cacheMissCounter;
+    private final Path cacheHitCounter;
+
+    private CommandCacheStatistics() {
+      String commandCacheStatsDir = System.getProperty("command_cache_stats_dir");
+      if (commandCacheStatsDir != null) {
+        String processSpecificUUID = UUID.randomUUID().toString();
+        cachePutCounter = Paths.get(commandCacheStatsDir, processSpecificUUID + "CACHEPUT");
+        cacheMissCounter = Paths.get(commandCacheStatsDir, processSpecificUUID + "CACHEFAIL");
+        cacheHitCounter = Paths.get(commandCacheStatsDir, processSpecificUUID + "CACHEHIT");
+        try {
+          Files.createFile(cachePutCounter);
+          Files.createFile(cacheMissCounter);
+          Files.createFile(cacheHitCounter);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      } else {
+        cachePutCounter = null;
+        cacheMissCounter = null;
+        cacheHitCounter = null;
+      }
+    }
+
+    private static void increaseCount(Path path) {
+      // Not enabled
+      if (path == null) {
+        return;
+      }
+      synchronized (path) {
+        try {
+          Files.write(path, "X".getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+
+    public void addCachePut() {
+      increaseCount(cachePutCounter);
+    }
+
+    public void addCacheHit() {
+      increaseCount(cacheHitCounter);
+    }
+
+    public void addCacheMiss() {
+      increaseCount(cacheMissCounter);
+    }
+  }
+
+  public static class CommandResultCache {
     private static CommandResultCache INSTANCE =
         System.getProperty("command_cache_dir") != null
             ? new CommandResultCache(Paths.get(System.getProperty("command_cache_dir")))
@@ -724,20 +802,28 @@ public class ToolHelper {
       return INSTANCE;
     }
 
-    private Path getStdoutFile(ArtResultCacheLookupKey artResultCacheLookupKey) {
-      return path.resolve(artResultCacheLookupKey.getHash() + ".stdout");
+    public static boolean isEnabled() {
+      return getInstance() != null;
     }
 
-    private Path getStderrFile(ArtResultCacheLookupKey artResultCacheLookupKey) {
-      return path.resolve(artResultCacheLookupKey.getHash() + ".stderr");
+    private Path getStdoutFile(CacheLookupKey cacheLookupKey) {
+      return path.resolve(cacheLookupKey.getHash() + ".stdout");
     }
 
-    private Path getExitCodeFile(ArtResultCacheLookupKey artResultCacheLookupKey) {
-      return path.resolve(artResultCacheLookupKey.getHash());
+    private Path getStderrFile(CacheLookupKey cacheLookupKey) {
+      return path.resolve(cacheLookupKey.getHash() + ".stderr");
+    }
+
+    private Path getOutputFile(CacheLookupKey cacheLookupKey) {
+      return path.resolve(cacheLookupKey.getHash() + ".output");
+    }
+
+    private Path getExitCodeFile(CacheLookupKey cacheLookupKey) {
+      return path.resolve(cacheLookupKey.getHash());
     }
 
     private Path getTempFile(Path path) {
-      return Paths.get(path.toString() + ".temp" + Thread.currentThread().getId());
+      return Paths.get(path.toString() + ".temp" + UUID.randomUUID());
     }
 
     private String getStringContent(Path path) {
@@ -752,38 +838,50 @@ public class ToolHelper {
       return "";
     }
 
-    public ProcessResult lookup(ArtResultCacheLookupKey artResultCacheLookupKey) {
+    public Pair<ProcessResult, Path> lookup(CacheLookupKey cacheLookupKey) {
       // TODO Add concurrency handling!
-      Path exitCodeFile = getExitCodeFile(artResultCacheLookupKey);
+      Path exitCodeFile = getExitCodeFile(cacheLookupKey);
       if (exitCodeFile.toFile().exists()) {
         int exitCode = Integer.parseInt(getStringContent(exitCodeFile));
         // Because of the temp files and order of writing we should never get here with an
         // inconsistent state. It is possible, although unlikely, that the stdout/stderr
         // (and even exitcode if art is non deterministic) are from different, process ids etc,
         // but this should have no impact.
-        return new ProcessResult(
-            exitCode,
-            getStringContent(getStdoutFile(artResultCacheLookupKey)),
-            getStringContent(getStderrFile(artResultCacheLookupKey)));
+
+        Path outputFile = getOutputFile(cacheLookupKey);
+        CommandCacheStatistics.INSTANCE.addCacheHit();
+        return new Pair(
+            new ProcessResult(
+                exitCode,
+                getStringContent(getStdoutFile(cacheLookupKey)),
+                getStringContent(getStderrFile(cacheLookupKey))),
+            outputFile.toFile().exists() ? outputFile : null);
       }
+      CommandCacheStatistics.INSTANCE.addCacheMiss();
       return null;
     }
 
-    public void putResult(ProcessResult result, ArtResultCacheLookupKey artResultCacheLookupKey) {
+    public void putResult(ProcessResult result, CacheLookupKey cacheLookupKey, Path output) {
+      Path exitCodeFile = getExitCodeFile(cacheLookupKey);
+      Path exitCodeTempFile = getTempFile(exitCodeFile);
+      Path stdoutFile = getStdoutFile(cacheLookupKey);
+      Path stdoutTempFile = getTempFile(stdoutFile);
+      Path stderrFile = getStderrFile(cacheLookupKey);
+      Path stderrTempFile = getTempFile(stderrFile);
+      Path outputFile = getOutputFile(cacheLookupKey);
+      Path outputTempFile = getTempFile(outputFile);
+
       try {
         String exitCode = "" + result.exitCode;
         // We avoid race conditions of writing vs reading by first writing all 3 files to temp
         // files, then moving these to the result files, moving last the exitcode file (which is
         // what we use as cache present check)
-        Path exitCodeFile = getExitCodeFile(artResultCacheLookupKey);
-        Path exitCodeTempFile = getTempFile(exitCodeFile);
-        Path stdoutFile = getStdoutFile(artResultCacheLookupKey);
-        Path stdoutTempFile = getTempFile(stdoutFile);
-        Path stderrFile = getStderrFile(artResultCacheLookupKey);
-        Path stderrTempFile = getTempFile(stderrFile);
         Files.write(exitCodeTempFile, exitCode.getBytes(StandardCharsets.UTF_8));
         Files.write(stdoutTempFile, result.stdout.getBytes(StandardCharsets.UTF_8));
         Files.write(stderrTempFile, result.stderr.getBytes(StandardCharsets.UTF_8));
+        if (output != null) {
+          Files.copy(output, outputTempFile);
+        }
         // Order is important, move exitcode file last!
         Files.move(
             stdoutTempFile,
@@ -795,13 +893,27 @@ public class ToolHelper {
             stderrFile,
             StandardCopyOption.ATOMIC_MOVE,
             StandardCopyOption.REPLACE_EXISTING);
+        if (output != null) {
+          Files.move(
+              outputTempFile,
+              outputFile,
+              StandardCopyOption.ATOMIC_MOVE,
+              StandardCopyOption.REPLACE_EXISTING);
+        }
         Files.move(
             exitCodeTempFile,
             exitCodeFile,
             StandardCopyOption.ATOMIC_MOVE,
             StandardCopyOption.REPLACE_EXISTING);
+        CommandCacheStatistics.INSTANCE.addCachePut();
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        StringBuilder exceptionMessage = new StringBuilder();
+        exceptionMessage.append(
+            "Files.exists(exitCodeTempFile) = " + Files.exists(exitCodeTempFile));
+        exceptionMessage.append("Files.exists(stdoutTempFile) = " + Files.exists(stdoutTempFile));
+        exceptionMessage.append("Files.exists(stderrTempFile) = " + Files.exists(stderrTempFile));
+        exceptionMessage.append("Files.exists(outputTempFile) = " + Files.exists(outputTempFile));
+        throw new RuntimeException(exceptionMessage.toString(), e);
       }
     }
   }
@@ -1000,11 +1112,16 @@ public class ToolHelper {
     }
   }
 
-  public static byte[] getClassAsBytes(Class clazz) throws IOException {
+  public static byte[] getClassAsBytes(Class<?> clazz) throws IOException {
     return Files.readAllBytes(getClassFileForTestClass(clazz));
   }
 
-  public static long getClassByteCrc(Class clazz) {
+  public static byte[] getClassAsBytes(Class<?> clazz, TestDataSourceSet dataSourceSet)
+      throws IOException {
+    return Files.readAllBytes(getClassFileForTestClass(clazz, dataSourceSet));
+  }
+
+  public static long getClassByteCrc(Class<?> clazz) {
     byte[] bytes = null;
     try {
       bytes = getClassAsBytes(clazz);
@@ -1027,17 +1144,6 @@ public class ToolHelper {
     }
     fail("Unsupported platform, we currently only support mac and linux: " + getPlatform());
     return ""; //never here
-  }
-
-  public static String toolsDir() {
-    String osName = System.getProperty("os.name");
-    if (osName.equals("Mac OS X")) {
-      return "mac";
-    } else if (osName.contains("Windows")) {
-      return "windows";
-    } else {
-      return "linux";
-    }
   }
 
   public static String getProguard5Script() {
@@ -1153,7 +1259,7 @@ public class ToolHelper {
   public static Path getAndroidJar(AndroidApiLevel apiLevel) {
     Path path = getAndroidJarPath(apiLevel);
     assert Files.exists(path)
-        : "Expected android jar to exist for API level " + apiLevel;
+        : "Expected android jar to exist for API level " + apiLevel + " at " + path;
     return path;
   }
 
@@ -1170,12 +1276,20 @@ public class ToolHelper {
   }
 
   public static Path getJdwpTestsCfJarPath(AndroidApiLevel minSdk) {
-    if (minSdk.getLevel() >= AndroidApiLevel.N.getLevel()) {
-      return Paths.get(
-          ToolHelper.THIRD_PARTY_DIR, "jdwp-tests", "apache-harmony-jdwp-tests-host.jar");
-    } else {
-      return Paths.get(ToolHelper.BUILD_DIR, "libs", "jdwp-tests-preN.jar");
-    }
+    String jar =
+        minSdk.isLessThan(AndroidApiLevel.N)
+            ? "apache-harmony-jdwp-tests-host-preN.jar"
+            : "apache-harmony-jdwp-tests-host.jar";
+    return Paths.get(ToolHelper.THIRD_PARTY_DIR, "jdwp-tests", jar);
+  }
+
+  public static Path getJunitFromDeps() {
+    return Paths.get(DEPENDENCIES, "junit", "junit", "4.13-beta-2", "junit-4.13-beta-2.jar");
+  }
+
+  public static Path getHamcrestFromDeps() {
+    return Paths.get(
+        DEPENDENCIES, "org", "hamcrest", "hamcrest-core", "1.3", "hamcrest-core-1.3.jar");
   }
 
   /**
@@ -1200,7 +1314,7 @@ public class ToolHelper {
   public static TemporaryFolder getTemporaryFolderForTest() {
     String tmpDir = System.getProperty("test_dir");
     if (tmpDir == null) {
-      return new TemporaryFolder(ToolHelper.isLinux() ? null : Paths.get("build", "tmp").toFile());
+      return new TemporaryFolder();
     } else {
       return new RetainedTemporaryFolder(new java.io.File(tmpDir));
     }
@@ -1305,6 +1419,42 @@ public class ToolHelper {
     }
   }
 
+  public static DexVm.Version getDexVersionForApiLevel(AndroidApiLevel apiLevel) {
+    switch (apiLevel) {
+      case MASTER:
+        return DexVm.Version.MASTER;
+      case U:
+        return DexVm.Version.V14_0_0;
+      case T:
+        return DexVm.Version.V13_0_0;
+      case Sv2:
+      case S:
+        return DexVm.Version.V12_0_0;
+      case R:
+        throw new Unreachable("No Android 11 VM");
+      case Q:
+        return DexVm.Version.V10_0_0;
+      case P:
+        return DexVm.Version.V9_0_0;
+      case O_MR1:
+      case O:
+        // Currently no Android 8 VM, so return 8.1 for both O and O_MR1.
+        return DexVm.Version.V8_1_0;
+      case N:
+        return DexVm.Version.V7_0_0;
+      case M:
+        return DexVm.Version.V6_0_1;
+      case L_MR1:
+        return DexVm.Version.V5_1_1;
+      case K:
+        return DexVm.Version.V4_4_4;
+      case I_MR1:
+        return DexVm.Version.V4_0_4;
+      default:
+        throw new Unreachable("No Android VM for API level " + apiLevel.getLevel());
+    }
+  }
+
   public static DexVersion getDexFileVersionForVm(DexVm vm) {
     return DexVersion.getDexVersion(getMinApiLevelForDexVm(vm));
   }
@@ -1355,11 +1505,11 @@ public class ToolHelper {
   }
 
   public static Path getClassPathForTests() {
-    if (isNewGradleSetup()) {
-      return Paths.get(TEST_MODULE_DIR, "tests_java_8", "build", "classes", "java", "test");
-    } else {
-      return Paths.get(BUILD_DIR, "classes", "java", "test");
-    }
+    return getClassPathForTestDataSourceSet(computeLegacyOrGradleSpecifiedLocation());
+  }
+
+  public static Path getClassPathForTestDataSourceSet(TestDataSourceSet sourceSet) {
+    return sourceSet.getBuildDir();
   }
 
   private static List<String> getNamePartsForTestPackage(Package pkg) {
@@ -1404,24 +1554,41 @@ public class ToolHelper {
   }
 
   public static Path getClassFileForTestClass(Class<?> clazz) {
-    List<String> parts = getNamePartsForTestClass(clazz);
-    return getClassPathForTests().resolve(Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY)));
+    return getClassFileForTestClass(clazz, computeLegacyOrGradleSpecifiedLocation());
   }
 
-  public static Collection<Path> getClassFilesForInnerClasses(Path path) throws IOException {
-    Set<Path> paths = new HashSet<>();
-    String prefix = path.toString().replace(CLASS_EXTENSION, "$");
-    paths.addAll(
-        ToolHelper.getClassFilesForTestDirectory(
-            path.getParent(), p -> p.toString().startsWith(prefix)));
-    return paths;
+  public static Path getClassFileForTestClass(Class<?> clazz, TestDataSourceSet sourceSet) {
+    List<String> parts = getNamePartsForTestClass(clazz);
+    Path resolve =
+        getClassPathForTestDataSourceSet(sourceSet)
+            .resolve(Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY)));
+    if (!Files.exists(resolve)) {
+      throw new RuntimeException("Could not find: " + resolve.toString());
+    }
+    return resolve;
   }
 
   public static Collection<Path> getClassFilesForInnerClasses(Collection<Class<?>> classes)
       throws IOException {
+    return getClassFilesForInnerClasses(computeLegacyOrGradleSpecifiedLocation(), classes);
+  }
+
+  public static Collection<Path> getClassFilesForInnerClasses(Class<?>... classes)
+      throws IOException {
+    return getClassFilesForInnerClasses(
+        computeLegacyOrGradleSpecifiedLocation(), Arrays.asList(classes));
+  }
+
+  public static Collection<Path> getClassFilesForInnerClasses(
+      TestDataSourceSet sourceSet, Class<?>... classes) throws IOException {
+    return getClassFilesForInnerClasses(sourceSet, Arrays.asList(classes));
+  }
+
+  public static Collection<Path> getClassFilesForInnerClasses(
+      TestDataSourceSet sourceSet, Collection<Class<?>> classes) throws IOException {
     Set<Path> paths = new HashSet<>();
     for (Class<?> clazz : classes) {
-      Path path = ToolHelper.getClassFileForTestClass(clazz);
+      Path path = ToolHelper.getClassFileForTestClass(clazz, sourceSet);
       String prefix = path.toString().replace(CLASS_EXTENSION, "$");
       paths.addAll(
           ToolHelper.getClassFilesForTestDirectory(
@@ -1430,17 +1597,12 @@ public class ToolHelper {
     return paths;
   }
 
-  public static Collection<Path> getClassFilesForInnerClasses(Class<?>... classes)
-      throws IOException {
-    return getClassFilesForInnerClasses(Arrays.asList(classes));
-  }
-
-  public static Path getFileNameForTestClass(Class clazz) {
+  public static Path getFileNameForTestClass(Class<?> clazz) {
     List<String> parts = getNamePartsForTestClass(clazz);
     return Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY));
   }
 
-  public static String getJarEntryForTestClass(Class clazz) {
+  public static String getJarEntryForTestClass(Class<?> clazz) {
     List<String> parts = getNamePartsForTestClass(clazz);
     return String.join("/", parts);
   }
@@ -1577,10 +1739,6 @@ public class ToolHelper {
     return compatSink.build();
   }
 
-  public static void runL8(L8Command command) throws CompilationFailedException {
-    runL8(command, options -> {});
-  }
-
   public static void runL8(L8Command command, Consumer<InternalOptions> optionsModifier)
       throws CompilationFailedException {
     InternalOptions internalOptions = command.getInternalOptions();
@@ -1593,7 +1751,8 @@ public class ToolHelper {
         command.getR8Command());
   }
 
-  public static void addFilteredAndroidJar(BaseCommand.Builder builder, AndroidApiLevel apiLevel) {
+  public static void addFilteredAndroidJar(
+      BaseCommand.Builder<?, ?> builder, AndroidApiLevel apiLevel) {
     addFilteredAndroidJar(getAppBuilder(builder), apiLevel);
   }
 
@@ -1648,6 +1807,20 @@ public class ToolHelper {
       benchmarkResults.addRuntimeResult(end - start);
     }
     return compatSink.build();
+  }
+
+  public static void runLegacyResourceShrinker(
+      ResourceShrinker.Builder builder,
+      Consumer<InternalOptions> optionsConsumer,
+      ReferenceChecker callback)
+      throws IOException, CompilationFailedException, ExecutionException {
+    ResourceShrinker.Command command = builder.build();
+    InternalOptions options = command.getInternalOptions();
+    if (optionsConsumer != null) {
+      ExceptionUtils.withD8CompilationHandler(
+          options.reporter, () -> optionsConsumer.accept(options));
+    }
+    ResourceShrinker.runForTesting(command.getInputApp(), options, callback);
   }
 
   @Deprecated
@@ -2139,13 +2312,6 @@ public class ToolHelper {
     return result.stdout;
   }
 
-  public static String checkArtOutputIdentical(String file1, String file2, String mainClass,
-      DexVm version)
-      throws IOException {
-    return checkArtOutputIdentical(Collections.singletonList(file1),
-        Collections.singletonList(file2), mainClass, null, version);
-  }
-
   public static String checkArtOutputIdentical(List<String> files1, List<String> files2,
       String mainClass,
       Consumer<ArtCommandBuilder> extras,
@@ -2198,7 +2364,7 @@ public class ToolHelper {
   }
 
   // Checked in VMs for which dex2oat should work specified in decreasing order.
-  private static List<DexVm> SUPPORTED_DEX2OAT_VMS =
+  private static final List<DexVm> SUPPORTED_DEX2OAT_VMS =
       ImmutableList.of(DexVm.ART_12_0_0_HOST, DexVm.ART_6_0_1_HOST);
 
   public static ProcessResult runDex2OatRaw(Path file, Path outFile, DexVm targetVm)
@@ -2245,8 +2411,7 @@ public class ToolHelper {
     ProcessBuilder builder = new ProcessBuilder(command);
     builder.directory(getDexVmPath(vm).toFile());
     builder.environment().put("LD_LIBRARY_PATH", getDexVmLibPath(vm).toString());
-    ProcessResult processResult = runProcess(builder);
-    return processResult;
+    return runProcess(builder);
   }
 
   public static ProcessResult runProguardRaw(
@@ -2297,11 +2462,6 @@ public class ToolHelper {
     return runProguardRaw(getProguard5Script(), inJar, outJar, config, map);
   }
 
-  public static ProcessResult runProguardRaw(Path inJar, Path outJar, Path config, Path map)
-      throws IOException {
-    return runProguardRaw(getProguard5Script(), inJar, outJar, ImmutableList.of(config), map);
-  }
-
   public static String runProguard(Path inJar, Path outJar, Path config, Path map)
       throws IOException {
     return runProguard(inJar, outJar, ImmutableList.of(config), map);
@@ -2325,16 +2485,6 @@ public class ToolHelper {
   public static ProcessResult runProguard6Raw(
       Path inJar, Path outJar, Path lib, Path config, Path map) throws IOException {
     return runProguardRaw(getProguard6Script(), inJar, outJar, lib, ImmutableList.of(config), map);
-  }
-
-  public static String runProguard6(Path inJar, Path outJar, Path config, Path map)
-      throws IOException {
-    return runProguard6(inJar, outJar, ImmutableList.of(config), map);
-  }
-
-  public static String runProguard6(Path inJar, Path outJar, List<Path> configs, Path map)
-      throws IOException {
-    return runProguard(getProguard6Script(), inJar, outJar, configs, map);
   }
 
   public static ProcessResult runRetraceRaw(Path retracePath, Path map, Path stackTrace)

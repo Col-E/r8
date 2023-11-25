@@ -12,9 +12,10 @@ import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.library.LibraryMethodModelCollection.State;
+import com.android.tools.r8.ir.optimize.library.primitive.BooleanMethodOptimizer;
 import java.util.Set;
 
 /** Used to model the behavior of library methods for optimization purposes. */
@@ -34,31 +35,31 @@ public interface LibraryMethodModelCollection<T extends State> {
    * Invoked for instructions in {@param code} that invoke a method on the class returned by {@link
    * #getType()}. The given {@param singleTarget} is guaranteed to be non-null.
    */
-  void optimize(
+  InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
+      AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove,
       T state,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext);
 
   @SuppressWarnings("unchecked")
-  default void optimize(
+  default InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
+      AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove,
       Object state,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
-    optimize(
+    return optimize(
         code,
         blockIterator,
         instructionIterator,

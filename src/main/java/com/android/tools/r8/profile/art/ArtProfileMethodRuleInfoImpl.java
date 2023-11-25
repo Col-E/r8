@@ -63,6 +63,7 @@ public class ArtProfileMethodRuleInfoImpl implements ArtProfileMethodRuleInfo {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object o) {
     if (this == o) {
       return true;

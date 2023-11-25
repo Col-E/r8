@@ -4,6 +4,7 @@
 package com.android.tools.r8.startup.dump;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -12,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.errors.StartupClassesNonStartupFractionDiagnostic;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.startup.StartupProfileBuilder;
@@ -90,7 +92,8 @@ public class DumpStartupProfileProvidersTest extends TestBase {
                       diagnosticMessage(containsString("Dumped compilation inputs to:")));
                 } else {
                   diagnostics.assertInfosMatch(
-                      diagnosticMessage(containsString("Dumped compilation inputs to:")));
+                      diagnosticMessage(containsString("Dumped compilation inputs to:")),
+                      diagnosticType(StartupClassesNonStartupFractionDiagnostic.class));
                 }
               });
       assertFalse("Expected compilation to fail", dumpInputFlags.shouldFailCompilation());

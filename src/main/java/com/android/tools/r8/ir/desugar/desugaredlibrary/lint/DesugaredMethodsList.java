@@ -4,39 +4,75 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.lint;
 
-import static java.lang.Integer.parseInt;
-
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.StringResource;
+import com.android.tools.r8.Version;
+import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.StringUtils;
-import java.nio.file.Path;
+import com.android.tools.r8.utils.ExceptionUtils;
+import com.android.tools.r8.utils.Reporter;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 
-@Keep
+@KeepForApi
 public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
 
   private final AndroidApiLevel minApi;
+  private final boolean androidPlatformBuild;
+  private final StringConsumer outputConsumer;
 
-  private DesugaredMethodsList(
+  DesugaredMethodsList(
       int minApi,
-      String desugarConfigurationPath,
-      String desugarImplementationPath,
-      String ouputFile,
-      String androidJarPath)
-      throws Exception {
-    super(desugarConfigurationPath, desugarImplementationPath, ouputFile, androidJarPath);
+      boolean androidPlatformBuild,
+      Reporter reporter,
+      StringResource desugarConfiguration,
+      Collection<ProgramResourceProvider> desugarImplementation,
+      StringConsumer outputConsumer,
+      Collection<ClassFileResourceProvider> androidJar) {
+    super(reporter, desugarConfiguration, desugarImplementation, null, androidJar);
     this.minApi = AndroidApiLevel.getAndroidApiLevel(minApi);
+    this.androidPlatformBuild = androidPlatformBuild;
+    this.outputConsumer = outputConsumer;
+  }
+
+  public static void run(DesugaredMethodsListCommand command) throws CompilationFailedException {
+    if (command.isHelp()) {
+      System.out.println(DesugaredMethodsListCommand.getUsageMessage());
+      return;
+    }
+    if (command.isVersion()) {
+      System.out.println("DesugaredMethodsList " + Version.getVersionString());
+      return;
+    }
+    ExceptionUtils.withD8CompilationHandler(
+        command.getReporter(),
+        () ->
+            new DesugaredMethodsList(
+                    command.getMinApi(),
+                    command.isAndroidPlatformBuild(),
+                    command.getReporter(),
+                    command.getDesugarLibrarySpecification(),
+                    command.getDesugarLibraryImplementation(),
+                    command.getOutputConsumer(),
+                    command.getLibrary())
+                .run());
   }
 
   @Override
-  public AndroidApiLevel run() throws Exception {
+  public AndroidApiLevel run() throws IOException {
     AndroidApiLevel compilationLevel =
         desugaredLibrarySpecification.getRequiredCompilationApiLevel();
     SupportedClasses supportedMethods =
-        new SupportedClassesGenerator(options, androidJar, minApi, true)
-            .run(desugaredLibraryImplementation, desugaredLibrarySpecificationPath);
+        new SupportedClassesGenerator(options, androidJar, minApi, androidPlatformBuild, true)
+            .run(desugaredLibraryImplementation, desugaredLibrarySpecificationResource);
     System.out.println(
         "Generating lint files for "
-            + desugaredLibrarySpecification.getIdentifier()
+            + getDebugIdentifier()
             + " (compile API "
             + compilationLevel
             + ")");
@@ -45,24 +81,28 @@ public class DesugaredMethodsList extends GenerateDesugaredLibraryLintFiles {
   }
 
   @Override
-  Path lintFile(
-      AndroidApiLevel compilationApiLevel, AndroidApiLevel minApiLevel, String extension) {
-    return output;
+  void writeOutput(
+      AndroidApiLevel compilationApiLevel,
+      AndroidApiLevel minApiLevel,
+      List<String> desugaredApisSignatures) {
+    for (String desugaredApisSignature : desugaredApisSignatures) {
+      outputConsumer.accept(desugaredApisSignature, options.reporter);
+    }
+    outputConsumer.finished(options.reporter);
   }
 
-  public static void main(String[] args) throws Exception {
-    if (args.length == 4 || args.length == 5) {
-      new DesugaredMethodsList(
-              parseInt(args[0]), args[1], args[2], args[3], getAndroidJarPath(args, 5))
-          .run();
-      return;
-    }
-    throw new RuntimeException(
-        StringUtils.joinLines(
-            "Invalid invocation.",
-            "Usage: DesugaredMethodList <min-api> <desugar configuration> "
-                + "<desugar implementation> <output file> [<android jar path for Android "
-                + MAX_TESTED_ANDROID_API_LEVEL
-                + " or higher>]"));
+  public static void run(String[] args) throws CompilationFailedException, IOException {
+    run(DesugaredMethodsListCommand.parse(args));
+  }
+
+  public static void main(String[] args) {
+    ExceptionUtils.withMainProgramHandler(
+        () -> {
+          try {
+            run(args);
+          } catch (IOException e) {
+            throw new CompilationError(e.getMessage(), e);
+          }
+        });
   }
 }

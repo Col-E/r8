@@ -24,6 +24,7 @@ public class VarHandleDesugaringRewritingNamingLens extends NonIdentityNamingLen
   private final NamingLens namingLens;
   private final Map<DexType, DexString> mapping;
 
+  @SuppressWarnings("ReferenceEquality")
   public static NamingLens createVarHandleDesugaringRewritingNamingLens(AppView<?> appView) {
     DexItemFactory factory = appView.dexItemFactory();
     if (appView.options().shouldDesugarVarHandle()
@@ -102,6 +103,7 @@ public class VarHandleDesugaringRewritingNamingLens extends NonIdentityNamingLen
     return getRenaming(type) != null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexString getRenaming(DexType type) {
     assert type != factory.desugarMethodHandlesLookupType;
     assert type != factory.desugarVarHandleType;

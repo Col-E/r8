@@ -5,6 +5,7 @@
 package com.android.tools.r8.cfmethodgeneration;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.TestDataSourceSet;
 import com.android.tools.r8.cf.CfCodePrinter;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClassKind;
@@ -368,5 +369,9 @@ public abstract class MethodGenerationBase extends CodeGenerationBase {
       codePrinter.getMethods().forEach(printer::println);
       printer.println("}");
     }
+  }
+
+  protected static void setUpSystemPropertiesForMain(TestDataSourceSet sourceSet) {
+    System.setProperty("TEST_DATA_LOCATION", sourceSet.getBuildDir().toString());
   }
 }

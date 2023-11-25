@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.ClassReferenceUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Sets;
@@ -59,6 +60,12 @@ public class HorizontallyMergedClassesInspector {
 
   public Set<DexType> getSources() {
     return horizontallyMergedClasses.getSources();
+  }
+
+  public ClassReference getTarget(ClassReference classReference) {
+    DexType sourceType = ClassReferenceUtils.toDexType(classReference, dexItemFactory);
+    DexType targetType = getTarget(sourceType);
+    return targetType.asClassReference();
   }
 
   public DexType getTarget(DexType clazz) {

@@ -4,22 +4,21 @@
 package com.android.tools.r8.tracereferences;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
-import com.android.tools.r8.KeepForSubclassing;
 import com.android.tools.r8.diagnostic.DefinitionContext;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.PackageReference;
 
 /** Consumer interface for recording references */
-@KeepForSubclassing
+@KeepForApi
 public interface TraceReferencesConsumer {
 
   /**
    * Interface for asking for the access flags for a traced reference when the definition is present
    */
-  @Keep
+  @KeepForApi
   interface AccessFlags {
     boolean isStatic();
 
@@ -34,21 +33,21 @@ public interface TraceReferencesConsumer {
    * Interface for asking for additional class information for a traced class when the definition is
    * found.
    */
-  @Keep
+  @KeepForApi
   interface ClassAccessFlags extends AccessFlags {
     boolean isInterface();
 
     boolean isEnum();
   }
 
-  @Keep
+  @KeepForApi
   interface FieldAccessFlags extends AccessFlags {}
 
-  @Keep
+  @KeepForApi
   interface MethodAccessFlags extends AccessFlags {}
 
   /** Interface implemented by all references reported */
-  @Keep
+  @KeepForApi
   interface TracedReference<T, F> {
     /** Returns if the reference does not have a definition in the program traced. */
     boolean isMissingDefinition();
@@ -67,13 +66,13 @@ public interface TraceReferencesConsumer {
     F getAccessFlags();
   }
 
-  @Keep
+  @KeepForApi
   interface TracedClass extends TracedReference<ClassReference, ClassAccessFlags> {}
 
-  @Keep
+  @KeepForApi
   interface TracedField extends TracedReference<FieldReference, FieldAccessFlags> {}
 
-  @Keep
+  @KeepForApi
   interface TracedMethod extends TracedReference<MethodReference, MethodAccessFlags> {}
 
   /**
@@ -140,7 +139,7 @@ public interface TraceReferencesConsumer {
   }
 
   /** Forwarding consumer to delegate to an optional existing consumer. */
-  @Keep
+  @KeepForApi
   class ForwardingConsumer implements TraceReferencesConsumer {
 
     private static final TraceReferencesConsumer EMPTY_CONSUMER = new ForwardingConsumer(null);

@@ -145,6 +145,7 @@ public class FieldAssignmentTracker {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void acceptClassInitializerDefaultsResult(
       ClassInitializerDefaultsResult classInitializerDefaultsResult) {
     classInitializerDefaultsResult.forEachOptimizedField(
@@ -196,7 +197,9 @@ public class FieldAssignmentTracker {
     // value for fields that are not definitely null, we need to prove that the given field is never
     // read before it is written.
     AbstractValue abstractValue =
-        value.isZero() ? abstractValueFactory.createZeroValue() : AbstractValue.unknown();
+        value.isZero()
+            ? abstractValueFactory.createDefaultValue(field.getType())
+            : AbstractValue.unknown();
     fieldStates.compute(
         field.getDefinition(),
         (f, fieldState) -> {
@@ -323,10 +326,12 @@ public class FieldAssignmentTracker {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void recordAllFieldPutsProcessed(
       ProgramField field, OptimizationFeedbackDelayed feedback) {
     FieldState fieldState = fieldStates.getOrDefault(field.getDefinition(), FieldState.bottom());
-    AbstractValue abstractValue = fieldState.getAbstractValue(appView.abstractValueFactory());
+    AbstractValue abstractValue =
+        fieldState.getAbstractValue(appView.abstractValueFactory(), field);
     if (abstractValue.isNonTrivial()) {
       feedback.recordFieldHasAbstractValue(field.getDefinition(), appView, abstractValue);
     }

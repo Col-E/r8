@@ -99,17 +99,22 @@ public class BridgeHoisting {
 
       // Record the invokes from the newly synthesized bridge methods in the method access info
       // collection.
-      MethodAccessInfoCollection.Modifier methodAccessInfoCollectionModifier =
-          appView.appInfo().getMethodAccessInfoCollection().modifier();
-      result.forEachHoistedBridge(
-          (bridge, bridgeInfo) -> {
-            if (bridgeInfo.isVirtualBridgeInfo()) {
-              DexMethod reference = bridgeInfo.asVirtualBridgeInfo().getInvokedMethod();
-              methodAccessInfoCollectionModifier.registerInvokeVirtualInContext(reference, bridge);
-            } else {
-              assert false;
-            }
-          });
+      MethodAccessInfoCollection methodAccessInfoCollection =
+          appView.appInfo().getMethodAccessInfoCollection();
+      if (!methodAccessInfoCollection.isVirtualInvokesDestroyed()) {
+        MethodAccessInfoCollection.Modifier methodAccessInfoCollectionModifier =
+            methodAccessInfoCollection.modifier();
+        result.forEachHoistedBridge(
+            (bridge, bridgeInfo) -> {
+              if (bridgeInfo.isVirtualBridgeInfo()) {
+                DexMethod reference = bridgeInfo.asVirtualBridgeInfo().getInvokedMethod();
+                methodAccessInfoCollectionModifier.registerInvokeVirtualInContext(
+                    reference, bridge);
+              } else {
+                assert false;
+              }
+            });
+      }
     }
 
     appView.notifyOptimizationFinishedForTesting();
@@ -257,13 +262,15 @@ public class BridgeHoisting {
     // Now update the code of the bridge method chosen as representative.
     representative
         .setCode(createCodeForVirtualBridge(representative, methodToInvoke), appView);
-    feedback.setBridgeInfo(representative.getDefinition(), new VirtualBridgeInfo(methodToInvoke));
+    feedback.setBridgeInfo(representative, new VirtualBridgeInfo(methodToInvoke));
 
     // Move the bridge method to the super class, and record this in the graph lens.
     DexMethod newMethodReference =
         appView.dexItemFactory().createMethod(clazz.type, method.proto, method.name);
     DexEncodedMethod newMethod =
-        representative.getDefinition().toTypeSubstitutedMethod(newMethodReference);
+        representative
+            .getDefinition()
+            .toTypeSubstitutedMethodAsInlining(newMethodReference, appView.dexItemFactory());
     if (newMethod.getAccessFlags().isFinal()) {
       newMethod.getAccessFlags().demoteFromFinal();
     }
@@ -351,6 +358,7 @@ public class BridgeHoisting {
         });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private CfCode createCfCodeForVirtualBridge(CfCode code, DexMethod methodToInvoke) {
     List<CfInstruction> newInstructions = new ArrayList<>();
     boolean modified = false;
@@ -377,6 +385,7 @@ public class BridgeHoisting {
         : code;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexCode createDexCodeForVirtualBridge(DexCode code, DexMethod methodToInvoke) {
     DexInstruction[] newInstructions = new DexInstruction[code.instructions.length];
     boolean modified = false;

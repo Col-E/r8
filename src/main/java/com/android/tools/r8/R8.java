@@ -7,6 +7,9 @@ import static com.android.tools.r8.profile.art.ArtProfileCompletenessChecker.Com
 import static com.android.tools.r8.utils.AssertionUtils.forTesting;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
+import com.android.build.shrinker.r8integration.LegacyResourceShrinker;
+import com.android.build.shrinker.r8integration.LegacyResourceShrinker.ShrinkerResult;
+import com.android.tools.r8.DexIndexedConsumer.ForwardingConsumer;
 import com.android.tools.r8.androidapi.ApiReferenceStubber;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryKeepRuleGenerator;
 import com.android.tools.r8.dex.ApplicationReader;
@@ -17,23 +20,20 @@ import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GenericSignatureContextBuilder;
 import com.android.tools.r8.graph.GenericSignatureCorrectnessHelper;
+import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.ProgramDefinition;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis;
-import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.graph.lens.AppliedGraphLens;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
@@ -57,14 +57,18 @@ import com.android.tools.r8.ir.optimize.enums.EnumUnboxingCfMethods;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.templates.CfUtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.jar.CfApplicationWriter;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.kotlin.KotlinMetadataUtils;
+import com.android.tools.r8.naming.IdentifierMinifier;
 import com.android.tools.r8.naming.Minifier;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.ProguardMapMinifier;
+import com.android.tools.r8.naming.RecordInvokeDynamicInvokeCustomRewriter;
 import com.android.tools.r8.naming.RecordRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
-import com.android.tools.r8.optimize.LegacyAccessModifier;
+import com.android.tools.r8.optimize.BridgeHoistingToSharedSyntheticSuperClass;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLensFactory;
@@ -75,6 +79,7 @@ import com.android.tools.r8.optimize.interfaces.analysis.CfOpenClosedInterfacesA
 import com.android.tools.r8.optimize.proto.ProtoNormalizer;
 import com.android.tools.r8.optimize.redundantbridgeremoval.RedundantBridgeRemover;
 import com.android.tools.r8.origin.CommandLineOrigin;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileCompletenessChecker;
 import com.android.tools.r8.profile.rewriting.ProfileCollectionAdditions;
 import com.android.tools.r8.repackaging.Repackaging;
@@ -99,32 +104,38 @@ import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
 import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.shaking.TreePrunerConfiguration;
-import com.android.tools.r8.shaking.VerticalClassMerger;
-import com.android.tools.r8.shaking.VerticalClassMergerGraphLens;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.ResourceTracing;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SelfRetraceTest;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.verticalclassmerging.VerticalClassMerger;
 import com.google.common.collect.Iterables;
 import com.google.common.io.ByteStreams;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
+import javax.xml.parsers.ParserConfigurationException;
+import org.xml.sax.SAXException;
 
 /**
  * The R8 compiler.
@@ -155,7 +166,7 @@ import java.util.function.Supplier;
  * them to DEX bytecode, using {@code androidJar} as the reference of the system runtime library,
  * and then writes the result to the directory or zip archive specified by {@code outputPath}.
  */
-@Keep
+@KeepForApi
 public class R8 {
 
   private final Timing timing;
@@ -244,12 +255,14 @@ public class R8 {
     return appView.appInfo().app().asDirect();
   }
 
+  @SuppressWarnings("DefaultCharset")
   private void run(AndroidApp inputApp, ExecutorService executorService) throws IOException {
+    timing.begin("Run prelude");
     assert options.programConsumer != null;
     if (options.quiet) {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));
     }
-    if (this.getClass().desiredAssertionStatus()) {
+    if (this.getClass().desiredAssertionStatus() && !options.quiet) {
       options.reporter.info(
           new StringDiagnostic(
               "Running R8 version " + Version.LABEL + " with assertions enabled."));
@@ -266,21 +279,32 @@ public class R8 {
       System.out.println("R8 is running with max memory:" + runtime.maxMemory());
     }
     options.prepareForReportingLibraryAndProgramDuplicates();
+    timing.end();
     try {
       AppView<AppInfoWithClassHierarchy> appView;
       {
+        timing.begin("Read app");
         ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
-        DirectMappedDexApplication application = applicationReader.read(executorService).toDirect();
+        LazyLoadedDexApplication lazyLoaded = applicationReader.read(executorService);
+        timing.begin("To direct app");
+        DirectMappedDexApplication application = lazyLoaded.toDirect();
+        timing.end();
+        timing.end();
         options.loadMachineDesugaredLibrarySpecification(timing, application);
+        timing.begin("Read main dex classes");
         MainDexInfo mainDexInfo = applicationReader.readMainDexClassesForR8(application);
+        timing.end();
         // Now that the dex-application is fully loaded, close any internal archive providers.
-        inputApp.closeInternalArchiveProviders();
-
+        timing.time("Close providers", () -> inputApp.closeInternalArchiveProviders());
+        timing.begin("Create AppView");
         appView = AppView.createForR8(application, mainDexInfo);
-        appView.setAppServices(AppServices.builder(appView).build());
-        SyntheticItems.collectSyntheticInputs(appView);
+        timing.end();
+        timing.time(
+            "Set app services", () -> appView.setAppServices(AppServices.builder(appView).build()));
+        timing.time(
+            "Collect synthetic inputs", () -> SyntheticItems.collectSyntheticInputs(appView));
       }
-
+      timing.begin("Register references and more setup");
       assert ArtProfileCompletenessChecker.verify(appView);
 
       // Check for potentially having pass-through of Cf-code for kotlin libraries.
@@ -319,10 +343,10 @@ public class R8 {
                 .rebuildWithClassHierarchy(
                     appView.getSyntheticItems().commit(appView.appInfo().app())));
       }
-
+      timing.end();
       timing.begin("Strip unused code");
       timing.begin("Before enqueuer");
-      RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder =
+      RuntimeTypeCheckInfo.Builder initialRuntimeTypeCheckInfoBuilder =
           new RuntimeTypeCheckInfo.Builder(appView);
       List<ProguardConfigurationRule> synthesizedProguardRules;
       try {
@@ -366,7 +390,7 @@ public class R8 {
                 appView,
                 profileCollectionAdditions,
                 subtypingInfo,
-                classMergingEnqueuerExtensionBuilder);
+                initialRuntimeTypeCheckInfoBuilder);
         timing.end();
         timing.begin("After enqueuer");
         assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness);
@@ -434,7 +458,7 @@ public class R8 {
       } finally {
         timing.end();
       }
-
+      timing.begin("Run center tasks");
       assert appView.appInfo().hasLiveness();
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
 
@@ -455,9 +479,6 @@ public class R8 {
       // to clear the cache, so that we will recompute the type lattice elements.
       appView.dexItemFactory().clearTypeElementsCache();
 
-      // TODO(b/132677331): Remove legacy access modifier.
-      LegacyAccessModifier.run(appViewWithLiveness, executorService, timing);
-
       // This pass attempts to reduce the number of nests and nest size to allow further passes, and
       // should therefore be run after the publicizer.
       new NestReducer(appViewWithLiveness).run(executorService, timing);
@@ -473,43 +494,16 @@ public class R8 {
           .setMustRetargetInvokesToTargetMethod()
           .run(executorService, timing);
 
-      boolean isKotlinLibraryCompilationWithInlinePassThrough =
-          options.enableCfByteCodePassThrough && appView.hasCfByteCodePassThroughMethods();
-
-      RuntimeTypeCheckInfo runtimeTypeCheckInfo =
-          classMergingEnqueuerExtensionBuilder.build(appView.graphLens());
-      classMergingEnqueuerExtensionBuilder = null;
+      BridgeHoistingToSharedSyntheticSuperClass.run(appViewWithLiveness, executorService, timing);
 
       assert ArtProfileCompletenessChecker.verify(appView);
 
-      if (!isKotlinLibraryCompilationWithInlinePassThrough
-          && options.getProguardConfiguration().isOptimizing()) {
-        if (options.enableVerticalClassMerging) {
-          timing.begin("VerticalClassMerger");
-          VerticalClassMergerGraphLens lens =
-              new VerticalClassMerger(
-                      getDirectApp(appViewWithLiveness),
-                      appViewWithLiveness,
-                      executorService,
-                      timing)
-                  .run();
-          if (lens != null) {
-            runtimeTypeCheckInfo = runtimeTypeCheckInfo.rewriteWithLens(lens);
-          }
-          timing.end();
-        } else {
-          appView.setVerticallyMergedClasses(VerticallyMergedClasses.empty());
-        }
-        assert appView.verticallyMergedClasses() != null;
-
-        assert ArtProfileCompletenessChecker.verify(appView);
-
-        HorizontalClassMerger.createForInitialClassMerging(appViewWithLiveness)
-            .runIfNecessary(executorService, timing, runtimeTypeCheckInfo);
-      }
-      appViewWithLiveness
-          .appInfo()
-          .notifyHorizontalClassMergerFinished(HorizontalClassMerger.Mode.INITIAL);
+      VerticalClassMerger.runIfNecessary(appViewWithLiveness, executorService, timing);
+      HorizontalClassMerger.createForInitialClassMerging(appViewWithLiveness)
+          .runIfNecessary(
+              executorService,
+              timing,
+              initialRuntimeTypeCheckInfoBuilder.build(appView.graphLens()));
 
       // TODO(b/225838009): Horizontal merging currently assumes pre-phase CF conversion.
       appView.testing().enterLirSupportedPhase(appView, executorService);
@@ -546,10 +540,12 @@ public class R8 {
       // At this point all code has been mapped according to the graph lens. We cannot remove the
       // graph lens entirely, though, since it is needed for mapping all field and method signatures
       // back to the original program.
-      timing.begin("AppliedGraphLens construction");
-      appView.setGraphLens(new AppliedGraphLens(appView));
+      timing.time(
+          "AppliedGraphLens construction",
+          () -> appView.setGraphLens(new AppliedGraphLens(appView)));
       timing.end();
 
+      RuntimeTypeCheckInfo.Builder finalRuntimeTypeCheckInfoBuilder = null;
       if (options.shouldRerunEnqueuer()) {
         timing.begin("Post optimization code stripping");
         try {
@@ -571,8 +567,8 @@ public class R8 {
                   keptGraphConsumer,
                   prunedTypes);
           if (options.isClassMergingExtensionRequired(enqueuer.getMode())) {
-            classMergingEnqueuerExtensionBuilder = new RuntimeTypeCheckInfo.Builder(appView);
-            classMergingEnqueuerExtensionBuilder.attach(enqueuer);
+            finalRuntimeTypeCheckInfoBuilder = new RuntimeTypeCheckInfo.Builder(appView);
+            finalRuntimeTypeCheckInfoBuilder.attach(enqueuer);
           }
           EnqueuerResult enqueuerResult =
               enqueuer.traceApplication(appView.rootSet(), executorService, timing);
@@ -677,7 +673,7 @@ public class R8 {
                       converter, executorService, timing));
         }
       }
-
+      timing.begin("Run postlude");
       performFinalMainDexTracing(appView, executorService);
 
       if (appView.appInfo().hasLiveness()) {
@@ -728,10 +724,10 @@ public class R8 {
       timing.end();
 
       // Perform repackaging.
-      if (options.isRepackagingEnabled()) {
-        new Repackaging(appView.withLiveness()).run(executorService, timing);
-      }
       if (appView.hasLiveness()) {
+        if (options.isRepackagingEnabled()) {
+          new Repackaging(appView.withLiveness()).run(executorService, timing);
+        }
         assert Repackaging.verifyIdentityRepackaging(appView.withLiveness(), executorService);
       }
 
@@ -748,10 +744,9 @@ public class R8 {
           .runIfNecessary(
               executorService,
               timing,
-              classMergingEnqueuerExtensionBuilder != null
-                  ? classMergingEnqueuerExtensionBuilder.build(appView.graphLens())
+              finalRuntimeTypeCheckInfoBuilder != null
+                  ? finalRuntimeTypeCheckInfoBuilder.build(appView.graphLens())
                   : null);
-      appView.appInfo().notifyHorizontalClassMergerFinished(HorizontalClassMerger.Mode.FINAL);
 
       // Perform minification.
       if (options.getProguardConfiguration().hasApplyMappingFile()) {
@@ -763,19 +758,18 @@ public class R8 {
         appView.clearApplyMappingSeedMapper();
       } else if (options.isMinifying()) {
         timing.begin("Minification");
-        appView.setNamingLens(new Minifier(appView.withLiveness()).run(executorService, timing));
+        new Minifier(appView.withLiveness()).run(executorService, timing);
+        timing.end();
+      } else {
+        timing.begin("MinifyIdentifiers");
+        new IdentifierMinifier(appView, NamingLens.getIdentityLens()).run(executorService);
+        timing.end();
+        timing.begin("RecordInvokeDynamicRewrite");
+        new RecordInvokeDynamicInvokeCustomRewriter(appView, NamingLens.getIdentityLens())
+            .run(executorService);
         timing.end();
       }
       appView.appInfo().notifyMinifierFinished();
-
-      if (!options.isMinifying()
-          && appView.options().testing.enableRecordModeling
-          && appView.appInfo().app().getFlags().hasReadRecordReferenceFromProgramClass()) {
-        new Minifier(appView.withLiveness())
-            .replaceDexItemBasedConstString(executorService, timing);
-      }
-
-      assert verifyMovedMethodsHaveOriginalMethodPosition(appView, getDirectApp(appView));
 
       // If a method filter is present don't produce output since the application is likely partial.
       if (options.hasMethodsFilter()) {
@@ -830,44 +824,188 @@ public class R8 {
 
       new DesugaredLibraryKeepRuleGenerator(appView).runIfNecessary(timing);
 
-      if (options.androidResourceProvider != null && options.androidResourceConsumer != null) {
-        // Currently this is simply a pass through of all resources.
-        writeAndroidResources(
-            options.androidResourceProvider, options.androidResourceConsumer, appView.reporter());
+      Map<String, byte[]> dexFileContent = new ConcurrentHashMap<>();
+      if (options.androidResourceProvider != null
+          && options.androidResourceConsumer != null
+          // We trace the dex directly in the enqueuer.
+          && !options.resourceShrinkerConfiguration.isOptimizedShrinking()) {
+        options.programConsumer =
+            wrapConsumerStoreBytesInList(
+                dexFileContent, (DexIndexedConsumer) options.programConsumer, "base");
+        if (options.featureSplitConfiguration != null) {
+          int featureIndex = 0;
+          for (FeatureSplit featureSplit : options.featureSplitConfiguration.getFeatureSplits()) {
+            featureSplit.internalSetProgramConsumer(
+                wrapConsumerStoreBytesInList(
+                    dexFileContent,
+                    (DexIndexedConsumer) featureSplit.getProgramConsumer(),
+                    "feature" + featureIndex));
+          }
+        }
       }
+
+      assert appView.verifyMovedMethodsHaveOriginalMethodPosition();
+      timing.end();
 
       // Generate the resulting application resources.
       writeApplication(appView, inputApp, executorService);
 
+      if (options.androidResourceProvider != null && options.androidResourceConsumer != null) {
+        shrinkResources(dexFileContent, appView);
+      }
       assert appView.getDontWarnConfiguration().validate(options);
 
       options.printWarnings();
+
+      if (options.printTimes) {
+        timing.report();
+      }
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);
     } finally {
       inputApp.signalFinishedToProviders(options.reporter);
       options.signalFinishedToConsumers();
-      // Dump timings.
-      if (options.printTimes) {
-        timing.report();
+    }
+  }
+
+  private static ForwardingConsumer wrapConsumerStoreBytesInList(
+      Map<String, byte[]> dexFileContent,
+      DexIndexedConsumer programConsumer,
+      String classesPrefix) {
+
+    return new ForwardingConsumer(programConsumer) {
+      @Override
+      public void accept(
+          int fileIndex, ByteDataView data, Set<String> descriptors, DiagnosticsHandler handler) {
+        dexFileContent.put(classesPrefix + "_classes" + fileIndex + ".dex", data.copyByteData());
+        super.accept(fileIndex, data, descriptors, handler);
+      }
+    };
+  }
+
+  private void shrinkResources(
+      Map<String, byte[]> dexFileContent, AppView<AppInfoWithClassHierarchy> appView) {
+    LegacyResourceShrinker.Builder resourceShrinkerBuilder = LegacyResourceShrinker.builder();
+    Reporter reporter = options.reporter;
+    dexFileContent.forEach(resourceShrinkerBuilder::addDexInput);
+    try {
+      addResourcesToBuilder(
+          resourceShrinkerBuilder, reporter, options.androidResourceProvider, null);
+      if (options.featureSplitConfiguration != null) {
+        for (FeatureSplit featureSplit : options.featureSplitConfiguration.getFeatureSplits()) {
+          if (featureSplit.getAndroidResourceProvider() != null) {
+            addResourcesToBuilder(
+                resourceShrinkerBuilder,
+                reporter,
+                featureSplit.getAndroidResourceProvider(),
+                featureSplit);
+          }
+        }
+      }
+
+      LegacyResourceShrinker shrinker = resourceShrinkerBuilder.build();
+      ShrinkerResult shrinkerResult;
+      if (options.resourceShrinkerConfiguration.isOptimizedShrinking()) {
+        shrinkerResult = shrinker.shrinkModel(appView.getResourceAnalysisResult().getModel());
+      } else {
+        shrinkerResult = shrinker.run();
+      }
+      Set<String> toKeep = shrinkerResult.getResFolderEntriesToKeep();
+      writeResourcesToConsumer(
+          reporter,
+          shrinkerResult,
+          toKeep,
+          options.androidResourceProvider,
+          options.androidResourceConsumer,
+          null);
+      if (options.featureSplitConfiguration != null) {
+        for (FeatureSplit featureSplit : options.featureSplitConfiguration.getFeatureSplits()) {
+          if (featureSplit.getAndroidResourceProvider() != null) {
+            writeResourcesToConsumer(
+                reporter,
+                shrinkerResult,
+                toKeep,
+                featureSplit.getAndroidResourceProvider(),
+                featureSplit.getAndroidResourceConsumer(),
+                featureSplit);
+          }
+        }
+      }
+    } catch (ParserConfigurationException | SAXException | ResourceException | IOException e) {
+      reporter.error(new ExceptionDiagnostic(e));
+    }
+  }
+
+  private static void writeResourcesToConsumer(
+      Reporter reporter,
+      ShrinkerResult shrinkerResult,
+      Set<String> toKeep,
+      AndroidResourceProvider androidResourceProvider,
+      AndroidResourceConsumer androidResourceConsumer,
+      FeatureSplit featureSplit)
+      throws ResourceException {
+    for (AndroidResourceInput androidResource : androidResourceProvider.getAndroidResources()) {
+      switch (androidResource.getKind()) {
+        case MANIFEST:
+        case UNKNOWN:
+          androidResourceConsumer.accept(
+              new R8PassThroughAndroidResource(androidResource, reporter), reporter);
+          break;
+        case RESOURCE_TABLE:
+          androidResourceConsumer.accept(
+              new R8AndroidResourceWithData(
+                  androidResource,
+                  reporter,
+                  shrinkerResult.getResourceTableInProtoFormat(featureSplit)),
+              reporter);
+          break;
+        case RES_FOLDER_FILE:
+        case XML_FILE:
+          if (toKeep.contains(androidResource.getPath().location())) {
+            androidResourceConsumer.accept(
+                new R8PassThroughAndroidResource(androidResource, reporter), reporter);
+          }
+          break;
+      }
+    }
+    androidResourceConsumer.finished(reporter);
+  }
+
+  private static void addResourcesToBuilder(
+      LegacyResourceShrinker.Builder resourceShrinkerBuilder,
+      Reporter reporter,
+      AndroidResourceProvider androidResourceProvider,
+      FeatureSplit featureSplit)
+      throws ResourceException {
+    for (AndroidResourceInput androidResource : androidResourceProvider.getAndroidResources()) {
+      try {
+        byte[] bytes = androidResource.getByteStream().readAllBytes();
+        Path path = Paths.get(androidResource.getPath().location());
+        switch (androidResource.getKind()) {
+          case MANIFEST:
+            resourceShrinkerBuilder.addManifest(path, bytes);
+            break;
+          case RES_FOLDER_FILE:
+            resourceShrinkerBuilder.addResFolderInput(path, bytes);
+            break;
+          case RESOURCE_TABLE:
+            resourceShrinkerBuilder.addResourceTable(path, bytes, featureSplit);
+            break;
+          case XML_FILE:
+            resourceShrinkerBuilder.addXmlInput(path, bytes);
+            break;
+          case UNKNOWN:
+            break;
+        }
+      } catch (IOException e) {
+        reporter.error(new ExceptionDiagnostic(e, androidResource.getOrigin()));
       }
     }
   }
 
-  private void writeAndroidResources(
-      AndroidResourceProvider androidResourceProvider,
-      AndroidResourceConsumer androidResourceConsumer,
-      DiagnosticsHandler diagnosticsHandler) {
-    ResourceTracing resourceTracing = ResourceTracing.getImpl();
-    resourceTracing.setConsumer(androidResourceConsumer);
-    resourceTracing.setProvider(androidResourceProvider);
-    resourceTracing.done(diagnosticsHandler);
-  }
-
   private static boolean allReferencesAssignedApiLevel(
       AppView<? extends AppInfoWithClassHierarchy> appView) {
-    if (!appView.options().apiModelingOptions().isCheckAllApiReferencesAreSet()
-        || appView.options().configurationDebugging) {
+    if (!appView.options().apiModelingOptions().isCheckAllApiReferencesAreSet()) {
       return true;
     }
     // This will assert false if we find anything in the library which is not modeled.
@@ -940,55 +1078,6 @@ public class R8 {
         options,
         timing,
         executorService);
-  }
-
-  private static boolean verifyMovedMethodsHaveOriginalMethodPosition(
-      AppView<?> appView, DirectMappedDexApplication application) {
-    application
-        .classesWithDeterministicOrder()
-        .forEach(
-            clazz ->
-                clazz.forEachProgramMethod(
-                    method -> {
-                      DexMethod originalMethod =
-                          appView.graphLens().getOriginalMethodSignature(method.getReference());
-                      if (originalMethod != method.getReference()) {
-                        DexEncodedMethod definition = method.getDefinition();
-                        Code code = definition.getCode();
-                        if (code == null) {
-                          return;
-                        }
-                        if (code.isCfCode() || code.isDexCode()) {
-                          assert verifyOriginalMethodInPosition(code, originalMethod, method);
-                        } else {
-                          assert code.isDefaultInstanceInitializerCode() || code.isThrowNullCode();
-                        }
-                      }
-                    }));
-    return true;
-  }
-
-  private static boolean verifyOriginalMethodInPosition(
-      Code code, DexMethod originalMethod, ProgramMethod context) {
-    code.forEachPosition(
-        originalMethod,
-        position -> {
-          if (position.isOutlineCaller()) {
-            // Check the outlined positions for the original method
-            position
-                .getOutlinePositions()
-                .forEach(
-                    (ignored, outlinePosition) -> {
-                      assert outlinePosition.hasMethodInChain(originalMethod);
-                    });
-          } else if (context.getDefinition().isD8R8Synthesized()) {
-            // TODO(b/261971803): Enable assert.
-            assert true || position.hasMethodInChain(originalMethod);
-          } else {
-            assert position.getOutermostCaller().getMethod() == originalMethod;
-          }
-        });
-    return true;
   }
 
   private AppView<AppInfoWithLiveness> runEnqueuer(
@@ -1140,5 +1229,59 @@ public class R8 {
           StringUtils.joinLines("Invalid invocation.", R8Command.getUsageMessage()));
     }
     ExceptionUtils.withMainProgramHandler(() -> run(args));
+  }
+
+  private abstract static class R8AndroidResourceBase implements AndroidResourceOutput {
+
+    protected final AndroidResourceInput androidResource;
+    protected final Reporter reporter;
+
+    public R8AndroidResourceBase(AndroidResourceInput androidResource, Reporter reporter) {
+      this.androidResource = androidResource;
+      this.reporter = reporter;
+    }
+
+    @Override
+    public ResourcePath getPath() {
+      return androidResource.getPath();
+    }
+
+    @Override
+    public Origin getOrigin() {
+      return androidResource.getOrigin();
+    }
+  }
+
+  private static class R8PassThroughAndroidResource extends R8AndroidResourceBase {
+
+    public R8PassThroughAndroidResource(AndroidResourceInput androidResource, Reporter reporter) {
+      super(androidResource, reporter);
+    }
+
+    @Override
+    public ByteDataView getByteDataView() {
+      try {
+        return ByteDataView.of(ByteStreams.toByteArray(androidResource.getByteStream()));
+      } catch (IOException | ResourceException e) {
+        reporter.error(new ExceptionDiagnostic(e, androidResource.getOrigin()));
+      }
+      return null;
+    }
+  }
+
+  private static class R8AndroidResourceWithData extends R8AndroidResourceBase {
+
+    private final byte[] data;
+
+    public R8AndroidResourceWithData(
+        AndroidResourceInput androidResource, Reporter reporter, byte[] data) {
+      super(androidResource, reporter);
+      this.data = data;
+    }
+
+    @Override
+    public ByteDataView getByteDataView() {
+      return ByteDataView.of(data);
+    }
   }
 }

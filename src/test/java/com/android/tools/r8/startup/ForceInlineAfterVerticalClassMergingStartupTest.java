@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.startup;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.errors.StartupClassesNonStartupFractionDiagnostic;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.startup.profile.ExternalStartupClass;
 import com.android.tools.r8.startup.profile.ExternalStartupItem;
@@ -55,9 +57,26 @@ public class ForceInlineAfterVerticalClassMergingStartupTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addVerticallyMergedClassesInspector(
             inspector -> inspector.assertMergedIntoSubtype(A.class))
+        .allowDiagnosticInfoMessages(
+            parameters.isDexRuntime()
+                && parameters
+                    .getApiLevel()
+                    .isGreaterThanOrEqualTo(apiLevelWithNativeMultiDexSupport()))
         .apply(testBuilder -> StartupTestingUtils.addStartupProfile(testBuilder, startupProfile))
         .setMinApi(parameters)
         .compile()
+        .inspectDiagnosticMessages(
+            diagnostics -> {
+              if (parameters.isDexRuntime()
+                  && parameters
+                      .getApiLevel()
+                      .isGreaterThanOrEqualTo(apiLevelWithNativeMultiDexSupport())) {
+                diagnostics.assertInfosMatch(
+                    diagnosticType(StartupClassesNonStartupFractionDiagnostic.class));
+              } else {
+                diagnostics.assertNoMessages();
+              }
+            })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("B");
   }

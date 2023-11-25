@@ -17,6 +17,8 @@ java {
   sourceSets.test.configure {
     java {
       srcDir(root.resolveAll("src", "test", "java"))
+      // Generated art tests
+      srcDir(root.resolveAll("build", "generated", "test", "java"))
     }
   }
 
@@ -32,12 +34,15 @@ val keepAnnoJarTask = projectTask("keepanno", "jar")
 val keepAnnoCompileTask = projectTask("keepanno", "compileJava")
 val mainCompileTask = projectTask("main", "compileJava")
 val mainDepsJarTask = projectTask("main", "depsJar")
+val resourceShrinkerDepsJarTask = projectTask("resourceshrinker", "depsJar")
 
 dependencies {
   implementation(keepAnnoJarTask.outputs.files)
-  implementation(projectTask("main", "jar").outputs.files)
-  implementation(projectTask("resourceshrinker", "jar").outputs.files)
-  implementation(projectTask("resourceshrinker", "depsJar").outputs.files)
+  implementation(mainCompileTask.outputs.files)
+  implementation(projectTask("main", "processResources").outputs.files)
+  implementation(projectTask("resourceshrinker", "compileJava").outputs.files)
+  implementation(projectTask("resourceshrinker", "compileKotlin").outputs.files)
+  implementation(resourceShrinkerDepsJarTask.outputs.files)
   implementation(Deps.asm)
   implementation(Deps.asmCommons)
   implementation(Deps.asmUtil)
@@ -53,76 +58,15 @@ dependencies {
   implementation(resolve(ThirdPartyDeps.jdwpTests,"apache-harmony-jdwp-tests-host.jar"))
   implementation(Deps.fastUtil)
   implementation(Deps.smali)
+  implementation(Deps.smaliUtil)
 }
 
-val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
-  "compileDeps",
-  listOf(
-    ThirdPartyDeps.apiDatabase,
-    ThirdPartyDeps.ddmLib,
-    ThirdPartyDeps.jasmin,
-    ThirdPartyDeps.jdwpTests))
-
-val thirdPartyRuntimeDependenciesTask = ensureThirdPartyDependencies(
-  "runtimeDeps",
-  listOf(
-    ThirdPartyDeps.aapt2,
-    ThirdPartyDeps.artTests,
-    ThirdPartyDeps.artTestsLegacy,
-    ThirdPartyDeps.compilerApi,
-    ThirdPartyDeps.coreLambdaStubs,
-    ThirdPartyDeps.dagger,
-    ThirdPartyDeps.desugarJdkLibs,
-    ThirdPartyDeps.desugarJdkLibsLegacy,
-    ThirdPartyDeps.desugarJdkLibs11,
-    ThirdPartyDeps.examplesAndroidOLegacy,
-    ThirdPartyDeps.gson,
-    ThirdPartyDeps.jacoco,
-    ThirdPartyDeps.java8Runtime,
-    ThirdPartyDeps.jdk11Test,
-    ThirdPartyDeps.jsr223,
-    ThirdPartyDeps.multidex,
-    ThirdPartyDeps.r8,
-    ThirdPartyDeps.r8Mappings,
-    ThirdPartyDeps.r8v2_0_74,
-    ThirdPartyDeps.r8v3_2_54,
-    ThirdPartyDeps.retraceBenchmark,
-    ThirdPartyDeps.retraceBinaryCompatibility,
-    ThirdPartyDeps.rhino,
-    ThirdPartyDeps.rhinoAndroid,
-    ThirdPartyDeps.smali,
-    ThirdPartyDeps.tivi)
-    + ThirdPartyDeps.androidJars
-    + ThirdPartyDeps.androidVMs
-    + ThirdPartyDeps.desugarLibraryReleases
-    + ThirdPartyDeps.jdks
-    + ThirdPartyDeps.kotlinCompilers
-    + ThirdPartyDeps.proguards)
-
-val thirdPartyRuntimeInternalDependenciesTask = ensureThirdPartyDependencies(
-  "runtimeInternalDeps",
-  listOf(
-    ThirdPartyDeps.clank,
-    ThirdPartyDeps.framework,
-    ThirdPartyDeps.nest,
-    ThirdPartyDeps.proto,
-    ThirdPartyDeps.protobufLite,
-    ThirdPartyDeps.retraceInternal)
-    + ThirdPartyDeps.internalIssues
-    + ThirdPartyDeps.gmscoreVersions
-)
-
 val sourceSetDependenciesTasks = arrayOf(
-  projectTask("tests_java_examples", getExampleJarsTaskName("examples")),
   projectTask("tests_java_9", getExampleJarsTaskName("examplesJava9")),
   projectTask("tests_java_10", getExampleJarsTaskName("examplesJava10")),
   projectTask("tests_java_11", getExampleJarsTaskName("examplesJava11")),
   projectTask("tests_java_17", getExampleJarsTaskName("examplesJava17")),
-  projectTask("tests_java_20", getExampleJarsTaskName("examplesJava20")),
-  projectTask("tests_java_examplesAndroidN", getExampleJarsTaskName("examplesAndroidN")),
-  projectTask("tests_java_examplesAndroidO", getExampleJarsTaskName("examplesAndroidO")),
-  projectTask("tests_java_examplesAndroidP", getExampleJarsTaskName("examplesAndroidP")),
-  projectTask("tests_java_kotlinR8TestResources", getExampleJarsTaskName("kotlinR8TestResources")),
+  projectTask("tests_java_21", getExampleJarsTaskName("examplesJava21")),
 )
 
 fun testDependencies() : FileCollection {
@@ -130,67 +74,78 @@ fun testDependencies() : FileCollection {
     .test
     .get()
     .compileClasspath
-    .filter({"$it".contains("keepanno") ||
-             "$it".contains("resoourceshrinker") ||
-            ("$it".contains("third_party")
-              && !"$it".contains("errorprone")
-              && !"$it".contains("gradle"))})
+    .filter {
+        "$it".contains("third_party")
+          && !"$it".contains("errorprone")
+          && !"$it".contains("third_party/gradle")
+    }
 }
 
 tasks {
+  val createArtTests by registering(Exec::class) {
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
+    val outputDir = getRoot().resolveAll("build", "generated", "test", "java", "com", "android", "tools", "r8", "art")
+    val createArtTestsScript = getRoot().resolveAll("tools", "create_art_tests.py")
+    inputs.file(createArtTestsScript)
+    inputs.dir(getRoot().resolveAll("tests", "2017-10-04"))
+    outputs.dir(outputDir)
+    workingDir(getRoot())
+    commandLine("python3", createArtTestsScript)
+  }
   "compileTestJava" {
-    dependsOn(thirdPartyCompileDependenciesTask)
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
   }
   withType<JavaCompile> {
+    dependsOn(createArtTests)
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
     dependsOn(gradle.includedBuild("resourceshrinker").task(":jar"))
-    dependsOn(gradle.includedBuild("main").task(":jar"))
-    dependsOn(thirdPartyCompileDependenciesTask)
+    dependsOn(gradle.includedBuild("main").task(":compileJava"))
+    dependsOn(gradle.includedBuild("main").task(":processResources"))
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
+  }
+
+  withType<JavaExec> {
+    if (name.endsWith("main()")) {
+      // IntelliJ pass the main execution through a stream which is
+      // not compatible with gradle configuration cache.
+      notCompatibleWithConfigurationCache("JavaExec created by IntelliJ")
+    }
   }
 
   withType<KotlinCompile> {
     enabled = false
   }
 
-  withType<Test> {
-    environment.put("USE_NEW_GRADLE_SETUP", "true")
-    dependsOn(mainDepsJarTask)
-    dependsOn(thirdPartyRuntimeDependenciesTask)
-    if (!project.hasProperty("no_internal")) {
-      dependsOn(thirdPartyRuntimeInternalDependenciesTask)
-    }
+  val sourceSetDependencyTask by registering {
     dependsOn(*sourceSetDependenciesTasks)
-    environment.put("KEEP_ANNO_JAVAC_BUILD_DIR", keepAnnoCompileTask.outputs.files.getAsPath())
+  }
+
+  withType<Test> {
+    TestingState.setUpTestingState(this)
+    dependsOn(mainDepsJarTask)
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
+    if (!project.hasProperty("no_internal")) {
+      dependsOn(gradle.includedBuild("shared").task(":downloadDepsInternal"))
+    }
+    dependsOn(sourceSetDependencyTask)
+    systemProperty("TEST_DATA_LOCATION",
+                   layout.buildDirectory.dir("classes/java/test").get().toString())
+    systemProperty("KEEP_ANNO_JAVAC_BUILD_DIR", keepAnnoCompileTask.outputs.files.getAsPath())
     // This path is set when compiling examples jar task in DependenciesPlugin.
-    environment.put("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR",
+    systemProperty("EXAMPLES_JAVA_11_JAVAC_BUILD_DIR",
                     getRoot().resolveAll("build", "test", "examplesJava11", "classes"))
-    // TODO(b/270105162): This should change if running with r8lib.
-    environment.put(
+    systemProperty(
       "R8_RUNTIME_PATH",
       mainCompileTask.outputs.files.getAsPath().split(File.pathSeparator)[0] +
-        File.pathSeparator + mainDepsJarTask.outputs.files.singleFile)
-    // TODO(b/270105162): This should change if running with retrace lib/r8lib.
-    environment.put(
+        File.pathSeparator + mainDepsJarTask.outputs.files.singleFile +
+        File.pathSeparator + getRoot().resolveAll("src", "main", "resources"))
+    systemProperty(
       "RETRACE_RUNTIME_PATH",
       mainCompileTask.outputs.files.getAsPath().split(File.pathSeparator)[0] +
-        File.pathSeparator + mainDepsJarTask.outputs.files.singleFile)
-    environment.put("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
-
-    // TODO(b/291198792): Remove this exclusion when desugared library runs correctly.
-    exclude("com/android/tools/r8/desugar/desugaredlibrary/**")
-    exclude("com/android/tools/r8/desugar/InvokeSuperToRewrittenDefaultMethodTest**")
-    exclude("com/android/tools/r8/desugar/InvokeSuperToEmulatedDefaultMethodTest**")
-    exclude("com/android/tools/r8/desugar/backports/ThreadLocalBackportWithDesugaredLibraryTest**")
-    exclude("com/android/tools/r8/L8CommandTest**")
-    exclude("com/android/tools/r8/MarkersTest**")
-    exclude("com/android/tools/r8/apimodel/ApiModelDesugaredLibraryReferenceTest**")
-    exclude("com/android/tools/r8/apimodel/ApiModelNoDesugaredLibraryReferenceTest**")
-    exclude("com/android/tools/r8/benchmarks/desugaredlib/**")
-    exclude("com/android/tools/r8/classmerging/vertical/ForceInlineConstructorWithRetargetedLibMemberTest**")
-    exclude("com/android/tools/r8/classmerging/vertical/ForceInlineConstructorWithRetargetedLibMemberTest**")
-    exclude("com/android/tools/r8/ir/optimize/inliner/InlineMethodWithRetargetedLibMemberTest**")
-    exclude("com/android/tools/r8/profile/art/DesugaredLibraryArtProfileRewritingTest**")
-    exclude("com/android/tools/r8/profile/art/dump/DumpArtProfileProvidersTest**")
+        File.pathSeparator + mainDepsJarTask.outputs.files.singleFile +
+        File.pathSeparator + getRoot().resolveAll("src", "main", "resources"))
+    systemProperty("R8_DEPS", mainDepsJarTask.outputs.files.singleFile)
+    systemProperty("com.android.tools.r8.artprofilerewritingcompletenesscheck", "true")
   }
 
   val testJar by registering(Jar::class) {
@@ -202,10 +157,11 @@ tasks {
   }
 
   val depsJar by registering(Jar::class) {
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
     dependsOn(gradle.includedBuild("keepanno").task(":jar"))
     dependsOn(gradle.includedBuild("resourceshrinker").task(":jar"))
-    dependsOn(thirdPartyCompileDependenciesTask)
     from(testDependencies().map(::zipTree))
+    from(resourceShrinkerDepsJarTask.outputs.getFiles().map(::zipTree))
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveFileName.set("deps.jar")
   }

@@ -85,6 +85,7 @@ public class MemberRebindingIdentityLens extends DefaultNonIdentityGraphLens {
         .build();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod getReboundMethodReference(DexMethod method) {
     DexMethod rebound = nonReboundMethodReferenceToDefinitionMap.get(method);
     assert method != rebound;

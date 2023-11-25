@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.test;
 
+import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.L8TestBuilder;
@@ -57,7 +59,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   private String l8ExtraKeepRules = "";
   private Consumer<InternalOptions> l8OptionModifier = ConsumerUtils.emptyConsumer();
   private boolean l8FinalPrefixVerification = true;
-  private boolean overrideDefaultLibraryFiles = false;
+  private boolean overrideDefaultLibrary = false;
   private CustomLibrarySpecification customLibrarySpecification = null;
   private TestingKeepRuleConsumer keepRuleConsumer = null;
   private List<ExternalArtProfile> l8ResidualArtProfiles = new ArrayList<>();
@@ -162,8 +164,15 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
    * library files.
    */
   public DesugaredLibraryTestBuilder<T> overrideLibraryFiles(Path... files) {
-    overrideDefaultLibraryFiles = true;
+    overrideDefaultLibrary = true;
     builder.addLibraryFiles(files);
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> overrideLibraryProvider(
+      ClassFileResourceProvider provider) {
+    overrideDefaultLibrary = true;
+    builder.addLibraryProvider(provider);
     return this;
   }
 
@@ -193,6 +202,11 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
     return this;
   }
 
+  public DesugaredLibraryTestBuilder<T> addRunClasspathFiles(Path... files) {
+    builder.addRunClasspathFiles(files);
+    return this;
+  }
+
   /**
    * By default the compilation uses libraryDesugaringSpecification.getProgramCompilationMode()
    * which maps to the studio set-up: D8-debug, D8-release and R8-release. Use this Api to set a
@@ -201,6 +215,13 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   public DesugaredLibraryTestBuilder<T> overrideCompilationMode(CompilationMode mode) {
     builder.setMode(mode);
     return this;
+  }
+
+  private void withD8TestBuilder(Consumer<D8TestBuilder> consumer) {
+    if (!builder.isD8TestBuilder()) {
+      return;
+    }
+    consumer.accept((D8TestBuilder) builder);
   }
 
   private void withR8TestBuilder(Consumer<R8TestBuilder<?>> consumer) {
@@ -232,6 +253,11 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
 
   public DesugaredLibraryTestBuilder<T> allowDiagnosticInfoMessages() {
     withR8TestBuilder(R8TestBuilder::allowDiagnosticInfoMessages);
+    return this;
+  }
+
+  public DesugaredLibraryTestBuilder<T> applyIfD8TestBuilder(Consumer<D8TestBuilder> consumer) {
+    withD8TestBuilder(consumer);
     return this;
   }
 
@@ -355,7 +381,7 @@ public class DesugaredLibraryTestBuilder<T extends DesugaredLibraryTestBase> {
   }
 
   private void prepareCompilation() {
-    if (overrideDefaultLibraryFiles) {
+    if (overrideDefaultLibrary) {
       return;
     }
     builder.addLibraryFiles(libraryDesugaringSpecification.getLibraryFiles());

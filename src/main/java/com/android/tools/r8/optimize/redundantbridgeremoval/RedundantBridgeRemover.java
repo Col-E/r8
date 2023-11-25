@@ -172,6 +172,7 @@ public class RedundantBridgeRemover {
             stronglyConnectedProgramComponents,
             this::removeRedundantBridgesInComponent,
             removedBridges -> !removedBridges.isEmpty(),
+            appView.options().getThreadingModule(),
             executorService);
     ProgramMethodSet removedBridges = ProgramMethodSet.create();
     results.forEach(
@@ -193,6 +194,7 @@ public class RedundantBridgeRemover {
     return traversal.getRemovedBridges();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexClassAndMethod getTargetForRedundantAbstractBridge(ProgramMethod method) {
     if (!method.getAccessFlags().isAbstract() || method.getDefinition().getCode() != null) {
       return null;

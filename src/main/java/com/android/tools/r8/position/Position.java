@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.position;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /**
  * Represent a position in a resource, it can for example be line in a text file or the byte offset
  * in a binary stream.
  */
-@Keep
+@KeepForApi
 public interface Position {
 
   /**

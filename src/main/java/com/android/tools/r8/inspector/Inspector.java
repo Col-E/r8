@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.inspector;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.function.Consumer;
 
 /** Inspector providing access to various parts of an application. */
-@Keep
+@KeepForApi
 public interface Inspector {
 
   /** Iterate all classes and interfaces defined by the program (order unspecified). */

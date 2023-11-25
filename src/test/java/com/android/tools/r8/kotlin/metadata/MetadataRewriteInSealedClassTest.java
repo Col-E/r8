@@ -163,14 +163,18 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
 
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
     if (kotlinParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLINC_1_5_0)) {
-      assertThat(
-          kotlinTestCompileResult.stderr,
-          containsString(
-              "inheritance of sealed classes or interfaces from different module is prohibited"));
+      assertThat(kotlinTestCompileResult.stderr, containsString(sealedClassErrorMessage()));
     } else {
       assertThat(kotlinTestCompileResult.stderr, containsString("cannot access"));
       assertThat(kotlinTestCompileResult.stderr, containsString("private in 'Expr'"));
     }
+  }
+
+  private String sealedClassErrorMessage() {
+    if (kotlinParameters.isKotlinDev()) {
+      return "a class can only extend a sealed class or interface declared in the same package";
+    }
+    return "inheritance of sealed classes or interfaces from different module is prohibited";
   }
 
   private void inspectInvalid(CodeInspector inspector) {

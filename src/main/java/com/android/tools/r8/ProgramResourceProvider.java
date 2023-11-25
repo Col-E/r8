@@ -3,11 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.io.IOException;
 import java.util.Collection;
 
 /** Program resource provider. */
-@KeepForSubclassing
+@KeepForApi
 public interface ProgramResourceProvider {
 
   Collection<ProgramResource> getProgramResources() throws ResourceException;

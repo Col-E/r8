@@ -6,12 +6,12 @@ package com.android.tools.r8.horizontalclassmerging.policies.deadlock;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.callgraph.CallGraph;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
@@ -73,7 +73,10 @@ public class SingleCallerInformation {
 
     public Builder analyze(ExecutorService executorService) throws ExecutionException {
       ThreadUtils.processItems(
-          appView.appInfo()::forEachMethod, this::processMethod, executorService);
+          appView.appInfo()::forEachMethod,
+          this::processMethod,
+          appView.options().getThreadingModule(),
+          executorService);
       return this;
     }
 
@@ -91,15 +94,18 @@ public class SingleCallerInformation {
       method.registerCodeReferences(new InvokeExtractor(appView, method));
     }
 
-    private class InvokeExtractor extends UseRegistry<ProgramMethod> {
+    private class InvokeExtractor extends DefaultUseRegistry<ProgramMethod> {
 
-      private final AppView<? extends AppInfoWithClassHierarchy> appView;
+      private final AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierachy;
 
-      InvokeExtractor(AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
-        super(appView, context);
-        this.appView = appView;
+      InvokeExtractor(
+          AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierachy,
+          ProgramMethod context) {
+        super(appViewWithClassHierachy, context);
+        this.appViewWithClassHierachy = appViewWithClassHierachy;
       }
 
+      @SuppressWarnings("ReferenceEquality")
       private void recordDispatchTarget(ProgramMethod target) {
         callers.compute(
             target,
@@ -119,7 +125,7 @@ public class SingleCallerInformation {
       }
 
       private void triggerClassInitializerIfNotAlreadyTriggeredInContext(DexType type) {
-        DexProgramClass clazz = type.asProgramClass(appView);
+        DexProgramClass clazz = type.asProgramClass(appViewWithClassHierachy);
         if (clazz != null) {
           triggerClassInitializerIfNotAlreadyTriggeredInContext(clazz);
         }
@@ -132,16 +138,17 @@ public class SingleCallerInformation {
       }
 
       private boolean isClassAlreadyInitializedInCurrentContext(DexProgramClass clazz) {
-        return appView.appInfo().isSubtype(getContext().getHolder(), clazz);
+        return appViewWithClassHierachy.appInfo().isSubtype(getContext().getHolder(), clazz);
       }
 
       private void triggerClassInitializer(DexType type) {
-        DexProgramClass clazz = type.asProgramClass(appView);
+        DexProgramClass clazz = type.asProgramClass(appViewWithClassHierachy);
         if (clazz != null) {
           triggerClassInitializer(clazz);
         }
       }
 
+      @SuppressWarnings("ReferenceEquality")
       private void triggerClassInitializer(DexProgramClass clazz) {
         Optional<ProgramMethod> callers = clinitCallers.get(clazz);
         if (callers != null) {
@@ -178,25 +185,19 @@ public class SingleCallerInformation {
 
       @Override
       public void registerInitClass(DexType type) {
-        DexType rewrittenType = appView.graphLens().lookupType(type);
+        DexType rewrittenType = appViewWithClassHierachy.graphLens().lookupType(type);
         triggerClassInitializerIfNotAlreadyTriggeredInContext(rewrittenType);
-      }
-
-      @Override
-      public void registerInstanceFieldRead(DexField field) {
-        // Intentionally empty.
-      }
-
-      @Override
-      public void registerInstanceFieldWrite(DexField field) {
-        // Intentionally empty.
       }
 
       @Override
       public void registerInvokeDirect(DexMethod method) {
         DexMethod rewrittenMethod =
-            appView.graphLens().lookupInvokeDirect(method, getContext()).getReference();
-        DexProgramClass holder = rewrittenMethod.getHolderType().asProgramClass(appView);
+            appViewWithClassHierachy
+                .graphLens()
+                .lookupInvokeDirect(method, getContext())
+                .getReference();
+        DexProgramClass holder =
+            rewrittenMethod.getHolderType().asProgramClass(appViewWithClassHierachy);
         ProgramMethod target = rewrittenMethod.lookupOnProgramClass(holder);
         if (target != null) {
           recordDispatchTarget(target);
@@ -212,9 +213,12 @@ public class SingleCallerInformation {
       @Override
       public void registerInvokeStatic(DexMethod method) {
         DexMethod rewrittenMethod =
-            appView.graphLens().lookupInvokeDirect(method, getContext()).getReference();
+            appViewWithClassHierachy
+                .graphLens()
+                .lookupInvokeDirect(method, getContext())
+                .getReference();
         ProgramMethod target =
-            appView
+            appViewWithClassHierachy
                 .appInfo()
                 .unsafeResolveMethodDueToDexFormatLegacy(rewrittenMethod)
                 .getResolvedProgramMethod();
@@ -238,25 +242,20 @@ public class SingleCallerInformation {
 
       @Override
       public void registerNewInstance(DexType type) {
-        DexType rewrittenType = appView.graphLens().lookupType(type);
+        DexType rewrittenType = appViewWithClassHierachy.graphLens().lookupType(type);
         triggerClassInitializerIfNotAlreadyTriggeredInContext(rewrittenType);
       }
 
       @Override
       public void registerStaticFieldRead(DexField field) {
-        DexField rewrittenField = appView.graphLens().lookupField(field);
+        DexField rewrittenField = appViewWithClassHierachy.graphLens().lookupField(field);
         triggerClassInitializerIfNotAlreadyTriggeredInContext(rewrittenField.getHolderType());
       }
 
       @Override
       public void registerStaticFieldWrite(DexField field) {
-        DexField rewrittenField = appView.graphLens().lookupField(field);
+        DexField rewrittenField = appViewWithClassHierachy.graphLens().lookupField(field);
         triggerClassInitializerIfNotAlreadyTriggeredInContext(rewrittenField.getHolderType());
-      }
-
-      @Override
-      public void registerTypeReference(DexType type) {
-        // Intentionally empty.
       }
     }
   }

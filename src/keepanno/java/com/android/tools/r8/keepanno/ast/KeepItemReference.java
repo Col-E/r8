@@ -3,27 +3,50 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.ast;
 
-import com.android.tools.r8.keepanno.ast.KeepBindings.BindingSymbol;
-
+/**
+ * A reference to an item pattern.
+ *
+ * <p>A reference can either be a binding-reference to an item pattern or the item pattern itself.
+ */
 public abstract class KeepItemReference {
 
-  public static KeepItemReference fromBindingReference(BindingSymbol bindingReference) {
-    return new BindingReference(bindingReference);
+  public final boolean isClassItemReference() {
+    return asClassItemReference() != null;
   }
 
-  public static KeepItemReference fromItemPattern(KeepItemPattern itemPattern) {
-    return new SomeItem(itemPattern);
+  public final boolean isMemberItemReference() {
+    return asMemberItemReference() != null;
   }
 
-  public boolean isBindingReference() {
+  public KeepClassItemReference asClassItemReference() {
+    return null;
+  }
+
+  public KeepMemberItemReference asMemberItemReference() {
+    return null;
+  }
+
+  // Helpers below.
+
+  /* Returns true if the reference is a binding to a class or member. */
+  public final boolean isBindingReference() {
     return asBindingReference() != null;
   }
 
-  public boolean isItemPattern() {
+  /* Returns true if the reference is an item pattern for a class or member. */
+  public final boolean isItemPattern() {
     return asItemPattern() != null;
   }
 
-  public BindingSymbol asBindingReference() {
+  public final boolean isClassItemPattern() {
+    return asClassItemPattern() != null;
+  }
+
+  public final boolean isMemberItemPattern() {
+    return asMemberItemPattern() != null;
+  }
+
+  public KeepBindingReference asBindingReference() {
     return null;
   }
 
@@ -31,87 +54,11 @@ public abstract class KeepItemReference {
     return null;
   }
 
-  public abstract KeepItemPattern lookupItemPattern(KeepBindings bindings);
-
-  private static class BindingReference extends KeepItemReference {
-    private final BindingSymbol bindingReference;
-
-    private BindingReference(BindingSymbol bindingReference) {
-      assert bindingReference != null;
-      this.bindingReference = bindingReference;
-    }
-
-    @Override
-    public BindingSymbol asBindingReference() {
-      return bindingReference;
-    }
-
-    @Override
-    public KeepItemPattern lookupItemPattern(KeepBindings bindings) {
-      return bindings.get(bindingReference).getItem();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      BindingReference that = (BindingReference) o;
-      return bindingReference.equals(that.bindingReference);
-    }
-
-    @Override
-    public int hashCode() {
-      return bindingReference.hashCode();
-    }
-
-    @Override
-    public String toString() {
-      return "reference='" + bindingReference + "'";
-    }
+  public KeepClassItemPattern asClassItemPattern() {
+    return null;
   }
 
-  private static class SomeItem extends KeepItemReference {
-    private final KeepItemPattern itemPattern;
-
-    private SomeItem(KeepItemPattern itemPattern) {
-      assert itemPattern != null;
-      this.itemPattern = itemPattern;
-    }
-
-    @Override
-    public KeepItemPattern asItemPattern() {
-      return itemPattern;
-    }
-
-    @Override
-    public KeepItemPattern lookupItemPattern(KeepBindings bindings) {
-      return asItemPattern();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      SomeItem someItem = (SomeItem) o;
-      return itemPattern.equals(someItem.itemPattern);
-    }
-
-    @Override
-    public int hashCode() {
-      return itemPattern.hashCode();
-    }
-
-    @Override
-    public String toString() {
-      return itemPattern.toString();
-    }
+  public KeepMemberItemPattern asMemberItemPattern() {
+    return null;
   }
 }

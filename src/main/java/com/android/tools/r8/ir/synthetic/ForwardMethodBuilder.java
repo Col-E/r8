@@ -151,6 +151,7 @@ public class ForwardMethodBuilder {
     return this;
   }
 
+  @SuppressWarnings({"BadImport", "ReferenceEquality"})
   public CfCode build() {
     assert validate();
     int maxStack = 0;
@@ -215,6 +216,7 @@ public class ForwardMethodBuilder {
         localVariables);
   }
 
+  @SuppressWarnings({"BadImport", "ReferenceEquality"})
   private void maybeInsertArgumentCast(
       int argumentIndex, DexType sourceArgumentType, Builder<CfInstruction> instructions) {
     if (appInfoForCastArguments == null) {
@@ -283,6 +285,7 @@ public class ForwardMethodBuilder {
         + (isStaticTarget() || isConstructorDelegate ? 0 : 1);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean validate() {
     assert sourceMethod != null;
     assert targetMethod != null;

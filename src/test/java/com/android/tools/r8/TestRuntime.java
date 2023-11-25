@@ -43,7 +43,7 @@ public abstract class TestRuntime {
     JDK17("jdk17", 61),
     JDK18("jdk18", 62),
     JDK20("jdk20", 64),
-    ;
+    JDK21("jdk21", 65);
 
     /** This should generally be the latest checked in CF runtime we fully support. */
     private static final CfVm DEFAULT = JDK11;
@@ -84,6 +84,12 @@ public abstract class TestRuntime {
     public static CfVm getMinimumSystemVersion() {
       return JDK11;
     }
+
+    // Records was experimental from JDK-15 (requiring turning on experimental feaures), and GA
+    // in JDK-17.
+    public boolean hasRecordsSupport() {
+      return isGreaterThanOrEqualTo(JDK17);
+    }
   }
 
   private static final Path JDK8_PATH = Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "jdk8");
@@ -91,12 +97,14 @@ public abstract class TestRuntime {
       Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "openjdk-9.0.4");
   private static final Path JDK11_PATH = Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "jdk-11");
   private static final Path JDK17_PATH = Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "jdk-17");
+  private static final Path JDK21_PATH = Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "jdk-21");
   private static final Map<CfVm, Path> jdkPaths =
       ImmutableMap.of(
           CfVm.JDK8, JDK8_PATH,
           CfVm.JDK9, JDK9_PATH,
           CfVm.JDK11, JDK11_PATH,
-          CfVm.JDK17, JDK17_PATH);
+          CfVm.JDK17, JDK17_PATH,
+          CfVm.JDK21, JDK21_PATH);
 
   public static CfRuntime getCheckedInJdk(CfVm vm) {
     if (vm == CfVm.JDK8) {
@@ -145,10 +153,18 @@ public abstract class TestRuntime {
     return new CfRuntime(CfVm.JDK17, getCheckedInJdkHome(CfVm.JDK17));
   }
 
+  public static CfRuntime getCheckedInJdk21() {
+    return new CfRuntime(CfVm.JDK21, getCheckedInJdkHome(CfVm.JDK21));
+  }
+
   public static List<CfRuntime> getCheckedInCfRuntimes() {
     CfRuntime[] jdks =
         new CfRuntime[] {
-          getCheckedInJdk8(), getCheckedInJdk9(), getCheckedInJdk11(), getCheckedInJdk17(),
+          getCheckedInJdk8(),
+          getCheckedInJdk9(),
+          getCheckedInJdk11(),
+          getCheckedInJdk17(),
+          getCheckedInJdk21()
         };
     Builder<CfRuntime> builder = ImmutableList.builder();
     for (CfRuntime jdk : jdks) {
@@ -202,6 +218,9 @@ public abstract class TestRuntime {
     }
     if (version.equals("11") || version.startsWith("11.")) {
       return new CfRuntime(CfVm.JDK11, Paths.get(home));
+    }
+    if (version.equals("17") || version.startsWith("17.")) {
+      return new CfRuntime(CfVm.JDK17, Paths.get(home));
     }
     throw new Unimplemented("No support for JDK version: " + version);
   }
@@ -308,6 +327,10 @@ public abstract class TestRuntime {
     public AndroidApiLevel getMinApiLevel() {
       return ToolHelper.getMinApiLevelForDexVm(vm);
     }
+
+    public boolean hasRecordsSupport() {
+      return getVersion().hasRecordsSupport();
+    }
   }
 
   // Wrapper for the CF runtimes.
@@ -383,6 +406,10 @@ public abstract class TestRuntime {
 
     public boolean isNewerThanOrEqual(CfVm version) {
       return vm == version || !vm.lessThanOrEqual(version);
+    }
+
+    public boolean hasRecordsSupport() {
+      return getVm().hasRecordsSupport();
     }
   }
 

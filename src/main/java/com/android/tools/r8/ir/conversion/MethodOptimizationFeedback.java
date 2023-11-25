@@ -54,7 +54,7 @@ public interface MethodOptimizationFeedback {
 
   void markAsPropagated(DexEncodedMethod method);
 
-  void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo);
+  void setBridgeInfo(ProgramMethod method, BridgeInfo bridgeInfo);
 
   void setClassInlinerMethodConstraint(
       ProgramMethod method, ClassInlinerMethodConstraint classInlinerConstraint);
@@ -143,10 +143,14 @@ public interface MethodOptimizationFeedback {
     }
   }
 
-  default void unsetOptimizationInfoForThrowNullMethod(ProgramMethod method) {
-    unsetOptimizationInfoForAbstractMethod(method);
-    methodNeverReturnsNormally(method);
-    setUnusedArguments(
-        method, BitSetUtils.createFilled(true, method.getDefinition().getNumberOfArguments()));
+  default void unsetOptimizationInfoForThrowNullMethod(AppView<?> appView, ProgramMethod method) {
+    if (!appView.hasClassHierarchy() || appView.getKeepInfo(method).isPinned(appView.options())) {
+      assert method.getOptimizationInfo().isDefault();
+    } else {
+      unsetOptimizationInfoForAbstractMethod(method);
+      methodNeverReturnsNormally(method);
+      setUnusedArguments(
+          method, BitSetUtils.createFilled(true, method.getDefinition().getNumberOfArguments()));
+    }
   }
 }

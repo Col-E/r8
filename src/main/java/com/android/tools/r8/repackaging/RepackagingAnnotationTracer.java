@@ -18,13 +18,11 @@ import com.android.tools.r8.graph.lens.GraphLens;
 
 public class RepackagingAnnotationTracer {
 
-  private final AppInfoWithClassHierarchy appInfo;
   private final GraphLens graphLens;
   private final RepackagingUseRegistry registry;
 
   public RepackagingAnnotationTracer(
       AppView<? extends AppInfoWithClassHierarchy> appView, RepackagingUseRegistry registry) {
-    this.appInfo = appView.appInfo();
     this.graphLens = appView.graphLens();
     this.registry = registry;
   }

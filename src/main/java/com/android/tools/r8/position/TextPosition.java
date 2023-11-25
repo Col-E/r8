@@ -3,13 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.position;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /**
- * A {@link Position} in a text file determined by line and column.
- * Line and column numbers start at 1.
+ * A {@link Position} in a text file determined by line and column. Line and column numbers start at
+ * 1.
  */
-@Keep
+@KeepForApi
 public class TextPosition implements Position {
 
   /**
@@ -72,6 +72,7 @@ public class TextPosition implements Position {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object o) {
     if (o == this) {
       return true;

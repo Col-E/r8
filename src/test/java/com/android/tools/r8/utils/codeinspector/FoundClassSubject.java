@@ -573,7 +573,7 @@ public class FoundClassSubject extends ClassSubject {
     }
     assertTrue(metadata instanceof KotlinClassMetadata.Class);
     KotlinClassMetadata.Class kClass = (KotlinClassMetadata.Class) metadata;
-    return new FoundKmClassSubject(codeInspector, getDexProgramClass(), kClass.toKmClass());
+    return new FoundKmClassSubject(codeInspector, getDexProgramClass(), kClass.getKmClass());
   }
 
   @Override
@@ -594,11 +594,11 @@ public class FoundClassSubject extends ClassSubject {
         || metadata instanceof KotlinClassMetadata.MultiFileClassPart);
     if (metadata instanceof KotlinClassMetadata.FileFacade) {
       KotlinClassMetadata.FileFacade kFile = (KotlinClassMetadata.FileFacade) metadata;
-      return new FoundKmPackageSubject(codeInspector, getDexProgramClass(), kFile.toKmPackage());
+      return new FoundKmPackageSubject(codeInspector, getDexProgramClass(), kFile.getKmPackage());
     } else {
       KotlinClassMetadata.MultiFileClassPart kPart =
           (KotlinClassMetadata.MultiFileClassPart) metadata;
-      return new FoundKmPackageSubject(codeInspector, getDexProgramClass(), kPart.toKmPackage());
+      return new FoundKmPackageSubject(codeInspector, getDexProgramClass(), kPart.getKmPackage());
     }
   }
 
@@ -695,5 +695,11 @@ public class FoundClassSubject extends ClassSubject {
     assert processResult.exitCode == 0;
     System.out.println(processResult.stdout);
     return processResult.stdout;
+  }
+
+  public MemberNaming getMethodMappingInfo(DexEncodedMethod dexMethod) {
+    return mapping
+        .getNaming()
+        .lookup(MethodSignature.fromDexMethod(dexMethod.getReference(), false));
   }
 }

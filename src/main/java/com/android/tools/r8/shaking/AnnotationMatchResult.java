@@ -81,6 +81,7 @@ public abstract class AnnotationMatchResult {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean equals(Object obj) {
       if (obj == this) {
         return true;

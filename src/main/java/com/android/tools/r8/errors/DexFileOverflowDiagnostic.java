@@ -4,8 +4,8 @@
 package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.dex.VirtualFile;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 
@@ -16,7 +16,7 @@ import com.android.tools.r8.position.Position;
  * compiling for legacy multidex but there are too many classes that need to fit in the main DEX
  * file, e.g., classes.dex.
  */
-@Keep
+@KeepForApi
 public class DexFileOverflowDiagnostic implements Diagnostic {
   private final boolean hasMainDexSpecification;
   private final long numOfMethods;

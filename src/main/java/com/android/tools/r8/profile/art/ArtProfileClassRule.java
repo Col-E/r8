@@ -69,6 +69,7 @@ public class ArtProfileClassRule extends ArtProfileRule implements AbstractProfi
   }
 
   @Override
+  @SuppressWarnings({"EqualsGetClass", "ReferenceEquality"})
   public boolean equals(Object o) {
     if (this == o) {
       return true;

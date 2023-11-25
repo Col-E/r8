@@ -73,7 +73,7 @@ public class ArchiveBuilder implements OutputBuilder {
         writeDirectoryNow(data.name, handler);
       } else {
         assert data.content != null;
-        writeFileNow(data.name, data.content, handler);
+        writeFileNow(data.name, data.content, handler, data.storeCompressed);
       }
     }
   }
@@ -135,9 +135,9 @@ public class ArchiveBuilder implements OutputBuilder {
       ByteDataView view = ByteDataView.of(ByteStreams.toByteArray(in));
       synchronized (this) {
         if (AndroidApiDataAccess.isApiDatabaseEntry(name)) {
-          writeFileNow(name, view, handler);
+          writeFileNow(name, view, handler, true);
         } else {
-          delayedWrites.add(DelayedData.createFile(name, view));
+          delayedWrites.add(DelayedData.createFile(name, view, true));
         }
       }
     } catch (IOException e) {
@@ -150,16 +150,25 @@ public class ArchiveBuilder implements OutputBuilder {
 
   @Override
   public synchronized void addFile(String name, ByteDataView content, DiagnosticsHandler handler) {
-    delayedWrites.add(DelayedData.createFile(name,  ByteDataView.of(content.copyByteData())));
+    addFile(name, content, handler, true);
   }
 
-  private void writeFileNow(String name, ByteDataView content, DiagnosticsHandler handler) {
+  public synchronized void addFile(
+      String name, ByteDataView content, DiagnosticsHandler handler, boolean storeCompressed) {
+    delayedWrites.add(
+        DelayedData.createFile(name, ByteDataView.of(content.copyByteData()), storeCompressed));
+  }
+
+  private void writeFileNow(
+      String name, ByteDataView content, DiagnosticsHandler handler, boolean compressed) {
     try {
       ZipUtils.writeToZipStream(
           getStream(),
           name,
           content,
-          AndroidApiDataAccess.isApiDatabaseEntry(name) ? ZipEntry.STORED : ZipEntry.DEFLATED);
+          AndroidApiDataAccess.isApiDatabaseEntry(name) || !compressed
+              ? ZipEntry.STORED
+              : ZipEntry.DEFLATED);
     } catch (IOException e) {
       handleIOException(e, handler);
     }
@@ -168,7 +177,7 @@ public class ArchiveBuilder implements OutputBuilder {
   private void writeNextIfAvailable(DiagnosticsHandler handler) {
     DelayedData data = delayedClassesDexFiles.remove(classesFileIndex);
     while (data != null) {
-      writeFileNow(data.name, data.content, handler);
+      writeFileNow(data.name, data.content, handler, data.storeCompressed);
       classesFileIndex++;
       data = delayedClassesDexFiles.remove(classesFileIndex);
     }
@@ -179,13 +188,13 @@ public class ArchiveBuilder implements OutputBuilder {
       int index, String name, ByteDataView content, DiagnosticsHandler handler) {
     if (index == classesFileIndex) {
       // Fast case, we got the file in order (or we only had one).
-      writeFileNow(name, content, handler);
+      writeFileNow(name, content, handler, true);
       classesFileIndex++;
       writeNextIfAvailable(handler);
     } else {
       // Data is released in the application writer, take a copy.
-      delayedClassesDexFiles.put(index,
-          new DelayedData(name, ByteDataView.of(content.copyByteData()), false));
+      delayedClassesDexFiles.put(
+          index, new DelayedData(name, ByteDataView.of(content.copyByteData()), false, true));
     }
   }
 
@@ -203,19 +212,23 @@ public class ArchiveBuilder implements OutputBuilder {
     public final String name;
     public final ByteDataView content;
     public final boolean isDirectory;
+    public final boolean storeCompressed;
 
-    public static DelayedData createFile(String name, ByteDataView content) {
-      return new DelayedData(name, content, false);
+    public static DelayedData createFile(
+        String name, ByteDataView content, boolean storeCompressed) {
+      return new DelayedData(name, content, false, storeCompressed);
     }
 
     public static DelayedData createDirectory(String name) {
-      return new DelayedData(name, null, true);
+      return new DelayedData(name, null, true, true);
     }
 
-    private DelayedData(String name, ByteDataView content, boolean isDirectory) {
+    private DelayedData(
+        String name, ByteDataView content, boolean isDirectory, boolean storeCompressed) {
       this.name = name;
       this.content = content;
       this.isDirectory = isDirectory;
+      this.storeCompressed = storeCompressed;
     }
 
     @Override

@@ -107,6 +107,7 @@ public class DexEncodedAnnotation extends DexItem implements StructuralItem<DexE
     return hashCode == UNSORTED ? 1 : hashCode;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexEncodedAnnotation rewrite(
       Function<DexType, DexType> typeRewriter,
       Function<DexAnnotationElement, DexAnnotationElement> elementRewriter) {

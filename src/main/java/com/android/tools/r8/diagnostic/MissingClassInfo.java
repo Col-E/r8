@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.diagnostic;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.ClassReference;
 
-@Keep
+@KeepForApi
 public interface MissingClassInfo extends MissingDefinitionInfo {
 
   /** Returns the reference of the missing class. */

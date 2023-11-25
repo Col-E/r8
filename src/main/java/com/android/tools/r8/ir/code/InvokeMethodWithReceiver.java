@@ -16,13 +16,11 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
@@ -56,32 +54,12 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   }
 
   @Override
-  public final InlineAction computeInlining(
+  public final InlineAction.Builder computeInlining(
       ProgramMethod singleTarget,
-      Reason reason,
       DefaultInliningOracle decider,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    return decider.computeForInvokeWithReceiver(
-        this, singleTarget, reason, whyAreYouNotInliningReporter);
-  }
-
-  @Override
-  public final DexClassAndMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
-    DynamicType dynamicReceiverType =
-        appView.hasLiveness()
-            ? getReceiver().getDynamicType(appView.withLiveness())
-            : DynamicType.unknown();
-    return lookupSingleTarget(appView, context, dynamicReceiverType);
-  }
-
-  public abstract DexClassAndMethod lookupSingleTarget(
-      AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType);
-
-  public final ProgramMethod lookupSingleProgramTarget(
-      AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType) {
-    return DexClassAndMethod.asProgramMethodOrNull(
-        lookupSingleTarget(appView, context, dynamicReceiverType));
+    return decider.computeForInvokeWithReceiver(this, singleTarget, whyAreYouNotInliningReporter);
   }
 
   /**
@@ -94,6 +72,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
    * <p>For desugaring we use invoke-direct instead. We need to do this as the Android Runtime will
    * not allow invoke-virtual of a private method.
    */
+  @SuppressWarnings("ReferenceEquality")
   protected boolean isPrivateMethodInvokedOnSelf(DexBuilder builder) {
     DexMethod method = getInvokedMethod();
     if (method.getHolderType()
@@ -111,7 +90,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   }
 
   protected boolean isPrivateNestMethodInvoke(DexBuilder builder) {
-    if (!builder.getOptions().emitNestAnnotationsInDex) {
+    if (!builder.getOptions().canUseNestBasedAccess()) {
       return false;
     }
     DexProgramClass holder = builder.getProgramMethod().getHolder();
@@ -249,10 +228,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
         appView.withClassHierarchy();
 
     SingleResolutionResult<?> resolutionResult =
-        appViewWithClassHierarchy
-            .appInfo()
-            .resolveMethodLegacy(getInvokedMethod(), getInterfaceBit())
-            .asSingleResolution();
+        resolveMethod(appViewWithClassHierarchy).asSingleResolution();
     if (resolutionResult == null) {
       return true;
     }
@@ -274,6 +250,12 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
     // Find the target and check if the invoke may have side effects.
     DexClassAndMethod singleTarget = lookupSingleTarget(appView, context);
+    MethodOptimizationInfo optimizationInfo =
+        resolutionResult.getOptimizationInfo(appView, this, singleTarget);
+    if (!optimizationInfo.mayHaveSideEffects(this, appView.options())) {
+      return false;
+    }
+
     if (singleTarget == null) {
       return true;
     }
@@ -290,10 +272,8 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
       return false;
     }
 
-    DexEncodedMethod singleTargetDefinition = singleTarget.getDefinition();
-    MethodOptimizationInfo optimizationInfo = singleTargetDefinition.getOptimizationInfo();
     if (assumption.canIgnoreInstanceFieldAssignmentsToReceiver()
-        && singleTargetDefinition.isInstanceInitializer()) {
+        && singleTarget.getDefinition().isInstanceInitializer()) {
       assert isInvokeDirect();
       InstanceInitializerInfo initializerInfo =
           optimizationInfo.getInstanceInitializerInfo(asInvokeDirect());
@@ -302,6 +282,6 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
       }
     }
 
-    return optimizationInfo.mayHaveSideEffects(this, appView.options());
+    return true;
   }
 }

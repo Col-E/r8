@@ -1475,6 +1475,7 @@ public class DexParser<T extends DexClass> {
       return enclosingMethodAttribute;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public AttributesAndAnnotations(
         DexType type, Origin origin, DexAnnotationSet annotations, InternalOptions options) {
       this.originalAnnotations = annotations;

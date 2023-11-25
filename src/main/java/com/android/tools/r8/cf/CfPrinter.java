@@ -780,6 +780,7 @@ public class CfPrinter {
     builder.append(type);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void appendClass(DexType type) {
     assert type.isArrayType() || type.isClassType();
     if (type == DexItemFactory.nullValueType) {

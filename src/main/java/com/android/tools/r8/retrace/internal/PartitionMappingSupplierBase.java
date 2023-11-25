@@ -39,7 +39,10 @@ public abstract class PartitionMappingSupplierBase<T extends PartitionMappingSup
 
   private final RegisterMappingPartitionCallback registerCallback;
   private final PrepareMappingPartitionsCallback prepareCallback;
+
+  @SuppressWarnings("UnusedVariable")
   private final FinishedPartitionMappingCallback finishedCallback;
+
   private final boolean allowExperimental;
   private final byte[] metadata;
   private final MapVersion fallbackMapVersion;
@@ -189,6 +192,11 @@ public abstract class PartitionMappingSupplierBase<T extends PartitionMappingSup
     }
     return RetracerImpl.createInternal(
         MappingSupplierInternalImpl.createInternal(classNameMapper), diagnosticsHandler);
+  }
+
+  @Override
+  public void finished(DiagnosticsHandler handler) {
+    finishedCallback.finished(handler);
   }
 
   public abstract T self();

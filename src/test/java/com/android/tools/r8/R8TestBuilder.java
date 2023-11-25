@@ -9,13 +9,14 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.proguardConfigur
 
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.androidresources.AndroidResourceTestingUtils.AndroidTestResource;
 import com.android.tools.r8.benchmarks.BenchmarkResults;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
-import com.android.tools.r8.keepanno.KeepEdgeAnnotationsTest;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.profile.art.ArtProfileConsumer;
 import com.android.tools.r8.profile.art.ArtProfileProvider;
 import com.android.tools.r8.profile.art.model.ExternalArtProfile;
@@ -50,6 +51,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -81,6 +83,8 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   private final List<Path> mainDexRulesFiles = new ArrayList<>();
   private final List<String> applyMappingMaps = new ArrayList<>();
   private final List<Path> features = new ArrayList<>();
+  private Path resourceShrinkerOutput = null;
+  private HashMap<String, Path> resourceShrinkerOutputForFeatures = new HashMap<>();
   private PartitionMapConsumer partitionMapConsumer = null;
 
   @Override
@@ -141,6 +145,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     }
 
     class Box {
+
       private List<ProguardConfigurationRule> syntheticProguardRules;
       private ProguardConfiguration proguardConfiguration;
     }
@@ -166,7 +171,9 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
             graphConsumer,
             getMinApiLevel(),
             features,
-            residualArtProfiles);
+            residualArtProfiles,
+            resourceShrinkerOutput,
+            resourceShrinkerOutputForFeatures);
     switch (allowedDiagnosticMessages) {
       case ALL:
         compileResult.getDiagnosticMessages().assertAllDiagnosticsMatch(new IsAnything<>());
@@ -281,6 +288,11 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   public T addMainDexListClasses(Class<?>... classes) {
     builder.addMainDexClasses(
         Arrays.stream(classes).map(Class::getTypeName).collect(Collectors.toList()));
+    return self();
+  }
+
+  public T enableOptimizedShrinking() {
+    builder.setResourceShrinkerConfiguration(b -> b.enableOptimizedShrinkingWithR8().build());
     return self();
   }
 
@@ -425,8 +437,8 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   public T enableAssumeNotNullAnnotations(String annotationPackageName) {
     return addInternalKeepRules(
         "-assumevalues class * {",
-        "  @" + annotationPackageName + ".AssumeNotNull *** * return 1;",
-        "  @" + annotationPackageName + ".AssumeNotNull *** *(...) return 1;",
+        "  @" + annotationPackageName + ".AssumeNotNull *** * return _NONNULL_;",
+        "  @" + annotationPackageName + ".AssumeNotNull *** *(...) return _NONNULL_;",
         "}");
   }
 
@@ -749,7 +761,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T enableExperimentalKeepAnnotations() {
     builder.addClasspathResourceProvider(
-        DirectoryClassFileProvider.fromDirectory(KeepEdgeAnnotationsTest.getKeepAnnoPath()));
+        DirectoryClassFileProvider.fromDirectory(ToolHelper.getKeepAnnoPath()));
     builder.setEnableExperimentalKeepAnnotations(true);
     return self();
   }
@@ -868,4 +880,39 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     this.partitionMapConsumer = partitionMapConsumer;
     return self();
   }
+
+  public T addAndroidResources(AndroidTestResource testResource) throws IOException {
+    return addAndroidResources(
+        testResource, getState().getNewTempFile("resourceshrinkeroutput.zip"));
+  }
+
+  public T addFeatureSplitAndroidResources(AndroidTestResource testResource, String featureName)
+      throws IOException {
+    Path outputFile = getState().getNewTempFile("resourceshrinkeroutput_" + featureName + ".zip");
+    resourceShrinkerOutputForFeatures.put(featureName, outputFile);
+    getBuilder()
+        .addFeatureSplit(
+            featureSplitGenerator -> {
+              featureSplitGenerator.setAndroidResourceConsumer(
+                  new ArchiveProtoAndroidResourceConsumer(outputFile));
+              Path resourceZip = testResource.getResourceZip();
+              featureSplitGenerator.setAndroidResourceProvider(
+                  new ArchiveProtoAndroidResourceProvider(
+                      resourceZip, new PathOrigin(resourceZip)));
+              return featureSplitGenerator.build();
+            });
+    return addProgramClassFileData(testResource.getRClass().getClassFileData());
+  }
+
+  public T addAndroidResources(AndroidTestResource testResource, Path output) throws IOException {
+    Path resources = testResource.getResourceZip();
+    resourceShrinkerOutput = output;
+    getBuilder()
+        .setAndroidResourceProvider(
+            new ArchiveProtoAndroidResourceProvider(resources, new PathOrigin(resources)));
+    getBuilder()
+        .setAndroidResourceConsumer(new ArchiveProtoAndroidResourceConsumer(output, resources));
+    return addProgramClassFileData(testResource.getRClass().getClassFileData());
+  }
+
 }

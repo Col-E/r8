@@ -183,8 +183,15 @@ public class LazyCfCode extends Code {
   }
 
   @Override
-  public Code getCodeAsInlining(DexMethod caller, DexEncodedMethod callee, DexItemFactory factory) {
-    return asCfCode().getCodeAsInlining(caller, callee, factory);
+  public Code getCodeAsInlining(
+      DexMethod caller,
+      boolean isCallerD8R8Synthesized,
+      DexMethod callee,
+      boolean isCalleeD8R8Synthesized,
+      DexItemFactory factory) {
+    return asCfCode()
+        .getCodeAsInlining(
+            caller, isCallerD8R8Synthesized, callee, isCalleeD8R8Synthesized, factory);
   }
 
   @Nonnull
@@ -248,13 +255,8 @@ public class LazyCfCode extends Code {
   }
 
   @Override
-  public int estimatedSizeForInlining() {
-    return asCfCode().estimatedSizeForInlining();
-  }
-
-  @Override
-  public boolean estimatedSizeForInliningAtMost(int threshold) {
-    return asCfCode().estimatedSizeForInliningAtMost(threshold);
+  public int getEstimatedSizeForInliningIfLessThanOrEquals(int threshold) {
+    return asCfCode().getEstimatedSizeForInliningIfLessThanOrEquals(threshold);
   }
 
   @Override
@@ -319,17 +321,15 @@ public class LazyCfCode extends Code {
   }
 
   protected BiFunction<String, String, LazyCfCode> createCodeLocator(ReparseContext context) {
-    return new DefaultCodeLocator(context, application);
+    return new DefaultCodeLocator(context);
   }
 
   private static class DefaultCodeLocator implements BiFunction<String, String, LazyCfCode> {
     private final ReparseContext context;
-    private final JarApplicationReader application;
     private int methodIndex = 0;
 
-    private DefaultCodeLocator(ReparseContext context, JarApplicationReader application) {
+    private DefaultCodeLocator(ReparseContext context) {
       this.context = context;
-      this.application = application;
     }
 
     @Override

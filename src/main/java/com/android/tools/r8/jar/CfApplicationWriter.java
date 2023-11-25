@@ -402,6 +402,7 @@ public class CfApplicationWriter {
     return debugExtensions.asDexValueString().getValue().toString();
   }
 
+  @SuppressWarnings("BadImport")
   private ImmutableMap<DexString, DexValue> getAnnotationDefaults(DexAnnotationSet annotations) {
     DexValue value =
         getSystemAnnotationValue(annotations, appView.dexItemFactory().annotationDefault);
@@ -493,6 +494,7 @@ public class CfApplicationWriter {
     visitor.visitEnd();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void writeMethodParametersAnnotation(MethodVisitor visitor, DexAnnotation[] annotations) {
     for (DexAnnotation annotation : annotations) {
       if (annotation.annotation.type == appView.dexItemFactory().annotationMethodParameters) {
@@ -574,6 +576,7 @@ public class CfApplicationWriter {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void writeAnnotationElement(AnnotationVisitor visitor, String name, DexValue value) {
     switch (value.getValueKind()) {
       case ANNOTATION:
@@ -679,6 +682,7 @@ public class CfApplicationWriter {
     return writer.toString();
   }
 
+  @SuppressWarnings("DefaultCharset")
   private static void verifyCf(byte[] result) {
     ClassReader reader = new ClassReader(result);
     PrintWriter pw = new PrintWriter(System.out);

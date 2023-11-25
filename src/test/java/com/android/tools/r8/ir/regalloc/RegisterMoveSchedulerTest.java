@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.synthesis.SyntheticItems.GlobalSyntheticsStrategy;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collection;
@@ -94,7 +95,11 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public void replaceCurrentInstructionWithConstClass(
-        AppView<?> appView, IRCode code, DexType type, DebugLocalInfo localInfo) {
+        AppView<?> appView,
+        IRCode code,
+        DexType type,
+        DebugLocalInfo localInfo,
+        AffectedValues affectedValues) {
       throw new Unimplemented();
     }
 
@@ -105,7 +110,7 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public void replaceCurrentInstructionWithConstString(
-        AppView<?> appView, IRCode code, DexString value) {
+        AppView<?> appView, IRCode code, DexString value, AffectedValues affectedValues) {
       throw new Unimplemented();
     }
 
@@ -194,6 +199,15 @@ public class RegisterMoveSchedulerTest {
     @Override
     public void add(Instruction instruction) {
       it.add(instruction);
+    }
+
+    @Override
+    public InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+        IRCode code,
+        BasicBlockIterator blockIterator,
+        Collection<Instruction> instructionsToAdd,
+        InternalOptions options) {
+      throw new Unimplemented();
     }
 
     @Override

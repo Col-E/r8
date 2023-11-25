@@ -30,7 +30,7 @@ public class MultiCallerInlinerInvokeRegistry extends InvokeExtractor<MultiCalle
 
   @Override
   public GraphLens getCodeLens() {
-    return appView.graphLens();
+    return appViewWithLiveness.graphLens();
   }
 
   @Override

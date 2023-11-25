@@ -8,6 +8,7 @@ import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -25,7 +26,7 @@ import java.util.Collection;
 /**
  * Immutable command structure for an invocation of the {@link GlobalSyntheticsGenerator} compiler.
  */
-@Keep
+@KeepForApi
 public final class GlobalSyntheticsGeneratorCommand {
 
   private final ProgramConsumer programConsumer;
@@ -152,7 +153,7 @@ public final class GlobalSyntheticsGeneratorCommand {
    *
    * <p>A builder is obtained by calling {@link GlobalSyntheticsGeneratorCommand#builder}.
    */
-  @Keep
+  @KeepForApi
   public static class Builder {
 
     private ProgramConsumer programConsumer = null;

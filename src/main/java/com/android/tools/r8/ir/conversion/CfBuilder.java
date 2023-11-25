@@ -289,6 +289,7 @@ public class CfBuilder {
     assert !(isInstanceInitializer && thisInitializers == null);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private List<InvokeDirect> computeInitializers(Value value) {
     List<InvokeDirect> initializers = new ArrayList<>();
     for (Instruction user : value.uniqueUsers()) {
@@ -487,6 +488,7 @@ public class CfBuilder {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void rewriteIincPatterns() {
     for (BasicBlock block : code.blocks) {
       InstructionListIterator it = block.listIterator(code);
@@ -597,6 +599,7 @@ public class CfBuilder {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void updatePositionAndLocals(Instruction instruction) {
     Position position = instruction.getPosition();
     boolean didLocalsChange = localsChanged();
@@ -622,6 +625,7 @@ public class CfBuilder {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void updateLocals(CfLabel label) {
     Int2ReferenceSortedMap<DebugLocalInfo> ending =
         DebugLocalInfo.endingLocals(emittedLocals, pendingLocals);

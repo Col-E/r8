@@ -11,6 +11,10 @@ import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugari
 import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.getJdk8AndAll3Jdk11;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.ArchiveClassFileProvider;
+import com.android.tools.r8.ArchiveProgramResourceProvider;
+import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
@@ -133,9 +137,17 @@ public class PartialDesugaringTest extends DesugaredLibraryTestBase {
     options
         .getArtProfileOptions()
         .setAllowReadingEmptyArtProfileProvidersMultipleTimesForTesting(true);
+    Set<ProgramResourceProvider> programResources =
+        librarySpecification.getDesugarJdkLibs().stream()
+            .map(ArchiveProgramResourceProvider::fromArchive)
+            .collect(Collectors.toSet());
     SupportedClasses supportedClasses =
-        new SupportedClassesGenerator(options, ToolHelper.getAndroidJar(AndroidApiLevel.U))
-            .run(librarySpecification.getDesugarJdkLibs(), librarySpecification.getSpecification());
+        new SupportedClassesGenerator(
+                options,
+                ImmutableList.of(
+                    new ArchiveClassFileProvider(ToolHelper.getAndroidJar(AndroidApiLevel.U))))
+            .run(
+                programResources, StringResource.fromFile(librarySpecification.getSpecification()));
 
     for (AndroidApiLevel api : getRelevantApiLevels()) {
 
@@ -205,9 +217,9 @@ public class PartialDesugaringTest extends DesugaredLibraryTestBase {
         && api.isLessThan(AndroidApiLevel.T)) {
       expectedFailures.addAll(FAILURES_FILE_STORE);
     }
-    if (librarySpecification != JDK11_MINIMAL
-        && api.isGreaterThanOrEqualTo(AndroidApiLevel.N)
-        && api.isLessThan(AndroidApiLevel.T)) {
+    if (librarySpecification == JDK8
+        && api.isLessThan(AndroidApiLevel.T)
+        && api.isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
       expectedFailures.addAll(FAILURES_TO_ARRAY);
     }
     if (jdk11NonMinimal

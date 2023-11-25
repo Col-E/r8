@@ -38,6 +38,7 @@ public interface DexDefinitionSupplier {
    * @param context Context from which the lookup is taking place.
    * @return Definition of the type or null if no definition exists.
    */
+  @SuppressWarnings("ReferenceEquality")
   default DexClass definitionFor(DexType type, DexProgramClass context) {
     return type == context.type ? context : contextIndependentDefinitionFor(type);
   }
@@ -105,6 +106,7 @@ public interface DexDefinitionSupplier {
     return definitionFor(method) != null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   default ClassResolutionResult definitionForWithResolutionResult(
       DexType type, DexProgramClass context) {
     assert context.type != type || ClassResolutionResult.builder().add(context).build() == context;

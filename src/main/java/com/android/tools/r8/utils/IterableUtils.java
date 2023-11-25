@@ -120,6 +120,7 @@ public class IterableUtils {
     return min;
   }
 
+  @SuppressWarnings("UnusedVariable")
   public static <T> int size(Iterable<T> iterable) {
     int result = 0;
     for (T element : iterable) {

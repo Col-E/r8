@@ -5,10 +5,10 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.PartitionMapConsumer;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
-@Keep
+@KeepForApi
 public class PartitionCommand {
 
   private final DiagnosticsHandler diagnosticsHandler;
@@ -41,7 +41,7 @@ public class PartitionCommand {
     return new Builder(new DiagnosticsHandler() {});
   }
 
-  @Keep
+  @KeepForApi
   public static class Builder {
 
     private final DiagnosticsHandler diagnosticsHandler;

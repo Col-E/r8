@@ -15,6 +15,11 @@ public abstract class OptionalBool extends BooleanLatticeElement {
         }
 
         @Override
+        public boolean toBoolean() {
+          return true;
+        }
+
+        @Override
         public int ordinal() {
           return 1;
         }
@@ -34,6 +39,11 @@ public abstract class OptionalBool extends BooleanLatticeElement {
         }
 
         @Override
+        public boolean toBoolean() {
+          return false;
+        }
+
+        @Override
         public int ordinal() {
           return 0;
         }
@@ -50,6 +60,11 @@ public abstract class OptionalBool extends BooleanLatticeElement {
         @Override
         public boolean isUnknown() {
           return true;
+        }
+
+        @Override
+        public boolean toBoolean() {
+          throw new IllegalStateException("Cannot convert UNKNOWN to boolean");
         }
 
         @Override
@@ -77,6 +92,8 @@ public abstract class OptionalBool extends BooleanLatticeElement {
   public OptionalBool asOptionalBool() {
     return this;
   }
+
+  public abstract boolean toBoolean();
 
   @Override
   public boolean equals(Object other) {

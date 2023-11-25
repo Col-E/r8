@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.conversion.PrimaryMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -61,7 +62,7 @@ public class CheckCastAndInstanceOfMethodSpecialization {
     if (isCandidateForInstanceOfOptimization(method, abstractReturnValue)) {
       synchronized (this) {
         if (candidatesForInstanceOfOptimization.isEmpty()) {
-          converter.addWaveDoneAction(() -> execute(methodProcessor));
+          converter.addWaveDoneAction(() -> execute(methodProcessor.asPrimaryMethodProcessor()));
         }
         candidatesForInstanceOfOptimization.add(method);
       }
@@ -74,7 +75,7 @@ public class CheckCastAndInstanceOfMethodSpecialization {
         && abstractReturnValue.isSingleBoolean();
   }
 
-  public void execute(MethodProcessor methodProcessor) {
+  public void execute(PrimaryMethodProcessor methodProcessor) {
     assert !candidatesForInstanceOfOptimization.isEmpty();
     ProgramMethodSet processed = ProgramMethodSet.create();
     for (ProgramMethod method : candidatesForInstanceOfOptimization) {
@@ -84,8 +85,9 @@ public class CheckCastAndInstanceOfMethodSpecialization {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void processCandidateForInstanceOfOptimization(
-      ProgramMethod method, MethodProcessor methodProcessor) {
+      ProgramMethod method, PrimaryMethodProcessor methodProcessor) {
     DexEncodedMethod definition = method.getDefinition();
     if (!definition.isNonPrivateVirtualMethod()) {
       return;
@@ -134,8 +136,8 @@ public class CheckCastAndInstanceOfMethodSpecialization {
       // The parent method is already guaranteed to return the same value.
     } else if (isClassAccessible(method.getHolder(), parentMethod, appView).isTrue()) {
       parentMethod.setCode(
-          parentMethodDefinition.buildInstanceOfCode(
-              method.getHolderType(), abstractParentReturnValue.isTrue(), appView.options()),
+          parentMethodDefinition.buildInstanceOfCfCode(
+              method.getHolderType(), abstractParentReturnValue.isTrue()),
           appView);
       // Rebuild inlining constraints.
       IRCode code =
@@ -145,6 +147,7 @@ public class CheckCastAndInstanceOfMethodSpecialization {
       feedback.fixupUnusedArguments(parentMethod, unusedArguments -> unusedArguments.clear(0));
       feedback.unsetAbstractReturnValue(parentMethod);
       feedback.unsetClassInlinerMethodConstraint(parentMethod);
+      methodProcessor.scheduleDesugaredMethodForProcessing(parentMethod);
     } else {
       return;
     }

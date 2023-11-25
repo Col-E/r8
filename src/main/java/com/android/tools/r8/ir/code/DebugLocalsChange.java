@@ -105,6 +105,7 @@ public class DebugLocalsChange extends Instruction {
     return inliningConstraints.forDebugLocalsChange();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean apply(Int2ReferenceMap<DebugLocalInfo> locals) {
     boolean changed = false;
     for (Entry<DebugLocalInfo> end : getEnding().int2ReferenceEntrySet()) {

@@ -159,9 +159,9 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
     }
     if (hasInheritanceClassName() && getInheritanceClassName().hasSpecificType()) {
       DexType type = getInheritanceClassName().getSpecificType();
-      if (appView.verticallyMergedClasses() != null
-          && appView.verticallyMergedClasses().hasBeenMergedIntoSubtype(type)) {
-        DexType target = appView.verticallyMergedClasses().getTargetFor(type);
+      if (appView.getVerticallyMergedClasses() != null
+          && appView.getVerticallyMergedClasses().hasBeenMergedIntoSubtype(type)) {
+        DexType target = appView.getVerticallyMergedClasses().getTargetFor(type);
         DexClass clazz = appView.definitionFor(target);
         assert clazz != null && clazz.isProgramClass();
         return Iterables.concat(

@@ -176,7 +176,7 @@ public class HumanToMachineWrapperConverter {
   }
 
   // TODO(b/270398965): Replace LinkedList.
-  @SuppressWarnings("JdkObsolete")
+  @SuppressWarnings({"JdkObsolete", "ReferenceEquality", "UnnecessaryParentheses"})
   private void fillDescriptors(
       DexClass wrapperClass,
       Set<DexMethod> excludedMethods,

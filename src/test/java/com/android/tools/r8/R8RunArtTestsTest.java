@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.TestCondition.compilers;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -13,7 +14,6 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ArtErrorParser;
@@ -170,14 +170,6 @@ public abstract class R8RunArtTestsTest extends TestBase {
           .put(
               "802-deoptimization",
               TestCondition.match(TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
-          // TODO(b/144975341): Triage
-          .put(
-              "134-reg-promotion",
-              TestCondition.match(TestCondition.runtimes(DexVm.Version.V10_0_0)))
-          // TODO(b/197078742): Triage - test OOMs.
-          .put(
-              "134-reg-promotion",
-              TestCondition.match(TestCondition.runtimes(DexVm.Version.V12_0_0)))
           // TODO(b/197078746): Triage - fails with "java.lang.NoSuchMethodException:
           //  org.apache.harmony.dalvik.ddmc.DdmVmInternal.enableRecentAllocations [boolean]"
           .put(
@@ -638,6 +630,16 @@ public abstract class R8RunArtTestsTest extends TestBase {
           .put(
               "104-growth-limit",
               TestCondition.match(TestCondition.R8_COMPILER, TestCondition.RELEASE_MODE))
+          // Fails with OOM, seemingly due to GC not collecting unreachable array after writing
+          // null to static field.
+          .put(
+              "134-reg-promotion",
+              TestCondition.match(
+                  compilers(
+                      CompilerUnderTest.R8,
+                      CompilerUnderTest.D8_AFTER_R8CF,
+                      CompilerUnderTest.R8_AFTER_D8),
+                  TestCondition.runtimes(DexVm.Version.V10_0_0, DexVm.Version.V12_0_0)))
           .put(
               "461-get-reference-vreg",
               TestCondition.match(
@@ -835,8 +837,7 @@ public abstract class R8RunArtTestsTest extends TestBase {
               "201-built-in-except-detail-messages",
               TestCondition.or(
                   TestCondition.match(
-                      TestCondition.compilers(
-                          CompilerUnderTest.D8, CompilerUnderTest.D8_AFTER_R8CF),
+                      compilers(CompilerUnderTest.D8, CompilerUnderTest.D8_AFTER_R8CF),
                       TestCondition.runtimes(
                           DexVm.Version.V4_0_4,
                           DexVm.Version.V4_4_4,
@@ -846,15 +847,14 @@ public abstract class R8RunArtTestsTest extends TestBase {
                           DexVm.Version.V13_0_0,
                           DexVm.Version.V14_0_0)),
                   TestCondition.match(
-                      TestCondition.compilers(
+                      compilers(
                           CompilerUnderTest.R8,
                           CompilerUnderTest.R8CF,
                           CompilerUnderTest.R8_AFTER_D8))))
           // Class.forName() that fails due to verification error is removed.
           .put(
               "412-new-array",
-              TestCondition.match(
-                  TestCondition.compilers(CompilerUnderTest.R8, CompilerUnderTest.R8_AFTER_D8)))
+              TestCondition.match(compilers(CompilerUnderTest.R8, CompilerUnderTest.R8_AFTER_D8)))
           // Array index out of bounds exception.
           .put("449-checker-bce", TestCondition.any())
           // Fails: get_vreg_jni.cc:46] Check failed: value == 42u (value=314630384, 42u=42)
@@ -912,8 +912,7 @@ public abstract class R8RunArtTestsTest extends TestBase {
           // Class.forName() that fails due to linkage error is removed.
           .put(
               "587-inline-class-error",
-              TestCondition.match(
-                  TestCondition.compilers(CompilerUnderTest.R8, CompilerUnderTest.R8_AFTER_D8)))
+              TestCondition.match(compilers(CompilerUnderTest.R8, CompilerUnderTest.R8_AFTER_D8)))
           // Array index out of bounds exception.
           .put("602-deoptimizeable", TestCondition.any())
           // Array index out of bounds exception.
@@ -1525,7 +1524,7 @@ public abstract class R8RunArtTestsTest extends TestBase {
   }
 
   private static CompilationMode defaultCompilationMode(CompilerUnderTest compilerUnderTest) {
-    CompilationMode compilationMode = null;
+    CompilationMode compilationMode;
     switch (compilerUnderTest) {
       case R8:
       case R8CF:
@@ -1811,68 +1810,6 @@ public abstract class R8RunArtTestsTest extends TestBase {
         }
       default:
         assert false : compilerUnderTest;
-    }
-  }
-
-  private static boolean isAuxClassFile(String fileName, String auxClassFileBase) {
-    return fileName.endsWith(".class")
-        && (fileName.startsWith(auxClassFileBase + "$")
-        || fileName.startsWith(auxClassFileBase + "_"));
-  }
-
-
-  private static Runtime getRuntime(TestRuntime vm) {
-    if (vm.isCf()) {
-      return Runtime.JAVA;
-    } else if (vm.isDex()) {
-      return Runtime.fromDexVmVersion(vm.asDex().getVm().getVersion());
-    } else {
-      throw new Unreachable();
-    }
-  }
-
-  private static class VmSpec {
-    final TestRuntime vm;
-    final TestSpecification spec;
-
-    private VmSpec(TestRuntime vm, TestSpecification testSpecification) {
-      this.vm = vm;
-      this.spec = testSpecification;
-    }
-  }
-
-  private static class VmErrors {
-    private final Set<TestRuntime> failedVms = new HashSet<>();
-    private StringBuilder message;
-
-    private void addShouldHaveFailedError(CompilerUnderTest compilerUnderTest, TestRuntime vm) {
-      addFailure(vm);
-      message.append(
-          "FAILURE: Test should have failed on "
-              + vm
-              + " after compiling with "
-              + compilerUnderTest
-              + ".\n");
-    }
-
-    private void addFailedOnRunError(
-        CompilerUnderTest compilerUnderTest, TestRuntime vm, AssertionError error) {
-      addFailure(vm);
-      message.append(
-          "FAILURE: Test failed on "
-              + vm
-              + " after compiling with "
-              + compilerUnderTest
-              + ", error:\n"
-              + error.getMessage()
-              + "\n");
-    }
-
-    private void addFailure(TestRuntime vm) {
-      if (message == null) {
-        message = new StringBuilder();
-      }
-      failedVms.add(vm);
     }
   }
 

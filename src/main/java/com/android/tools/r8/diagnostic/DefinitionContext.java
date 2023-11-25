@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.diagnostic;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 
 /** A context that references a missing definition in the program, classpath, or library. */
-@Keep
+@KeepForApi
 public interface DefinitionContext {
 
   /** The origin of the context. */

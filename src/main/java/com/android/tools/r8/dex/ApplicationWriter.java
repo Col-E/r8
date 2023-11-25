@@ -316,6 +316,7 @@ public class ApplicationWriter {
         virtualFiles,
         virtualFile ->
             rewriteJumboStringsAndComputeDebugRepresentation(virtualFile, lazyDexStrings),
+        appView.options().getThreadingModule(),
         executorService);
   }
 
@@ -335,6 +336,7 @@ public class ApplicationWriter {
               fileTiming.end();
               return fileTiming;
             },
+            appView.options().getThreadingModule(),
             executorService);
     merger.add(timings);
     merger.end();
@@ -633,6 +635,7 @@ public class ApplicationWriter {
     byteBufferProvider.releaseByteBuffer(result.buffer.asByteBuffer());
   }
 
+  @SuppressWarnings("DefaultCharset")
   public static void supplyAdditionalConsumers(AppView<?> appView) {
     InternalOptions options = appView.options();
     Reporter reporter = options.reporter;
@@ -765,6 +768,7 @@ public class ApplicationWriter {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void insertAttributeAnnotationsForClass(DexProgramClass clazz) {
     EnclosingMethodAttribute enclosingMethod = clazz.getEnclosingMethodAttribute();
     List<InnerClassAttribute> innerClasses = clazz.getInnerClasses();
@@ -832,7 +836,7 @@ public class ApplicationWriter {
               options.itemFactory));
     }
 
-    if (options.emitNestAnnotationsInDex) {
+    if (options.canUseNestBasedAccess()) {
       if (clazz.isNestHost()) {
         annotations.add(
             DexAnnotation.createNestMembersAnnotation(
@@ -906,7 +910,10 @@ public class ApplicationWriter {
 
   private void setCallSiteContexts(ExecutorService executorService) throws ExecutionException {
     ThreadUtils.processItems(
-        appView.appInfo().classes(), this::setCallSiteContexts, executorService);
+        appView.appInfo().classes(),
+        this::setCallSiteContexts,
+        appView.options().getThreadingModule(),
+        executorService);
   }
 
   private void setCallSiteContexts(DexProgramClass clazz) {

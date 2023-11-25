@@ -134,12 +134,15 @@ public class ClassMerger {
         newMethodReference.withName("$r8$clinit$synthetic", dexItemFactory);
     lensBuilder.recordNewMethodSignature(syntheticMethodReference, newMethodReference, true);
 
-    ComputedApiLevel apiReferenceLevel = classInitializerMerger.getApiReferenceLevel(appView);
+    ComputedApiLevel apiReferenceLevel =
+        appView.options().apiModelingOptions().isApiLibraryModelingEnabled()
+            ? classInitializerMerger.getApiReferenceLevel(appView)
+            : ComputedApiLevel.notSet();
     DexEncodedMethod definition =
         DexEncodedMethod.syntheticBuilder()
             .setMethod(newMethodReference)
             .setAccessFlags(MethodAccessFlags.createForClassInitializer())
-            .setCode(classInitializerMerger.getCode(syntheticMethodReference))
+            .setCode(classInitializerMerger.getCode(newMethodReference))
             .setClassFileVersion(classInitializerMerger.getCfVersion())
             .setApiLevelForDefinition(apiReferenceLevel)
             .setApiLevelForCode(apiReferenceLevel)
@@ -156,6 +159,7 @@ public class ClassMerger {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void mergeDirectMethods(DexProgramClass toMerge) {
     toMerge.forEachProgramDirectMethod(
         method -> {
@@ -172,7 +176,7 @@ public class ClassMerger {
             }
             classMethodsBuilder.addDirectMethod(
                 newMethod != method.getReference()
-                    ? definition.toTypeSubstitutedMethod(newMethod)
+                    ? definition.toTypeSubstitutedMethodAsInlining(newMethod, dexItemFactory)
                     : method.getDefinition());
             if (definition.getReference() != newMethod) {
               lensBuilder.moveMethod(definition.getReference(), newMethod);
@@ -270,6 +274,7 @@ public class ClassMerger {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void fixNestMemberAttributes() {
     if (group.getTarget().isInANest() && !group.getTarget().hasNestMemberAttributes()) {
       for (DexProgramClass clazz : group.getSources()) {
@@ -379,6 +384,7 @@ public class ClassMerger {
       this.mode = mode;
     }
 
+    @SuppressWarnings("MixedMutabilityReturnType")
     private List<VirtualMethodMerger> createVirtualMethodMergers() {
       if (!appView.hasClassHierarchy()) {
         assert getVirtualMethodMergerBuilders().isEmpty();

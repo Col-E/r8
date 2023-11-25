@@ -38,13 +38,16 @@ public class MethodLookupResult extends MemberLookupResult<DexMethod> {
     return type;
   }
 
+  @SuppressWarnings("UnusedVariable")
   public RewrittenPrototypeDescription getPrototypeChanges() {
     return prototypeChanges;
   }
 
   public static class Builder extends MemberLookupResult.Builder<DexMethod, Builder> {
 
+    @SuppressWarnings("UnusedVariable")
     private final GraphLens lens;
+
     private RewrittenPrototypeDescription prototypeChanges = RewrittenPrototypeDescription.none();
     private InvokeType type;
 

@@ -206,6 +206,7 @@ public abstract class ProguardClassSpecification {
   private final boolean inheritanceIsExtends;
   private final List<ProguardMemberRule> memberRules;
 
+  @SuppressWarnings("ReferenceEquality")
   protected ProguardClassSpecification(
       Origin origin,
       Position position,

@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.profile.art;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 
@@ -13,7 +13,7 @@ import com.android.tools.r8.references.MethodReference;
  * #acceptClassRule} and {@link #acceptMethodRule} for each class and method rule (respectively) in
  * the profile.
  */
-@Keep
+@KeepForApi
 public interface ArtProfileRuleConsumer {
 
   /** Provides information about a specific class rule to the consumer. */

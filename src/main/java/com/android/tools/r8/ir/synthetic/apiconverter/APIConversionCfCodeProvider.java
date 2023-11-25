@@ -10,6 +10,7 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexField;
@@ -94,7 +95,7 @@ public class APIConversionCfCodeProvider extends SyntheticCfCodeProvider {
     generatePushReceiver(instructions, isStatic);
     generateParameterConvertAndLoads(instructions, isStatic);
     generateForwardingCall(instructions);
-    generateReturnConversion(instructions);
+    generateReturnConversion(instructions, isStatic);
     generateReturn(instructions);
     return standardCfCodeFromInstructions(instructions);
   }
@@ -108,10 +109,27 @@ public class APIConversionCfCodeProvider extends SyntheticCfCodeProvider {
     }
   }
 
-  private void generateReturnConversion(List<CfInstruction> instructions) {
+  private void generateReturnConversion(List<CfInstruction> instructions, boolean isStatic) {
     if (returnConversion != null) {
-      instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, returnConversion, false));
+      generateConversion(instructions, returnConversion, isStatic);
     }
+  }
+
+  private void generateConversion(
+      List<CfInstruction> instructions, DexMethod conversion, boolean isStatic) {
+    if (conversion.getArity() == 2) {
+      // If there is a second parameter, D8/R8 passes the  receiver as the second parameter.
+      if (isStatic) {
+        throw new CompilationError("Unsupported conversion with two parameters on static method");
+      }
+      generatePushReceiver(instructions, isStatic);
+    } else if (conversion.getArity() != 1) {
+      throw new CompilationError(
+          "Unsupported conversion with invalid number of parameters ("
+              + conversion.getArity()
+              + ")");
+    }
+    instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, conversion, false));
   }
 
   private void generateForwardingCall(List<CfInstruction> instructions) {
@@ -125,7 +143,7 @@ public class APIConversionCfCodeProvider extends SyntheticCfCodeProvider {
       ValueType valueType = valueTypeFromForwardMethod(forwardMethod.getParameter(i));
       instructions.add(CfLoad.load(valueType, localIndex));
       if (parameterConversions[i] != null) {
-        instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, parameterConversions[i], false));
+        generateConversion(instructions, parameterConversions[i], isStatic);
       }
       localIndex += valueType.isWide() ? 2 : 1;
     }

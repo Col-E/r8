@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.conversion.PrimaryD8L8IRConverter;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAmender;
 import com.android.tools.r8.jar.CfApplicationWriter;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.VarHandleDesugaringRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
@@ -34,10 +35,8 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-/**
- * The L8 compiler.
- */
-@Keep
+/** The L8 compiler. */
+@KeepForApi
 public class L8 {
 
   /**

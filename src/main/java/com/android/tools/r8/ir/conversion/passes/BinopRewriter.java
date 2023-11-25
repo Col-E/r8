@@ -239,7 +239,7 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "BinopRewriter";
   }
 
@@ -427,6 +427,7 @@ public class BinopRewriter extends CodeRewriterPass<AppInfo> {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private ConstNumber getConstNumber(Value val) {
     ConstNumber constNumber = getConstNumberIfConstant(val);
     if (constNumber != null) {

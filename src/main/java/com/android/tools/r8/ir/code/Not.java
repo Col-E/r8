@@ -56,7 +56,7 @@ public class Not extends Unop {
         assert this.type == NumericType.LONG;
         newConst = ~sourceConst.getLongValue();
       }
-      return appView.abstractValueFactory().createSingleNumberValue(newConst);
+      return appView.abstractValueFactory().createSingleNumberValue(newConst, getOutType());
     }
     return AbstractValue.unknown();
   }

@@ -61,7 +61,10 @@ public class SyntheticInitializerConverter {
     if (!classInitializers.isEmpty()) {
       IRConverter converter = new IRConverter(createAppViewForConversion());
       ThreadUtils.processItems(
-          classInitializers, method -> processMethod(method, converter), executorService);
+          classInitializers,
+          method -> processMethod(method, converter),
+          appView.options().getThreadingModule(),
+          executorService);
     }
   }
 
@@ -72,6 +75,7 @@ public class SyntheticInitializerConverter {
       ThreadUtils.processItems(
           instanceInitializers,
           clazz -> processInstanceInitializers(clazz, converter),
+          appView.options().getThreadingModule(),
           executorService);
     }
   }

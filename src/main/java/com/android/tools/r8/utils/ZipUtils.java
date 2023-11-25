@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -100,6 +101,27 @@ public class ZipUtils {
     }
   }
 
+  public static void iter(Path zipFilePath, Consumer<ZipEntry> entryConsumer) throws IOException {
+    try (ZipFile zipFile = new ZipFile(zipFilePath.toFile(), StandardCharsets.UTF_8)) {
+      final Enumeration<? extends ZipEntry> entries = zipFile.entries();
+      while (entries.hasMoreElements()) {
+        entryConsumer.accept(entries.nextElement());
+      }
+    }
+  }
+
+  @SuppressWarnings("UnnecessaryParentheses")
+  public static boolean containsEntry(Path zipfile, String name) throws IOException {
+    BooleanBox result = new BooleanBox();
+    ZipUtils.iter(
+        zipfile,
+        (entry, stream) -> {
+          result.computeIfNotSet(() -> entry.getName().equals(name));
+        });
+    return result.get();
+  }
+
+  @SuppressWarnings("UnnecessaryParentheses")
   public static Path map(
       Path zipFilePath, Path mappedFilePath, BiFunction<ZipEntry, byte[], byte[]> map)
       throws IOException {
@@ -112,6 +134,7 @@ public class ZipUtils {
     return builder.build();
   }
 
+  @SuppressWarnings("UnnecessaryParentheses")
   public static Path filter(Path zipFilePath, Path filteredFilePath, Predicate<ZipEntry> predicate)
       throws IOException {
     ZipBuilder builder = ZipBuilder.builder(filteredFilePath);
@@ -131,10 +154,12 @@ public class ZipUtils {
     }
   }
 
+  @SuppressWarnings("StreamResourceLeak")
   public static void zip(Path zipFile, Path inputDirectory) throws IOException {
     List<Path> files =
         Files.walk(inputDirectory)
             .filter(path -> !Files.isDirectory(path))
+            .sorted()
             .collect(Collectors.toList());
     zip(zipFile, inputDirectory, files);
   }

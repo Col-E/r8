@@ -42,7 +42,8 @@ public class TiviTest extends TestBase {
   public static void setup() throws IOException {
     assumeTrue(ToolHelper.isLocalDevelopment());
     outDirectory = getStaticTemp().newFolder().toPath();
-    ZipUtils.unzip(Paths.get("third_party/opensource-apps/tivi/dump_app.zip"), outDirectory);
+    ZipUtils.unzip(
+        Paths.get(ToolHelper.THIRD_PARTY_DIR, "opensource-apps/tivi/dump_app.zip"), outDirectory);
   }
 
   @Test

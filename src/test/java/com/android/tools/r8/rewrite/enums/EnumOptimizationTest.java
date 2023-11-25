@@ -161,7 +161,6 @@ public class EnumOptimizationTest extends TestBase {
         .addOptionsModification(this::configure)
         .addOptionsModification(
             o -> {
-              o.testing.enableLir();
               // Not inlining toString depends on simple inlining limit.
               o.inlinerOptions().simpleInliningInstructionLimit = 3;
             })

@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
+import java.util.Set;
 
 public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
 
@@ -35,57 +36,42 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
       ProgramMethod target,
       ProgramMethod context,
       DefaultInliningOracle oracle,
-      MethodProcessor methodProcessor) {
+      InliningIRProvider inliningIRProvider,
+      MethodProcessor methodProcessor,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     DexEncodedMethod targetMethod = target.getDefinition();
     DexMethod targetReference = target.getReference();
-    if (targetMethod.getOptimizationInfo().forceInline()) {
-      assert appView.getKeepInfo(target).isInliningAllowed(appView.options());
-      return Reason.FORCE;
-    }
+    Reason reason;
     if (appView.appInfo().hasLiveness()
         && appView.withLiveness().appInfo().isAlwaysInlineMethod(targetReference)) {
-      return Reason.ALWAYS;
-    }
-    if (options.disableInliningOfLibraryMethodOverrides
+      reason = Reason.ALWAYS;
+    } else if (options.disableInliningOfLibraryMethodOverrides
         && targetMethod.isLibraryMethodOverride().isTrue()) {
       // This method will always have an implicit call site from the library, so we won't be able to
       // remove it after inlining even if we have single or dual call site information from the
       // program.
-      return Reason.SIMPLE;
+      reason = Reason.SIMPLE;
+    } else if (callSiteInformation.hasSingleCallSite(target, context)) {
+      reason = Reason.SINGLE_CALLER;
+    } else if (isMultiCallerInlineCandidate(target, methodProcessor)) {
+      reason =
+          methodProcessor.isPrimaryMethodProcessor()
+              ? Reason.MULTI_CALLER_CANDIDATE
+              : Reason.ALWAYS;
+    } else {
+      reason = Reason.SIMPLE;
     }
-    if (isSingleCallerInliningTarget(target, context)) {
-      return Reason.SINGLE_CALLER;
+    Set<Reason> validInliningReasons = appView.testing().validInliningReasons;
+    if (validInliningReasons != null && !validInliningReasons.contains(reason)) {
+      reason = Reason.NEVER;
+      whyAreYouNotInliningReporter.reportInvalidInliningReason(reason, validInliningReasons);
     }
-    if (isMultiCallerInlineCandidate(invoke, target, oracle, methodProcessor)) {
-      return methodProcessor.isPrimaryMethodProcessor()
-          ? Reason.MULTI_CALLER_CANDIDATE
-          : Reason.ALWAYS;
-    }
-    return Reason.SIMPLE;
-  }
-
-  private boolean isSingleCallerInliningTarget(ProgramMethod method, ProgramMethod context) {
-    if (!callSiteInformation.hasSingleCallSite(method, context)) {
-      return false;
-    }
-    if (appView.appInfo().isNeverInlineDueToSingleCallerMethod(method)) {
-      return false;
-    }
-    if (appView.testing().validInliningReasons != null
-        && !appView.testing().validInliningReasons.contains(Reason.SINGLE_CALLER)) {
-      return false;
-    }
-    return true;
+    return reason;
   }
 
   private boolean isMultiCallerInlineCandidate(
-      InvokeMethod invoke,
       ProgramMethod singleTarget,
-      DefaultInliningOracle oracle,
       MethodProcessor methodProcessor) {
-    if (oracle.satisfiesRequirementsForSimpleInlining(invoke, singleTarget)) {
-      return false;
-    }
     if (methodProcessor.isPrimaryMethodProcessor()) {
       return callSiteInformation.isMultiCallerInlineCandidate(singleTarget);
     }

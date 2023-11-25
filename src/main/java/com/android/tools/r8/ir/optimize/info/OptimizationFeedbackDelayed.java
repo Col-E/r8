@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.AppInfoWithLivenessModifier;
+import com.android.tools.r8.threading.ThreadingModule;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.BitSet;
@@ -68,10 +69,13 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
 
   @Override
   public void fixupOptimizationInfos(
-      AppView<?> appView, ExecutorService executorService, OptimizationInfoFixer fixer)
+      AppView<?> appView,
+      ThreadingModule threadingModule,
+      ExecutorService executorService,
+      OptimizationInfoFixer fixer)
       throws ExecutionException {
     updateVisibleOptimizationInfo();
-    super.fixupOptimizationInfos(appView, executorService, fixer);
+    super.fixupOptimizationInfos(appView, threadingModule, executorService, fixer);
   }
 
   @Override
@@ -151,7 +155,7 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
         .get(field.getReference())
         .hasReflectiveAccess();
     if (appView.appInfo().mayPropagateValueFor(appView, field.getReference())) {
-      getFieldOptimizationInfoForUpdating(field).setAbstractValue(abstractValue);
+      getFieldOptimizationInfoForUpdating(field).setAbstractValue(abstractValue, field);
     }
   }
 
@@ -188,7 +192,7 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   public synchronized void methodReturnsAbstractValue(
       DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, AbstractValue value) {
     if (appView.appInfo().mayPropagateValueFor(appView, method.getReference())) {
-      getMethodOptimizationInfoForUpdating(method).markReturnsAbstractValue(value);
+      getMethodOptimizationInfoForUpdating(method).setAbstractReturnValue(value, method);
     }
   }
 
@@ -224,7 +228,7 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo) {
+  public synchronized void setBridgeInfo(ProgramMethod method, BridgeInfo bridgeInfo) {
     getMethodOptimizationInfoForUpdating(method).setBridgeInfo(bridgeInfo);
   }
 

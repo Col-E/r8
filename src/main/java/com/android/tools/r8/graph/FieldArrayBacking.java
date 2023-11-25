@@ -280,6 +280,7 @@ public class FieldArrayBacking extends FieldCollectionBacking {
     return null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static DexEncodedField[] replaceFieldsHelper(
       DexEncodedField[] fields,
       Function<DexEncodedField, DexEncodedField> replacement,

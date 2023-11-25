@@ -5,14 +5,14 @@
 package com.android.tools.r8.profile.art;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.TextOutputStream;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /**
  * API for consuming an ART profile provided by the compiler, which has been rewritten to match the
  * residual, optimized app.
  */
-@Keep
+@KeepForApi
 public interface ArtProfileConsumer {
 
   /**

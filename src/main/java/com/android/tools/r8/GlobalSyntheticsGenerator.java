@@ -39,6 +39,7 @@ import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaring;
 import com.android.tools.r8.ir.desugar.varhandle.VarHandleDesugaringEventConsumer;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.naming.RecordRewritingNamingLens;
 import com.android.tools.r8.naming.VarHandleDesugaringRewritingNamingLens;
 import com.android.tools.r8.origin.CommandLineOrigin;
@@ -68,9 +69,10 @@ import java.util.concurrent.ExecutorService;
  * The GlobalSyntheticsGenerator, a tool for generating a dex file for all possible global
  * synthetics.
  */
-@Keep
+@KeepForApi
 public class GlobalSyntheticsGenerator {
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean ensureAllGlobalSyntheticsModeled(SyntheticNaming naming) {
     for (SyntheticKind kind : naming.kinds()) {
       assert !kind.isGlobal()
@@ -125,6 +127,8 @@ public class GlobalSyntheticsGenerator {
               timing.begin("Create global synthetics");
               createGlobalSynthetics(appView, timing, executorService);
               timing.end();
+
+              assert GlobalSyntheticsGeneratorVerifier.verifyExpectedClassesArePresent(appView);
 
               ApplicationWriter.create(appView, options.getMarker()).write(executorService, app);
             } catch (ExecutionException e) {
@@ -298,9 +302,11 @@ public class GlobalSyntheticsGenerator {
               throwExceptionCode,
               apiReferenceStubberEventConsumer);
         },
+        appView.options().getThreadingModule(),
         executorService);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean isExceptionType(AppView<?> appView, DexLibraryClass libraryClass) {
     DexType throwableType = appView.dexItemFactory().throwableType;
     DexType currentType = libraryClass.getType();

@@ -13,6 +13,7 @@ java {
   }
   sourceCompatibility = JvmCompatibility.sourceCompatibility
   targetCompatibility = JvmCompatibility.targetCompatibility
+  withSourcesJar()
 }
 
 dependencies {
@@ -20,12 +21,22 @@ dependencies {
   compileOnly(Deps.guava)
 }
 
-val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
-  "compileDeps",
-  listOf(Jdk.JDK_11.getThirdPartyDependency()))
-
 tasks {
-  withType<JavaCompile> {
-    dependsOn(thirdPartyCompileDependenciesTask)
+  val keepAnnoAnnotationsJar by registering(Jar::class) {
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
+    from(sourceSets.main.get().output)
+    include("com/android/tools/r8/keepanno/annotations/*")
+    destinationDirectory.set(getRoot().resolveAll("build", "libs"))
+    archiveFileName.set("keepanno-annotations.jar")
+  }
+
+  val keepAnnoJar by registering(Jar::class) {
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
+    from(sourceSets.main.get().output)
+  }
+
+  val keepAnnoAnnotationsDoc by registering(Javadoc::class) {
+    source = sourceSets.main.get().allJava
+    include("com/android/tools/r8/keepanno/annotations/*")
   }
 }

@@ -427,7 +427,7 @@ public class BasicBlock implements Comparable<BasicBlock> {
   }
 
   public List<BasicBlock> getSuccessors() {
-    return Collections.unmodifiableList(successors);
+    return ListUtils.unmodifiableForTesting(successors);
   }
 
   public List<BasicBlock> getMutableSuccessors() {
@@ -457,6 +457,7 @@ public class BasicBlock implements Comparable<BasicBlock> {
     return false;
   }
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   public List<BasicBlock> getNormalSuccessors() {
     if (!hasCatchHandlers()) {
       return successors;
@@ -490,7 +491,7 @@ public class BasicBlock implements Comparable<BasicBlock> {
   }
 
   public List<BasicBlock> getPredecessors() {
-    return Collections.unmodifiableList(predecessors);
+    return ListUtils.unmodifiableForTesting(predecessors);
   }
 
   public List<BasicBlock> getMutablePredecessors() {
@@ -1265,6 +1266,7 @@ public class BasicBlock implements Comparable<BasicBlock> {
    *
    * @return true if any guards were renamed.
    */
+  @SuppressWarnings("ReferenceEquality")
   public boolean renameGuardsInCatchHandlers(NonIdentityGraphLens graphLens, GraphLens codeLens) {
     assert hasCatchHandlers();
     boolean anyGuardsRenamed = false;
@@ -1679,10 +1681,7 @@ public class BasicBlock implements Comparable<BasicBlock> {
         TypeElement.fromDexType(guard, Nullability.definitelyNotNull(), appView);
     BasicBlock block = new BasicBlock();
     MoveException moveException =
-        new MoveException(
-            new Value(code.valueNumberGenerator.next(), guardTypeLattice, null),
-            guard,
-            appView.options());
+        new MoveException(code.createValue(guardTypeLattice), guard, appView.options());
     moveException.setPosition(position);
     Throw throwInstruction = new Throw(moveException.outValue);
     throwInstruction.setPosition(position);
@@ -2014,8 +2013,7 @@ public class BasicBlock implements Comparable<BasicBlock> {
       newBlock.setNumber(code.getNextBlockNumber());
       newPredecessors.add(newBlock);
       if (hasMoveException) {
-        Value value =
-            new Value(code.valueNumberGenerator.next(), exceptionTypeLattice, move.getLocalInfo());
+        Value value = code.createValue(exceptionTypeLattice, move.getLocalInfo());
         values.add(value);
         MoveException newMove = new MoveException(value, exceptionType, options);
         newBlock.add(newMove, code);
@@ -2188,6 +2186,7 @@ public class BasicBlock implements Comparable<BasicBlock> {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void deduplicatePhis() {
     PhiEquivalence equivalence = new PhiEquivalence();
     HashMap<Wrapper<Phi>, Phi> wrapper2phi = new HashMap<>();

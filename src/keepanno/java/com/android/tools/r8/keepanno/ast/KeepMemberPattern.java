@@ -46,6 +46,7 @@ public abstract class KeepMemberPattern {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object o) {
       if (this == o) {
         return true;

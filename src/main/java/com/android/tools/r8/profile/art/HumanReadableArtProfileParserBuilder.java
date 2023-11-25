@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.profile.art;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /**
  * A builder for configuring a parser for the human-readable ART profile format.
@@ -12,7 +12,7 @@ import com.android.tools.r8.Keep;
  * @see <a href="https://developer.android.com/topic/performance/baselineprofiles">ART Baseline
  *     Profiles</a>
  */
-@Keep
+@KeepForApi
 public interface HumanReadableArtProfileParserBuilder {
 
   /**

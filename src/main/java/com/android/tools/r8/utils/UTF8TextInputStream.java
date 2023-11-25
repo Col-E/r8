@@ -21,6 +21,7 @@ public class UTF8TextInputStream implements TextInputStream {
     this(Files.newInputStream(path));
   }
 
+  @SuppressWarnings("DefaultCharset")
   public UTF8TextInputStream(String string) {
     this(new ByteArrayInputStream(string.getBytes()));
   }

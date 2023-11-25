@@ -6,16 +6,19 @@ package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.NumberGenerator;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
+import com.android.tools.r8.ir.code.MaterializingInstructionsInfo;
+import com.android.tools.r8.ir.code.ValueFactory;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class SingleValue extends AbstractValue implements InstanceFieldInitializationInfo {
+
+  public abstract boolean hasSingleMaterializingInstruction();
 
   @Override
   public boolean isNonTrivial() {
@@ -36,16 +39,16 @@ public abstract class SingleValue extends AbstractValue implements InstanceField
    * Note that calls to this method should generally be guarded by {@link
    * #isMaterializableInContext}.
    */
-  public final Instruction createMaterializingInstruction(
-      AppView<?> appView, IRCode code, TypeAndLocalInfoSupplier info) {
-    return createMaterializingInstruction(appView, code.context(), code.valueNumberGenerator, info);
+  public final Instruction[] createMaterializingInstructions(
+      AppView<?> appView, IRCode code, MaterializingInstructionsInfo info) {
+    return createMaterializingInstructions(appView, code.context(), code, info);
   }
 
-  public abstract Instruction createMaterializingInstruction(
+  public abstract Instruction[] createMaterializingInstructions(
       AppView<?> appView,
       ProgramMethod context,
-      NumberGenerator valueNumberGenerator,
-      TypeAndLocalInfoSupplier info);
+      ValueFactory valueFactory,
+      MaterializingInstructionsInfo info);
 
   public final boolean isMaterializableInContext(AppView<?> appView, ProgramMethod context) {
     if (appView.enableWholeProgramOptimizations()) {
@@ -63,5 +66,5 @@ public abstract class SingleValue extends AbstractValue implements InstanceField
 
   @Override
   public abstract SingleValue rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens);
+      AppView<AppInfoWithLiveness> appView, DexType newType, GraphLens lens, GraphLens codeLens);
 }

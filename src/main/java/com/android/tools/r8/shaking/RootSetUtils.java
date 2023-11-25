@@ -62,6 +62,7 @@ import com.android.tools.r8.shaking.EnqueuerEvent.InstantiatedClassEnqueuerEvent
 import com.android.tools.r8.shaking.EnqueuerEvent.LiveClassEnqueuerEvent;
 import com.android.tools.r8.shaking.EnqueuerEvent.UnconditionalKeepInfoEvent;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
+import com.android.tools.r8.threading.TaskCollection;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -69,7 +70,6 @@ import com.android.tools.r8.utils.OriginWithPosition;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
-import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
@@ -100,7 +100,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -324,11 +323,8 @@ public class RootSetUtils {
       }
     }
 
-    void runPerRule(
-        ExecutorService executorService,
-        List<Future<?>> futures,
-        ProguardConfigurationRule rule,
-        ProguardIfRule ifRule) {
+    void runPerRule(TaskCollection<?> tasks, ProguardConfigurationRule rule, ProguardIfRule ifRule)
+        throws ExecutionException {
       List<DexType> specifics = rule.getClassNames().asSpecificDexTypes();
       if (specifics != null) {
         // This keep rule only lists specific type matches.
@@ -343,25 +339,24 @@ public class RootSetUtils {
         return;
       }
 
-      futures.add(
-          executorService.submit(
-              () -> {
-                for (DexProgramClass clazz :
-                    rule.relevantCandidatesForRule(appView, subtypingInfo, application.classes())) {
-                  process(clazz, rule, ifRule);
-                }
-                if (rule.applyToNonProgramClasses()) {
-                  for (DexLibraryClass clazz : application.libraryClasses()) {
-                    process(clazz, rule, ifRule);
-                  }
-                }
-              }));
+      tasks.submit(
+          () -> {
+            for (DexProgramClass clazz :
+                rule.relevantCandidatesForRule(appView, subtypingInfo, application.classes())) {
+              process(clazz, rule, ifRule);
+            }
+            if (rule.applyToNonProgramClasses()) {
+              for (DexLibraryClass clazz : application.libraryClasses()) {
+                process(clazz, rule, ifRule);
+              }
+            }
+          });
     }
 
     public RootSet build(ExecutorService executorService) throws ExecutionException {
       application.timing.begin("Build root set...");
       try {
-        List<Future<?>> futures = new ArrayList<>();
+        TaskCollection<?> tasks = new TaskCollection<>(options, executorService);
         // Mark all the things explicitly listed in keep rules.
         if (rules != null) {
           for (ProguardConfigurationRule rule : rules) {
@@ -369,10 +364,10 @@ public class RootSetUtils {
               ProguardIfRule ifRule = (ProguardIfRule) rule;
               ifRules.add(ifRule);
             } else {
-              runPerRule(executorService, futures, rule, null);
+              runPerRule(tasks, rule, null);
             }
           }
-          ThreadUtils.awaitFutures(futures);
+          tasks.await();
         }
       } finally {
         application.timing.end();
@@ -936,8 +931,8 @@ public class RootSetUtils {
         DexClass clazz, ProguardConfigurationRule rule, boolean isInterface) {
       // TODO(b/110141157): Figure out what to do with annotations. Should the annotations of
       // the DexClass corresponding to `sourceType` satisfy the `annotation`-matcher?
-      return appView.verticallyMergedClasses() != null
-          && appView.verticallyMergedClasses().getSourcesFor(clazz.type).stream()
+      return appView.getVerticallyMergedClasses() != null
+          && appView.getVerticallyMergedClasses().getSourcesFor(clazz.type).stream()
               .filter(
                   sourceType ->
                       appView.definitionFor(sourceType).accessFlags.isInterface() == isInterface)
@@ -1437,6 +1432,7 @@ public class RootSetUtils {
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void evaluateAssumeNoSideEffectsRule(
         Definition item, ProguardAssumeNoSideEffectRule context, ProguardMemberRule rule) {
       assert assumeInfoCollectionBuilder != null;
@@ -1518,6 +1514,7 @@ public class RootSetUtils {
       }
     }
 
+    @SuppressWarnings("UnusedVariable")
     private void evaluateKeepRule(
         ProgramDefinition item,
         ProguardKeepRule context,
@@ -1732,6 +1729,7 @@ public class RootSetUtils {
           && item.asMethod().getDefinition().hasCode();
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void reportAssumeNoSideEffectsWarningForJavaLangClassMethod(
         DexClassAndMethod method, ProguardAssumeNoSideEffectRule context) {
       assert method.getHolderType() == options.dexItemFactory().objectType;
@@ -1741,6 +1739,7 @@ public class RootSetUtils {
           .add(method.getReference());
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean isWaitOrNotifyMethod(DexMethod method) {
       return method.name == options.itemFactory.waitMethodName
           || method.name == options.itemFactory.notifyMethodName

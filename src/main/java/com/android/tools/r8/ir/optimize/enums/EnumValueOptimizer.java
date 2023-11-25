@@ -54,11 +54,12 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "EnumValueOptimizer";
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   protected CodeRewriterResult rewriteCode(IRCode code) {
     assert appView.enableWholeProgramOptimizations();
     boolean hasChanged = false;
@@ -430,6 +431,7 @@ public class EnumValueOptimizer extends CodeRewriterPass<AppInfoWithLiveness> {
    *
    * and extracts the components and the index and ordinal maps.
    */
+  @SuppressWarnings("ReferenceEquality")
   private EnumSwitchInfo analyzeSwitchOverEnum(IntSwitch switchInsn) {
     Instruction input = switchInsn.inValues().get(0).definition;
     if (input == null || !input.isArrayGet()) {

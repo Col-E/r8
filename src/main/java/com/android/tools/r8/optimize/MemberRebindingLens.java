@@ -125,6 +125,7 @@ public class MemberRebindingLens extends DefaultNonIdentityGraphLens {
       this.appView = appView;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public void map(DexMethod from, DexMethod to, InvokeType type) {
       if (from == to) {
         assert !methodMaps.containsKey(type) || methodMaps.get(type).getOrDefault(from, to) == to;

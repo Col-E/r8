@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.code.AbstractValueSupplier;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
@@ -100,6 +101,7 @@ public class ArgumentPropagator {
           // calls.
           effectivelyUnusedArgumentsAnalysis.initializeOptimizableVirtualMethods(classes);
         },
+        appView.options().getThreadingModule(),
         executorService);
 
     timing.end();
@@ -111,7 +113,9 @@ public class ArgumentPropagator {
       ProgramMethod method, IRCode code, MethodProcessor methodProcessor, Timing timing) {
     if (codeScanner != null) {
       assert methodProcessor.isPrimaryMethodProcessor();
-      codeScanner.scan(method, code, timing);
+      AbstractValueSupplier abstractValueSupplier =
+          value -> value.getAbstractValue(appView, method);
+      codeScanner.scan(method, code, abstractValueSupplier, timing);
 
       assert effectivelyUnusedArgumentsAnalysis != null;
       effectivelyUnusedArgumentsAnalysis.scan(method, code);
@@ -225,14 +229,16 @@ public class ArgumentPropagator {
     postMethodProcessorBuilder.rewrittenWithLens(appView);
 
     timing.begin("Compute optimization info");
-    new ArgumentPropagatorOptimizationInfoPopulator(
+    new ArgumentPropagatorOptimizationInfoPropagator(
             appView,
             converter,
             immediateSubtypingInfo,
             codeScannerResult,
-            postMethodProcessorBuilder,
             stronglyConnectedProgramComponents,
             interfaceDispatchOutsideProgram)
+        .propagateOptimizationInfo(executorService, timing);
+    new ArgumentPropagatorOptimizationInfoPopulator(
+            appView, converter, codeScannerResult, postMethodProcessorBuilder)
         .populateOptimizationInfo(executorService, timing);
     timing.end();
 

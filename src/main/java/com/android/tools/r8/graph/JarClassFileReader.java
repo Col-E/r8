@@ -590,6 +590,7 @@ public class JarClassFileReader<T extends DexClass> {
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean hasReachabilitySensitiveField() {
       DexType reachabilitySensitive = application.getFactory().annotationReachabilitySensitive;
       for (DexEncodedField field : Iterables.concat(instanceFields, staticFields)) {
@@ -721,6 +722,7 @@ public class JarClassFileReader<T extends DexClass> {
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private DexValue getStaticValue(Object value, DexType type) {
       if (value == null) {
         return null;
@@ -986,6 +988,7 @@ public class JarClassFileReader<T extends DexClass> {
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean isReachabilitySensitive() {
       DexType reachabilitySensitive =
           parent.application.getFactory().annotationReachabilitySensitive;
@@ -1156,8 +1159,6 @@ public class JarClassFileReader<T extends DexClass> {
 
   private static class CreateRecordComponentVisitor extends RecordComponentVisitor {
     private final CreateDexClassVisitor<?> parent;
-    private final String name;
-    private final String descriptor;
     private final DexField field;
     private final FieldTypeSignature componentSignature;
 
@@ -1166,8 +1167,6 @@ public class JarClassFileReader<T extends DexClass> {
       super(ASM_VERSION);
       this.field = parent.application.getField(parent.type, name, descriptor);
       this.parent = parent;
-      this.name = name;
-      this.descriptor = descriptor;
       this.componentSignature =
           parent.application.options.parseSignatureAttribute()
               ? GenericSignature.parseFieldTypeSignature(

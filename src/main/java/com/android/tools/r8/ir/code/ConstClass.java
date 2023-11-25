@@ -62,8 +62,7 @@ public class ConstClass extends ConstInstruction {
   }
 
   public static ConstClass copyOf(IRCode code, ConstClass original) {
-    Value newValue =
-        new Value(code.valueNumberGenerator.next(), original.getOutType(), original.getLocalInfo());
+    Value newValue = code.createValue(original.getOutType(), original.getLocalInfo());
     return copyOf(newValue, original);
   }
 
@@ -118,6 +117,7 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean instructionInstanceCanThrow(
       AppView<?> appView,
       ProgramMethod context,
@@ -160,6 +160,7 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isConstClass() && other.asConstClass().clazz == clazz;
   }

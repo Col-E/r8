@@ -76,6 +76,7 @@ public class DestructivePhiTypeUpdater {
     affectedValues.narrowingWithAssumeRemoval(appView, code);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean verifyAllPhiOperandsAreBottom(Set<Phi> affectedPhis) {
     for (Phi phi : affectedPhis) {
       for (Value operand : phi.getOperands()) {
@@ -94,6 +95,7 @@ public class DestructivePhiTypeUpdater {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean verifyAllChangedPhisAreScheduled(IRCode code, Set<Phi> affectedPhis) {
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {

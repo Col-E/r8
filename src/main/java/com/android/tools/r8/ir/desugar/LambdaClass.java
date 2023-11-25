@@ -12,6 +12,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -84,7 +85,8 @@ public final class LambdaClass {
       LambdaInstructionDesugaring desugaring,
       ProgramMethod accessedFrom,
       LambdaDescriptor descriptor,
-      DesugarInvoke desugarInvoke) {
+      DesugarInvoke desugarInvoke,
+      boolean useFactoryMethodForConstruction) {
     assert desugaring != null;
     assert descriptor != null;
     this.type = builder.getType();
@@ -109,7 +111,8 @@ public final class LambdaClass {
             ? factory.createField(type, type, factory.lambdaInstanceFieldName)
             : null;
     this.factoryMethod =
-        appView.options().testing.alwaysGenerateLambdaFactoryMethods
+        useFactoryMethodForConstruction
+                || appView.options().testing.alwaysGenerateLambdaFactoryMethods
             ? factory.createMethod(
                 type,
                 factory.createProto(type, descriptor.captures.values),
@@ -133,6 +136,7 @@ public final class LambdaClass {
     return type;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void setClass(DexProgramClass clazz) {
     assert this.clazz == null;
     assert clazz != null;
@@ -367,6 +371,7 @@ public final class LambdaClass {
         && !desugaring.isDirectTargetedLambdaImplementationMethod(descriptor.implHandle);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private Target createLambdaImplMethodTarget(ProgramMethod accessedFrom) {
     DexMethodHandle implHandle = descriptor.implHandle;
     assert implHandle != null;
@@ -671,6 +676,8 @@ public final class LambdaClass {
                     newAccessFlags.unsetPrivate();
                     // Always make the method public to provide access.
                     newAccessFlags.setPublic();
+                    Code code = encodedMethod.getCode();
+                    DexItemFactory factory = appView.dexItemFactory();
                     DexEncodedMethod newMethod =
                         DexEncodedMethod.syntheticBuilder()
                             .setMethod(callTarget)
@@ -679,10 +686,12 @@ public final class LambdaClass {
                             .setAnnotations(encodedMethod.annotations())
                             .setParameterAnnotations(encodedMethod.parameterAnnotationsList)
                             .setCode(
-                                encodedMethod
-                                    .getCode()
-                                    .getCodeAsInlining(
-                                        callTarget, encodedMethod, appView.dexItemFactory()))
+                                code.getCodeAsInlining(
+                                    callTarget,
+                                    true,
+                                    encodedMethod.getReference(),
+                                    encodedMethod.isD8R8Synthesized(),
+                                    factory))
                             .setApiLevelForDefinition(encodedMethod.getApiLevelForDefinition())
                             .setApiLevelForCode(encodedMethod.getApiLevelForCode())
                             .build();
@@ -766,6 +775,8 @@ public final class LambdaClass {
                     // its accessibility and make it virtual.
                     MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
                     newAccessFlags.unsetPrivate();
+                    Code code = encodedMethod.getCode();
+                    DexItemFactory factory = appView.dexItemFactory();
                     DexEncodedMethod newMethod =
                         DexEncodedMethod.syntheticBuilder()
                             .setMethod(callTarget)
@@ -774,10 +785,12 @@ public final class LambdaClass {
                             .setAnnotations(encodedMethod.annotations())
                             .setParameterAnnotations(encodedMethod.parameterAnnotationsList)
                             .setCode(
-                                encodedMethod
-                                    .getCode()
-                                    .getCodeAsInlining(
-                                        callTarget, encodedMethod, appView.dexItemFactory()))
+                                code.getCodeAsInlining(
+                                    callTarget,
+                                    true,
+                                    encodedMethod.getReference(),
+                                    encodedMethod.isD8R8Synthesized(),
+                                    factory))
                             .setApiLevelForDefinition(encodedMethod.getApiLevelForDefinition())
                             .setApiLevelForCode(encodedMethod.getApiLevelForCode())
                             .build();

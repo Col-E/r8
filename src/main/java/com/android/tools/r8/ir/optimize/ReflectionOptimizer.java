@@ -27,7 +27,6 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
-import java.util.Set;
 import java.util.function.BiConsumer;
 
 public class ReflectionOptimizer {
@@ -80,7 +79,7 @@ public class ReflectionOptimizer {
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
-      Set<Value> affectedValues) {
+      AffectedValues affectedValues) {
     return (type, baseClass) -> {
       InitClass initClass = null;
       if (invoke.getInvokedMethod().match(appView.dexItemFactory().classMethods.forName)) {
@@ -124,9 +123,8 @@ public class ReflectionOptimizer {
 
       // Otherwise insert a const-class instruction.
       BasicBlock block = invoke.getBlock();
-      affectedValues.addAll(invoke.outValue().affectedValues());
       instructionIterator.replaceCurrentInstructionWithConstClass(
-          appView, code, type, invoke.getLocalInfo());
+          appView, code, type, invoke.getLocalInfo(), affectedValues);
 
       if (initClass != null) {
         if (block.hasCatchHandlers()) {
@@ -147,6 +145,7 @@ public class ReflectionOptimizer {
     };
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void applyTypeForGetClassTo(
       AppView<AppInfoWithLiveness> appView,
       ProgramMethod context,
@@ -199,6 +198,7 @@ public class ReflectionOptimizer {
     consumer.accept(type, clazz);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void applyTypeForClassForNameTo(
       AppView<AppInfoWithLiveness> appView,
       ProgramMethod context,

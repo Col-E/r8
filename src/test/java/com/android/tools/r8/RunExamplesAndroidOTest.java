@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 
@@ -657,15 +656,15 @@ public abstract class RunExamplesAndroidOTest<
                 ImmutableList.copyOf(jars),
                 javaArgs.toArray(StringUtils.EMPTY_ARRAY));
         assertEquals("JVM run failed", javaResult.exitCode, 0);
-        assertTrue(
-            "JVM output does not match art output.\n\tjvm: "
-                + javaResult.stdout
-                + "\n\tart: "
-                + output,
-            output.replace("\r", "").equals(javaResult.stdout.replace("\r", "")));
+        assertEquals(
+            "JVM output does not match art output.",
+            javaResult.stdout.replace("\r", ""),
+            output.replace("\r", ""));
       }
     } catch (Throwable t) {
-      assertTrue("Test was not expected to fail. Failed with " + t.getMessage(), expectedToFail);
+      if (!expectedToFail) {
+        throw new AssertionError("Test was not expected to fail", t);
+      }
     }
   }
 

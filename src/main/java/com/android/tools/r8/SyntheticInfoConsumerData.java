@@ -3,10 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.ClassReference;
 
 /** Information about a compiler synthesized class. */
-@Keep
+@KeepForApi
 public interface SyntheticInfoConsumerData {
 
   /** Get the reference for the compiler synthesized class. */

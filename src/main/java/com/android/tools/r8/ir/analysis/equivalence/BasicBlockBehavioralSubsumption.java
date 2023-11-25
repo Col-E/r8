@@ -36,12 +36,10 @@ import java.util.function.Predicate;
 public class BasicBlockBehavioralSubsumption {
 
   private final AppView<?> appView;
-  private final IRCode code;
   private final ProgramMethod context;
 
   public BasicBlockBehavioralSubsumption(AppView<?> appView, IRCode code) {
     this.appView = appView;
-    this.code = code;
     this.context = code.context();
   }
 
@@ -252,6 +250,7 @@ public class BasicBlockBehavioralSubsumption {
     return instructionsDefineIdenticalValues(value.definition, other.definition);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean instructionsDefineIdenticalValues(Instruction instruction, Instruction other) {
     assert instruction.hasOutValue();
     assert other.hasOutValue();

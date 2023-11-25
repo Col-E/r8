@@ -17,10 +17,10 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
-import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
+import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -28,15 +28,16 @@ import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfo;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.assume.AssumeInfoLookup;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ArrayUtils;
 import java.util.Set;
 
 public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWithLiveness> {
@@ -81,19 +82,17 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
     }
 
     BasicBlock block = arrayGet.getBlock();
-    Position position = arrayGet.getPosition();
 
     // All usages are replaced by the replacement value.
-    Instruction replacement =
+    ConstNumber replacement =
         appView
             .abstractValueFactory()
-            .createNullValue()
+            .createNullValue(memberType)
             .createMaterializingInstruction(appView, code, arrayGet);
     affectedValues.addAll(arrayGet.outValue().affectedValues());
     arrayGet.outValue().replaceUsers(replacement.outValue());
 
     // Insert the definition of the replacement.
-    replacement.setPosition(position);
     if (block.hasCatchHandlers()) {
       iterator
           .splitCopyCatchHandlers(code, blocks, appView.options())
@@ -119,7 +118,7 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
   }
 
   @Override
-  void rewriteInvokeMethod(
+  InstructionListIterator rewriteInvokeMethod(
       IRCode code,
       ProgramMethod context,
       Set<Value> affectedValues,
@@ -127,13 +126,13 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
       InstructionListIterator iterator,
       InvokeMethod invoke) {
     if (invoke.hasUnusedOutValue()) {
-      return;
+      return iterator;
     }
 
     DexMethod invokedMethod = invoke.getInvokedMethod();
     DexType invokedHolder = invokedMethod.getHolderType();
     if (!invokedHolder.isClassType()) {
-      return;
+      return iterator;
     }
 
     SingleResolutionResult<?> resolutionResult =
@@ -142,42 +141,39 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
             .unsafeResolveMethodDueToDexFormatLegacy(invokedMethod)
             .asSingleResolution();
     if (resolutionResult == null) {
-      return;
+      return iterator;
     }
 
     DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
     AssumeInfo lookup = AssumeInfoLookup.lookupAssumeInfo(appView, resolutionResult, singleTarget);
     if (applyAssumeInfo(code, affectedValues, blocks, iterator, invoke, lookup)) {
-      return;
+      return iterator;
     }
 
     // No Proguard rule could replace the instruction check for knowledge about the return value.
     if (singleTarget != null && !mayPropagateValueFor(singleTarget)) {
-      return;
+      return iterator;
     }
 
     AbstractValue abstractReturnValue;
     if (invokedMethod.getReturnType().isAlwaysNull(appView)) {
-      abstractReturnValue = appView.abstractValueFactory().createNullValue();
-    } else if (singleTarget != null) {
       abstractReturnValue =
-          singleTarget.getDefinition().getOptimizationInfo().getAbstractReturnValue();
+          appView.abstractValueFactory().createNullValue(invokedMethod.getReturnType());
     } else {
-      abstractReturnValue = UnknownValue.getInstance();
+      MethodOptimizationInfo optimizationInfo =
+          resolutionResult.getOptimizationInfo(appView, invoke, singleTarget);
+      abstractReturnValue = optimizationInfo.getAbstractReturnValue();
     }
 
     if (abstractReturnValue.isSingleValue()) {
       SingleValue singleReturnValue = abstractReturnValue.asSingleValue();
       if (singleReturnValue.isMaterializableInContext(appView, context)) {
-        BasicBlock block = invoke.getBlock();
-        Position position = invoke.getPosition();
-
-        Instruction replacement =
-            singleReturnValue.createMaterializingInstruction(appView, code, invoke);
-        affectedValues.addAll(invoke.outValue().affectedValues());
+        Instruction[] materializingInstructions =
+            singleReturnValue.createMaterializingInstructions(appView, code, invoke);
+        Instruction replacement = ArrayUtils.last(materializingInstructions);
         invoke.moveDebugValues(replacement);
-        invoke.outValue().replaceUsers(replacement.outValue());
-        invoke.setOutValue(null);
+        invoke.outValue().replaceUsers(replacement.outValue(), affectedValues);
+        invoke.clearOutValue();
 
         if (invoke.isInvokeMethodWithReceiver()) {
           iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, context);
@@ -187,44 +183,40 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
         }
 
         // Insert the definition of the replacement.
-        replacement.setPosition(position);
-        if (block.hasCatchHandlers()) {
-          iterator
-              .splitCopyCatchHandlers(code, blocks, appView.options())
-              .listIterator(code)
-              .add(replacement);
-        } else {
-          iterator.add(replacement);
-        }
+        iterator =
+            iterator.addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+                code, blocks, materializingInstructions, appView.options());
 
         if (singleTarget != null) {
           singleTarget.getDefinition().getMutableOptimizationInfo().markAsPropagated();
         }
       }
     }
+    return iterator;
   }
 
   @Override
-  void rewriteInstanceGet(
+  InstructionListIterator rewriteInstanceGet(
       IRCode code,
       Set<Value> affectedValues,
       BasicBlockIterator blocks,
       InstructionListIterator iterator,
       InstanceGet current) {
-    rewriteFieldGet(code, affectedValues, blocks, iterator, current);
+    return rewriteFieldGet(code, affectedValues, blocks, iterator, current);
   }
 
   @Override
-  void rewriteStaticGet(
+  InstructionListIterator rewriteStaticGet(
       IRCode code,
       Set<Value> affectedValues,
       BasicBlockIterator blocks,
       InstructionListIterator iterator,
       StaticGet current) {
-    rewriteFieldGet(code, affectedValues, blocks, iterator, current);
+    return rewriteFieldGet(code, affectedValues, blocks, iterator, current);
   }
 
-  private void rewriteFieldGet(
+  @SuppressWarnings("ReferenceEquality")
+  private InstructionListIterator rewriteFieldGet(
       IRCode code,
       Set<Value> affectedValues,
       BasicBlockIterator blocks,
@@ -242,39 +234,39 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
       if (replaceCurrentInstructionWithConstNull) {
         iterator.replaceCurrentInstruction(code.createConstNull());
       }
-      return;
+      return iterator;
     }
 
     if (resolutionResult.isAccessibleFrom(code.context(), appView).isPossiblyFalse()) {
-      return;
+      return iterator;
     }
 
     DexClassAndField target = resolutionResult.getResolutionPair();
     DexEncodedField definition = target.getDefinition();
     if (definition.isStatic() != current.isStaticGet()) {
-      return;
+      return iterator;
     }
 
     if (current.isStaticGet() && current.hasUnusedOutValue()) {
       // Replace by initclass.
       iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
           appView, code, field.getHolderType());
-      return;
+      return iterator;
     }
 
     if (!mayPropagateValueFor(target)) {
-      return;
+      return iterator;
     }
 
     // Check if there is a Proguard configuration rule that specifies the value of the field.
     AssumeInfo lookup = appView.getAssumeInfoCollection().get(target);
     if (applyAssumeInfo(code, affectedValues, blocks, iterator, current, lookup)) {
-      return;
+      return iterator;
     }
 
     AbstractValue abstractValue;
     if (field.getType().isAlwaysNull(appView)) {
-      abstractValue = appView.abstractValueFactory().createSingleNumberValue(0);
+      abstractValue = appView.abstractValueFactory().createNullValue(field.getType());
     } else if (appView.appInfo().isFieldWrittenByFieldPutInstruction(target)) {
       abstractValue = definition.getOptimizationInfo().getAbstractValue();
       if (!definition.isStatic()) {
@@ -298,25 +290,24 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
       assert verifyStaticFieldValueConsistentWithOptimizationInfo(appView, definition);
     } else {
       // This is guaranteed to read the default value of the field.
-      abstractValue = appView.abstractValueFactory().createSingleNumberValue(0);
+      abstractValue = appView.abstractValueFactory().createDefaultValue(field.getType());
     }
 
     if (abstractValue.isSingleValue()) {
       SingleValue singleValue = abstractValue.asSingleValue();
       if (singleValue.isSingleFieldValue()
           && singleValue.asSingleFieldValue().getField() == field) {
-        return;
+        return iterator;
       }
       if (singleValue.isMaterializableInContext(appView, code.context())) {
-        BasicBlock block = current.getBlock();
         ProgramMethod context = code.context();
-        Position position = current.getPosition();
 
         // All usages are replaced by the replacement value.
-        Instruction replacement =
-            singleValue.createMaterializingInstruction(appView, code, current);
-        affectedValues.addAll(current.outValue().affectedValues());
-        current.outValue().replaceUsers(replacement.outValue());
+        Instruction[] materializingInstructions =
+            singleValue.createMaterializingInstructions(appView, code, current);
+
+        Instruction replacement = ArrayUtils.last(materializingInstructions);
+        current.outValue().replaceUsers(replacement.outValue(), affectedValues);
 
         // To preserve side effects, original field-get is replaced by an explicit null-check, if
         // the field-get instruction may only fail with an NPE, or the field-get remains as-is.
@@ -329,19 +320,14 @@ public class R8MemberValuePropagation extends MemberValuePropagation<AppInfoWith
         }
 
         // Insert the definition of the replacement.
-        replacement.setPosition(position);
-        if (block.hasCatchHandlers()) {
-          iterator
-              .splitCopyCatchHandlers(code, blocks, appView.options())
-              .listIterator(code)
-              .add(replacement);
-        } else {
-          iterator.add(replacement);
-        }
+        iterator =
+            iterator.addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+                code, blocks, materializingInstructions, appView.options());
 
         feedback.markFieldAsPropagated(definition);
       }
     }
+    return iterator;
   }
 
   private boolean verifyStaticFieldValueConsistentWithOptimizationInfo(

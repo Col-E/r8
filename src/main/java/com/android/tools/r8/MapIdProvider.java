@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
+
 /**
  * Interface for providing a custom map-id to the compiler.
  *
@@ -11,7 +13,7 @@ package com.android.tools.r8;
  * mapping file information for builds. For example, by including it in the source-file part of
  * program stacktraces. See {@code SourceFileProvider}.
  */
-@Keep
+@KeepForApi
 @FunctionalInterface
 public interface MapIdProvider {
 

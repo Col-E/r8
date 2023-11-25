@@ -108,6 +108,7 @@ public class RecordDesugaring
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void prepareInvokeDynamicOnRecord(
       CfInvokeDynamic invokeDynamic,
       ProgramAdditions programAdditions,
@@ -170,6 +171,7 @@ public class RecordDesugaring
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (instruction.isInvokeDynamic()) {
       if (needsDesugaring(instruction.asInvokeDynamic(), context)) {
@@ -197,6 +199,7 @@ public class RecordDesugaring
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,
@@ -216,6 +219,7 @@ public class RecordDesugaring
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,
@@ -226,6 +230,7 @@ public class RecordDesugaring
         .build();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private List<CfInstruction> desugarInvokeDynamicOnRecord(
       CfInvokeDynamic invokeDynamic,
       LocalStackAllocator localStackAllocator,
@@ -395,8 +400,7 @@ public class RecordDesugaring
     ArrayList<CfInstruction> instructions = new ArrayList<>();
     instructions.add(new CfInvoke(Opcodes.INVOKESPECIAL, getFieldsAsObjects, false));
     instructions.add(new CfConstClass(recordInvokeDynamic.getRecordType(), true));
-    if (appView.options().testing.enableRecordModeling
-        && appView.enableWholeProgramOptimizations()) {
+    if (appView.enableWholeProgramOptimizations()) {
       instructions.add(
           new CfDexItemBasedConstString(
               recordInvokeDynamic.getRecordType(),
@@ -525,10 +529,12 @@ public class RecordDesugaring
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean refersToRecord(DexType type, DexItemFactory factory) {
     return type == factory.recordType;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean needsDesugaring(DexMethod method, boolean isSuper) {
     return rewriteMethod(method, isSuper) != method;
   }
@@ -537,7 +543,7 @@ public class RecordDesugaring
     return isInvokeDynamicOnRecord(invokeDynamic, appView, context);
   }
 
-  @SuppressWarnings("ConstantConditions")
+  @SuppressWarnings({"ConstantConditions", "ReferenceEquality"})
   private DexMethod rewriteMethod(DexMethod method, boolean isSuper) {
     if (!(method == factory.recordMembers.equals
         || method == factory.recordMembers.hashCode
@@ -596,6 +602,7 @@ public class RecordDesugaring
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void postProcessingDesugaring(
       Collection<DexProgramClass> programClasses,
       CfPostProcessingDesugaringEventConsumer eventConsumer,

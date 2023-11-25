@@ -22,8 +22,6 @@ import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.dex.Marker.Backend;
-import com.android.tools.r8.examples.hello.HelloTestRunner;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.ProguardMappingSupplier;
 import com.android.tools.r8.retrace.Retrace;
@@ -51,17 +49,24 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class BootstrapCurrentEqualityTest extends TestBase {
 
+  static class HelloWorldProgram {
+    public static void main(String[] args) {
+      System.out.println("Hello, world!");
+    }
+  }
+
   private static final Path MAIN_KEEP =
       Paths.get(ToolHelper.getProjectRoot(), "src", "main", "keep.txt");
 
-  private static final String HELLO_NAME = HelloTestRunner.getHelloClass().getTypeName();
+  private static final Class<?> HELLO_CLASS = HelloWorldProgram.class;
+  private static final String HELLO_NAME = typeName(HELLO_CLASS);
   private static final String[] KEEP_HELLO = {
     "-keep class " + HELLO_NAME + " {",
     "  public static void main(...);",
     "}",
     "-allowaccessmodification"
   };
-  private static String HELLO_EXPECTED = HelloTestRunner.getExpectedOutput();
+  private static String HELLO_EXPECTED = StringUtils.lines("Hello, world!");
 
   private static Pair<Path, Path> r8R8Debug;
   private static Pair<Path, Path> r8R8Release;
@@ -109,8 +114,9 @@ public class BootstrapCurrentEqualityTest extends TestBase {
           .addProgramFiles(ToolHelper.getR8WithRelocatedDeps())
           .addLibraryProvider(JdkClassFileProvider.fromSystemJdk())
           .addKeepRuleFiles(MAIN_KEEP)
+          .enableExperimentalKeepAnnotations()
           // TODO(b/176783536, b/270105162): Get a hold of dependencies in new gradle setup.
-          .applyIf(ToolHelper.isNewGradleSetup(), R8TestBuilder::allowUnusedDontWarnPatterns)
+          .apply(R8TestBuilder::allowUnusedDontWarnPatterns)
           .compile()
           .apply(c -> FileUtils.writeTextFile(map, c.getProguardMap()))
           .writeToZip(jar);
@@ -203,7 +209,8 @@ public class BootstrapCurrentEqualityTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    Path program = HelloTestRunner.writeHelloProgramJar(temp);
+    Path program = testFolder.newFolder().toPath().resolve("hello.jar");
+    writeClassesToJar(program, HELLO_CLASS);
     testForJvm(parameters)
         .addProgramFiles(program)
         .run(parameters.getRuntime(), HELLO_NAME)

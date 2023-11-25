@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.hamcrest.Matcher;
 import org.junit.rules.TemporaryFolder;
 
 public abstract class KotlinTestBase extends TestBase {
@@ -91,15 +90,7 @@ public abstract class KotlinTestBase extends TestBase {
   }
 
   protected Path getJavaJarFile(String folder) {
-    return Paths.get(ToolHelper.TESTS_BUILD_DIR, RSRC, folder + FileUtils.JAR_EXTENSION);
-  }
-
-  protected Path getMappingfile(String folder, String mappingFileName) {
-    return Paths.get(ToolHelper.TESTS_DIR, RSRC, folder, mappingFileName);
-  }
-
-  protected static Matcher<String> expectedInfoMessagesFromKotlinStdLib() {
-    return containsString("No VersionRequirement");
+    return Paths.get(ToolHelper.THIRD_PARTY_DIR, RSRC, folder + FileUtils.JAR_EXTENSION);
   }
 
   protected KotlinCompilerTool kotlinCompilerTool() {

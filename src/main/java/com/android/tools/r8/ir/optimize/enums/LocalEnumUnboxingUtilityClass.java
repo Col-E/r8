@@ -68,6 +68,7 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
     return method;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexString computeGetInstanceFieldMethodName(DexField field, DexItemFactory factory) {
     String fieldName = field.getName().toString();
     if (field.getHolderType() == getSynthesizingContext().getType()) {

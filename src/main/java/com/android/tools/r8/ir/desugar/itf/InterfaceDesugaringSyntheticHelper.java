@@ -457,10 +457,12 @@ public class InterfaceDesugaringSyntheticHelper {
 
   // Represent a static interface method as a method of companion class.
   private DexMethod staticAsMethodOfCompanionClass(DexClassAndMethod method) {
-    DexItemFactory dexItemFactory = appView.dexItemFactory();
-    DexType companionClassType = getCompanionClassType(method.getHolderType(), dexItemFactory);
-    DexMethod rewritten = method.getReference().withHolder(companionClassType, dexItemFactory);
-    return rewritten;
+    return staticAsMethodOfCompanionClass(method.getReference(), appView.dexItemFactory());
+  }
+
+  public static DexMethod staticAsMethodOfCompanionClass(DexMethod method, DexItemFactory factory) {
+    DexType companionClassType = getCompanionClassType(method.getHolderType(), factory);
+    return method.withHolder(companionClassType, factory);
   }
 
   private static DexMethod instanceAsMethodOfCompanionClass(

@@ -23,9 +23,11 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import com.android.tools.r8.ir.optimize.CustomLensCodeRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingLens;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -76,6 +78,7 @@ public abstract class GraphLens {
 
     protected Builder() {}
 
+    @SuppressWarnings("ReferenceEquality")
     public void move(DexMethod from, DexMethod to) {
       if (from == to) {
         return;
@@ -211,6 +214,7 @@ public abstract class GraphLens {
     return reference;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Predicate indicating if a rewritten reference is a simple renaming, meaning the move from one
   // reference to another is simply either just a renaming or/also renaming of the references. In
   // other words, the content of the definition, including the definition of all of its members is
@@ -381,8 +385,13 @@ public abstract class GraphLens {
     return true;
   }
 
-  public boolean hasCustomCodeRewritings() {
+  public boolean hasCustomLensCodeRewriter() {
     return false;
+  }
+
+  public CustomLensCodeRewriter getCustomLensCodeRewriter() {
+    assert hasCustomLensCodeRewriter();
+    return null;
   }
 
   public boolean isAppliedLens() {
@@ -450,6 +459,7 @@ public abstract class GraphLens {
     return this;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean assertFieldsNotModified(Iterable<DexEncodedField> fields) {
     for (DexEncodedField field : fields) {
       DexField reference = field.getReference();
@@ -459,14 +469,17 @@ public abstract class GraphLens {
   }
 
   public <T extends DexReference> boolean assertPinnedNotModified(
-      KeepInfoCollection keepInfo, InternalOptions options) {
+      AppView<AppInfoWithLiveness> appView) {
     List<DexReference> pinnedItems = new ArrayList<>();
+    KeepInfoCollection keepInfo = appView.getKeepInfo();
+    InternalOptions options = appView.options();
     keepInfo.forEachPinnedType(pinnedItems::add, options);
     keepInfo.forEachPinnedMethod(pinnedItems::add, options);
     keepInfo.forEachPinnedField(pinnedItems::add, options);
     return assertReferencesNotModified(pinnedItems);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public <T extends DexReference> boolean assertReferencesNotModified(Iterable<T> references) {
     for (DexReference reference : references) {
       if (reference.isDexField()) {
@@ -504,6 +517,7 @@ public abstract class GraphLens {
     return result;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public Set<DexField> rewriteFields(Set<DexField> fields, Timing timing) {
     timing.begin("Rewrite fields");
     GraphLens appliedLens = getIdentityLens();
@@ -541,6 +555,7 @@ public abstract class GraphLens {
     return rewrittenFields;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean verifyIsIdentityLensForFields(
       Collection<DexField> fields, GraphLens appliedLens) {
     for (DexField field : fields) {
@@ -672,16 +687,8 @@ public abstract class GraphLens {
                 + "` back to original program";
       }
       for (DexEncodedMethod method : clazz.methods()) {
-        if (method.isD8R8Synthesized()) {
-          // Methods synthesized by D8/R8 may not be mapped.
-          continue;
-        }
-        DexMethod originalMethod = getOriginalMethodSignature(method.getReference());
-        assert originalMethods.contains(originalMethod)
-            : "Method could not be mapped back: "
-                + method.toSourceString()
-                + ", originalMethod: "
-                + originalMethod.toSourceString();
+        // Methods synthesized by D8/R8 are not mapped, but all non-synthesized must be originals.
+        assert method.isD8R8Synthesized() || originalMethods.contains(method.getReference());
       }
     }
 

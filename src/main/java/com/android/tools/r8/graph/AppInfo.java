@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.DesugarGraphConsumer;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.origin.GlobalSyntheticOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -204,6 +205,7 @@ public class AppInfo implements DexDefinitionSupplier {
     return definitionForWithoutExistenceAssert(type) != null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexClass definitionForDesugarDependency(DexClass dependent, DexType type) {
     if (dependent.type == type) {
       return dependent;
@@ -234,6 +236,7 @@ public class AppInfo implements DexDefinitionSupplier {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void reportDependencyEdge(
       DesugarGraphConsumer consumer, Origin dependencyOrigin, Origin dependentOrigin) {
     if (dependencyOrigin == GlobalSyntheticOrigin.instance()
@@ -253,13 +256,13 @@ public class AppInfo implements DexDefinitionSupplier {
    * @param context the method the invoke is contained in, i.e., the caller.
    * @return The actual target for {@code method} if on the holder, or {@code null}.
    */
-  public final DexEncodedMethod lookupStaticTargetOnItself(
+  public final DexClassAndMethod lookupStaticTargetOnItself(
       DexMethod method, ProgramMethod context) {
-    if (method.holder != context.getHolderType()) {
+    if (!method.getHolderType().isIdenticalTo(context.getHolderType())) {
       return null;
     }
-    DexEncodedMethod singleTarget = context.getHolder().lookupDirectMethod(method);
-    if (singleTarget != null && singleTarget.isStatic()) {
+    DexClassAndMethod singleTarget = context.getHolder().lookupDirectClassMethod(method);
+    if (singleTarget != null && singleTarget.getAccessFlags().isStatic()) {
       return singleTarget;
     }
     return null;
@@ -272,13 +275,13 @@ public class AppInfo implements DexDefinitionSupplier {
    * @param context the method the invoke is contained in, i.e., the caller.
    * @return The actual target for {@code method} if on the holder, or {@code null}.
    */
-  public final DexEncodedMethod lookupDirectTargetOnItself(
+  public final DexClassAndMethod lookupDirectTargetOnItself(
       DexMethod method, ProgramMethod context) {
-    if (method.holder != context.getHolderType()) {
+    if (!method.getHolderType().isIdenticalTo(context.getHolderType())) {
       return null;
     }
-    DexEncodedMethod singleTarget = context.getHolder().lookupDirectMethod(method);
-    if (singleTarget != null && !singleTarget.isStatic()) {
+    DexClassAndMethod singleTarget = context.getHolder().lookupDirectClassMethod(method);
+    if (singleTarget != null && !singleTarget.getAccessFlags().isStatic()) {
       return singleTarget;
     }
     return null;
@@ -308,6 +311,7 @@ public class AppInfo implements DexDefinitionSupplier {
     return resolveFieldOn(field.holder, field, context);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public FieldResolutionResult resolveFieldOn(DexType type, DexField field, ProgramMethod context) {
     // Only allow resolution if the field is declared in the context.
     if (type != context.getHolderType()) {
@@ -318,5 +322,10 @@ public class AppInfo implements DexDefinitionSupplier {
     return definition != null
         ? FieldResolutionResult.createSingleFieldResolutionResult(clazz, clazz, definition)
         : FieldResolutionResult.unknown();
+  }
+
+  public void notifyHorizontalClassMergerFinished(
+      HorizontalClassMerger.Mode horizontalClassMergerMode) {
+    // Intentionally empty.
   }
 }

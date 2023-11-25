@@ -73,6 +73,7 @@ public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpec
     return topLevelFlags.getSynthesizedLibraryClassesPackagePrefix();
   }
 
+  @Override
   public String getIdentifier() {
     return topLevelFlags.getIdentifier();
   }

@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.OptionalInt;
 
-@Keep
+@KeepForApi
 public interface RetraceMethodResult extends RetraceResult<RetraceMethodElement> {
 
   RetraceFrameResult narrowByPosition(RetraceStackTraceContext context, OptionalInt position);

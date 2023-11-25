@@ -4,17 +4,17 @@
 
 package com.android.tools.r8.ir.conversion.callgraph;
 
+import static com.android.tools.r8.graph.DexClassAndMethod.asProgramMethodOrNull;
+
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.lens.MethodLookupResult;
 import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -23,22 +23,22 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramMethod> {
+public class InvokeExtractor<N extends NodeBase<N>> extends DefaultUseRegistry<ProgramMethod> {
 
-  protected final AppView<AppInfoWithLiveness> appView;
+  protected final AppView<AppInfoWithLiveness> appViewWithLiveness;
   protected final N currentMethod;
   protected final Function<ProgramMethod, N> nodeFactory;
   protected final Map<DexMethod, ProgramMethodSet> possibleProgramTargetsCache;
   protected final Predicate<ProgramMethod> targetTester;
 
   public InvokeExtractor(
-      AppView<AppInfoWithLiveness> appView,
+      AppView<AppInfoWithLiveness> appViewWithLiveness,
       N currentMethod,
       Function<ProgramMethod, N> nodeFactory,
       Map<DexMethod, ProgramMethodSet> possibleProgramTargetsCache,
       Predicate<ProgramMethod> targetTester) {
-    super(appView, currentMethod.getProgramMethod());
-    this.appView = appView;
+    super(appViewWithLiveness, currentMethod.getProgramMethod());
+    this.appViewWithLiveness = appViewWithLiveness;
     this.currentMethod = currentMethod;
     this.nodeFactory = nodeFactory;
     this.possibleProgramTargetsCache = possibleProgramTargetsCache;
@@ -57,7 +57,9 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
       // We don't care about calls to native methods.
       return;
     }
-    if (!appView.getKeepInfo(callee).isOptimizationAllowed(appView.options())) {
+    if (!appViewWithLiveness
+        .getKeepInfo(callee)
+        .isOptimizationAllowed(appViewWithLiveness.options())) {
       // Since the callee is kept and optimizations are disallowed, we cannot inline it into the
       // caller, and we also cannot collect any optimization info for the method. Therefore, we
       // drop the call edge to reduce the total number of call graph edges, which should lead to
@@ -70,28 +72,40 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
   private void processInvoke(InvokeType originalType, DexMethod originalMethod) {
     ProgramMethod context = currentMethod.getProgramMethod();
     MethodLookupResult result =
-        appView
+        appViewWithLiveness
             .graphLens()
             .lookupMethod(originalMethod, context.getReference(), originalType, getCodeLens());
     DexMethod method = result.getReference();
     InvokeType type = result.getType();
-    if (type == InvokeType.INTERFACE || type == InvokeType.VIRTUAL) {
+    MethodResolutionResult resolutionResult =
+        type.isInterface() || type.isVirtual()
+            ? appViewWithLiveness.appInfo().resolveMethodLegacy(method, type.isInterface())
+            : appViewWithLiveness.appInfo().unsafeResolveMethodDueToDexFormatLegacy(method);
+    if (!resolutionResult.isSingleResolution()) {
+      return;
+    }
+    if (type.isInterface() || type.isVirtual()) {
       // For virtual and interface calls add all potential targets that could be called.
-      MethodResolutionResult resolutionResult =
-          appView.appInfo().resolveMethodLegacy(method, type == InvokeType.INTERFACE);
-      DexClassAndMethod target = resolutionResult.getResolutionPair();
-      if (target != null) {
-        processInvokeWithDynamicDispatch(type, target, context);
-      }
+      processInvokeWithDynamicDispatch(type, resolutionResult.getResolutionPair(), context);
     } else {
       ProgramMethod singleTarget =
-          appView.appInfo().lookupSingleProgramTarget(appView, type, method, context, appView);
+          asProgramMethodOrNull(
+              appViewWithLiveness
+                  .appInfo()
+                  .lookupSingleTarget(
+                      appViewWithLiveness,
+                      type,
+                      method,
+                      resolutionResult.asSingleResolution(),
+                      context,
+                      appViewWithLiveness));
       if (singleTarget != null) {
         processSingleTarget(singleTarget, context);
       }
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   protected void processSingleTarget(ProgramMethod singleTarget, ProgramMethod context) {
     assert !context.getDefinition().isBridge()
         || singleTarget.getDefinition() != context.getDefinition();
@@ -102,7 +116,7 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
       InvokeType type, DexClassAndMethod encodedTarget, ProgramMethod context) {
     DexMethod target = encodedTarget.getReference();
     DexClass clazz = encodedTarget.getHolder();
-    if (!appView.options().testing.addCallEdgesForLibraryInvokes) {
+    if (!appViewWithLiveness.options().testing.addCallEdgesForLibraryInvokes) {
       if (clazz.isLibraryClass()) {
         // Likely to have many possible targets.
         return;
@@ -115,10 +129,11 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
             target,
             method -> {
               MethodResolutionResult resolution =
-                  appView.appInfo().resolveMethodLegacy(method, isInterface);
+                  appViewWithLiveness.appInfo().resolveMethodLegacy(method, isInterface);
               if (resolution.isVirtualTarget()) {
                 LookupResult lookupResult =
-                    resolution.lookupVirtualDispatchTargets(context.getHolder(), appView);
+                    resolution.lookupVirtualDispatchTargets(
+                        context.getHolder(), appViewWithLiveness);
                 if (lookupResult.isLookupResultSuccess()) {
                   ProgramMethodSet targets = ProgramMethodSet.create();
                   lookupResult
@@ -146,7 +161,7 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
     if (possibleProgramTargets != null) {
       boolean likelySpuriousCallEdge =
           possibleProgramTargets.size()
-              >= appView.options().callGraphLikelySpuriousCallEdgeThreshold;
+              >= appViewWithLiveness.options().callGraphLikelySpuriousCallEdgeThreshold;
       for (ProgramMethod possibleTarget : possibleProgramTargets) {
         addCallEdge(possibleTarget, likelySpuriousCallEdge);
       }
@@ -182,35 +197,5 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
   @Override
   public void registerInvokeVirtual(DexMethod method) {
     processInvoke(InvokeType.VIRTUAL, method);
-  }
-
-  @Override
-  public void registerInitClass(DexType type) {
-    // Intentionally empty. This use registry is only tracing method calls.
-  }
-
-  @Override
-  public void registerInstanceFieldRead(DexField field) {
-    // Intentionally empty. This use registry is only tracing method calls.
-  }
-
-  @Override
-  public void registerInstanceFieldWrite(DexField field) {
-    // Intentionally empty. This use registry is only tracing method calls.
-  }
-
-  @Override
-  public void registerStaticFieldRead(DexField field) {
-    // Intentionally empty. This use registry is only tracing method calls.
-  }
-
-  @Override
-  public void registerStaticFieldWrite(DexField field) {
-    // Intentionally empty. This use registry is only tracing method calls.
-  }
-
-  @Override
-  public void registerTypeReference(DexType type) {
-    // Intentionally empty. This use registry is only tracing method calls.
   }
 }

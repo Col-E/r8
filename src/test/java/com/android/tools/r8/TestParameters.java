@@ -101,17 +101,6 @@ public class TestParameters {
     return false;
   }
 
-  public boolean canUseRecords() {
-    assert isCfRuntime() || isDexRuntime();
-    return isCfRuntime() && asCfRuntime().isNewerThanOrEqual(CfVm.JDK14);
-  }
-
-  public boolean canUseRecordsWhenDesugaring() {
-    assert isCfRuntime() || isDexRuntime();
-    assert apiLevel != null;
-    return false;
-  }
-
   public boolean canUseFilledNewArrayOnNonStringObjects() {
     return isDexRuntime() && getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
   }

@@ -5,10 +5,10 @@
 pluginManagement {
   repositories {
     maven {
-      url = uri("file:../../third_party/dependencies")
+      url = uri("file:../../third_party/dependencies_plugin")
     }
     maven {
-      url = uri("file:../../third_party/dependencies_new")
+      url = uri("file:../../third_party/dependencies")
     }
   }
 }
@@ -18,14 +18,12 @@ dependencyResolutionManagement {
     maven {
       url = uri("file:../../third_party/dependencies")
     }
-    maven {
-      url = uri("file:../../third_party/dependencies_new")
-    }
   }
 }
 
 rootProject.name = "r8"
 
 val root = rootProject.projectDir.parentFile
+includeBuild(root.resolve("shared"))
 includeBuild(root.resolve("keepanno"))
 includeBuild(root.resolve("resourceshrinker"))

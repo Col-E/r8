@@ -111,6 +111,7 @@ public class EmulateDispatchSyntheticCfCodeProvider extends SyntheticCfCodeProvi
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void addReturn(List<CfInstruction> instructions) {
     if (interfaceMethod.proto.returnType == appView.dexItemFactory().voidType) {
       instructions.add(CfReturnVoid.INSTANCE);

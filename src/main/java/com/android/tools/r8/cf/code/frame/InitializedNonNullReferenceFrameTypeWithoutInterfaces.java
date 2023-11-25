@@ -53,6 +53,7 @@ public class InitializedNonNullReferenceFrameTypeWithoutInterfaces
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
     DexType rewrittenType = graphLens.lookupType(type);
     assert rewrittenType != DexItemFactory.nullValueType;
@@ -93,6 +94,7 @@ public class InitializedNonNullReferenceFrameTypeWithoutInterfaces
   }
 
   @Override
+  @SuppressWarnings({"EqualsGetClass", "ReferenceEquality"})
   public boolean equals(Object obj) {
     if (this == obj) {
       return true;

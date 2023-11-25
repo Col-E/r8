@@ -76,7 +76,6 @@ public abstract class RecordCfCodeProvider {
       // 1 : the array to return
       // 2+: spills
       return appView.enableWholeProgramOptimizations()
-              && appView.options().testing.enableRecordModeling
           ? generateCfCodeWithRecordModeling()
           : generateCfCodeWithArray();
     }
@@ -114,6 +113,7 @@ public abstract class RecordCfCodeProvider {
       return standardCfCodeFromInstructions(instructions);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void loadFieldAsObject(List<CfInstruction> instructions, DexField field) {
       DexItemFactory factory = appView.dexItemFactory();
       instructions.add(CfLoad.ALOAD_0);

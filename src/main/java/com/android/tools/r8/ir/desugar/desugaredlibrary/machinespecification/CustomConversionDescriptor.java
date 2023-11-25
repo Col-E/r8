@@ -11,6 +11,7 @@ public class CustomConversionDescriptor implements SpecificationDescriptor {
   private final DexMethod to;
   private final DexMethod from;
 
+  @SuppressWarnings("ReferenceEquality")
   public CustomConversionDescriptor(DexMethod to, DexMethod from) {
     this.to = to;
     this.from = from;
@@ -33,6 +34,7 @@ public class CustomConversionDescriptor implements SpecificationDescriptor {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean equals(Object o) {
     if (this == o) {
       return true;

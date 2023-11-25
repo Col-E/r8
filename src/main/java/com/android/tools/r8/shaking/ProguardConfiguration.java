@@ -25,7 +25,9 @@ public class ProguardConfiguration {
 
     private final List<String> parsedConfiguration = new ArrayList<>();
     private final List<FilteredClassPath> injars = new ArrayList<>();
-    private final List<FilteredClassPath> libraryjars = new ArrayList<>();
+
+    private final List<FilteredClassPath> libraryJars = new ArrayList<>();
+
     private final Reporter reporter;
     private PackageObfuscationMode packageObfuscationMode = PackageObfuscationMode.NONE;
     private String packagePrefix = "";
@@ -91,7 +93,7 @@ public class ProguardConfiguration {
     }
 
     public void addLibraryJars(List<FilteredClassPath> libraryJars) {
-      this.libraryjars.addAll(libraryJars);
+      this.libraryJars.addAll(libraryJars);
     }
 
     public PackageObfuscationMode getPackageObfuscationMode() {
@@ -313,7 +315,7 @@ public class ProguardConfiguration {
               String.join(System.lineSeparator(), parsedConfiguration),
               dexItemFactory,
               injars,
-              libraryjars,
+              libraryJars,
               packageObfuscationMode,
               packagePrefix,
               allowAccessModification,
@@ -372,7 +374,7 @@ public class ProguardConfiguration {
   private final String parsedConfiguration;
   private final DexItemFactory dexItemFactory;
   private final ImmutableList<FilteredClassPath> injars;
-  private final ImmutableList<FilteredClassPath> libraryjars;
+  private final ImmutableList<FilteredClassPath> libraryJars;
   private final PackageObfuscationMode packageObfuscationMode;
   private final String packagePrefix;
   private final boolean allowAccessModification;
@@ -413,7 +415,7 @@ public class ProguardConfiguration {
       String parsedConfiguration,
       DexItemFactory factory,
       List<FilteredClassPath> injars,
-      List<FilteredClassPath> libraryjars,
+      List<FilteredClassPath> libraryJars,
       PackageObfuscationMode packageObfuscationMode,
       String packagePrefix,
       boolean allowAccessModification,
@@ -452,7 +454,7 @@ public class ProguardConfiguration {
     this.parsedConfiguration = parsedConfiguration;
     this.dexItemFactory = factory;
     this.injars = ImmutableList.copyOf(injars);
-    this.libraryjars = ImmutableList.copyOf(libraryjars);
+    this.libraryJars = ImmutableList.copyOf(libraryJars);
     this.packageObfuscationMode = packageObfuscationMode;
     this.packagePrefix = packagePrefix;
     this.allowAccessModification = allowAccessModification;
@@ -511,7 +513,7 @@ public class ProguardConfiguration {
   }
 
   public List<FilteredClassPath> getLibraryjars() {
-    return libraryjars;
+    return libraryJars;
   }
 
   public PackageObfuscationMode getPackageObfuscationMode() {

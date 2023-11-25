@@ -45,6 +45,7 @@ public class SingleStatefulFieldValue extends SingleFieldValue {
   }
 
   @Override
+  @SuppressWarnings({"EqualsGetClass", "ReferenceEquality"})
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) {
       return false;

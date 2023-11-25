@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /***
  * Supplier to provide the bytes for a partition specified by a key. Retrace guarantee that the
@@ -13,7 +13,7 @@ import com.android.tools.r8.Keep;
  *
  */
 @FunctionalInterface
-@Keep
+@KeepForApi
 public interface MappingPartitionFromKeySupplier {
 
   byte[] get(String key);

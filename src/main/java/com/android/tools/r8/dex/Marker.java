@@ -52,6 +52,7 @@ public class Marker {
   private static final String D8_PREFIX = PREFIX + Tool.D8 + "{";
   private static final String R8_PREFIX = PREFIX + Tool.R8 + "{";
   private static final String L8_PREFIX = PREFIX + Tool.L8 + "{";
+  private static final String RELOCATOR_PREFIX = PREFIX + Tool.Relocator + "{";
 
   private final JsonObject jsonObject;
   private final Tool tool;
@@ -151,8 +152,15 @@ public class Marker {
     return this;
   }
 
+  public boolean hasCompilationMode() {
+    return jsonObject.has(COMPILATION_MODE);
+  }
+
   public String getCompilationMode() {
-    return jsonObject.get(COMPILATION_MODE).getAsString();
+    if (hasCompilationMode()) {
+      return jsonObject.get(COMPILATION_MODE).getAsString();
+    }
+    return null;
   }
 
   public Marker setCompilationMode(CompilationMode mode) {
@@ -166,13 +174,23 @@ public class Marker {
   }
 
   public String getBackend() {
-    if (!hasBackend()) {
-      // Before adding backend we would always compile to dex if min-api was specified.
-      return hasMinApi()
-          ? StringUtils.toLowerCase(Backend.DEX.name())
-          : StringUtils.toLowerCase(Backend.CF.name());
+    if (hasBackend()) {
+      return jsonObject.get(BACKEND).getAsString();
     }
-    return jsonObject.get(BACKEND).getAsString();
+    switch (tool) {
+      case D8:
+      case L8:
+      case R8:
+        // Before adding backend we would always compile to dex if min-api was specified.
+        // This is not fully true for D8 which had a window from aug to oct 2020 where the min-api
+        // was added for CF builds too. However, that was (and still is) only used internally and
+        // those markers should be be found in the wild.
+        return hasMinApi()
+            ? StringUtils.toLowerCase(Backend.DEX.name())
+            : StringUtils.toLowerCase(Backend.CF.name());
+      default:
+        return null;
+    }
   }
 
   public boolean isCfBackend() {
@@ -271,6 +289,9 @@ public class Marker {
       }
       if (str.startsWith(L8_PREFIX)) {
         return internalParse(Tool.L8, str.substring(L8_PREFIX.length() - 1));
+      }
+      if (str.startsWith(RELOCATOR_PREFIX)) {
+        return internalParse(Tool.Relocator, str.substring(RELOCATOR_PREFIX.length() - 1));
       }
     }
     return null;

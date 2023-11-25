@@ -3,10 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 
 /** Consumer for receiving dependency edges for desugaring. */
-@KeepForSubclassing
+@KeepForApi
 public interface DesugarGraphConsumer {
 
   /**

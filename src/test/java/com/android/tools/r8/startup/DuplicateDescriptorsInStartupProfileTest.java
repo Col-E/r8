@@ -4,12 +4,14 @@
 
 package com.android.tools.r8.startup;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.errors.StartupClassesNonStartupFractionDiagnostic;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
@@ -44,6 +46,7 @@ public class DuplicateDescriptorsInStartupProfileTest extends TestBase {
     testForR8(Backend.DEX)
         .addInnerClasses(getClass())
         .addKeepAllClassesRule()
+        .allowDiagnosticMessages()
         .apply(
             testBuilder ->
                 StartupTestingUtils.addStartupProfile(
@@ -74,6 +77,10 @@ public class DuplicateDescriptorsInStartupProfileTest extends TestBase {
                             .build())))
         .setMinApi(AndroidApiLevel.L)
         .compile()
+        .inspectDiagnosticMessages(
+            diagnostics ->
+                diagnostics.assertInfosMatch(
+                    diagnosticType(StartupClassesNonStartupFractionDiagnostic.class)))
         .inspectMultiDex(
             primaryInspector -> assertThat(primaryInspector.clazz(Main.class), isPresent()),
             secondaryInspector ->

@@ -139,6 +139,7 @@ public class ClassInitializerDefaultsOptimization {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public ClassInitializerDefaultsResult optimize(IRCode code, OptimizationFeedback feedback) {
     if (appView.options().debug) {
       return ClassInitializerDefaultsResult.empty();
@@ -335,6 +336,7 @@ public class ClassInitializerDefaultsOptimization {
     return getDexStringValueForInvoke(invoke.getInvokedMethod(), holder);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexValue getDexStringValueForInvoke(DexMethod invokedMethod, DexType holder) {
     DexClass clazz = appView.definitionFor(holder);
     if (clazz == null) {
@@ -379,6 +381,7 @@ public class ClassInitializerDefaultsOptimization {
     return null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private Map<DexEncodedField, StaticPut> findFinalFieldPutsWhileCollectingUnnecessaryStaticPuts(
       IRCode code, ProgramMethod context, Set<StaticPut> unnecessaryStaticPuts) {
     Map<DexEncodedField, StaticPut> finalFieldPuts = Maps.newIdentityHashMap();
@@ -531,6 +534,7 @@ public class ClassInitializerDefaultsOptimization {
     return finalFieldPuts;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Check if the static put is a constant derived from the class holding the method.
   // This checks for java.lang.Class.get*Name.
   private boolean isClassNameConstantOf(DexClass clazz, StaticPut put) {
@@ -544,6 +548,7 @@ public class ClassInitializerDefaultsOptimization {
     return isClassNameConstantOf(clazz, value.definition);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isClassNameConstantOf(DexClass clazz, Instruction instruction) {
     if (instruction.isInvokeVirtual()) {
       InvokeVirtual invoke = instruction.asInvokeVirtual();

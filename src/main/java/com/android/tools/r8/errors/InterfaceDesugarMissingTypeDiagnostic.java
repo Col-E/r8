@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.errors;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.ClassReference;
@@ -11,7 +11,7 @@ import com.android.tools.r8.references.ClassReference;
 /**
  * Diagnostic for missing types needed for correct desugaring of default/static interface methods.
  */
-@Keep
+@KeepForApi
 public class InterfaceDesugarMissingTypeDiagnostic implements DesugarDiagnostic {
 
   private final Origin origin;

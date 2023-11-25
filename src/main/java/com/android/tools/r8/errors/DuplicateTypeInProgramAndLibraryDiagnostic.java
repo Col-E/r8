@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.errors;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 
-@Keep
+@KeepForApi
 public class DuplicateTypeInProgramAndLibraryDiagnostic extends DuplicateTypesDiagnostic {
 
   public DuplicateTypeInProgramAndLibraryDiagnostic(

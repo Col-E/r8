@@ -160,6 +160,7 @@ public abstract class KeepReason {
 
   private static class InvokedFrom extends BasedOnOtherMethod {
 
+    @SuppressWarnings("ReferenceEquality")
     private InvokedFrom(DexProgramClass holder, DexEncodedMethod method) {
       super(method);
       assert holder.type == method.getHolderType();

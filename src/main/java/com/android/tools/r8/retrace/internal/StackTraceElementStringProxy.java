@@ -168,7 +168,15 @@ public final class StackTraceElementStringProxy
 
   public enum ClassNameType {
     BINARY,
-    TYPENAME
+    TYPENAME;
+
+    public boolean isBinary() {
+      return this == BINARY;
+    }
+
+    public boolean isTypeName() {
+      return this == TYPENAME;
+    }
   }
 
   public static class StackTraceElementStringProxyBuilder {
@@ -304,8 +312,31 @@ public final class StackTraceElementStringProxy
                 if (!retraced.hasRetracedMethodArguments()) {
                   return original.getMethodArguments();
                 }
-                return StringUtils.join(
-                    ",", retraced.getRetracedMethodArguments(), RetracedTypeReference::getTypeName);
+                if (retraced.getRetracedMethodArguments().isEmpty()) {
+                  return "";
+                }
+                // Create a new arguments string matching the old one but maintain all spacing.
+                StringBuilder result = new StringBuilder();
+                String originalMethodArguments = original.getMethodArguments();
+                int argumentSeparatorIndex = 0;
+                boolean isNotFirst = false;
+                for (RetracedTypeReference retracedMethodArgument :
+                    retraced.getRetracedMethodArguments()) {
+                  if (isNotFirst) {
+                    result.append(",");
+                  }
+                  int spacesToInsert =
+                      StringUtils.firstNonWhitespaceCharacter(
+                              originalMethodArguments, argumentSeparatorIndex)
+                          - argumentSeparatorIndex;
+                  result.append(" ".repeat(spacesToInsert));
+                  result.append(retracedMethodArgument.getTypeName());
+                  argumentSeparatorIndex =
+                      originalMethodArguments.indexOf(',', argumentSeparatorIndex + spacesToInsert)
+                          + 1;
+                  isNotFirst = true;
+                }
+                return result.toString();
               });
       orderedIndices.add(methodArguments);
       return this;

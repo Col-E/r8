@@ -68,11 +68,6 @@ public class PrimaryMethodProcessor extends MethodProcessorWithWave {
   }
 
   @Override
-  public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
-    return processorContext.createMethodProcessingContext(method);
-  }
-
-  @Override
   public MethodProcessorEventConsumer getEventConsumer() {
     return eventConsumer;
   }
@@ -98,11 +93,11 @@ public class PrimaryMethodProcessor extends MethodProcessorWithWave {
     return callSiteInformation;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Deque<ProgramMethodSet> createWaves(AppView<?> appView, CallGraph callGraph) {
     InternalOptions options = appView.options();
     Deque<ProgramMethodSet> waves = new ArrayDeque<>();
     Collection<Node> nodes = callGraph.getNodes();
-    int waveCount = 1;
     while (!nodes.isEmpty()) {
       ProgramMethodSet wave = callGraph.extractLeaves();
       waves.addLast(wave);
@@ -131,20 +126,23 @@ public class PrimaryMethodProcessor extends MethodProcessorWithWave {
       throws ExecutionException {
     TimingMerger merger = timing.beginMerger("primary-processor", executorService);
     while (!waves.isEmpty()) {
-      processorContext = appView.createProcessorContext();
       wave = waves.removeFirst();
       assert !wave.isEmpty();
       assert waveExtension.isEmpty();
       do {
+        processorContext = appView.createProcessorContext();
         waveStartAction.notifyWaveStart(wave);
         Collection<Timing> timings =
             ThreadUtils.processItemsWithResults(
                 wave,
                 method -> {
-                  Timing time = consumer.apply(method, createMethodProcessingContext(method));
+                  Timing time =
+                      consumer.apply(
+                          method, processorContext.createMethodProcessingContext(method));
                   time.end();
                   return time;
                 },
+                appView.options().getThreadingModule(),
                 executorService);
         merger.add(timings);
         waveDoneAction.notifyWaveDone(wave, executorService);

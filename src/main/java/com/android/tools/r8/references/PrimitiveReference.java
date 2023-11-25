@@ -3,12 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.references;
 
-import com.android.tools.r8.Keep;
-import com.android.tools.r8.KeepForRetraceApi;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
-@Keep
-@KeepForRetraceApi
+@KeepForApi
 public abstract class PrimitiveReference implements TypeReference {
 
   static final PrimitiveReference BOOL =

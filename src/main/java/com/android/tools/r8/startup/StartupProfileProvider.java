@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.startup;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.Resource;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /** Interface for providing a startup profile to the compiler. */
-@Keep
+@KeepForApi
 public interface StartupProfileProvider extends Resource {
 
   /** Provides the startup profile by callbacks to the given {@param startupProfileBuilder}. */

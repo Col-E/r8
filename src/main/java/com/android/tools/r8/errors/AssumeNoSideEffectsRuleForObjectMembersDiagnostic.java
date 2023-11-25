@@ -4,8 +4,8 @@
 package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.MethodReference;
@@ -15,7 +15,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-@Keep
+@KeepForApi
 public class AssumeNoSideEffectsRuleForObjectMembersDiagnostic implements Diagnostic {
 
   private final List<MethodReference> methods;

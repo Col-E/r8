@@ -15,23 +15,30 @@ V20180926_BASE = os.path.join(BASE, 'nest_20180926_7c6cfb')
 ANDROID_JAR = utils.get_android_jar(25)
 
 VERSIONS = {
-  '20180926': {
-    'dex' : {
-      'inputs': [os.path.join(V20180926_BASE, 'obsidian-development-debug.apk')],
-      'libraries' : [ANDROID_JAR],
-      'min-api' : ANDROID_L_API,
+    '20180926': {
+        'dex': {
+            'inputs': [
+                os.path.join(V20180926_BASE, 'obsidian-development-debug.apk')
+            ],
+            'libraries': [ANDROID_JAR],
+            'min-api': ANDROID_L_API,
+        },
+        'deploy': {
+            'inputs': [
+                os.path.join(V20180926_BASE, 'obsidian-development-debug.jar')
+            ],
+            'libraries': [ANDROID_JAR],
+            'allow-type-errors': 1,
+            'pgconf': [
+                os.path.join(V20180926_BASE, 'proguard', 'proguard.cfg'),
+                os.path.join(V20180926_BASE, 'proguard',
+                             'proguard-no-optimizations.cfg'),
+                os.path.join(V20180926_BASE, 'proguard',
+                             'proguard-ignore-warnings.cfg'),
+                utils.IGNORE_WARNINGS_RULES
+            ],
+            # Build for native multi dex
+            'min-api': ANDROID_L_API,
+        }
     },
-    'deploy' : {
-      'inputs': [os.path.join(V20180926_BASE, 'obsidian-development-debug.jar')],
-      'libraries' : [ANDROID_JAR],
-      'allow-type-errors' : 1,
-      'pgconf': [
-          os.path.join(V20180926_BASE, 'proguard', 'proguard.cfg'),
-          os.path.join(V20180926_BASE, 'proguard', 'proguard-no-optimizations.cfg'),
-          os.path.join(V20180926_BASE, 'proguard', 'proguard-ignore-warnings.cfg'),
-          utils.IGNORE_WARNINGS_RULES],
-      # Build for native multi dex
-      'min-api' : ANDROID_L_API,
-    }
-  },
 }

@@ -27,61 +27,66 @@ import sys
 
 import utils
 
-IN_SUBDIR = 'in' # subdirectory for the local copy of the input files
-OUT_SUBDIR = 'out' # subdirectory prefix for the output of DX
+IN_SUBDIR = 'in'  # subdirectory for the local copy of the input files
+OUT_SUBDIR = 'out'  # subdirectory prefix for the output of DX
 REPLAY_SCRIPT_NAME = 'replay_script.py'
+
 
 # This function will be called with arguments of the original DX invocation. It
 # copies the original input files into the local input directory and replaces
 # the references in orig_args to the local input files.
 # Returns the new line to be appended to the replay script.
 def process_line(out_dir, input_counter, orig_args):
-  args = []
-  inputs = []
-  for arg in orig_args:
-    if arg.startswith('--output='):
-      continue # nothing to do, just skip this arg
-    if arg.startswith('--'):
-      args.append(arg)
-    else:
-      # 'arg' is the path of an input file: copy arg to local dir with
-      # a new, unique name
-      if isdir(arg):
-        raise IOError("Adding directories ('{}') to the replay script is not"
-          " implemented.".format(arg))
-      elif not exists(arg):
-        print("The input file to DX does not exist: '{}'.".format(arg))
+    args = []
+    inputs = []
+    for arg in orig_args:
+        if arg.startswith('--output='):
+            continue  # nothing to do, just skip this arg
+        if arg.startswith('--'):
+            args.append(arg)
+        else:
+            # 'arg' is the path of an input file: copy arg to local dir with
+            # a new, unique name
+            if isdir(arg):
+                raise IOError(
+                    "Adding directories ('{}') to the replay script is not"
+                    " implemented.".format(arg))
+            elif not exists(arg):
+                print("The input file to DX does not exist: '{}'.".format(arg))
 
-      input_file = '{}_{}'.format(input_counter, basename(arg))
+            input_file = '{}_{}'.format(input_counter, basename(arg))
 
-      copy2(arg, join(out_dir, join(IN_SUBDIR, input_file)))
-      inputs.append(input_file)
+            copy2(arg, join(out_dir, join(IN_SUBDIR, input_file)))
+            inputs.append(input_file)
 
-  return 'call_dx({}, {}, {})\n'.format(input_counter, args, inputs)
+    return 'call_dx({}, {}, {})\n'.format(input_counter, args, inputs)
 
 
 def parse_arguments():
-  parser = argparse.ArgumentParser(
-      description = 'Creates a self-contained directory for playing back a '
-      ' sequence of DX calls.')
-  parser.add_argument('dx_call_log',
-      help = 'File containing tab-separated arguments for a DX call on each'
-      ' line.')
-  parser.add_argument('output_dir',
-      help = 'Target path the create the self-contained directory at.')
-  return parser.parse_args()
+    parser = argparse.ArgumentParser(
+        description='Creates a self-contained directory for playing back a '
+        ' sequence of DX calls.')
+    parser.add_argument(
+        'dx_call_log',
+        help='File containing tab-separated arguments for a DX call on each'
+        ' line.')
+    parser.add_argument(
+        'output_dir',
+        help='Target path the create the self-contained directory at.')
+    return parser.parse_args()
+
 
 def Main():
-  args = parse_arguments()
+    args = parse_arguments()
 
-  if isdir(args.output_dir):
-    rmdir(args.output_dir) # make sure to write only to empty out dir
+    if isdir(args.output_dir):
+        rmdir(args.output_dir)  # make sure to write only to empty out dir
 
-  utils.makedirs_if_needed(join(args.output_dir, IN_SUBDIR))
+    utils.makedirs_if_needed(join(args.output_dir, IN_SUBDIR))
 
-  # create the first lines of the replay script
-  replay_script = \
-"""#!/usr/bin/env python3
+    # create the first lines of the replay script
+    replay_script = \
+  """#!/usr/bin/env python3
 import os
 import shutil
 import subprocess
@@ -108,22 +113,24 @@ if os.path.isdir(abs_out_dir):
 
 """.format(IN_SUBDIR, OUT_SUBDIR)
 
-  with open(args.dx_call_log) as f:
-    lines = f.read().splitlines()
+    with open(args.dx_call_log) as f:
+        lines = f.read().splitlines()
 
-  input_counter = 1
-  for line in lines:
-    replay_script += \
-        process_line(args.output_dir, input_counter, line.split('\t'))
-    input_counter += 1
+    input_counter = 1
+    for line in lines:
+        replay_script += \
+            process_line(args.output_dir, input_counter, line.split('\t'))
+        input_counter += 1
 
-  script_file = join(args.output_dir, REPLAY_SCRIPT_NAME)
-  with open(script_file, 'w') as f:
-    f.write(replay_script)
+    script_file = join(args.output_dir, REPLAY_SCRIPT_NAME)
+    with open(script_file, 'w') as f:
+        f.write(replay_script)
 
-  # chmod +x for script_file
-  st = os.stat(script_file)
-  os.chmod(script_file, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    # chmod +x for script_file
+    st = os.stat(script_file)
+    os.chmod(script_file,
+             st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
 
 if __name__ == '__main__':
-  sys.exit(Main())
+    sys.exit(Main())

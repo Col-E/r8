@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.StringUtils.quote;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -37,7 +38,7 @@ import java.util.List;
  *       .build());
  * </pre>
  */
-@Keep
+@KeepForApi
 public class ExtractMarker {
 
   private static class MarkerInfoPrintConsumer implements MarkerInfoConsumer {

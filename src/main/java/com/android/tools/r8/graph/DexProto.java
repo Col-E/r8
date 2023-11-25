@@ -17,6 +17,19 @@ import java.util.function.Consumer;
 public class DexProto extends IndexedDexItem
     implements NamingLensComparable<DexProto>, LirConstant {
 
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean identical(DexProto t1, DexProto t2) {
+    return t1 == t2;
+  }
+
+  public final boolean isIdenticalTo(DexProto other) {
+    return identical(this, other);
+  }
+
+  public final boolean isNotIdenticalTo(DexProto other) {
+    return !isIdenticalTo(other);
+  }
+
   public static final DexProto SENTINEL = new DexProto(null, null);
 
   public final DexType returnType;

@@ -44,7 +44,7 @@ public class ParentConstructorHoistingCodeRewriter
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "Parent constructor hoisting pass";
   }
 

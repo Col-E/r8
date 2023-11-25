@@ -9,6 +9,7 @@ import java.util.List;
 
 public class ProguardAssumeMayHaveSideEffectsRule extends ProguardConfigurationRule {
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<ProguardAssumeMayHaveSideEffectsRule, Builder> {
 

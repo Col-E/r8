@@ -29,6 +29,7 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
 
   abstract boolean rewrite(Consumer<KmAnnotationArgument> consumer, AppView<?> appView);
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   private static KotlinAnnotationArgumentInfo createArgument(
       KmAnnotationArgument arg, DexItemFactory factory) {
     if (arg instanceof KClassValue) {
@@ -44,6 +45,7 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
     }
   }
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   static Map<String, KotlinAnnotationArgumentInfo> create(
       Map<String, KmAnnotationArgument> arguments, DexItemFactory factory) {
     if (arguments.isEmpty()) {
@@ -66,7 +68,8 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
 
     private static KotlinAnnotationClassValueInfo create(KClassValue arg, DexItemFactory factory) {
       return new KotlinAnnotationClassValueInfo(
-          KotlinTypeReference.fromBinaryName(arg.getClassName(), factory, arg.getClassName()),
+          KotlinTypeReference.fromBinaryNameOrKotlinClassifier(
+              arg.getClassName(), factory, arg.getClassName()),
           arg.getArrayDimensionCount());
     }
 
@@ -96,7 +99,7 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
 
     private static KotlinAnnotationEnumValueInfo create(EnumValue arg, DexItemFactory factory) {
       return new KotlinAnnotationEnumValueInfo(
-          KotlinTypeReference.fromBinaryName(
+          KotlinTypeReference.fromBinaryNameOrKotlinClassifier(
               arg.getEnumClassName(), factory, arg.getEnumClassName()),
           arg.getEnumEntryName());
     }

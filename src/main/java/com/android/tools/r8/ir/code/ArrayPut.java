@@ -84,6 +84,7 @@ public class ArrayPut extends ArrayAccess {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void buildDex(DexBuilder builder) {
     int value = builder.allocatedRegister(value(), getNumber());
     int array = builder.allocatedRegister(array(), getNumber());

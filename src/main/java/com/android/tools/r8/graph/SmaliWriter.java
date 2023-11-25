@@ -40,6 +40,7 @@ public class SmaliWriter extends DexByteCodeWriter {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   void writeClassHeader(DexProgramClass clazz, PrintStream ps) {
     ps.append(".class ");
     ps.append(clazz.accessFlags.toSmaliString());

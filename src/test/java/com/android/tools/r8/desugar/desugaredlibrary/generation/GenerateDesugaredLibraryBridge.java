@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.ToolHelper.TestDataSourceSet;
 import com.android.tools.r8.cfmethodgeneration.InstructionTypeMapper;
 import com.android.tools.r8.cfmethodgeneration.MethodGenerationBase;
 import com.android.tools.r8.desugar.desugaredlibrary.generation.DesugaredLibraryBridge.NavType;
@@ -92,6 +93,7 @@ public class GenerateDesugaredLibraryBridge extends MethodGenerationBase {
   }
 
   public static void main(String[] args) throws Exception {
+    setUpSystemPropertiesForMain(TestDataSourceSet.TESTS_JAVA_8);
     new GenerateDesugaredLibraryBridge(null).generateMethodsAndWriteThemToFile();
   }
 }

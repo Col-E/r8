@@ -8,6 +8,13 @@ import com.android.tools.r8.dex.Constants;
 
 public class NumberUtils {
 
+  public static int getIfEqualsOrDefault(int value, int otherValue, int defaultValue) {
+    if (value == otherValue) {
+      return value;
+    }
+    return defaultValue;
+  }
+
   public static boolean is4Bit(long value) {
     return Constants.S4BIT_MIN <= value && value <= Constants.S4BIT_MAX;
   }

@@ -188,6 +188,7 @@ public class InstancePut extends FieldInstruction implements FieldPut, InstanceF
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     if (!other.isInstancePut()) {
       return false;

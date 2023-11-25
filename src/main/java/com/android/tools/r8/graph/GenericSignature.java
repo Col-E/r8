@@ -312,6 +312,7 @@ public class GenericSignature {
       return toRenamedString(NamingLens.getIdentityLens(), alwaysTrue());
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public List<FieldTypeSignature> getGenericArgumentsToSuperType(
         DexType type, DexItemFactory factory) {
       assert hasSignature();
@@ -364,6 +365,7 @@ public class GenericSignature {
         return this;
       }
 
+      @SuppressWarnings("ReferenceEquality")
       public ClassSignature build(DexItemFactory factory) {
         // Any trivial super class signature is always represented by the null value.
         if (superClassSignature != null) {
@@ -629,6 +631,7 @@ public class GenericSignature {
       this(type, typeArguments, enclosingTypeSignature, WildcardIndicator.NOT_AN_ARGUMENT);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private ClassTypeSignature(
         DexType type,
         List<FieldTypeSignature> typeArguments,
@@ -675,6 +678,7 @@ public class GenericSignature {
       return new ArrayTypeSignature(this);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public ClassTypeSignature visit(GenericSignatureVisitor visitor) {
       if (hasNoSignature()) {
         return this;

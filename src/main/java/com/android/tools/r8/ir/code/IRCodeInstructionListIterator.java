@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collection;
 import java.util.ListIterator;
@@ -23,7 +24,7 @@ import java.util.function.UnaryOperator;
 
 public class IRCodeInstructionListIterator implements InstructionListIterator {
 
-  private final ListIterator<BasicBlock> blockIterator;
+  private final BasicBlockIterator blockIterator;
   private InstructionListIterator instructionIterator;
 
   private final IRCode code;
@@ -71,8 +72,13 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
 
   @Override
   public void replaceCurrentInstructionWithConstClass(
-      AppView<?> appView, IRCode code, DexType type, DebugLocalInfo localInfo) {
-    instructionIterator.replaceCurrentInstructionWithConstClass(appView, code, type, localInfo);
+      AppView<?> appView,
+      IRCode code,
+      DexType type,
+      DebugLocalInfo localInfo,
+      AffectedValues affectedValues) {
+    instructionIterator.replaceCurrentInstructionWithConstClass(
+        appView, code, type, localInfo, affectedValues);
   }
 
   @Override
@@ -82,8 +88,9 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
 
   @Override
   public void replaceCurrentInstructionWithConstString(
-      AppView<?> appView, IRCode code, DexString value) {
-    instructionIterator.replaceCurrentInstructionWithConstString(appView, code, value);
+      AppView<?> appView, IRCode code, DexString value, AffectedValues affectedValues) {
+    instructionIterator.replaceCurrentInstructionWithConstString(
+        appView, code, value, affectedValues);
   }
 
   @Override
@@ -174,6 +181,16 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   }
 
   @Override
+  public Instruction peekNext() {
+    // Default impl calls next() / previous(), which affects what remove() does.
+    Instruction next = instructionIterator.peekNext();
+    if (next == null && blockIterator.hasNext()) {
+      next = blockIterator.peekNext().entry();
+    }
+    return next;
+  }
+
+  @Override
   public boolean hasPrevious() {
     return instructionIterator.hasPrevious() || blockIterator.hasPrevious();
   }
@@ -193,6 +210,16 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   }
 
   @Override
+  public Instruction peekPrevious() {
+    // Default impl calls next() / previous(), which affects what remove() does.
+    Instruction previous = instructionIterator.peekPrevious();
+    if (previous == null && blockIterator.hasPrevious()) {
+      previous = blockIterator.peekPrevious().exit();
+    }
+    return previous;
+  }
+
+  @Override
   public int nextIndex() {
     throw new UnsupportedOperationException();
   }
@@ -205,6 +232,16 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   @Override
   public void add(Instruction instruction) {
     instructionIterator.add(instruction);
+  }
+
+  @Override
+  public InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Collection<Instruction> instructionsToAdd,
+      InternalOptions options) {
+    return instructionIterator.addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+        code, blockIterator, instructionsToAdd, options);
   }
 
   @Override

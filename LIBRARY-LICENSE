@@ -86,3 +86,249 @@
   license: The MIT License
   licenseUrl: http://opensource.org/licenses/MIT
   url: https://github.com/typetools/checker-framework.git
+- artifact: com.android.tools:sdk-common
+  name: com.android.tools.sdk-common
+  copyrightHolder: The Android Open Source Project
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://tools.android.com/
+- artifact: com.android.tools.build:aapt2-proto
+  name: com.android.tools.build.aapt2-proto
+  copyrightHolder: The Android Open Source Project
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://android.googlesource.com/platform/tools/base
+- artifact: com.android.tools.ddms:ddmlib
+  name: Android Tools ddmlib
+  copyrightHolder: The Android Open Source Project
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://tools.android.com/
+- artifact: com.android.tools:sdklib
+  name: com.android.tools.sdklib
+  copyrightHolder: The Android Open Source Project
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://tools.android.com/
+- artifact: com.android.tools:repository
+  name: com.android.tools.repository
+  copyrightHolder: The Android Open Source Project
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://tools.android.com/
+- artifact: com.android.tools.analytics-library:shared
+  name: Android Tools Analytics Shared Library
+  copyrightHolder: The Android Open Source Project
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://tools.android.com/
+- artifact: com.android.tools.analytics-library:protos
+  name: Android Tools Analytics Protobufs
+  copyrightHolder: The Android Open Source Project
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://tools.android.com/
+- artifact: com.google.protobuf:protobuf-java
+  name: Protocol Buffers [Core]
+  copyrightHolder: Google Inc.
+  license: BSD 3-clause
+  licenseUrl: https://github.com/protocolbuffers/protobuf/blob/main/LICENSE
+  url: https://github.com/protocolbuffers/protobuf/
+- artifact: com.android.tools.layoutlib:layoutlib-api
+  name: Android Tools layoutlib-api
+  copyrightHolder: The Android Open Source Project
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://tools.android.com/
+- artifact: com.android.tools:dvlib
+  name: com.android.tools.dvlib
+  copyrightHolder: The Android Open Source Project
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://tools.android.com/
+- artifact: com.android.tools:common
+  name: com.android.tools.common
+  copyrightHolder: The Android Open Source Project
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://tools.android.com/
+- artifact: com.android.tools:annotations
+  name: com.android.tools.annotations
+  copyrightHolder: The Android Open Source Project
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://tools.android.com/
+- artifact: net.sf.kxml:kxml2
+  name: kXML 2 is a small XML pull parser based on the common XML pull API
+  copyrightHolder: Stefan Haustein, Oberhausen, Rhld., Germany
+  license: BSD
+  licenseUrl: http://kxml.cvs.sourceforge.net/viewvc/kxml/kxml2/license.txt?view=markup
+  url: http://kxml.cvs.sourceforge.net/viewvc/kxml/kxml2/
+- artifact: org.jetbrains.kotlin:kotlin-stdlib-jdk8
+  name: Kotlin Standard Library for JVM
+  copyrightHolder: JetBrains s.r.o. and Kotlin Programming Language contributors.
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://github.com/JetBrains/kotlin
+- artifact: org.jetbrains.kotlin:kotlin-reflect
+  name: Kotlin Full Reflection Library
+  copyrightHolder: JetBrains s.r.o. and Kotlin Programming Language contributors.
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://github.com/JetBrains/kotlin
+- artifact: org.jetbrains.kotlin:kotlin-stdlib-jdk7
+  name: Kotlin Standard Library for JVM
+  copyrightHolder: JetBrains s.r.o. and Kotlin Programming Language contributors.
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://github.com/JetBrains/kotlin
+- artifact: com.google.jimfs:jimfs
+  name: Jimfs
+  copyrightHolder: Google Inc.
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://github.com/google/jimfs
+- artifact: net.java.dev.jna:jna-platform
+  name: Java Native Access
+  copyrightHolder: JNA Development Team
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://github.com/java-native-access/jna
+- artifact: javax.inject:javax.inject
+  name: javax.inject
+  copyrightHolder: The JSR-330 Expert Group
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://code.google.com/p/atinject/source/checkout
+- artifact: org.bouncycastle:bcpkix-jdk15on
+  name: Bouncy Castle PKIX, CMS, EAC, TSP, PKCS, OCSP, CMP, and CRMF APIs
+  copyrightHolder: The Legion of the Bouncy Castle Inc.
+  license: The MIT License
+  licenseUrl: http://opensource.org/licenses/MIT
+  url: http://www.bouncycastle.org/java.html
+- artifact: org.bouncycastle:bcprov-jdk15on
+  name: Bouncy Castle Provider
+  copyrightHolder: The Legion of the Bouncy Castle Inc.
+  license: The MIT License
+  licenseUrl: http://opensource.org/licenses/MIT
+  url: http://www.bouncycastle.org/java.html
+- artifact: org.glassfish.jaxb:jaxb-runtime
+  name: JAXB Runtime
+  copyrightHolder: Oracle and/or its affiliates
+  license: CDDL 1.1 and GPL 2.0 with Class-path Exception
+  licenseUrl: https://oss.oracle.com/licenses/CDDL+GPL-1.1
+  url: https://github.com/javaee/jaxb-v2
+- artifact: org.jetbrains.intellij.deps:trove4j
+  name: Trove4J
+  copyrightHolder: JetBrains s.r.o. and Kotlin Programming Language contributors.
+  license: GNU LESSER GENERAL PUBLIC LICENSE 2.1
+  licenseUrl: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html
+  url: https://github.com/JetBrains/intellij-deps-trove4j
+- artifact: xerces:xercesImpl
+  name: Xerces2-j
+  copyrightHolder: Apache Software Foundation
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://svn.apache.org/repos/asf/xerces/java
+- artifact: com.google.code.findbugs:jsr305
+  name: FindBugs-jsr305
+  copyrightHolder: University of Maryland
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://findbugs.sourceforge.net
+- artifact: com.google.errorprone:error_prone_annotations
+  name: error-prone annotations
+  copyrightHolder: The Error Prone Authors
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://github.com/google/error-prone
+- artifact: com.google.j2objc:j2objc-annotations
+  name: Google Inc.
+  copyrightHolder: The Error Prone Authors
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://github.com/google/j2objc
+- artifact: org.apache.commons:commons-compress
+  name: Apache Commons Compress
+  copyrightHolder: Apache Software Foundation
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://commons.apache.org/proper/commons-compress
+- artifact: org.apache.httpcomponents:httpmime
+  name: Apache HttpClient Mime
+  copyrightHolder: Apache Software Foundation
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://hc.apache.org/httpcomponents-client
+- artifact: org.apache.httpcomponents:httpclient
+  name: Apache HttpClient
+  copyrightHolder: Apache Software Foundation
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://hc.apache.org/httpcomponents-client
+- artifact: org.apache.httpcomponents:httpcore
+  name: Apache HttpCore
+  copyrightHolder: Apache Software Foundation
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://hc.apache.org/httpcomponents-core-ga
+- artifact: org.jvnet.staxex:stax-ex
+  name: Extended StAX API
+  copyrightHolder: Oracle and/or its affiliates
+  license: Eclipse Distribution License - v 1.0
+  licenseUrl: http://www.eclipse.org/org/documents/edl-v10.php
+  url: https://github.com/eclipse-ee4j/jaxb-stax-ex
+- artifact: jakarta.xml.bind:jakarta.xml.bind-api
+  name: jakarta.jakarta.xml.bind-api
+  copyrightHolder: Oracle and/or its affiliates
+  license: Eclipse Distribution License - v 1.0
+  licenseUrl: http://www.eclipse.org/org/documents/edl-v10.php
+  url: https://eclipse-ee4j.github.io/jaxb-ri/
+- artifact: org.glassfish.jaxb:txw2
+  name: TXW2 Runtime
+  copyrightHolder: Oracle and/or its affiliates
+  license: CDDL 1.1 and GPL 2.0 with Class-path Exception
+  licenseUrl: https://oss.oracle.com/licenses/CDDL+GPL-1.1
+  url: https://github.com/javaee/jaxb-v2
+- artifact: com.sun.istack:istack-commons-runtime
+  name: istack common utility code runtime
+  copyrightHolder: Oracle and/or its affiliates
+  license: Eclipse Distribution License - v 1.0
+  licenseUrl: http://www.eclipse.org/org/documents/edl-v10.php
+  url: https://github.com/eclipse-ee4j/jaxb-istack-commons
+- artifact: com.sun.xml.fastinfoset:FastInfoset
+  name: fastinfoset
+  copyrightHolder: Oracle and/or its affiliates
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://github.com/eclipse-ee4j/jaxb-fi
+- artifact: jakarta.activation:jakarta.activation-api
+  name: JavaBeans Activation Framework API jar
+  copyrightHolder: Oracle and/or its affiliates
+  license: Eclipse Distribution License - v 1.0
+  licenseUrl: http://www.eclipse.org/org/documents/edl-v10.php
+  url: https://github.com/jakartaee/jaf-api
+- artifact: xml-apis:xml-apis
+  name: XML Commons External Components XML APIs
+  copyrightHolder: Apache Software Foundation
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://xml.apache.org/commons/components/external
+- artifact: com.sun.activation:javax.activation
+  name: JavaBeans Activation Framework
+  copyrightHolder: Oracle and/or its affiliates
+  license: CDDL 1.1 and GPL 2.0 with Class-path Exception
+  licenseUrl: https://oss.oracle.com/licenses/CDDL+GPL-1.1
+  url: https://github.com/eclipse-ee4j/jaxb-fi
+- artifact: commons-logging:commons-logging
+  name: Apache Commons Logging
+  copyrightHolder: Apache Software Foundation
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://commons.apache.org/proper/commons-logging
+- artifact: commons-codec:commons-codec
+  name: Apache Commons Codec
+  copyrightHolder: Apache Software Foundation
+  license: The Apache License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: http://commons.apache.org/proper/commons-codec

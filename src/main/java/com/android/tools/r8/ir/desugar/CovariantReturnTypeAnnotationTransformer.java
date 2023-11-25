@@ -173,6 +173,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
     MethodAccessFlags newAccessFlags = methodDefinition.accessFlags.copy();
     newAccessFlags.setBridge();
     newAccessFlags.setSynthetic();
+    newAccessFlags.unsetAbstract(); // Synthetic bridge has code, so never abstract.
     DexMethod newMethod =
         factory.createMethod(methodHolder.getType(), newProto, methodReference.getName());
     ForwardMethodBuilder forwardMethodBuilder =
@@ -227,6 +228,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
     return covariantReturnTypes;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void getCovariantReturnTypesFromAnnotation(
       DexClass clazz,
       DexEncodedMethod method,
@@ -290,6 +292,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
     return isCovariantReturnTypeAnnotation(annotation.type, factory);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isCovariantReturnTypeAnnotation(DexType type, DexItemFactory factory) {
     return type == factory.annotationCovariantReturnType
         || type == factory.annotationCovariantReturnTypes;

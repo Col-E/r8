@@ -9,8 +9,8 @@ import com.android.tools.r8.features.FeatureSplitBoundaryOptimizationUtils;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMember;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -24,8 +24,8 @@ import com.android.tools.r8.ir.code.InvokeType;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.VerticalClassMerger.SingleTypeMapperGraphLens;
 import com.android.tools.r8.utils.TriFunction;
+import com.android.tools.r8.verticalclassmerging.SingleTypeMapperGraphLens;
 
 // Computes the inlining constraint for a given instruction.
 public class InliningConstraints {
@@ -177,10 +177,14 @@ public class InliningConstraints {
     }
     MethodResolutionResult resolutionResult =
         appView.appInfo().unsafeResolveMethodDueToDexFormatLegacy(lookup);
-    DexEncodedMethod target =
+    DexClassAndMethod target =
         singleTargetWhileVerticalClassMerging(
             resolutionResult, context, MethodResolutionResult::lookupInvokeDirectTarget);
-    return forResolvedMember(resolutionResult.getInitialResolutionHolder(), context, target);
+    if (target != null) {
+      return forResolvedMember(
+          resolutionResult.getInitialResolutionHolder(), context, target.getDefinition());
+    }
+    return ConstraintWithTarget.NEVER;
   }
 
   public ConstraintWithTarget forInvokeInterface(DexMethod method, ProgramMethod context) {
@@ -209,36 +213,39 @@ public class InliningConstraints {
     }
     MethodResolutionResult resolutionResult =
         appView.appInfo().unsafeResolveMethodDueToDexFormatLegacy(lookup);
-    DexEncodedMethod target =
+    DexClassAndMethod target =
         singleTargetWhileVerticalClassMerging(
             resolutionResult, context, MethodResolutionResult::lookupInvokeStaticTarget);
     if (!allowStaticInterfaceMethodCalls && target != null) {
       // See b/120121170.
       DexClass methodClass = appView.definitionFor(graphLens.lookupType(target.getHolderType()));
-      if (methodClass != null && methodClass.isInterface() && target.hasCode()) {
+      if (methodClass != null && methodClass.isInterface() && target.getDefinition().hasCode()) {
         return ConstraintWithTarget.NEVER;
       }
     }
-    return forResolvedMember(resolutionResult.getInitialResolutionHolder(), context, target);
+    if (target != null) {
+      return forResolvedMember(
+          resolutionResult.getInitialResolutionHolder(), context, target.getDefinition());
+    }
+    return ConstraintWithTarget.NEVER;
   }
 
-  @SuppressWarnings("ConstantConditions")
-  private DexEncodedMethod singleTargetWhileVerticalClassMerging(
+  @SuppressWarnings({"ConstantConditions", "ReferenceEquality"})
+  private DexClassAndMethod singleTargetWhileVerticalClassMerging(
       MethodResolutionResult resolutionResult,
       ProgramMethod context,
       TriFunction<
               MethodResolutionResult,
               DexProgramClass,
               AppView<? extends AppInfoWithClassHierarchy>,
-              DexEncodedMethod>
+              DexClassAndMethod>
           lookup) {
     if (!resolutionResult.isSingleResolution()) {
       return null;
     }
-    DexEncodedMethod dexEncodedMethod =
-        lookup.apply(resolutionResult, context.getHolder(), appView);
-    if (!isVerticalClassMerging() || dexEncodedMethod != null) {
-      return dexEncodedMethod;
+    DexClassAndMethod lookupResult = lookup.apply(resolutionResult, context.getHolder(), appView);
+    if (!isVerticalClassMerging() || lookupResult != null) {
+      return lookupResult;
     }
     assert isVerticalClassMerging();
     assert graphLens.lookupType(context.getHolder().superType) == context.getHolderType();
@@ -247,7 +254,7 @@ public class InliningConstraints {
     if (superContext == null) {
       return null;
     }
-    DexEncodedMethod alternativeDexEncodedMethod =
+    DexClassAndMethod alternativeDexEncodedMethod =
         lookup.apply(resolutionResult, superContext, appView);
     if (alternativeDexEncodedMethod != null
         && alternativeDexEncodedMethod.getHolderType() == superContext.type) {
@@ -381,6 +388,7 @@ public class InliningConstraints {
         resolutionResult.getInitialResolutionHolder(), context, resolutionResult.getSingleTarget());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private ConstraintWithTarget forResolvedMember(
       DexClass initialResolutionHolder,
       ProgramMethod context,

@@ -15,6 +15,14 @@ import com.android.tools.r8.keepanno.ast.KeepTypePattern;
  */
 public class KeepEdgeReaderUtils {
 
+  public static String getBinaryNameFromClassTypeName(String classTypeName) {
+    return classTypeName.replace('.', '/');
+  }
+
+  public static String getDescriptorFromClassTypeName(String classTypeName) {
+    return "L" + getBinaryNameFromClassTypeName(classTypeName) + ";";
+  }
+
   public static KeepTypePattern typePatternFromString(String string) {
     if (string.equals("<any>")) {
       return KeepTypePattern.any();

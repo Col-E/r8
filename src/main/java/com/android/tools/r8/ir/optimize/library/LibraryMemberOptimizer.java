@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.conversion.CodeOptimization;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.library.primitive.PrimitiveMethodOptimizer;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
@@ -44,12 +45,15 @@ public class LibraryMemberOptimizer implements CodeOptimization {
   public LibraryMemberOptimizer(AppView<?> appView, Timing timing) {
     this.appView = appView;
     timing.begin("Register optimizers");
-    register(new BooleanMethodOptimizer(appView));
-    register(new ByteMethodOptimizer(appView));
+    PrimitiveMethodOptimizer.forEachPrimitiveOptimizer(appView, this::register);
     register(new ObjectMethodOptimizer(appView));
     register(new ObjectsMethodOptimizer(appView));
     register(new StringBuilderMethodOptimizer(appView));
     register(new StringMethodOptimizer(appView));
+    if (appView.enableWholeProgramOptimizations()
+        && appView.options().resourceShrinkerConfiguration.isOptimizedShrinking()) {
+      register(new ResourcesMemberOptimizer(appView));
+    }
     if (appView.enableWholeProgramOptimizations()) {
       // Subtyping is required to prove the enum class is a subtype of java.lang.Enum.
       register(new EnumMethodOptimizer(appView));
@@ -154,17 +158,18 @@ public class LibraryMemberOptimizer implements CodeOptimization {
         LibraryMethodModelCollection.State optimizationState =
             optimizationStates.computeIfAbsent(
                 optimizer, LibraryMethodModelCollection::createInitialState);
-        optimizer.optimize(
-            code,
-            blockIterator,
-            instructionIterator,
-            invoke,
-            singleTarget,
-            affectedValues,
-            blocksToRemove,
-            optimizationState,
-            methodProcessor,
-            methodProcessingContext);
+        instructionIterator =
+            optimizer.optimize(
+                code,
+                blockIterator,
+                instructionIterator,
+                invoke,
+                singleTarget,
+                affectedValues,
+                blocksToRemove,
+                optimizationState,
+                methodProcessor,
+                methodProcessingContext);
       }
     }
 

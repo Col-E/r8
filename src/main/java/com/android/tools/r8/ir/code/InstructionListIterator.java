@@ -13,11 +13,14 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -26,6 +29,45 @@ import java.util.function.UnaryOperator;
 
 public interface InstructionListIterator
     extends InstructionIterator, ListIterator<Instruction>, PreviousUntilIterator<Instruction> {
+
+  default void addAll(Instruction[] instructions) {
+    for (Instruction instruction : instructions) {
+      add(instruction);
+    }
+  }
+
+  default void addAll(Collection<Instruction> instructions) {
+    for (Instruction instruction : instructions) {
+      add(instruction);
+    }
+  }
+
+  default boolean addUntilThrowing(Iterator<Instruction> srcIterator) {
+    while (srcIterator.hasNext()) {
+      // Add all non-throwing instructions up until the first throwing instruction.
+      Instruction instruction = srcIterator.next();
+      add(instruction);
+      if (instruction.instructionTypeCanThrow()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Collection<Instruction> instructionsToAdd,
+      InternalOptions options);
+
+  default InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Instruction[] instructionsToAdd,
+      InternalOptions options) {
+    return addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+        code, blockIterator, Arrays.asList(instructionsToAdd), options);
+  }
 
   BasicBlock addThrowingInstructionToPossiblyThrowingBlock(
       IRCode code,
@@ -154,7 +196,11 @@ public interface InstructionListIterator
   }
 
   void replaceCurrentInstructionWithConstClass(
-      AppView<?> appView, IRCode code, DexType type, DebugLocalInfo localInfo);
+      AppView<?> appView,
+      IRCode code,
+      DexType type,
+      DebugLocalInfo localInfo,
+      AffectedValues affectedValues);
 
   default void replaceCurrentInstructionWithConstFalse(IRCode code) {
     replaceCurrentInstructionWithConstInt(code, 0);
@@ -162,16 +208,11 @@ public interface InstructionListIterator
 
   void replaceCurrentInstructionWithConstInt(IRCode code, int value);
 
-  void replaceCurrentInstructionWithConstString(AppView<?> appView, IRCode code, DexString value);
+  void replaceCurrentInstructionWithConstString(
+      AppView<?> appView, IRCode code, DexString value, AffectedValues affectedValues);
 
   default void replaceCurrentInstructionWithConstTrue(IRCode code) {
     replaceCurrentInstructionWithConstInt(code, 1);
-  }
-
-  default void replaceCurrentInstructionWithConstString(
-      AppView<?> appView, IRCode code, String value) {
-    replaceCurrentInstructionWithConstString(
-        appView, code, appView.dexItemFactory().createString(value));
   }
 
   void replaceCurrentInstructionWithNullCheck(AppView<?> appView, Value object);

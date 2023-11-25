@@ -4,26 +4,23 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
+
 // This class is used by the Android Studio Gradle plugin and is thus part of the R8 API.
-@Keep
+@KeepForApi
 public class CompatProguardCommandBuilder extends R8Command.Builder {
+
   public CompatProguardCommandBuilder() {
     this(true);
+  }
+
+  public CompatProguardCommandBuilder(boolean forceProguardCompatibility) {
+    setProguardCompatibility(forceProguardCompatibility);
   }
 
   public CompatProguardCommandBuilder(
       boolean forceProguardCompatibility, DiagnosticsHandler diagnosticsHandler) {
     super(diagnosticsHandler);
     setProguardCompatibility(forceProguardCompatibility);
-  }
-
-  public CompatProguardCommandBuilder(boolean forceProguardCompatibility) {
-    this(forceProguardCompatibility, false);
-  }
-
-  public CompatProguardCommandBuilder(
-      boolean forceProguardCompatibility, boolean disableVerticalClassMerging) {
-    setProguardCompatibility(forceProguardCompatibility);
-    setDisableVerticalClassMerging(disableVerticalClassMerging);
   }
 }

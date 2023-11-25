@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -14,7 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /** Interface for receiving String resource. */
-@KeepForSubclassing
+@KeepForApi
 public interface StringConsumer extends Finishable {
 
   /**
@@ -37,7 +38,7 @@ public interface StringConsumer extends Finishable {
   }
 
   /** Empty consumer to request the production of the resource but ignore its value. */
-  @Keep
+  @KeepForApi
   class EmptyConsumer implements StringConsumer {
 
     private static final EmptyConsumer EMPTY_CONSUMER = new EmptyConsumer();
@@ -54,7 +55,7 @@ public interface StringConsumer extends Finishable {
   }
 
   /** Forwarding consumer to delegate to an optional existing consumer. */
-  @Keep
+  @KeepForApi
   class ForwardingConsumer implements StringConsumer {
 
     private final StringConsumer consumer;
@@ -80,7 +81,7 @@ public interface StringConsumer extends Finishable {
   }
 
   /** File consumer to write contents to a file-system file. */
-  @Keep // TODO(b/121121779) Consider deprecating the R8 provided file writing.
+  @KeepForApi
   class FileConsumer extends ForwardingConsumer {
 
     private final Path outputPath;

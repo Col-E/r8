@@ -88,13 +88,24 @@ public class IteratorUtils {
     return null;
   }
 
+  /**
+   * Returns the previous element or null if !hasPrevious(). A subsequent call to iterator.remove()
+   * will remove the peeked element.
+   */
   public static <T> T peekPrevious(ListIterator<T> iterator) {
-    T previous = iterator.previous();
-    T next = iterator.next();
-    assert previous == next;
-    return previous;
+    if (iterator.hasPrevious()) {
+      T previous = iterator.previous();
+      T next = iterator.next();
+      assert previous == next;
+      return previous;
+    }
+    return null;
   }
 
+  /**
+   * Returns the next element or null if !hasNext(). A subsequent call to iterator.remove() will
+   * remove the peeked element.
+   */
   public static <T> T peekNext(ListIterator<T> iterator) {
     if (iterator.hasNext()) {
       T next = iterator.next();
@@ -145,8 +156,11 @@ public class IteratorUtils {
     }
   }
 
-  /** @deprecated Use {@link #removeIf(InstructionListIterator, Predicate)} instead. */
+  /**
+   * @deprecated Use {@link #removeIf(InstructionListIterator, Predicate)} instead.
+   */
   @Deprecated
+  @SuppressWarnings("DoNotCallSuggester")
   public static void removeIf(InstructionIterator iterator, Predicate<Instruction> predicate) {
     throw new Unimplemented();
   }

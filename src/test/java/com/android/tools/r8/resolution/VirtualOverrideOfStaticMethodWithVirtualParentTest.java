@@ -14,11 +14,14 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.LibraryModeledPredicate;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Assert;
@@ -179,9 +182,14 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
     DexEncodedMethod resolved = resolutionResult.getSingleTarget();
     assertEquals(methodOnA, resolved.getReference());
     assertFalse(resolutionResult.isVirtualTarget());
-    DexEncodedMethod singleVirtualTarget =
-        appInfo.lookupSingleVirtualTarget(
-            appView, methodOnB, bClass.getProgramDefaultInitializer(), false);
+    DexClassAndMethod singleVirtualTarget =
+        appInfo.lookupSingleVirtualTargetForTesting(
+            appView,
+            methodOnB,
+            bClass.getProgramDefaultInitializer(),
+            false,
+            LibraryModeledPredicate.alwaysFalse(),
+            DynamicType.unknown());
     Assert.assertNull(singleVirtualTarget);
   }
 

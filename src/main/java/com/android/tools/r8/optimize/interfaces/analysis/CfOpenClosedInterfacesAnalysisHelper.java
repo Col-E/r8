@@ -92,7 +92,7 @@ class CfOpenClosedInterfacesAnalysisHelper {
               assert false;
             }
           } else {
-            assert false;
+            assert array.isNullType();
           }
         },
         options);
@@ -150,6 +150,7 @@ class CfOpenClosedInterfacesAnalysisHelper {
     processAssignment(fromType, toType.toTypeElement(appView));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void processAssignment(TypeElement fromType, TypeElement toType) {
     // If the type is an interface type, then check that the assigned value is a subtype of the
     // interface type, or mark the interface as open.

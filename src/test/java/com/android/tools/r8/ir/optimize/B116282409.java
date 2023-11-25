@@ -120,7 +120,8 @@ public class B116282409 extends JasminTestBase {
             .addProgramClassFileData(programClassFileData)
             .addKeepMainRule("TestClass")
             .addOptionsModification(
-                options -> options.enableVerticalClassMerging = enableVerticalClassMerging)
+                options ->
+                    options.getVerticalClassMergerOptions().setEnabled(enableVerticalClassMerging))
             .allowDiagnosticWarningMessages()
             .setMinApi(parameters)
             .compile();

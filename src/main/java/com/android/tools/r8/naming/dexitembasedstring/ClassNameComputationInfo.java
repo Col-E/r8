@@ -204,6 +204,7 @@ public class ClassNameComputationInfo extends NameComputationInfo<DexType>
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object other) {
     if (getClass() != other.getClass()) {
       return false;

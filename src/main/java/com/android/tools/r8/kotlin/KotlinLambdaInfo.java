@@ -31,21 +31,13 @@ public class KotlinLambdaInfo implements EnqueuerMetadataTraceable {
   }
 
   static KotlinLambdaInfo create(
-      DexClass clazz,
-      KmLambda lambda,
-      DexItemFactory factory,
-      Reporter reporter,
-      KotlinJvmSignatureExtensionInformation extensionInformation) {
+      DexClass clazz, KmLambda lambda, DexItemFactory factory, Reporter reporter) {
     if (lambda == null) {
       assert false;
       return null;
     }
     KotlinFunctionInfo kotlinFunctionInfo =
-        KotlinFunctionInfo.create(
-            lambda.function,
-            factory,
-            reporter,
-            extensionInformation.hasJvmMethodSignatureExtensionForFunction(0));
+        KotlinFunctionInfo.create(lambda.function, factory, reporter);
     JvmMethodSignature signature = JvmExtensionsKt.getSignature(lambda.function);
     if (signature != null) {
       for (DexEncodedMethod method : clazz.methods()) {
@@ -61,8 +53,7 @@ public class KotlinLambdaInfo implements EnqueuerMetadataTraceable {
   boolean rewrite(Consumer<KmLambda> consumer, DexClass clazz, AppView<?> appView) {
     KmLambda kmLambda = consume(new KmLambda(), consumer);
     if (!hasBacking) {
-      function.rewrite(kmLambda::setFunction, null, appView);
-      return true;
+      return function.rewrite(kmLambda::setFunction, null, appView);
     }
     DexEncodedMethod backing = null;
     for (DexEncodedMethod method : clazz.methods()) {

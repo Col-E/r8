@@ -12,6 +12,7 @@ public class ConvertCheckNotNullRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "convertchecknotnull";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<ConvertCheckNotNullRule, Builder> {
 

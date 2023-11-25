@@ -87,6 +87,7 @@ public class ServiceLoaderRewriter {
         || appInfo.isWhyAreYouNotInliningMethod(serviceLoaderMethods.loadWithClassLoader);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void rewrite(
       IRCode code,
       MethodProcessor methodProcessor,

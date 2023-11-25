@@ -123,6 +123,7 @@ final class FieldValueHelper {
     return value;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private Value getValueDefinedInTheBlock(BasicBlock block, Instruction stopAt) {
     InstructionIterator iterator =
         stopAt == null ? block.iterator(block.getInstructions().size()) : block.iterator(stopAt);

@@ -26,13 +26,9 @@ dependencies { }
 // We just need to register the examples jars for it to be referenced by other modules.
 val buildExampleJars = buildExampleJars("examplesJava11")
 
-val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
-  "compileDeps",
-  listOf(Jdk.JDK_11.getThirdPartyDependency()))
-
 tasks {
   withType<JavaCompile> {
-    dependsOn(thirdPartyCompileDependenciesTask)
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
     options.setFork(true)
     options.forkOptions.memoryMaximumSize = "3g"
     options.forkOptions.executable = getCompilerPath(Jdk.JDK_11)

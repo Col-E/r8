@@ -44,6 +44,7 @@ public final class AppliedGraphLens extends DefaultNonIdentityGraphLens {
   // which is why we need an additional map.
   private final Map<DexMethod, DexMethod> extraOriginalMethodSignatures = new IdentityHashMap<>();
 
+  @SuppressWarnings("ReferenceEquality")
   public AppliedGraphLens(AppView<? extends AppInfoWithClassHierarchy> appView) {
     super(appView.dexItemFactory(), GraphLens.getIdentityLens());
     for (DexProgramClass clazz : appView.appInfo().classes()) {
@@ -90,6 +91,7 @@ public final class AppliedGraphLens extends DefaultNonIdentityGraphLens {
     MapUtils.removeIdentityMappings(extraOriginalMethodSignatures);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void recordOriginalTypeNames(
       DexProgramClass clazz, AppView<? extends AppInfoWithClassHierarchy> appView) {
     DexType type = clazz.getType();

@@ -97,6 +97,7 @@ public class LibraryDesugaredChecker {
       registerField(field.getReference());
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void registerMethod(ProgramMethod method) {
       registerMethod(method.getReference());
       for (DexAnnotation annotation : method.getDefinition().annotations().annotations) {

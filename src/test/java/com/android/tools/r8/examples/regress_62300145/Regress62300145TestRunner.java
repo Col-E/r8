@@ -39,8 +39,8 @@ public class Regress62300145TestRunner extends ExamplesTestBase {
   @Override
   public String getExpected() {
     return StringUtils.joinLines(
-        "0: @com.android.tools.r8.examples.regress_62300145.Regress$A()",
-        "1: @com.android.tools.r8.examples.regress_62300145.Regress$A()",
+        "0: com.android.tools.r8.examples.regress_62300145.Regress$A",
+        "1: com.android.tools.r8.examples.regress_62300145.Regress$A",
         "2: ");
   }
 

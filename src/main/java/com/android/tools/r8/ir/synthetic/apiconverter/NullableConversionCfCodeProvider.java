@@ -80,6 +80,7 @@ public abstract class NullableConversionCfCodeProvider extends SyntheticCfCodePr
     }
 
     @Override
+    @SuppressWarnings("UnusedVariable")
     public CfCode generateCfCode() {
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();

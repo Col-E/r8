@@ -42,6 +42,7 @@ public class AssertionErrorTwoArgsConstructorRewriter {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void rewrite(
       IRCode code,
       MethodProcessor methodProcessor,

@@ -99,11 +99,13 @@ public class InitClass extends Instruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isInitClass() && clazz == other.asInitClass().clazz;
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean instructionInstanceCanThrow(
       AppView<?> appView,
       ProgramMethod context,
@@ -129,6 +131,7 @@ public class InitClass extends Instruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     if (appView.enableWholeProgramOptimizations()) {
       // In R8, check if the class initialization of `clazz` or any of its ancestor types may have

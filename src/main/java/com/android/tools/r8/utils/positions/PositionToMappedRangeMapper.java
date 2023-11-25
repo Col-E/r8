@@ -98,6 +98,7 @@ public interface PositionToMappedRangeMapper {
       // Only param and max-pc are part of the key.
 
       @Override
+      @SuppressWarnings("EqualsUnsafeCast")
       public boolean equals(Object o) {
         UpdateInfo that = (UpdateInfo) o;
         return paramCount == that.paramCount && maxEncodingPc == that.maxEncodingPc;

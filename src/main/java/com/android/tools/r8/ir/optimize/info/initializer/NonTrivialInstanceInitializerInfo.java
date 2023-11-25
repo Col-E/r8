@@ -223,6 +223,7 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
       return parent;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public Builder setParent(DexMethod parent) {
       assert !hasParent() || getParent() == parent;
       this.parent = parent;

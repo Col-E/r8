@@ -17,8 +17,7 @@ import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
+import com.android.tools.r8.ir.code.MaterializingInstructionsInfo;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -157,17 +156,13 @@ public class RewrittenPrototypeDescription {
    *
    * <p>Note that the current implementation always returns null at this point.
    */
-  public Instruction getConstantReturn(
-      AppView<AppInfoWithLiveness> appView,
-      IRCode code,
-      Position position,
-      TypeAndLocalInfoSupplier info) {
+  public Instruction[] getConstantReturn(
+      AppView<AppInfoWithLiveness> appView, IRCode code, MaterializingInstructionsInfo info) {
     assert rewrittenReturnInfo != null;
     assert rewrittenReturnInfo.hasSingleValue();
-    Instruction instruction =
-        rewrittenReturnInfo.getSingleValue().createMaterializingInstruction(appView, code, info);
-    instruction.setPosition(position);
-    return instruction;
+    return rewrittenReturnInfo
+        .getSingleValue()
+        .createMaterializingInstructions(appView, code, info);
   }
 
   public boolean verifyConstantReturnAccessibleInContext(
@@ -175,7 +170,7 @@ public class RewrittenPrototypeDescription {
     SingleValue rewrittenSingleValue =
         rewrittenReturnInfo
             .getSingleValue()
-            .rewrittenWithLens(appView, appView.graphLens(), codeLens);
+            .rewrittenWithLens(appView, method.getReturnType(), appView.graphLens(), codeLens);
     assert rewrittenSingleValue.isMaterializableInContext(appView, method);
     return true;
   }
@@ -198,6 +193,7 @@ public class RewrittenPrototypeDescription {
     return dexItemFactory.createProto(newReturnType, newParameters);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexType[] rewriteParameters(ProgramMethod method, DexItemFactory dexItemFactory) {
     DexType[] params = method.getParameters().values;
     if (isEmpty()) {
@@ -226,6 +222,7 @@ public class RewrittenPrototypeDescription {
     return newParams;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public RewrittenPrototypeDescription rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
     ArgumentInfoCollection newArgumentInfoCollection =
@@ -269,6 +266,7 @@ public class RewrittenPrototypeDescription {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object obj) {
     if (obj == null || getClass() != obj.getClass()) {
       return false;

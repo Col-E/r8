@@ -99,16 +99,8 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
           }
 
           AbstractValueFactory factory = appView.abstractValueFactory();
-          if (value.isDexValueNumber()) {
-            feedback.recordFieldHasAbstractValue(
-                field,
-                appView,
-                factory.createSingleNumberValue(value.asDexValueNumber().getRawValue()));
-          } else if (value.isDexValueString()) {
-            feedback.recordFieldHasAbstractValue(
-                field,
-                appView,
-                factory.createSingleStringValue(value.asDexValueString().getValue()));
+          if (value.isDexValueNumber() || value.isDexValueString()) {
+            feedback.recordFieldHasAbstractValue(field, appView, value.toAbstractValue(factory));
           } else if (value.isDexItemBasedValueString()) {
             // TODO(b/150835624): Extend to dex item based const strings.
           } else {
@@ -119,6 +111,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   boolean isSubjectToOptimization(DexClassAndField field) {
     return field.getAccessFlags().isStatic()
         && field.getHolderType() == context.getHolderType()
@@ -126,6 +119,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   boolean isSubjectToOptimizationIgnoringPinning(DexClassAndField field) {
     return field.getAccessFlags().isStatic()
         && field.getHolderType() == context.getHolderType()
@@ -166,6 +160,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void updateFieldOptimizationInfoWith2Values(
       DexClassAndField field, Value valuePut, DexValue valueBeforePut) {
     // We are interested in the AbstractValue only if it's null or a value, so we can use the value
@@ -246,6 +241,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     return singleFieldValue;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private SingleFieldValue internalComputeSingleEnumFieldValueForValuesArray(Value value) {
     NewArrayEmpty newArrayEmpty = value.definition.asNewArrayEmpty();
     NewArrayFilled newArrayFilled = value.definition.asNewArrayFilled();
@@ -288,11 +284,8 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
           if (arrayPut.array() != value) {
             return null;
           }
-          if (!arrayPut.index().isConstNumber()) {
-            return null;
-          }
-          int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
-          if (index < 0 || index >= valuesSize) {
+          int index = arrayPut.indexIfConstAndInBounds(valuesSize);
+          if (index < 0) {
             return null;
           }
           if (!updateEnumValueState(valuesState, valuesTypes, index, arrayPut.value())) {
@@ -389,6 +382,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     return intValue == ordinal;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private SingleFieldValue computeSingleEnumFieldValueForInstance(Value value) {
     assert value.isDefinedByInstructionSatisfying(Instruction::isNewInstance);
 

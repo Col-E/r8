@@ -26,20 +26,19 @@ import java.util.Arrays;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 // Regression test for b/297320921
 @RunWith(Parameterized.class)
 public class TryCatchRangeOverflowTest extends TestBase {
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withDefaultDexRuntime().withMinimumApiLevel().build();
-  }
-
-  public TryCatchRangeOverflowTest(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   // Each add/2addr instruction has size 1, so we add have as many instruction minus some padding
@@ -115,13 +114,14 @@ public class TryCatchRangeOverflowTest extends TestBase {
         .inspect(inspector -> checkTryCatchHandlers(3, inspector));
   }
 
-  private D8TestBuilder compile(int addCount) throws Exception {
+  private D8TestBuilder compile(int addCount) {
     return testForD8(Backend.DEX)
         .addProgramClasses(TestClass.class)
         .addOptionsModification(
             o ->
                 o.testing.irModifier =
                     (code, appView) -> amendCodeWithAddInstructions(addCount, code))
+        .debug()
         .setMinApi(parameters);
   }
 

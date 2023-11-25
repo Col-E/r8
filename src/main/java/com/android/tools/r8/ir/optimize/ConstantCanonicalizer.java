@@ -74,6 +74,7 @@ public class ConstantCanonicalizer {
   private Set<InstanceGet> ineligibleInstanceGetInstructions;
 
   public ConstantCanonicalizer(AppView<?> appView, ProgramMethod context, IRCode code) {
+    assert appView.options().isGeneratingDex();
     this.appView = appView;
     this.branchSimplifier = new BranchSimplifier(appView);
     this.context = context;
@@ -402,6 +403,27 @@ public class ConstantCanonicalizer {
   }
 
   public boolean isConstantCanonicalizationCandidate(Instruction instruction) {
+    if (!isConstant(instruction)) {
+      return false;
+    }
+    // Do not canonicalize throwing instructions if there are monitor operations in the code.
+    // That could lead to unbalanced locking and could lead to situations where OOM exceptions
+    // could leave a synchronized method without unlocking the monitor.
+    if (instruction.instructionTypeCanThrow() && code.metadata().mayHaveMonitorInstruction()) {
+      return false;
+    }
+    // Constants that are used by invoke range are not canonicalized to be compliant with the
+    // optimization splitRangeInvokeConstant that gives the register allocator more freedom in
+    // assigning register to ranged invokes which can greatly reduce the number of register
+    // needed (and thereby code size as well). Thus no need to do a transformation that should
+    // be removed later by another optimization.
+    if (constantUsedByInvokeRange(instruction)) {
+      return false;
+    }
+    return true;
+  }
+
+  public boolean isConstant(Instruction instruction) {
     // Interested only in instructions types that can be canonicalized, i.e., ConstClass,
     // ConstNumber, (DexItemBased)?ConstString, InstanceGet and StaticGet.
     switch (instruction.opcode()) {
@@ -457,20 +479,6 @@ public class ConstantCanonicalizer {
     }
     // Constants with local info must not be canonicalized and must be filtered.
     if (instruction.outValue().hasLocalInfo()) {
-      return false;
-    }
-    // Do not canonicalize throwing instructions if there are monitor operations in the code.
-    // That could lead to unbalanced locking and could lead to situations where OOM exceptions
-    // could leave a synchronized method without unlocking the monitor.
-    if (instruction.instructionTypeCanThrow() && code.metadata().mayHaveMonitorInstruction()) {
-      return false;
-    }
-    // Constants that are used by invoke range are not canonicalized to be compliant with the
-    // optimization splitRangeInvokeConstant that gives the register allocator more freedom in
-    // assigning register to ranged invokes which can greatly reduce the number of register
-    // needed (and thereby code size as well). Thus no need to do a transformation that should
-    // be removed later by another optimization.
-    if (constantUsedByInvokeRange(instruction)) {
       return false;
     }
     return true;
@@ -532,6 +540,7 @@ public class ConstantCanonicalizer {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isEffectivelyFinalField(StaticGet staticGet) {
     AbstractValue abstractValue = staticGet.outValue().getAbstractValue(appView, context);
     if (!abstractValue.isSingleFieldValue()) {

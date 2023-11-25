@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.utils.structural.Ordered;
 
-@Keep
+@KeepForApi
 public enum MapVersion implements Ordered<MapVersion> {
   MAP_VERSION_UNKNOWN("unknown"),
   MAP_VERSION_NONE("none"),

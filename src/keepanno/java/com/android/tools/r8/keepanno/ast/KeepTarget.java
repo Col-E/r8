@@ -20,7 +20,7 @@ public class KeepTarget {
     }
 
     public Builder setItemPattern(KeepItemPattern itemPattern) {
-      return setItemReference(KeepItemReference.fromItemPattern(itemPattern));
+      return setItemReference(itemPattern.toItemReference());
     }
 
     public Builder setOptions(KeepOptions options) {
@@ -59,6 +59,7 @@ public class KeepTarget {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object o) {
     if (this == o) {
       return true;

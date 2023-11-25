@@ -59,7 +59,7 @@ public class B72538146 extends TestBase {
     // Run the classloader test loading the two dex applications.
     testForD8()
         .addProgramFiles(
-            Paths.get(ToolHelper.TESTS_BUILD_DIR)
+            Paths.get(ToolHelper.THIRD_PARTY_DIR)
                 .resolve("examplesAndroidO")
                 .resolve("classes")
                 .resolve("classloader")

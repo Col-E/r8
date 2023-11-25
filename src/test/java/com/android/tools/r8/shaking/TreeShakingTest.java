@@ -156,7 +156,7 @@ public abstract class TreeShakingTest extends TestBase {
       DiagnosticsConsumer diagnosticsConsumer)
       throws Exception {
 
-    String programFile = ToolHelper.TESTS_BUILD_DIR + getName() + ".jar";
+    String programFile = ToolHelper.THIRD_PARTY_DIR + getName() + ".jar";
 
     R8FullTestBuilder testBuilder =
         testForR8(parameters.getBackend())

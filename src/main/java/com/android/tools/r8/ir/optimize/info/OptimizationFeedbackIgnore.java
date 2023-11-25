@@ -94,7 +94,7 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void markProcessed(DexEncodedMethod method, ConstraintWithTarget state) {}
 
   @Override
-  public void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo) {}
+  public void setBridgeInfo(ProgramMethod method, BridgeInfo bridgeInfo) {}
 
   @Override
   public void setClassInlinerMethodConstraint(

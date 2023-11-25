@@ -79,10 +79,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
   }
 
   static KotlinFunctionInfo create(
-      KmFunction kmFunction,
-      DexItemFactory factory,
-      Reporter reporter,
-      boolean readMethodSignature) {
+      KmFunction kmFunction, DexItemFactory factory, Reporter reporter) {
     boolean isCrossInline = false;
     List<KotlinValueParameterInfo> valueParameters =
         KotlinValueParameterInfo.create(kmFunction.getValueParameters(), factory, reporter);
@@ -99,23 +96,21 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
         KotlinTypeInfo.create(kmFunction.getReceiverParameterType(), factory, reporter),
         valueParameters,
         KotlinTypeParameterInfo.create(kmFunction.getTypeParameters(), factory, reporter),
-        readMethodSignature
-            ? KotlinJvmMethodSignatureInfo.create(JvmExtensionsKt.getSignature(kmFunction), factory)
-            : null,
+        KotlinJvmMethodSignatureInfo.create(JvmExtensionsKt.getSignature(kmFunction), factory),
         getlambdaClassOrigin(kmFunction, factory),
         KotlinVersionRequirementInfo.create(kmFunction.getVersionRequirements()),
         KotlinContractInfo.create(kmFunction.getContract(), factory, reporter),
         isCrossInline,
         ListUtils.map(
             kmFunction.getContextReceiverTypes(),
-            contextRecieverType -> KotlinTypeInfo.create(contextRecieverType, factory, reporter)));
+            contextReceiverType -> KotlinTypeInfo.create(contextReceiverType, factory, reporter)));
   }
 
   private static KotlinTypeReference getlambdaClassOrigin(
       KmFunction kmFunction, DexItemFactory factory) {
     String lambdaClassOriginName = JvmExtensionsKt.getLambdaClassOriginName(kmFunction);
     if (lambdaClassOriginName != null) {
-      return KotlinTypeReference.fromBinaryName(
+      return KotlinTypeReference.fromBinaryNameOrKotlinClassifier(
           lambdaClassOriginName, factory, lambdaClassOriginName);
     }
     return null;

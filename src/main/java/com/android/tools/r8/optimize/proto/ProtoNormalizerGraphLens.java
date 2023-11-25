@@ -41,6 +41,7 @@ public class ProtoNormalizerGraphLens extends DefaultNonIdentityGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
       DexMethod method, GraphLens codeLens) {
     if (this == codeLens) {
@@ -57,6 +58,7 @@ public class ProtoNormalizerGraphLens extends DefaultNonIdentityGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   protected MethodLookupResult internalDescribeLookupMethod(
       MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
     DexMethod methodSignature = previous.getReference();
@@ -100,6 +102,7 @@ public class ProtoNormalizerGraphLens extends DefaultNonIdentityGraphLens {
       this.appView = appView;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public RewrittenPrototypeDescription recordNewMethodSignature(
         DexEncodedMethod method, DexMethod newMethodSignature) {
       assert method.getReference() != newMethodSignature;
@@ -114,6 +117,7 @@ public class ProtoNormalizerGraphLens extends DefaultNonIdentityGraphLens {
     }
 
     // TODO(b/195112263): Canonicalize the permutation maps.
+    @SuppressWarnings("ReferenceEquality")
     private static RewrittenPrototypeDescription computePrototypeChanges(
         DexEncodedMethod method, DexMethod newMethodSignature) {
       int firstNonReceiverArgumentIndex = method.getFirstNonReceiverArgumentIndex();

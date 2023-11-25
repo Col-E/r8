@@ -114,6 +114,7 @@ public class GenericSignatureRewriter {
             genericSignatureTypeRewriter.rewrite(recordComponent.getSignature());
           }
         },
+        appView.options().getThreadingModule(),
         executorService);
   }
 }

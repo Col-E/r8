@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
@@ -13,6 +14,7 @@ public class NullOrAbstractValue extends AbstractValue {
   private final AbstractValue value;
 
   private NullOrAbstractValue(AbstractValue value) {
+    assert !value.isSingleNumberValue();
     this.value = value;
   }
 
@@ -43,12 +45,18 @@ public class NullOrAbstractValue extends AbstractValue {
   }
 
   @Override
-  public NullOrAbstractValue rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
-    return new NullOrAbstractValue(value.rewrittenWithLens(appView, lens, codeLens));
+  public AbstractValue rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, DexType newType, GraphLens lens, GraphLens codeLens) {
+    AbstractValue rewrittenValue = value.rewrittenWithLens(appView, newType, lens, codeLens);
+    if (rewrittenValue.isSingleNumberValue()) {
+      // Reference type rewritten to primitive.
+      return unknown();
+    }
+    return new NullOrAbstractValue(rewrittenValue);
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object o) {
     if (o == null) {
       return false;

@@ -198,6 +198,7 @@ public class MainDexInfo {
     return MainDexGroup.NOT_IN_MAIN_DEX;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean disallowInliningIntoContext(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ProgramDefinition context,

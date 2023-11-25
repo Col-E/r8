@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.ApiLevelRange;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags.HumanEmulatedInterfaceDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.MultiAPILevelHumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator;
@@ -32,6 +33,7 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -201,7 +203,12 @@ public class LegacyToHumanSpecificationConverter {
     flags
         .getRewritePrefix()
         .forEach((prefix, rewritten) -> rewritePrefix(builder, prefix, rewritten));
-    flags.getEmulateLibraryInterface().forEach(builder::putEmulatedInterface);
+    flags
+        .getEmulateLibraryInterface()
+        .forEach(
+            (type, rewrittenType) ->
+                convertEmulatedInterface(
+                    builder, app, type, rewrittenType, flags.getDontRewriteInvocation()));
     flags.getBackportCoreLibraryMember().forEach(builder::putLegacyBackport);
     flags.getCustomConversions().forEach(builder::putCustomConversion);
     flags.getDontRetargetLibMember().forEach(builder::addDontRetargetLibMember);
@@ -209,12 +216,25 @@ public class LegacyToHumanSpecificationConverter {
     flags
         .getRetargetCoreLibMember()
         .forEach((name, typeMap) -> convertRetargetCoreLibMember(builder, app, name, typeMap));
-    flags
-        .getDontRewriteInvocation()
-        .forEach(pair -> convertDontRewriteInvocation(builder, app, pair));
     HumanRewritingFlags humanFlags = builder.build();
     timing.end();
     return humanFlags;
+  }
+
+  private void convertEmulatedInterface(
+      HumanRewritingFlags.Builder builder,
+      DexApplication app,
+      DexType type,
+      DexType rewrittenType,
+      List<Pair<DexType, DexString>> dontRewriteInvocation) {
+    DexClass dexClass = app.definitionFor(type);
+    Set<DexMethod> emulatedMethods = Sets.newIdentityHashSet();
+    Set<DexMethod> dontRewrite = convertDontRewriteInvocation(builder, app, dontRewriteInvocation);
+    dexClass
+        .virtualMethods(m -> m.isDefaultMethod() && !dontRewrite.contains(m.getReference()))
+        .forEach(m -> emulatedMethods.add(m.getReference()));
+    builder.putSpecifiedEmulatedInterface(
+        type, new HumanEmulatedInterfaceDescriptor(rewrittenType, emulatedMethods));
   }
 
   private void rewritePrefix(HumanRewritingFlags.Builder builder, String prefix, String rewritten) {
@@ -239,17 +259,24 @@ public class LegacyToHumanSpecificationConverter {
     builder.putRewritePrefix(prefix, rewritten);
   }
 
-  private void convertDontRewriteInvocation(
-      HumanRewritingFlags.Builder builder, DexApplication app, Pair<DexType, DexString> pair) {
-    DexClass dexClass = app.definitionFor(pair.getFirst());
-    assert dexClass != null;
-    List<DexClassAndMethod> methodsWithName =
-        findMethodsWithName(pair.getSecond(), dexClass, builder, app);
-    for (DexClassAndMethod dexClassAndMethod : methodsWithName) {
-      builder.addDontRewriteInvocation(dexClassAndMethod.getReference());
+  private Set<DexMethod> convertDontRewriteInvocation(
+      HumanRewritingFlags.Builder builder,
+      DexApplication app,
+      List<Pair<DexType, DexString>> dontRewriteInvocation) {
+    Set<DexMethod> result = Sets.newIdentityHashSet();
+    for (Pair<DexType, DexString> pair : dontRewriteInvocation) {
+      DexClass dexClass = app.definitionFor(pair.getFirst());
+      assert dexClass != null;
+      List<DexClassAndMethod> methodsWithName =
+          findMethodsWithName(pair.getSecond(), dexClass, builder, app);
+      for (DexClassAndMethod dexClassAndMethod : methodsWithName) {
+        result.add(dexClassAndMethod.getReference());
+      }
     }
+    return result;
   }
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   private void convertRetargetCoreLibMember(
       HumanRewritingFlags.Builder builder,
       DexApplication app,
@@ -279,6 +306,7 @@ public class LegacyToHumanSpecificationConverter {
         });
   }
 
+  @SuppressWarnings({"MixedMutabilityReturnType", "ReferenceEquality"})
   private List<DexClassAndMethod> findMethodsWithName(
       DexString methodName,
       DexClass clazz,

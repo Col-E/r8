@@ -85,6 +85,7 @@ class TransferFunction
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public TransferFunctionResult<ParameterUsages> apply(
       Instruction instruction, ParameterUsages state) {
     if (instruction.isArgument()) {
@@ -309,6 +310,7 @@ class TransferFunction
         receiverRoot, (context, usage) -> usage.addMethodCallWithParameterAsReceiver(invoke));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private ParameterUsages analyzeInvokeStatic(InvokeStatic invoke, NonEmptyParameterUsages state) {
     // We generally don't class inline instances that escape through invoke-static calls, but we
     // make an exception for calls to Objects.requireNonNull().
@@ -392,6 +394,7 @@ class TransferFunction
         : isMaybeEligibleForClassInlining(clazz.asClasspathOrLibraryClass());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isMaybeEligibleForClassInlining(DexProgramClass clazz) {
     // We can only class inline parameters that does not inherit from other classpath or library
     // classes than java.lang.Object.
@@ -408,6 +411,7 @@ class TransferFunction
     } while (true);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isMaybeEligibleForClassInlining(ClasspathOrLibraryClass clazz) {
     // We can only class inline a parameter that is either java.lang.Object or an interface type.
     return clazz.getType() == dexItemFactory.objectType || clazz.isInterface();

@@ -172,7 +172,9 @@ public class ProfileRewritingCfInstructionDesugaringEventConsumer
   @Override
   public void acceptLambdaClass(LambdaClass lambdaClass, ProgramMethod context) {
     addLambdaClassAndInstanceInitializersIfSynthesizingContextIsInProfile(lambdaClass, context);
+    addLambdaFactoryMethodIfSynthesizingContextIsInProfile(lambdaClass, context);
     addLambdaVirtualMethodsIfLambdaImplementationIsInProfile(lambdaClass, context);
+
     parent.acceptLambdaClass(lambdaClass, context);
   }
 
@@ -193,6 +195,17 @@ public class ProfileRewritingCfInstructionDesugaringEventConsumer
         });
   }
 
+  @SuppressWarnings("ReferenceEquality")
+  private void addLambdaFactoryMethodIfSynthesizingContextIsInProfile(
+      LambdaClass lambdaClass, ProgramMethod context) {
+    if (lambdaClass.hasFactoryMethod()) {
+      additionsCollection.applyIfContextIsInProfile(
+          context,
+          additionsBuilder -> additionsBuilder.addMethodRule(lambdaClass.getFactoryMethod()));
+    }
+  }
+
+  @SuppressWarnings("ReferenceEquality")
   private void addLambdaVirtualMethodsIfLambdaImplementationIsInProfile(
       LambdaClass lambdaClass, ProgramMethod context) {
     Target target = lambdaClass.getTarget();
@@ -221,6 +234,7 @@ public class ProfileRewritingCfInstructionDesugaringEventConsumer
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean shouldConservativelyAddLambdaVirtualMethodsIfLambdaInstantiated(
       LambdaClass lambdaClass, ProgramMethod context) {
     Target target = lambdaClass.getTarget();
@@ -359,6 +373,7 @@ public class ProfileRewritingCfInstructionDesugaringEventConsumer
   }
 
   @Override
+  @SuppressWarnings("ArgumentSelectionDefectChecker")
   public void acceptUtilityToStringIfNotNullMethod(ProgramMethod method, ProgramMethod context) {
     additionsCollection.addMethodAndHolderIfContextIsInProfile(context, method);
     parent.acceptUtilityToStringIfNotNullMethod(method, context);

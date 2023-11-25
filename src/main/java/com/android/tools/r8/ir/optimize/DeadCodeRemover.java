@@ -132,6 +132,7 @@ public class DeadCodeRemover {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void removeDeadInstructions(
       Queue<BasicBlock> worklist,
       IRCode code,

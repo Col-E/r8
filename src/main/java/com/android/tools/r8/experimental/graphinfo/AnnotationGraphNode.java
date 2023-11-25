@@ -3,10 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.graphinfo;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.Objects;
 
-@Keep
+@KeepForApi
 public final class AnnotationGraphNode extends GraphNode {
 
   private final GraphNode annotatedNode;

@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -43,6 +42,8 @@ public abstract class Position implements StructuralItem<Position> {
       Position callerPosition,
       boolean removeInnerFramesIfThrowingNpe,
       boolean isD8R8Synthesized) {
+    assert callerPosition == null || !isD8R8Synthesized
+        : "Synthetic positions should always be outermost";
     this.line = line;
     this.method = method;
     this.callerPosition = callerPosition;
@@ -134,24 +135,16 @@ public abstract class Position implements StructuralItem<Position> {
     return SyntheticPosition.NO_POSITION_SYNTHETIC;
   }
 
-  public static Position getPositionForInlining(
-      AppView<?> appView, InvokeMethod invoke, ProgramMethod context) {
+  public static Position getPositionForInlining(InvokeMethod invoke, ProgramMethod context) {
     Position position = invoke.getPosition();
     if (position.method == null) {
       assert position.isNone();
       position = SourcePosition.builder().setMethod(context.getReference()).build();
     }
-    if (context.getDefinition().isD8R8Synthesized()) {
-      // Some rewritings map a synthetic method back to an original in the program. To ensure we
-      // have correct line information we have to rewrite the positions as inline position
-      // therefore we only check if the original method is present.
-      DexMethod originalMethodSignature =
-          appView.graphLens().getOriginalMethodSignature(context.getReference());
-      assert position.hasMethodInChain(originalMethodSignature);
-    } else {
-      assert position.getOutermostCaller().method
-          == appView.graphLens().getOriginalMethodSignature(context.getReference());
-    }
+    // If this assert is hit, then the method has changed/moved and the position info has not been
+    // updated. The code changing/moving the method needs to use the "AsInlining" helpers to
+    // maintain correct mapping information.
+    assert context.getReference().isIdenticalTo(position.getOutermostCaller().getMethod());
     return position;
   }
 
@@ -159,6 +152,7 @@ public abstract class Position implements StructuralItem<Position> {
     return line == -1;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isSyntheticNone() {
     return this == syntheticNone();
   }
@@ -197,21 +191,6 @@ public abstract class Position implements StructuralItem<Position> {
     return null;
   }
 
-  public boolean hasPositionMatching(Predicate<Position> positionPredicate) {
-    Position lastPosition = this;
-    while (lastPosition != null) {
-      if (positionPredicate.test(lastPosition)) {
-        return true;
-      }
-      lastPosition = lastPosition.getCallerPosition();
-    }
-    return false;
-  }
-
-  public boolean hasMethodInChain(DexMethod method) {
-    return hasPositionMatching(position -> position.getMethod() == method);
-  }
-
   public Position withOutermostCallerPosition(Position newOutermostCallerPosition) {
     return builderWithCopy()
         .setCallerPosition(
@@ -221,6 +200,7 @@ public abstract class Position implements StructuralItem<Position> {
         .build();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public Position replacePosition(Position originalPosition, Position newPosition) {
     if (this == originalPosition) {
       return newPosition;
@@ -528,13 +508,23 @@ public abstract class Position implements StructuralItem<Position> {
 
   public static class OutlinePosition extends Position {
 
+    // This is the method that the outline is created at. This needs to stay stable as it is used
+    // to identify the mapping table between callers and this outline definition.
+    private final DexMethod outlineMethodKey;
+
     private OutlinePosition(
         int line,
         DexMethod method,
         Position callerPosition,
         boolean removeInnerFramesIfThrowingNpe,
-        boolean isD8R8Synthesized) {
-      super(line, method, callerPosition, removeInnerFramesIfThrowingNpe, isD8R8Synthesized);
+        DexMethod outlineMethodKey) {
+      super(line, method, callerPosition, removeInnerFramesIfThrowingNpe, true);
+      this.outlineMethodKey = outlineMethodKey;
+      assert outlineMethodKey != null;
+    }
+
+    public DexMethod getOutlineMethodKey() {
+      return outlineMethodKey;
     }
 
     @Override
@@ -549,7 +539,7 @@ public abstract class Position implements StructuralItem<Position> {
 
     @Override
     public PositionBuilder<?, ?> builderWithCopy() {
-      return builder()
+      return builder(outlineMethodKey)
           .setLine(line)
           .setMethod(method)
           .setCallerPosition(callerPosition)
@@ -562,12 +552,14 @@ public abstract class Position implements StructuralItem<Position> {
       return Position::specifyBasePosition;
     }
 
-    public static OutlinePositionBuilder builder() {
-      return new OutlinePositionBuilder();
+    public static OutlinePositionBuilder builder(DexMethod outlineMethodKey) {
+      return new OutlinePositionBuilder().setOutlineMethodKey(outlineMethodKey);
     }
 
     public static class OutlinePositionBuilder
         extends PositionBuilder<OutlinePosition, OutlinePositionBuilder> {
+
+      private DexMethod outlineMethodKey;
 
       private OutlinePositionBuilder() {}
 
@@ -576,10 +568,17 @@ public abstract class Position implements StructuralItem<Position> {
         return this;
       }
 
+      // Intentionally hidden without external setter.
+      private OutlinePositionBuilder setOutlineMethodKey(DexMethod outlineMethodKey) {
+        this.outlineMethodKey = outlineMethodKey;
+        return this;
+      }
+
       @Override
       public OutlinePosition build() {
+        assert isD8R8Synthesized;
         return new OutlinePosition(
-            line, method, callerPosition, removeInnerFramesIfThrowingNpe, isD8R8Synthesized);
+            line, method, callerPosition, removeInnerFramesIfThrowingNpe, outlineMethodKey);
       }
     }
   }

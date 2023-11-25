@@ -36,6 +36,7 @@ public class RuntimeWorkaroundCodeRewriter {
 
   private static final int SELF_RECURSION_LIMIT = 4;
 
+  @SuppressWarnings("ReferenceEquality")
   // For method with many self-recursive calls, insert a try-catch to disable inlining.
   // Marshmallow dex2oat aggressively inlines and eats up all the memory on devices.
   public static void workaroundDex2OatInliningIssue(AppView<?> appView, IRCode code) {
@@ -227,6 +228,7 @@ public class RuntimeWorkaroundCodeRewriter {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static void workaroundForwardingInitializerBug(IRCode code, InternalOptions options) {
     if (!options.canHaveForwardingInitInliningBug()) {
       return;

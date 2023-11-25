@@ -108,6 +108,7 @@ public class MethodResolution {
    * 10.7 of the Java Language Specification</a>. All invokations will have target java.lang.Object
    * except clone which has no target.
    */
+  @SuppressWarnings("ReferenceEquality")
   private MethodResolutionResult resolveMethodOnArray(
       DexType holder, DexProto methodProto, DexString methodName) {
     assert holder.isArrayType();
@@ -588,6 +589,7 @@ public class MethodResolution {
       typesWithMultipleDefinitions.add(type);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     void addCandidate(DexClass holder, DexEncodedMethod method, boolean isIncompletePath) {
       // If this candidate is already a candidate or it is shadowed, then no need to continue.
       if (isIncompletePath) {
@@ -614,6 +616,7 @@ public class MethodResolution {
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void markShadowed(DexType type) {
       if (type == null) {
         return;

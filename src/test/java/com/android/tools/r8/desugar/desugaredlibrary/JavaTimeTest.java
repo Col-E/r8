@@ -89,7 +89,6 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
         .addOptionsModification(
             options -> {
               // The check for $default$query relies on inlining.
-              options.testing.enableLir();
               options.inlinerOptions().simpleInliningInstructionLimit = 5;
             })
         .compile()

@@ -36,6 +36,7 @@ public abstract class CfFieldInstruction extends CfInstruction {
     this(field, field);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public CfFieldInstruction(DexField field, DexField declaringField) {
     this.field = field;
     this.declaringField = declaringField;

@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.FileUtils.isArchive;
 
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -36,7 +37,7 @@ import java.util.zip.ZipFile;
  * <p>The descriptor index is built eagerly upon creating the provider and subsequent requests for
  * resources in the descriptor set will then force the read of zip entry contents.
  */
-@Keep
+@KeepForApi
 public class ArchiveClassFileProvider implements ClassFileResourceProvider, Closeable {
   private final Path archive;
   private final Origin origin;

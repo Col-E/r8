@@ -4,13 +4,11 @@
 
 package com.android.tools.r8.origin;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.nio.file.Path;
 
-/**
- * Path component in an origin description.
- */
-@Keep
+/** Path component in an origin description. */
+@KeepForApi
 public class PathOrigin extends Origin {
 
   private final Path path;

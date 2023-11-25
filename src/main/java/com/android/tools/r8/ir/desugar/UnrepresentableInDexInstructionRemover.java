@@ -107,16 +107,19 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
                       + descriptor));
     }
 
+    @SuppressWarnings("BadImport")
     static void pop(DexType type, Builder<CfInstruction> builder) {
       assert !type.isVoidType();
       builder.add(CfStackInstruction.popType(type));
     }
 
+    @SuppressWarnings("BadImport")
     static void pop(DexProto proto, Builder<CfInstruction> builder) {
       // Pop arguments in reverse order from the stack.
       proto.getParameters().forEachReverse(t -> pop(t, builder));
     }
 
+    @SuppressWarnings("BadImport")
     static Builder<CfInstruction> pushReturnValue(DexType type, Builder<CfInstruction> builder) {
       if (!type.isVoidType()) {
         builder.add(createDefaultValueForType(type));
@@ -135,6 +138,8 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
   }
 
   private static class InvokeDynamicMatcher extends InstructionMatcher {
+
+    @SuppressWarnings("BadImport")
     static void addIfNeeded(AppView<?> appView, Builder<InstructionMatcher> builder) {
       InternalOptions options = appView.options();
       if (!options.canUseInvokeCustom()) {
@@ -152,6 +157,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
     }
 
     @Override
+    @SuppressWarnings("BadImport")
     DesugarDescription compute(CfInstruction instruction) {
       CfInvokeDynamic invokeDynamic = instruction.asInvokeDynamic();
       if (invokeDynamic == null) {
@@ -161,6 +167,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context,
                   methodProcessingContext,
@@ -180,6 +187,8 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
   }
 
   private static class InvokePolymorphicMatcher extends InstructionMatcher {
+
+    @SuppressWarnings("BadImport")
     static void addIfNeeded(AppView<?> appView, Builder<InstructionMatcher> builder) {
       InternalOptions options = appView.options();
       if (!options.canUseInvokePolymorphicOnMethodHandle()) {
@@ -202,6 +211,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
     }
 
     @Override
+    @SuppressWarnings("BadImport")
     DesugarDescription compute(CfInstruction instruction) {
       CfInvoke invoke = instruction.asInvoke();
       if (invoke == null || !isPolymorphicInvoke(invoke)) {
@@ -211,6 +221,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context,
                   methodProcessingContext,
@@ -232,6 +243,8 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
   }
 
   private static class ConstMethodHandleMatcher extends InstructionMatcher {
+
+    @SuppressWarnings("BadImport")
     static void addIfNeeded(AppView<?> appView, Builder<InstructionMatcher> builder) {
       InternalOptions options = appView.options();
       if (!options.canUseConstantMethodHandle()) {
@@ -249,6 +262,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
     }
 
     @Override
+    @SuppressWarnings("BadImport")
     DesugarDescription compute(CfInstruction instruction) {
       if (!(instruction instanceof CfConstMethodHandle)) {
         return null;
@@ -257,6 +271,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context,
                   methodProcessingContext,
@@ -272,6 +287,8 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
   }
 
   private static class ConstMethodTypeMatcher extends InstructionMatcher {
+
+    @SuppressWarnings("BadImport")
     static void addIfNeeded(AppView<?> appView, Builder<InstructionMatcher> builder) {
       InternalOptions options = appView.options();
       if (!options.canUseConstantMethodType()) {
@@ -289,6 +306,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
     }
 
     @Override
+    @SuppressWarnings("BadImport")
     DesugarDescription compute(CfInstruction instruction) {
       if (!(instruction instanceof CfConstMethodType)) {
         return null;
@@ -297,6 +315,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context,
                   methodProcessingContext,
@@ -312,6 +331,8 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
   }
 
   private static class ConstDynamicMatcher extends InstructionMatcher {
+
+    @SuppressWarnings("BadImport")
     static void addIfNeeded(AppView<?> appView, Builder<InstructionMatcher> builder) {
       InternalOptions options = appView.options();
       if (!options.canUseConstantDynamic()) {
@@ -329,6 +350,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
     }
 
     @Override
+    @SuppressWarnings("BadImport")
     DesugarDescription compute(CfInstruction instruction) {
       final CfConstDynamic constDynamic = instruction.asConstDynamic();
       if (constDynamic == null) {
@@ -338,6 +360,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context,
                   methodProcessingContext,
@@ -354,6 +377,7 @@ public class UnrepresentableInDexInstructionRemover implements CfInstructionDesu
 
   private final List<InstructionMatcher> matchers;
 
+  @SuppressWarnings("BadImport")
   public UnrepresentableInDexInstructionRemover(AppView<?> appView) {
     Builder<InstructionMatcher> builder = ImmutableList.builder();
     InvokeDynamicMatcher.addIfNeeded(appView, builder);

@@ -145,9 +145,8 @@ public final class KotlinClassMetadataReader {
   public static boolean hasKotlinClassMetadataAnnotation(
       DexClass clazz, DexDefinitionSupplier definitionSupplier) {
     return clazz
-            .annotations()
-            .getFirstMatching(definitionSupplier.dexItemFactory().kotlinMetadataType)
-        != null;
+        .annotations()
+        .hasAnnotation(definitionSupplier.dexItemFactory().kotlinMetadataType);
   }
 
   public static KotlinClassMetadata toKotlinClassMetadata(
@@ -203,9 +202,9 @@ public final class KotlinClassMetadataReader {
       KotlinClassMetadata kMetadata,
       AppView<?> appView,
       Consumer<DexEncodedMethod> keepByteCode) {
-    Metadata annotationData = kMetadata.getAnnotationData();
-    String packageName = annotationData.pn();
-    int[] metadataVersion = annotationData.mv();
+    Metadata metadata = kMetadata.getAnnotationData$kotlinx_metadata_jvm();
+    String packageName = metadata.pn();
+    int[] metadataVersion = metadata.mv();
     if (kMetadata instanceof KotlinClassMetadata.Class) {
       return KotlinClassInfo.create(
           (KotlinClassMetadata.Class) kMetadata,
@@ -240,7 +239,7 @@ public final class KotlinClassMetadataReader {
           kotlin,
           appView);
     } else {
-      throw new MetadataError("unsupported 'k' value: " + annotationData.k());
+      throw new MetadataError("unsupported 'k' value: " + metadata.k());
     }
   }
 

@@ -98,8 +98,7 @@ class MethodReservationState<KeyType>
         originalToReservedNames = new HashMap<>();
         reservedNames = new HashSet<>();
       }
-      final Wrapper<DexMethod> wrapped =
-          MethodSignatureEquivalence.get().wrap(method.getReference());
+      Wrapper<DexMethod> wrapped = MethodSignatureEquivalence.get().wrap(method.getReference());
       originalToReservedNames.computeIfAbsent(wrapped, ignore -> new HashSet<>()).add(name);
       reservedNames.add(name);
     }

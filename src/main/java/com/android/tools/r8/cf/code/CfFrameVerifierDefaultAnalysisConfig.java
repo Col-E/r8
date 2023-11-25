@@ -48,6 +48,7 @@ public class CfFrameVerifierDefaultAnalysisConfig implements CfAnalysisConfig {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean isImmediateSuperClassOfCurrentContext(DexType type) {
     // If the code is rewritten according to the graph lens, we perform a strict check that the
     // given type is the same as the current holder's super class.

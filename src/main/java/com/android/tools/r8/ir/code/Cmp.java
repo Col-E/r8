@@ -191,7 +191,7 @@ public class Cmp extends Binop {
           result = (int) Math.signum(left - right);
         }
       }
-      return appView.abstractValueFactory().createSingleNumberValue(result);
+      return appView.abstractValueFactory().createSingleNumberValue(result, getOutType());
     } else if (leftAbstractValue.isConstantOrNonConstantNumberValue()
         && rightAbstractValue.isConstantOrNonConstantNumberValue()) {
       return buildLatticeResult(
@@ -212,7 +212,7 @@ public class Cmp extends Binop {
     // Use min value as representative when values cannot overlap.
     int result =
         Integer.signum(Long.compare(leftRange.getMinInclusive(), rightRange.getMinInclusive()));
-    return appView.abstractValueFactory().createSingleNumberValue(result);
+    return appView.abstractValueFactory().createSingleNumberValue(result, getOutType());
   }
 
   @Override

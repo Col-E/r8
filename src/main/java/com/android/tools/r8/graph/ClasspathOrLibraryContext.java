@@ -11,6 +11,8 @@ package com.android.tools.r8.graph;
 public class ClasspathOrLibraryContext implements ProgramDerivedContext {
 
   private final Definition context;
+
+  @SuppressWarnings("UnusedVariable")
   private final ProgramDerivedContext programDerivedContext;
 
   private ClasspathOrLibraryContext(

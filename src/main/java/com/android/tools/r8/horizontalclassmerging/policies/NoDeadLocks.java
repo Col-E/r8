@@ -22,12 +22,12 @@ public class NoDeadLocks extends MultiClassPolicy {
   }
 
   private boolean isSynchronizationClass(DexProgramClass clazz) {
-    return appView.appInfo().isLockCandidate(clazz.type) || clazz.hasStaticSynchronizedMethods();
+    return appView.appInfo().isLockCandidate(clazz) || clazz.hasStaticSynchronizedMethods();
   }
 
   // TODO(b/270398965): Replace LinkedList.
-  @SuppressWarnings("JdkObsolete")
   @Override
+  @SuppressWarnings({"JdkObsolete", "MixedMutabilityReturnType"})
   public Collection<MergeGroup> apply(MergeGroup group) {
     // Gather all synchronized classes.
     Collection<MergeGroup> synchronizedGroups = new LinkedList<>();

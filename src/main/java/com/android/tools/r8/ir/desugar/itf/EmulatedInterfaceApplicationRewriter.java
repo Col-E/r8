@@ -52,6 +52,7 @@ public final class EmulatedInterfaceApplicationRewriter {
     builder.replaceProgramClasses(newProgramClasses);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // The method transforms emulated interface such as they now have the rewritten type and
   // implement the rewritten version of each emulated interface they implement.
   private DexProgramClass rewriteEmulatedInterface(DexProgramClass emulatedInterface) {
@@ -94,6 +95,7 @@ public final class EmulatedInterfaceApplicationRewriter {
     return newEmulatedInterface;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private List<GenericSignature.ClassTypeSignature> getRewrittenInterfacesOfEmulatedInterface(
       DexProgramClass emulatedInterface) {
     List<GenericSignature.ClassTypeSignature> newInterfaces = new ArrayList<>();

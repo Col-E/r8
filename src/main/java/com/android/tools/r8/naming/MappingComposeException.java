@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
-@Keep
+@KeepForApi
 public class MappingComposeException extends Exception {
 
   public MappingComposeException(String message) {

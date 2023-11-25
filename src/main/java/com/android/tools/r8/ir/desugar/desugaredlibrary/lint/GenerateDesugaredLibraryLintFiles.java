@@ -4,13 +4,21 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.lint;
 
+import com.android.tools.r8.ArchiveClassFileProvider;
+import com.android.tools.r8.ArchiveProgramResourceProvider;
+import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.MethodAnnotation;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,36 +26,19 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 
 public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
 
   // Only recent versions of studio support the format with fields.
   private static final boolean FORMAT_WITH_FIELD = true;
 
-  public static GenerateDesugaredLibraryLintFiles createForTesting(
-      Path specification, Set<Path> implementation, Path outputDirectory, Path androidJar)
-      throws Exception {
-    return new GenerateDesugaredLibraryLintFiles(
-        specification, implementation, outputDirectory, androidJar);
-  }
-
   public GenerateDesugaredLibraryLintFiles(
-      String desugarConfigurationPath,
-      String desugarImplementationPath,
-      String outputDirectory,
-      String androidJarPath)
-      throws Exception {
-    super(desugarConfigurationPath, desugarImplementationPath, outputDirectory, androidJarPath);
-  }
-
-  GenerateDesugaredLibraryLintFiles(
-      Path desugarConfigurationPath,
-      Collection<Path> desugarImplementationPath,
-      Path outputDirectory,
-      Path androidJar)
-      throws Exception {
-    super(desugarConfigurationPath, desugarImplementationPath, outputDirectory, androidJar);
+      Reporter reporter,
+      StringResource desugarConfiguration,
+      Collection<ProgramResourceProvider> desugarImplementation,
+      Path output,
+      Collection<ClassFileResourceProvider> androidJar) {
+    super(reporter, desugarConfiguration, desugarImplementation, output, androidJar);
   }
 
   private String lintBaseFileName(
@@ -55,8 +46,9 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
     return "desugared_apis_" + compilationApiLevel.getLevel() + "_" + minApiLevel.getLevel();
   }
 
-  Path lintFile(AndroidApiLevel compilationApiLevel, AndroidApiLevel minApiLevel, String extension)
-      throws Exception {
+  private Path lintFile(
+      AndroidApiLevel compilationApiLevel, AndroidApiLevel minApiLevel, String extension)
+      throws IOException {
     Path directory = output.resolve("compile_api_level_" + compilationApiLevel.getLevel());
     Files.createDirectories(directory);
     return Paths.get(
@@ -70,7 +62,7 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
       AndroidApiLevel compilationApiLevel,
       AndroidApiLevel minApiLevel,
       SupportedClasses supportedClasses)
-      throws Exception {
+      throws IOException {
     // Build a plain text file with the desugared APIs.
     List<String> desugaredApisSignatures = new ArrayList<>();
 
@@ -118,6 +110,14 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
 
     // Write a plain text file with the desugared APIs.
     desugaredApisSignatures.sort(Comparator.naturalOrder());
+    writeOutput(compilationApiLevel, minApiLevel, desugaredApisSignatures);
+  }
+
+  void writeOutput(
+      AndroidApiLevel compilationApiLevel,
+      AndroidApiLevel minApiLevel,
+      List<String> desugaredApisSignatures)
+      throws IOException {
     FileUtils.writeTextFile(
         lintFile(compilationApiLevel, minApiLevel, ".txt"), desugaredApisSignatures);
   }
@@ -149,16 +149,22 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
     writeLintFiles(compilationApiLevel, minApiLevel, supportedMethods);
   }
 
+  String getDebugIdentifier() {
+    return desugaredLibrarySpecification.getIdentifier() == null
+        ? "backported methods only"
+        : desugaredLibrarySpecification.getIdentifier();
+  }
+
   @Override
   public AndroidApiLevel run() throws Exception {
     AndroidApiLevel compilationLevel =
         desugaredLibrarySpecification.getRequiredCompilationApiLevel();
     SupportedClasses supportedMethods =
         new SupportedClassesGenerator(options, androidJar)
-            .run(desugaredLibraryImplementation, desugaredLibrarySpecificationPath);
+            .run(desugaredLibraryImplementation, desugaredLibrarySpecificationResource);
     System.out.println(
         "Generating lint files for "
-            + desugaredLibrarySpecification.getIdentifier()
+            + getDebugIdentifier()
             + " (compile API "
             + compilationLevel
             + ")");
@@ -169,8 +175,13 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
   }
 
   public static void main(String[] args) throws Exception {
-    if (args.length == 3 || args.length == 4) {
-      new GenerateDesugaredLibraryLintFiles(args[0], args[1], args[2], getAndroidJarPath(args, 4))
+    if (args.length == 4) {
+      new GenerateDesugaredLibraryLintFiles(
+              new Reporter(),
+              StringResource.fromFile(Paths.get(args[0])),
+              ImmutableList.of(ArchiveProgramResourceProvider.fromArchive(Paths.get(args[1]))),
+              Paths.get(args[2]),
+              ImmutableList.of(new ArchiveClassFileProvider(Paths.get(args[3]))))
           .run();
       return;
     }
@@ -178,8 +189,8 @@ public class GenerateDesugaredLibraryLintFiles extends AbstractGenerateFiles {
         StringUtils.joinLines(
             "Invalid invocation.",
             "Usage: GenerateDesugaredLibraryLintFiles <desugar configuration> "
-                + "<desugar implementation> <output directory> [<android jar path for Android "
+                + "<desugar implementation> <output directory> <android jar path for Android "
                 + MAX_TESTED_ANDROID_API_LEVEL
-                + " or higher>]"));
+                + " or higher>"));
   }
 }

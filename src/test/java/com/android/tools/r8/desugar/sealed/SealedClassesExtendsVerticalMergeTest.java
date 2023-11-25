@@ -72,9 +72,7 @@ public class SealedClassesExtendsVerticalMergeTest extends TestBase {
         .addKeepPermittedSubclasses(Super.class, Sub2.class, UnrelatedSuper.class)
         .addKeepMainRule(TestClass.class)
         .addVerticallyMergedClassesInspector(
-            inspector -> {
-              inspector.assertMergedIntoSubtype(Sub1.class);
-            })
+            inspector -> inspector.assertMergedIntoSubtype(Sub1.class))
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .compile()
@@ -99,8 +97,7 @@ public class SealedClassesExtendsVerticalMergeTest extends TestBase {
   static class TestClass {
 
     public static void main(String[] args) {
-      new SubSub();
-      System.out.println("Success!");
+      System.out.println(new SubSub());
     }
   }
 
@@ -110,7 +107,13 @@ public class SealedClassesExtendsVerticalMergeTest extends TestBase {
 
   static class Sub2 extends Super {}
 
-  static class SubSub extends Sub1 {}
+  static class SubSub extends Sub1 {
+
+    @Override
+    public String toString() {
+      return "Success!";
+    }
+  }
 
   abstract static class UnrelatedSuper /* permits Sub1, Sub2 */ {}
 }

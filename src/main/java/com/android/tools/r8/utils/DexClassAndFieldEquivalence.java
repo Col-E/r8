@@ -18,6 +18,7 @@ public class DexClassAndFieldEquivalence extends Equivalence<DexClassAndField> {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   protected boolean doEquivalent(DexClassAndField field, DexClassAndField other) {
     return field.getDefinition() == other.getDefinition();
   }

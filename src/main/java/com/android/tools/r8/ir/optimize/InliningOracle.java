@@ -10,7 +10,6 @@ import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.Inliner.InlineResult;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 
@@ -25,10 +24,8 @@ public interface InliningOracle {
   ProgramMethod lookupSingleTarget(InvokeMethod invoke, ProgramMethod context);
 
   boolean passesInliningConstraints(
-      InvokeMethod invoke,
       SingleResolutionResult<?> resolutionResult,
       ProgramMethod candidate,
-      Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 
   InlineResult computeInlining(

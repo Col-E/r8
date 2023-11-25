@@ -62,7 +62,7 @@ public class AnnotationRemover {
       ProgramDefinition holder, DexAnnotation annotation, AnnotatedKind kind) {
     return annotationsToRetain.contains(annotation)
         || shouldKeepAnnotation(
-            appView, holder, annotation, isAnnotationTypeLive(annotation), kind);
+            appView, holder, annotation, isAnnotationTypeLive(annotation), kind, mode);
   }
 
   public static boolean shouldKeepAnnotation(
@@ -70,13 +70,14 @@ public class AnnotationRemover {
       ProgramDefinition holder,
       DexAnnotation annotation,
       boolean isAnnotationTypeLive,
-      AnnotatedKind kind) {
+      AnnotatedKind kind,
+      Mode mode) {
     // If we cannot run the AnnotationRemover we are keeping the annotation.
-    if (!appView.options().isShrinking()) {
+    InternalOptions options = appView.options();
+    if (!options.isShrinking()) {
       return true;
     }
 
-    InternalOptions options = appView.options();
     ProguardKeepAttributes config =
         options.getProguardConfiguration() != null
             ? options.getProguardConfiguration().getKeepAttributes()
@@ -145,6 +146,9 @@ public class AnnotationRemover {
             .startsWith(options.itemFactory.dalvikAnnotationOptimizationPrefix)) {
           return true;
         }
+        if (isComposableAnnotationToRetain(appView, annotation, kind, mode, options)) {
+          return true;
+        }
         if (kind.isParameter()) {
           if (!options.isKeepRuntimeInvisibleParameterAnnotationsEnabled()) {
             return false;
@@ -178,7 +182,11 @@ public class AnnotationRemover {
   }
 
   public void run(ExecutorService executorService) throws ExecutionException {
-    ThreadUtils.processItems(appView.appInfo().classes(), this::run, executorService);
+    ThreadUtils.processItems(
+        appView.appInfo().classes(),
+        this::run,
+        appView.options().getThreadingModule(),
+        executorService);
     assert verifyNoKeptKotlinMembersForClassesWithNoKotlinInfo();
   }
 
@@ -261,6 +269,7 @@ public class AnnotationRemover {
     return rewrite;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexAnnotationElement rewriteAnnotationElement(
       DexType annotationType, DexAnnotationElement original) {
     // The dalvik.annotation.AnnotationDefault is typically not on bootclasspath. However, if it
@@ -290,14 +299,10 @@ public class AnnotationRemover {
     boolean isAnnotation =
         definition.isProgramClass() && definition.asProgramClass().isAnnotation();
     if (keepInfo.isAnnotationRemovalAllowed(options)) {
-      if (isAnnotation) {
+      if (isAnnotation || mode.isInitialTreeShaking()) {
         definition.rewriteAllAnnotations(
-            (annotation, isParameterAnnotation) ->
-                shouldRetainAnnotationOnAnnotationClass(annotation) ? annotation : null);
-      } else if (mode.isInitialTreeShaking()) {
-        definition.rewriteAllAnnotations(
-            (annotation, isParameterAnnotation) ->
-                annotationsToRetain.contains(annotation) ? annotation : null);
+            (annotation, kind) ->
+                shouldRetainAnnotation(definition, annotation, kind) ? annotation : null);
       } else {
         definition.clearAllAnnotations();
       }
@@ -307,16 +312,37 @@ public class AnnotationRemover {
     }
   }
 
-  private boolean shouldRetainAnnotationOnAnnotationClass(DexAnnotation annotation) {
-    if (DexAnnotation.isAnnotationDefaultAnnotation(annotation, appView.dexItemFactory())) {
-      return shouldRetainAnnotationDefaultAnnotationOnAnnotationClass(annotation);
+  private boolean shouldRetainAnnotation(
+      ProgramDefinition definition, DexAnnotation annotation, AnnotatedKind kind) {
+    boolean isAnnotationOnAnnotationClass =
+        definition.isProgramClass() && definition.asProgramClass().isAnnotation();
+    if (isAnnotationOnAnnotationClass) {
+      if (DexAnnotation.isAnnotationDefaultAnnotation(annotation, appView.dexItemFactory())) {
+        return shouldRetainAnnotationDefaultAnnotationOnAnnotationClass(annotation);
+      }
+      if (DexAnnotation.isJavaLangRetentionAnnotation(annotation, appView.dexItemFactory())) {
+        return shouldRetainRetentionAnnotationOnAnnotationClass(annotation);
+      }
     }
-    if (DexAnnotation.isJavaLangRetentionAnnotation(annotation, appView.dexItemFactory())) {
-      return shouldRetainRetentionAnnotationOnAnnotationClass(annotation);
-    }
-    return annotationsToRetain.contains(annotation);
+    return annotationsToRetain.contains(annotation)
+        || isComposableAnnotationToRetain(appView, annotation, kind, mode, options);
   }
 
+  private static boolean isComposableAnnotationToRetain(
+      AppView<?> appView,
+      DexAnnotation annotation,
+      AnnotatedKind kind,
+      Mode mode,
+      InternalOptions options) {
+    return options.testing.modelUnknownChangedAndDefaultArgumentsToComposableFunctions
+        && mode.isInitialTreeShaking()
+        && kind.isMethod()
+        && annotation
+            .getAnnotationType()
+            .isIdenticalTo(appView.getComposeReferences().composableType);
+  }
+
+  @SuppressWarnings("UnusedVariable")
   private boolean shouldRetainAnnotationDefaultAnnotationOnAnnotationClass(
       DexAnnotation annotation) {
     // We currently always retain the @AnnotationDefault annotations for annotation classes. In full
@@ -325,6 +351,7 @@ public class AnnotationRemover {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean shouldRetainRetentionAnnotationOnAnnotationClass(DexAnnotation annotation) {
     // Retain @Retention annotations that are different from @Retention(RetentionPolicy.CLASS).
     if (annotation.annotation.getNumberOfElements() != 1) {

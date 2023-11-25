@@ -40,7 +40,9 @@ public class KotlinMultiFileClassFacadeInfo implements KotlinClassLevelInfo {
       DexItemFactory factory) {
     ImmutableList.Builder<KotlinTypeReference> builder = ImmutableList.builder();
     for (String partClassName : kmMultiFileClassFacade.getPartClassNames()) {
-      builder.add(KotlinTypeReference.fromBinaryName(partClassName, factory, partClassName));
+      builder.add(
+          KotlinTypeReference.fromBinaryNameOrKotlinClassifier(
+              partClassName, factory, partClassName));
     }
     return new KotlinMultiFileClassFacadeInfo(builder.build(), packageName, metadataVersion);
   }
@@ -71,8 +73,7 @@ public class KotlinMultiFileClassFacadeInfo implements KotlinClassLevelInfo {
               null);
     }
     return Pair.create(
-        Companion.writeMultiFileClassFacade(partClassNameStrings, getCompatibleKotlinInfo(), 0)
-            .getAnnotationData(),
+        Companion.writeMultiFileClassFacade(partClassNameStrings, getCompatibleKotlinInfo(), 0),
         rewritten);
   }
 

@@ -124,6 +124,7 @@ public abstract class RetracedMethodReferenceImpl implements RetracedMethodRefer
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean equals(Object o) {
       if (this == o) {
         return true;

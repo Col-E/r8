@@ -5,16 +5,17 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser;
 import com.android.tools.r8.utils.Box;
 import java.util.List;
 import java.util.function.Consumer;
 
-@Keep
+@KeepForApi
 public class RetraceCommand {
 
-  private final StackTraceSupplier stacktraceSupplier;
+  private final StackTraceSupplier stackTraceSupplier;
+
   private final Consumer<List<String>> retracedStackTraceConsumer;
   // Not inheriting to allow for static builder methods.
   private final RetraceOptions options;
@@ -23,11 +24,11 @@ public class RetraceCommand {
       StackTraceSupplier stackTraceSupplier,
       Consumer<List<String>> retracedStackTraceConsumer,
       RetraceOptions options) {
-    this.stacktraceSupplier = stackTraceSupplier;
+    this.stackTraceSupplier = stackTraceSupplier;
     this.retracedStackTraceConsumer = retracedStackTraceConsumer;
     this.options = options;
 
-    assert this.stacktraceSupplier != null || options.isVerifyMappingFileHash();
+    assert this.stackTraceSupplier != null || options.isVerifyMappingFileHash();
     assert this.retracedStackTraceConsumer != null;
   }
 
@@ -39,8 +40,14 @@ public class RetraceCommand {
     return System.getProperty("com.android.tools.r8.printmemory") != null;
   }
 
+  @Deprecated
+  @SuppressWarnings("InlineMeSuggester")
   public StackTraceSupplier getStacktraceSupplier() {
-    return stacktraceSupplier;
+    return getStackTraceSupplier();
+  }
+
+  public StackTraceSupplier getStackTraceSupplier() {
+    return stackTraceSupplier;
   }
 
   public Consumer<List<String>> getRetracedStackTraceConsumer() {
@@ -65,7 +72,7 @@ public class RetraceCommand {
     return new Builder(new DiagnosticsHandler() {});
   }
 
-  @Keep
+  @KeepForApi
   public static class Builder {
 
     private boolean isVerbose;

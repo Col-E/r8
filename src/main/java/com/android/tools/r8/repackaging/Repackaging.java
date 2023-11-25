@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.InnerClassAttribute;
@@ -76,6 +77,7 @@ public class Repackaging {
     RepackagingLens lens = repackageClasses(appBuilder, executorService);
     if (lens != null) {
       appView.rewriteWithLensAndApplication(lens, appBuilder.build(), executorService, timing);
+      appView.testing().repackagingLensConsumer.accept(appView.dexItemFactory(), lens);
     }
     appView.notifyOptimizationFinishedForTesting();
     timing.end();
@@ -115,6 +117,11 @@ public class Repackaging {
           protected boolean isLegitimateToHaveEmptyMappings() {
             return true;
           }
+
+          @Override
+          public <T extends DexReference> boolean isSimpleRenaming(T from, T to) {
+            return getPrevious().isSimpleRenaming(from, to);
+          }
         };
     DirectMappedDexApplication newApplication =
         appView
@@ -129,6 +136,7 @@ public class Repackaging {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private RepackagingLens repackageClasses(
       DirectMappedDexApplication.Builder appBuilder, ExecutorService executorService)
       throws ExecutionException {
@@ -163,8 +171,11 @@ public class Repackaging {
   private static class RepackagingTreeFixer extends TreeFixerBase {
 
     private final BiMap<DexType, DexType> mappings;
+
+    @SuppressWarnings("BadImport")
     private final Builder lensBuilder;
 
+    @SuppressWarnings("BadImport")
     public RepackagingTreeFixer(
         AppView<AppInfoWithLiveness> appView,
         BiMap<DexType, DexType> mappings,

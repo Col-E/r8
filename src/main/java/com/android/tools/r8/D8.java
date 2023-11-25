@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAmender;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
@@ -80,7 +81,7 @@ import java.util.concurrent.ExecutorService;
  * them to DEX bytecode (compiling from Java bytecode for such inputs and merging for DEX inputs),
  * and then writes the result to the directory or zip archive specified by {@code outputPath}.
  */
-@Keep
+@KeepForApi
 public final class D8 {
 
   private D8() {}
@@ -233,6 +234,7 @@ public final class D8 {
                 analysis.processNewlyLiveMethod(classInitializer, clazz, null, null);
               }
             },
+            appView.options().getThreadingModule(),
             executor);
       }
 

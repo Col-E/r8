@@ -358,13 +358,21 @@ public class LirBuilder<V, EV> {
   }
 
   public LirBuilder(
-      DexMethod method, LirEncodingStrategy<V, EV> strategy, InternalOptions options) {
+      DexMethod method,
+      boolean isD8R8Synthesized,
+      LirEncodingStrategy<V, EV> strategy,
+      InternalOptions options) {
     useDexEstimationStrategy = options.isGeneratingDex();
     factory = options.dexItemFactory();
     constants = new Reference2IntOpenHashMap<>();
     positionTable = new ArrayList<>();
     this.strategy = strategy;
-    currentPosition = SyntheticPosition.builder().setLine(0).setMethod(method).build();
+    currentPosition =
+        SyntheticPosition.builder()
+            .setLine(0)
+            .setMethod(method)
+            .setIsD8R8Synthesized(isD8R8Synthesized)
+            .build();
     flushedPosition = currentPosition;
   }
 
@@ -450,6 +458,7 @@ public class LirBuilder<V, EV> {
     return oldIndex != null ? oldIndex : nextIndex;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private int constantIndexSize(LirConstant item) {
     return 4;
   }
@@ -846,6 +855,7 @@ public class LirBuilder<V, EV> {
     return addNoOperandInstruction(LirOpcodes.RETURN);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public LirBuilder<V, EV> addDebugPosition(Position position) {
     assert currentPosition == position;
     return addNoOperandInstruction(LirOpcodes.DEBUGPOS);

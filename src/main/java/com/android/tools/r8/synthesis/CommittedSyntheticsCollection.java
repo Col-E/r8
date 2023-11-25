@@ -217,6 +217,7 @@ class CommittedSyntheticsCollection {
     return methods.containsKey(type) || classes.containsKey(type);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   boolean containsTypeOfKind(DexType type, SyntheticKind kind) {
     List<SyntheticProgramClassReference> synthetics = classes.get(type);
     if (synthetics == null) {

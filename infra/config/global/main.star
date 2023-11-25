@@ -109,6 +109,14 @@ luci.gitiles_poller(
 )
 
 luci.gitiles_poller(
+  name = "branch-gitiles-8.3-forward",
+  bucket = "ci",
+  repo = "https://r8.googlesource.com/r8",
+  refs = ["refs/heads/([8]\\.[3-9]+(\\.[0-9]+)?|[9]\\.[0-9]+(\\.[0-9]+)?)"],
+  path_regexps = ["src/main/java/com/android/tools/r8/Version.java"]
+)
+
+luci.gitiles_poller(
   name = "branch-gitiles-8.1-forward",
   bucket = "ci",
   repo = "https://r8.googlesource.com/r8",
@@ -168,7 +176,12 @@ common_test_options = [
     "--archive_failures"
 ]
 
-def get_dimensions(windows=False, internal=False, normal=False, smali=False):
+def get_dimensions(windows=False, internal=False, archive=False):
+  # We use the following setup:
+  #   windows -> always windows machine
+  #   internal -> always internal, single small, machine
+  #   archie -> archive or normal machines (normal machines set archive)
+  #   all_other -> normal linux machines
   dimensions = {
     "cpu" : "x86-64",
     "pool" : "luci.r8.ci"
@@ -179,7 +192,9 @@ def get_dimensions(windows=False, internal=False, normal=False, smali=False):
     dimensions["os"] = "Ubuntu-20.04"
   if internal:
     dimensions["internal"] = "true"
-  if normal:
+  elif archive:
+    dimensions["archive"] = "true"
+  else:
     dimensions["normal"] = "true"
   return dimensions
 
@@ -224,7 +239,7 @@ def r8_tester(name,
     max_concurrent_invocations = 1,
     category=None,
     release_trigger=None):
-  dimensions = dimensions if dimensions else get_dimensions(normal=True)
+  dimensions = dimensions if dimensions else get_dimensions()
   for name in [name, name + "_release"]:
     r8_builder(
         name = name,
@@ -273,7 +288,7 @@ def archivers():
     r8_builder(
         name,
         category = "library_desugar" if desugar else "archive",
-        dimensions = get_dimensions(),
+        dimensions = get_dimensions(archive=True),
         triggering_policy = scheduler.policy(
             kind = scheduler.GREEDY_BATCHING_KIND,
             max_batch_size = 1,
@@ -282,7 +297,7 @@ def archivers():
         priority = 25,
         trigger = not desugar,
         properties = properties,
-        execution_timeout = time.hour * 1 if desugar else time.minute * 30 ,
+        execution_timeout = time.hour * 1,
         expiration_timeout = time.hour * 35,
     )
 archivers()
@@ -305,18 +320,6 @@ r8_builder(
   expiration_timeout = time.hour * 35,
 )
 
-r8_builder(
-  name = "linux-dex_default-new_gradle",
-  execution_timeout = time.hour * 6,
-  expiration_timeout = time.hour * 35,
-  dimensions = get_dimensions(normal=True),
-  max_concurrent_invocations = 1,
-  properties = {
-    "test_options" : ["--runtimes=dex-default", "--command_cache_dir=/tmp/ccache", "--new-gradle", "--no-r8lib"] + common_test_options,
-    "builder_group" : "internal.client.r8"
-  }
-)
-
 r8_tester_with_default("linux-dex_default",
         ["--runtimes=dex-default", "--command_cache_dir=/tmp/ccache"],
         max_concurrent_invocations = 2)
@@ -332,7 +335,9 @@ r8_tester_with_default("linux-jdk11",
 r8_tester_with_default("linux-jdk17",
         ["--runtimes=jdk17", "--command_cache_dir=/tmp/ccache"],
         release_trigger=["branch-gitiles-3.3-forward"])
-
+r8_tester_with_default("linux-jdk21",
+        ["--runtimes=jdk21", "--command_cache_dir=/tmp/ccache"],
+        release_trigger=["branch-gitiles-8.3-forward"])
 
 r8_tester_with_default("linux-android-4.0.4",
     ["--dex_vm=4.0.4", "--all_tests", "--command_cache_dir=/tmp/ccache"],
@@ -455,7 +460,7 @@ r8_builder(
     "smali",
     category = "aux",
     trigger = False,
-    dimensions = get_dimensions(smali=True),
+    dimensions = get_dimensions(),
     triggering_policy = scheduler.policy(
         kind = scheduler.GREEDY_BATCHING_KIND,
         max_concurrent_invocations = 1,

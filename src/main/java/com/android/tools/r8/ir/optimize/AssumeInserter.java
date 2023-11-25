@@ -250,12 +250,13 @@ public class AssumeInserter {
       }
     }
 
-    if (singleTarget == null) {
+    MethodOptimizationInfo optimizationInfo =
+        resolutionResult.getOptimizationInfo(appView, invoke, singleTarget);
+    if (optimizationInfo.isDefault()) {
       return false;
     }
 
     boolean needsAssumeInstruction = false;
-    MethodOptimizationInfo optimizationInfo = singleTarget.getDefinition().getOptimizationInfo();
 
     // Case (2), invocations that are guaranteed to return a non-null value.
     if (invoke.hasUsedOutValue()) {
@@ -267,10 +268,12 @@ public class AssumeInserter {
     // Case (3), parameters that are not null after the invocation.
     BitSet nonNullParamOnNormalExits = optimizationInfo.getNonNullParamOnNormalExits();
     if (nonNullParamOnNormalExits != null) {
-      int start = invoke.isInvokeMethodWithReceiver() ? 1 : 0;
-      for (int i = start; i < invoke.arguments().size(); i++) {
-        if (nonNullParamOnNormalExits.get(i)) {
-          Value argument = invoke.getArgument(i);
+      for (int argumentIndex = 0; argumentIndex < invoke.arguments().size(); argumentIndex++) {
+        boolean isArgumentNonNullOnNormalExits =
+            (invoke.isInvokeMethodWithReceiver() && argumentIndex == 0)
+                || nonNullParamOnNormalExits.get(argumentIndex);
+        if (isArgumentNonNullOnNormalExits) {
+          Value argument = invoke.getArgument(argumentIndex);
           if (assumedValuesBuilder.isMaybeNullAndNotNullType(argument)
               && isNullableReferenceTypeWithOtherNonDebugUsers(argument, invoke)) {
             assumedValuesBuilder.addNonNullValueWithUnknownDominance(invoke, argument);

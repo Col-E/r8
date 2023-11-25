@@ -114,6 +114,14 @@ public class ExtractMarkerApiTest extends CompilerApiTestRunner {
                 assertFalse(marker.isR8());
                 assertFalse(marker.isL8());
                 assertEquals(1, marker.getMinApi());
+                assertTrue(marker.hasBackend());
+                assertTrue(marker.isBackendDexFiles());
+                assertFalse(marker.isBackendClassFiles());
+                assertTrue(marker.hasCompilationMode());
+                assertTrue(marker.isCompilationModeDebug());
+                assertFalse(marker.isCompilationModeRelease());
+                assertFalse(marker.isR8ModeCompatibility());
+                assertFalse(marker.isR8ModeFull());
                 assertThat(marker.getRawEncoding(), startsWith("~~D8{"));
               } else {
                 assertTrue(origin == originCf || origin.equals(new PathOrigin(inputFile)));
@@ -187,6 +195,14 @@ public class ExtractMarkerApiTest extends CompilerApiTestRunner {
               boolean r8 = marker.isR8();
               boolean l8 = marker.isL8();
               int minApi = marker.getMinApi();
+              boolean hasBackend = marker.hasBackend();
+              boolean backendDexFiles = marker.isBackendDexFiles();
+              boolean backendClassFiles = marker.isBackendClassFiles();
+              boolean hasCompilationMode = marker.hasCompilationMode();
+              boolean compilationModeDebug = marker.isCompilationModeDebug();
+              boolean compilationModeRelease = marker.isCompilationModeRelease();
+              boolean r8ModeCompatibility = marker.isR8ModeCompatibility();
+              boolean r8ModeFull = marker.isR8ModeFull();
               String raw = marker.getRawEncoding();
             }
           });

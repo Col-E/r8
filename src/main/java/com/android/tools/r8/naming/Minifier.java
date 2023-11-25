@@ -41,7 +41,7 @@ public class Minifier {
     this.appView = appView;
   }
 
-  public NamingLens run(ExecutorService executorService, Timing timing) throws ExecutionException {
+  public void run(ExecutorService executorService, Timing timing) throws ExecutionException {
     assert appView.options().isMinifying();
     SubtypingInfo subtypingInfo = MinifierUtils.createSubtypingInfo(appView);
     timing.begin("ComputeInterfaces");
@@ -86,16 +86,13 @@ public class Minifier {
     new IdentifierMinifier(appView, lens).run(executorService);
     timing.end();
 
-    appView.notifyOptimizationFinishedForTesting();
-    return lens;
-  }
-
-  public void replaceDexItemBasedConstString(ExecutorService executorService, Timing timing)
-      throws ExecutionException {
-    timing.begin("ReplaceDexItemBasedConstString");
-    new IdentifierMinifier(appView, NamingLens.getIdentityLens())
-        .replaceDexItemBasedConstString(executorService);
+    timing.begin("RecordInvokeDynamicRewrite");
+    new RecordInvokeDynamicInvokeCustomRewriter(appView, lens).run(executorService);
     timing.end();
+
+    appView.testing().namingLensConsumer.accept(appView.dexItemFactory(), lens);
+    appView.notifyOptimizationFinishedForTesting();
+    appView.setNamingLens(lens);
   }
 
   abstract static class BaseMinificationNamingStrategy {

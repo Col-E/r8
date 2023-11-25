@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DispatchTargetLookupResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -55,6 +56,7 @@ public class Devirtualizer {
     this.options = appView.options();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void devirtualizeInvokeInterface(IRCode code) {
     AffectedValues affectedValues = new AffectedValues();
     ProgramMethod context = code.context();
@@ -126,20 +128,24 @@ public class Devirtualizer {
           // Check if the instruction can be rewritten to invoke-virtual. This allows inlining of
           // the enclosing method into contexts outside the current class.
           if (options.testing.enableInvokeSuperToInvokeVirtualRewriting) {
-            DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
-            if (singleTarget != null) {
-              DexMethod invokedMethod = invoke.getInvokedMethod();
-              DexClassAndMethod newSingleTarget =
-                  InvokeVirtual.lookupSingleTarget(
-                      appView,
-                      context,
-                      invoke.getReceiver().getDynamicType(appView),
-                      invokedMethod);
-              if (newSingleTarget != null
-                  && newSingleTarget.getReference() == singleTarget.getReference()) {
-                it.replaceCurrentInstruction(
-                    new InvokeVirtual(invokedMethod, invoke.outValue(), invoke.arguments()));
-                continue;
+            SingleResolutionResult<?> resolutionResult =
+                invoke.resolveMethod(appView).asSingleResolution();
+            if (resolutionResult != null) {
+              DispatchTargetLookupResult lookupResult =
+                  resolutionResult.lookupDispatchTarget(appView, invoke, context);
+              if (lookupResult.isSingleResult()
+                  && !lookupResult.getSingleDispatchTarget().getHolder().isInterface()) {
+                DexMethod invokedMethod = invoke.getInvokedMethod();
+                DispatchTargetLookupResult newLookupResult =
+                    resolutionResult.lookupVirtualDispatchTarget(
+                        appView, invoke, invoke.getReceiver().getDynamicType(appView), context);
+                if (lookupResult
+                    .getSingleDispatchTarget()
+                    .isStructurallyEqualTo(newLookupResult.getSingleDispatchTarget())) {
+                  it.replaceCurrentInstruction(
+                      new InvokeVirtual(invokedMethod, invoke.outValue(), invoke.arguments()));
+                  continue;
+                }
               }
             }
           }
@@ -314,6 +320,7 @@ public class Devirtualizer {
   }
 
   /** This rebinds invoke-super instructions to their most specific target. */
+  @SuppressWarnings("ReferenceEquality")
   private DexClass rebindSuperInvokeToMostSpecific(DexMethod target, ProgramMethod context) {
     DexClassAndMethod method = appView.appInfo().lookupSuperTarget(target, context, appView);
     if (method == null) {
@@ -357,6 +364,7 @@ public class Devirtualizer {
    * <p>If A.foo() ends up being unused, this helps to ensure that we can get rid of A.foo()
    * entirely. Without this rewriting, we would have to keep A.foo() because the method is targeted.
    */
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod rebindVirtualInvokeToMostSpecific(
       DexMethod target, Value receiver, ProgramMethod context) {
     if (!receiver.getType().isClassType()) {

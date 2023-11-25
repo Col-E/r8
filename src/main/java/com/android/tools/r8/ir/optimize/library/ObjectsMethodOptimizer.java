@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexItemFactory.ObjectsMethods;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -19,6 +20,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.Set;
@@ -44,13 +46,14 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
   }
 
   @Override
-  public void optimize(
+  @SuppressWarnings("ReferenceEquality")
+  public InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
+      AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove) {
     DexMethod singleTargetReference = singleTarget.getReference();
     switch (singleTargetReference.getName().byteAt(0)) {
@@ -96,6 +99,7 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
         // Intentionally empty.
         break;
     }
+    return instructionIterator;
   }
 
   private void optimizeEquals(
@@ -169,6 +173,7 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void optimizeRequireNonNull(
       IRCode code,
       BasicBlockIterator blockIterator,
@@ -212,11 +217,12 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void optimizeToStringWithObject(
       IRCode code,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
-      Set<Value> affectedValues,
+      AffectedValues affectedValues,
       DexClassAndMethod singleTarget) {
     Value object = invoke.getFirstArgument();
     TypeElement type = object.getType();
@@ -224,10 +230,9 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
     // Optimize Objects.toString(null) into "null".
     if (type.isDefinitelyNull()) {
       if (singleTarget.getReference() == objectsMethods.toStringWithObject) {
-        if (invoke.hasOutValue()) {
-          affectedValues.addAll(invoke.outValue().affectedValues());
-        }
-        instructionIterator.replaceCurrentInstructionWithConstString(appView, code, "null");
+        DexString nullString = dexItemFactory.createString("null");
+        instructionIterator.replaceCurrentInstructionWithConstString(
+            appView, code, nullString, affectedValues);
       } else {
         assert singleTarget.getReference() == objectsMethods.toStringWithObjectAndNullDefault;
         if (invoke.hasOutValue()) {

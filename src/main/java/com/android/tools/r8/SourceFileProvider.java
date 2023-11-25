@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
+
 /**
  * Interface for providing a custom source file to the compiler.
  *
@@ -10,7 +12,7 @@ package com.android.tools.r8;
  * output program. The source file attribute is present in the stacktraces computed by the JVM and
  * DEX runtimes, thus it can be used to identify builds.
  */
-@Keep
+@KeepForApi
 @FunctionalInterface
 public interface SourceFileProvider {
 

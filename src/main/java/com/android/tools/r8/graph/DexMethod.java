@@ -22,6 +22,19 @@ import java.util.function.Function;
 
 public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean identical(DexMethod t1, DexMethod t2) {
+    return t1 == t2;
+  }
+
+  public final boolean isIdenticalTo(DexMethod other) {
+    return identical(this, other);
+  }
+
+  public final boolean isNotIdenticalTo(DexMethod other) {
+    return !isIdenticalTo(other);
+  }
+
   public final DexProto proto;
 
   DexMethod(DexType holder, DexProto proto, DexString name, boolean skipNameValidationForTesting) {
@@ -245,7 +258,7 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
   @Override
   public boolean match(DexMethod method) {
-    return method == this || match(method.getProto(), method.getName());
+    return isIdenticalTo(method) || match(method.getProto(), method.getName());
   }
 
   public boolean match(DexMethodSignature method) {
@@ -253,7 +266,7 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   }
 
   public boolean match(DexProto methodProto, DexString methodName) {
-    return proto == methodProto && name == methodName;
+    return proto.isIdenticalTo(methodProto) && name.isIdenticalTo(methodName);
   }
 
   @Override
@@ -306,8 +319,8 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   }
 
   public boolean isLambdaDeserializeMethod(DexItemFactory dexItemFactory) {
-    return name == dexItemFactory.deserializeLambdaMethodName
-        && proto == dexItemFactory.deserializeLambdaMethodProto;
+    return dexItemFactory.deserializeLambdaMethodName.isIdenticalTo(name)
+        && dexItemFactory.deserializeLambdaMethodProto.isIdenticalTo(proto);
   }
 
   public boolean isInstanceInitializer(DexItemFactory factory) {

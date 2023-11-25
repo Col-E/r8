@@ -12,6 +12,7 @@ public class CheckEnumUnboxedRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "checkenumunboxed";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<CheckEnumUnboxedRule, Builder> {
 

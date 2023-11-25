@@ -85,11 +85,14 @@ public class RemovedArgumentInfo extends ArgumentInfo {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public RemovedArgumentInfo rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
-    SingleValue rewrittenSingleValue =
-        hasSingleValue() ? singleValue.rewrittenWithLens(appView, graphLens, codeLens) : null;
     DexType rewrittenType = graphLens.lookupType(type, codeLens);
+    SingleValue rewrittenSingleValue =
+        hasSingleValue()
+            ? singleValue.rewrittenWithLens(appView, rewrittenType, graphLens, codeLens)
+            : null;
     if (rewrittenSingleValue != singleValue || rewrittenType != type) {
       return new RemovedArgumentInfo(rewrittenSingleValue, rewrittenType);
     }
@@ -97,6 +100,7 @@ public class RemovedArgumentInfo extends ArgumentInfo {
   }
 
   @Override
+  @SuppressWarnings({"EqualsGetClass", "ReferenceEquality"})
   public boolean equals(Object obj) {
     if (obj == null || getClass() != obj.getClass()) {
       return false;

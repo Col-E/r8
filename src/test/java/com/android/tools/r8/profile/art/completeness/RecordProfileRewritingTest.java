@@ -78,7 +78,7 @@ public class RecordProfileRewritingTest extends TestBase {
   @Test
   public void testReference() throws Exception {
     parameters.assumeJvmTestParameters();
-    assumeTrue(parameters.canUseRecords());
+    assumeTrue(runtimeWithRecordsSupport(parameters.getRuntime()));
     testForJvm(parameters)
         .addProgramClassFileData(PROGRAM_DATA)
         .run(parameters.getRuntime(), MAIN_REFERENCE.getTypeName())
@@ -100,13 +100,17 @@ public class RecordProfileRewritingTest extends TestBase {
                     inspector -> inspectD8(profileInspector, inspector),
                     options -> options.testing.disableRecordApplicationReaderMap = true))
         .run(parameters.getRuntime(), MAIN_REFERENCE.getTypeName())
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .applyIf(
+            isRecordsDesugaredForD8(parameters)
+                || runtimeWithRecordsSupport(parameters.getRuntime()),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT),
+            r -> r.assertFailureWithErrorThatThrows(ClassNotFoundException.class));
   }
 
   @Test
   public void testR8() throws Exception {
     parameters.assumeR8TestParameters();
-    assumeTrue(parameters.canUseRecords() || parameters.isDexRuntime());
+    assumeTrue(runtimeWithRecordsSupport(parameters.getRuntime()) || parameters.isDexRuntime());
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)
@@ -162,7 +166,7 @@ public class RecordProfileRewritingTest extends TestBase {
         SyntheticItemsTestUtils.syntheticRecordTagClass(),
         false,
         parameters.canUseNestBasedAccessesWhenDesugaring(),
-        parameters.canUseRecordsWhenDesugaring());
+        !isRecordsDesugaredForD8(parameters));
   }
 
   private void inspectR8(ArtProfileInspector profileInspector, CodeInspector inspector) {
@@ -172,7 +176,7 @@ public class RecordProfileRewritingTest extends TestBase {
         RECORD_REFERENCE,
         parameters.canHaveNonReboundConstructorInvoke(),
         parameters.canUseNestBasedAccesses(),
-        parameters.canUseRecords());
+        !isRecordsDesugaredForR8(parameters));
   }
 
   private void inspect(

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import java.io.InputStream;
 
@@ -12,7 +13,7 @@ import java.io.InputStream;
  * <p>The global synthetic information can only be obtained by consuming it from a previous
  * compilation unit for the same compiler version. See {@code GlobalSyntheticsConsumer}.
  */
-@Keep
+@KeepForApi
 public interface GlobalSyntheticsResourceProvider {
 
   /** Get the origin of the global synthetics resource. */

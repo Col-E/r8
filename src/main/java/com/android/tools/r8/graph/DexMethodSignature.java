@@ -71,6 +71,7 @@ public abstract class DexMethodSignature implements StructuralItem<DexMethodSign
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean equals(Object o) {
     if (this == o) return true;
     if (!(o instanceof DexMethodSignature)) return false;

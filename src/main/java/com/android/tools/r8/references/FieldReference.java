@@ -3,8 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.references;
 
-import com.android.tools.r8.Keep;
-import com.android.tools.r8.KeepForRetraceApi;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.Objects;
 
 /**
@@ -13,8 +12,7 @@ import java.util.Objects;
  * <p>A field reference is always fully qualified with both a qualified holder type as well as the
  * type of the field.
  */
-@Keep
-@KeepForRetraceApi
+@KeepForApi
 public final class FieldReference {
   private final ClassReference holderClass;
   private final String fieldName;

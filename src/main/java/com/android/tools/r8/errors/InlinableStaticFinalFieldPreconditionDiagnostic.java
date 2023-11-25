@@ -4,8 +4,8 @@
 package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.FieldReference;
@@ -16,7 +16,7 @@ import com.android.tools.r8.utils.StringUtils;
 import java.util.Collection;
 import java.util.List;
 
-@Keep
+@KeepForApi
 public class InlinableStaticFinalFieldPreconditionDiagnostic implements Diagnostic {
 
   private final ProguardIfRule rule;

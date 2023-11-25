@@ -23,9 +23,16 @@ public class KotlinMetadataAnnotationWrapper implements kotlin.Metadata {
   private static final int[] NULL_INT_ARRAY = new int[0];
 
   private final int kind;
+
+  @SuppressWarnings("ImmutableAnnotationChecker")
   private final int[] metadataVersion;
+
+  @SuppressWarnings("ImmutableAnnotationChecker")
   private final String[] data1;
+
+  @SuppressWarnings("ImmutableAnnotationChecker")
   private final String[] data2;
+
   private final int extraInt;
   private final String extraString;
   private final String packageName;
@@ -49,7 +56,7 @@ public class KotlinMetadataAnnotationWrapper implements kotlin.Metadata {
   }
 
   public static KotlinMetadataAnnotationWrapper wrap(KotlinClassMetadata classMetadata) {
-    Metadata annotationData = classMetadata.getAnnotationData();
+    Metadata annotationData = classMetadata.getAnnotationData$kotlinx_metadata_jvm();
     return new KotlinMetadataAnnotationWrapper(
         annotationData.k(),
         annotationData.mv(),
@@ -127,6 +134,7 @@ public class KotlinMetadataAnnotationWrapper implements kotlin.Metadata {
   }
 
   @Override
+  @SuppressWarnings("ImmutableAnnotationChecker")
   public boolean equals(Object obj) {
     throw new Unreachable();
   }

@@ -11,12 +11,13 @@ import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.TestAppViewBuilder;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.resolution.singletarget.Main;
 import com.android.tools.r8.resolution.singletarget.one.AbstractSubClass;
 import com.android.tools.r8.resolution.singletarget.one.AbstractTopClass;
@@ -34,6 +35,7 @@ import com.android.tools.r8.resolution.singletarget.two.OtherAbstractTopClass;
 import com.android.tools.r8.resolution.singletarget.two.OtherSubSubClassOne;
 import com.android.tools.r8.resolution.singletarget.two.OtherSubSubClassTwo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.LibraryModeledPredicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Collections;
@@ -195,8 +197,14 @@ public class SingleTargetLookupTest extends AsmTestBase {
     ProgramMethod context =
         appInfo.definitionForProgramType(reference.holder).getProgramDefaultInitializer();
     Assert.assertNotNull(appInfo.resolveMethodOnClassHolderLegacy(reference).getSingleTarget());
-    DexEncodedMethod singleVirtualTarget =
-        appInfo.lookupSingleVirtualTarget(appView, reference, context, false);
+    DexClassAndMethod singleVirtualTarget =
+        appInfo.lookupSingleVirtualTargetForTesting(
+            appView,
+            reference,
+            context,
+            false,
+            LibraryModeledPredicate.alwaysFalse(),
+            DynamicType.unknown());
     if (singleTargetHolderOrNull == null) {
       Assert.assertNull(singleVirtualTarget);
     } else {

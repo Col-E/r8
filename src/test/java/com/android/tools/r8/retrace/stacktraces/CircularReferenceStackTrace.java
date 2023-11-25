@@ -13,15 +13,15 @@ public class CircularReferenceStackTrace implements StackTraceForTest {
   @Override
   public List<String> obfuscatedStackTrace() {
     return Arrays.asList(
-        "        [CIRCULAR REFERENCE:A.A]",
-        " [CIRCULAR REFERENCE:A.B]",
-        "        [CIRCULAR REFERENCE:None.existing.class]",
-        "        [CIRCULAR REFERENCE:A.A] ",
+        "        [CIRCULAR REFERENCE: A.A]",
+        " [CIRCULAR REFERENCE: A.B]",
+        "        [CIRCULAR REFERENCE: None.existing.class]",
+        "        [CIRCULAR REFERENCE: A.A] ",
         // Invalid Circular Reference lines.
         "        [CIRCU:AA]",
-        "        [CIRCULAR REFERENCE:A.A",
-        "        [CIRCULAR REFERENCE:]",
-        "        [CIRCULAR REFERENCE:None existing class]");
+        "        [CIRCULAR REFERENCE: A.A",
+        "        [CIRCULAR REFERENCE: ]",
+        "        [CIRCULAR REFERENCE: None existing class]");
   }
 
   @Override
@@ -32,27 +32,27 @@ public class CircularReferenceStackTrace implements StackTraceForTest {
   @Override
   public List<String> retracedStackTrace() {
     return Arrays.asList(
-        "        [CIRCULAR REFERENCE:foo.bar.Baz]",
-        " [CIRCULAR REFERENCE:foo.bar.Qux]",
-        "        [CIRCULAR REFERENCE:None.existing.class]",
-        "        [CIRCULAR REFERENCE:foo.bar.Baz] ",
+        "        [CIRCULAR REFERENCE: foo.bar.Baz]",
+        " [CIRCULAR REFERENCE: foo.bar.Qux]",
+        "        [CIRCULAR REFERENCE: None.existing.class]",
+        "        [CIRCULAR REFERENCE: foo.bar.Baz] ",
         "        [CIRCU:AA]",
-        "        [CIRCULAR REFERENCE:A.A",
-        "        [CIRCULAR REFERENCE:]",
-        "        [CIRCULAR REFERENCE:None existing class]");
+        "        [CIRCULAR REFERENCE: foo.bar.Baz",
+        "        [CIRCULAR REFERENCE: ]",
+        "        [CIRCULAR REFERENCE: None existing class]");
   }
 
   @Override
   public List<String> retraceVerboseStackTrace() {
     return Arrays.asList(
-        "        [CIRCULAR REFERENCE:foo.bar.Baz]",
-        " [CIRCULAR REFERENCE:foo.bar.Qux]",
-        "        [CIRCULAR REFERENCE:None.existing.class]",
-        "        [CIRCULAR REFERENCE:foo.bar.Baz] ",
+        "        [CIRCULAR REFERENCE: foo.bar.Baz]",
+        " [CIRCULAR REFERENCE: foo.bar.Qux]",
+        "        [CIRCULAR REFERENCE: None.existing.class]",
+        "        [CIRCULAR REFERENCE: foo.bar.Baz] ",
         "        [CIRCU:AA]",
-        "        [CIRCULAR REFERENCE:A.A",
-        "        [CIRCULAR REFERENCE:]",
-        "        [CIRCULAR REFERENCE:None existing class]");
+        "        [CIRCULAR REFERENCE: foo.bar.Baz",
+        "        [CIRCULAR REFERENCE: ]",
+        "        [CIRCULAR REFERENCE: None existing class]");
   }
 
   @Override

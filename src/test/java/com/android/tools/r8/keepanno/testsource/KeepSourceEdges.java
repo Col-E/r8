@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.keepanno.testsource;
 
+import com.android.tools.r8.keepanno.ast.KeepClassItemPattern;
+import com.android.tools.r8.keepanno.ast.KeepClassItemReference;
 import com.android.tools.r8.keepanno.ast.KeepCondition;
 import com.android.tools.r8.keepanno.ast.KeepConsequences;
 import com.android.tools.r8.keepanno.ast.KeepConsequences.Builder;
@@ -10,6 +12,7 @@ import com.android.tools.r8.keepanno.ast.KeepEdge;
 import com.android.tools.r8.keepanno.ast.KeepFieldNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepFieldPattern;
 import com.android.tools.r8.keepanno.ast.KeepItemPattern;
+import com.android.tools.r8.keepanno.ast.KeepMemberItemPattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodNamePattern;
 import com.android.tools.r8.keepanno.ast.KeepMethodPattern;
 import com.android.tools.r8.keepanno.ast.KeepPreconditions;
@@ -108,26 +111,36 @@ public class KeepSourceEdges {
 
   // Ast helpers.
 
-  static KeepItemPattern mkClass(Class<?> clazz) {
+  static KeepClassItemPattern mkClass(Class<?> clazz) {
     KeepQualifiedClassNamePattern name = KeepQualifiedClassNamePattern.exact(clazz.getTypeName());
-    return KeepItemPattern.builder().setClassPattern(name).build();
+    return KeepClassItemPattern.builder().setClassNamePattern(name).build();
   }
 
-  static KeepItemPattern mkMethod(Class<?> clazz, String methodName) {
+  static KeepMemberItemPattern mkMethod(Class<?> clazz, String methodName) {
     KeepQualifiedClassNamePattern name = KeepQualifiedClassNamePattern.exact(clazz.getTypeName());
+    KeepClassItemReference classReference =
+        KeepClassItemPattern.builder().setClassNamePattern(name).build().toClassItemReference();
     KeepMethodPattern methodPattern =
         KeepMethodPattern.builder().setNamePattern(KeepMethodNamePattern.exact(methodName)).build();
-    KeepItemPattern methodItem =
-        KeepItemPattern.builder().setClassPattern(name).setMemberPattern(methodPattern).build();
+    KeepMemberItemPattern methodItem =
+        KeepMemberItemPattern.builder()
+            .setClassReference(classReference)
+            .setMemberPattern(methodPattern)
+            .build();
     return methodItem;
   }
 
   static KeepItemPattern mkField(Class<?> clazz, String fieldName) {
     KeepQualifiedClassNamePattern name = KeepQualifiedClassNamePattern.exact(clazz.getTypeName());
+    KeepClassItemReference classReference =
+        KeepClassItemPattern.builder().setClassNamePattern(name).build().toClassItemReference();
     KeepFieldPattern fieldPattern =
         KeepFieldPattern.builder().setNamePattern(KeepFieldNamePattern.exact(fieldName)).build();
-    KeepItemPattern fieldItem =
-        KeepItemPattern.builder().setClassPattern(name).setMemberPattern(fieldPattern).build();
+    KeepMemberItemPattern fieldItem =
+        KeepMemberItemPattern.builder()
+            .setClassReference(classReference)
+            .setMemberPattern(fieldPattern)
+            .build();
     return fieldItem;
   }
 

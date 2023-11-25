@@ -6,13 +6,14 @@ package com.android.tools.r8.bootstrap;
 
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.ZipUtils;
@@ -28,16 +29,30 @@ import java.util.function.Predicate;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class SanityCheck extends TestBase {
 
   private static final String SRV_PREFIX = "META-INF/services/";
   private static final String METADATA_EXTENSION =
       "com.android.tools.r8.jetbrains.kotlinx.metadata.internal.extensions.MetadataExtensions";
   private static final String EXT_IN_SRV = SRV_PREFIX + METADATA_EXTENSION;
+  private static final String THREADING_MODULE_SERVICE_FILE =
+      "META-INF/services/com.android.tools.r8.threading.ThreadingModuleProvider";
 
-    private void checkJarContent(
-      Path jar, boolean allowDirectories, Predicate<String> entryTester)
+  @Parameters
+  public static TestParametersCollection data() {
+    return TestParameters.builder().withNoneRuntime().build();
+  }
+
+  public SanityCheck(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
+
+  private void checkJarContent(Path jar, boolean allowDirectories, Predicate<String> entryTester)
       throws Exception {
     ZipFile zipFile;
     try {
@@ -61,6 +76,8 @@ public class SanityCheck extends TestBase {
         // Allow.
       } else if (name.equals("LICENSE")) {
         licenseSeen = true;
+      } else if (name.equals(THREADING_MODULE_SERVICE_FILE)) {
+        // Allow.
       } else if (entryTester.test(name)) {
         // Allow.
       } else if (apiDatabaseFiles.contains(name)) {
@@ -73,8 +90,7 @@ public class SanityCheck extends TestBase {
       }
     }
     assertTrue(apiDatabaseFiles.isEmpty());
-    // TODO(b/270105162): Add LICENSE file to r8 with deps.
-    assertEquals("No LICENSE entry found in " + jar, !ToolHelper.isNewGradleSetup(), licenseSeen);
+    assertTrue("No LICENSE entry found in " + jar, licenseSeen);
   }
 
   private void checkLibJarContent(Path jar, Path map) throws Exception {

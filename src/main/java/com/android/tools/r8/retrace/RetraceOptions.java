@@ -7,13 +7,13 @@ package com.android.tools.r8.retrace;
 import static com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser.DEFAULT_REGULAR_EXPRESSION;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /**
  * The base options for running retrace with support for continuously retrace strings without
  * parsing the proguard map multiple times.
  */
-@Keep
+@KeepForApi
 public class RetraceOptions {
 
   private final boolean isVerbose;
@@ -72,7 +72,7 @@ public class RetraceOptions {
     return DEFAULT_REGULAR_EXPRESSION;
   }
 
-  @Keep
+  @KeepForApi
   public static class Builder {
 
     private boolean isVerbose;

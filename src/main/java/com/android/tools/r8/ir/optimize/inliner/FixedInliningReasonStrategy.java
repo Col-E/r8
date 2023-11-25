@@ -24,7 +24,9 @@ public class FixedInliningReasonStrategy implements InliningReasonStrategy {
       ProgramMethod target,
       ProgramMethod context,
       DefaultInliningOracle oracle,
-      MethodProcessor methodProcessor) {
+      InliningIRProvider inliningIRProvider,
+      MethodProcessor methodProcessor,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return reason;
   }
 }

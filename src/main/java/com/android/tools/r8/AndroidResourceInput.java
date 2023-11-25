@@ -4,6 +4,7 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.io.InputStream;
 
 /**
@@ -13,9 +14,10 @@ import java.io.InputStream;
  * allows us to reason about resources, and transitively other resources and code throughout the
  * entire compilation pipeline.
  */
-@Keep
+@KeepForApi
 public interface AndroidResourceInput extends Resource {
-  @Keep
+
+  @KeepForApi
   enum Kind {
     // The AndroidManifest.xml file in proto format.
     MANIFEST,

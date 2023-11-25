@@ -97,6 +97,7 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
     this.featureSplit = featureSplit;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isSyntheticInputClass() {
     return synthesizingContextType != inputContextType;
   }
@@ -129,6 +130,7 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
     return featureSplit;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   SynthesizingContext rewrite(NonIdentityGraphLens lens) {
     DexType rewrittenInputContextType = lens.lookupType(inputContextType);
     DexType rewrittenSynthesizingContextType = lens.lookupType(synthesizingContextType);

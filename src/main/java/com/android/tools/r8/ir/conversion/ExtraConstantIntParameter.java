@@ -24,6 +24,7 @@ public class ExtraConstantIntParameter extends ExtraParameter {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public TypeElement getTypeElement(AppView<?> appView, DexType argType) {
     assert argType == appView.dexItemFactory().intType;
     return TypeElement.getInt();
@@ -31,10 +32,16 @@ public class ExtraConstantIntParameter extends ExtraParameter {
 
   @Override
   public SingleNumberValue getValue(AppView<?> appView) {
-    return appView.abstractValueFactory().createSingleNumberValue(value);
+    return appView.abstractValueFactory().createSingleNumberValue(value, TypeElement.getInt());
   }
 
   @Override
+  public boolean isUnused() {
+    return false;
+  }
+
+  @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object obj) {
     if (obj == null || getClass() != obj.getClass()) {
       return false;

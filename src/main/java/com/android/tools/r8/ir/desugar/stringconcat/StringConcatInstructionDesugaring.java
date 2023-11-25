@@ -68,6 +68,7 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public DesugarDescription compute(CfInstruction instruction, ProgramMethod context) {
     if (instruction.isInvokeDynamic()) {
       // We are interested in bootstrap methods StringConcatFactory::makeConcat
@@ -92,6 +93,7 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,
@@ -127,6 +129,7 @@ public class StringConcatInstructionDesugaring implements CfInstructionDesugarin
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,

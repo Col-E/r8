@@ -6,7 +6,6 @@ package com.android.tools.r8.retrace.stacktraces;
 
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class InvalidMinifiedRangeStackTrace implements StackTraceForTest {
@@ -20,12 +19,16 @@ public class InvalidMinifiedRangeStackTrace implements StackTraceForTest {
 
   @Override
   public List<String> retracedStackTrace() {
-    return Collections.emptyList();
+    return Arrays.asList(
+        "Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:3)");
   }
 
   @Override
   public List<String> retraceVerboseStackTrace() {
-    return Collections.emptyList();
+    return Arrays.asList(
+        "Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String[])(Main.java:3)");
   }
 
   @Override

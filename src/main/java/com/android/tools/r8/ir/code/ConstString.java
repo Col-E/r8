@@ -48,8 +48,7 @@ public class ConstString extends ConstInstruction {
   }
 
   public static ConstString copyOf(IRCode code, ConstString original) {
-    Value newValue =
-        new Value(code.valueNumberGenerator.next(), original.getOutType(), original.getLocalInfo());
+    Value newValue = code.createValue(original.getOutType(), original.getLocalInfo());
     return copyOf(newValue, original);
   }
 
@@ -78,6 +77,7 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isConstString() && other.asConstString().value == value;
   }

@@ -41,7 +41,7 @@ public class CheckCastDebugTestRunner extends DebugTestBase {
     return testForR8(parameters.getBackend())
         .addProgramClassesAndInnerClasses(A.class, B.class, C.class, MAIN)
         .addKeepMainRule(MAIN)
-        .addOptionsModification(options -> options.enableVerticalClassMerging = false)
+        .addOptionsModification(options -> options.getVerticalClassMergerOptions().disable())
         .debug()
         .enableInliningAnnotations()
         .addDontObfuscate()

@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser.CONFIGURATION_FORMAT_VERSION_KEY;
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.AMEND_LIBRARY_FIELD_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.AMEND_LIBRARY_METHOD_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.API_GENERIC_TYPES_CONVERSION;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.API_LEVEL_BELOW_OR_EQUAL_KEY;
@@ -14,8 +15,8 @@ import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecificatio
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.CURRENT_HUMAN_CONFIGURATION_FORMAT_VERSION;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.CUSTOM_CONVERSION_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.DONT_RETARGET_KEY;
-import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.DONT_REWRITE_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.DONT_REWRITE_PREFIX_KEY;
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.EMULATED_METHODS_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.EMULATE_INTERFACE_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.IDENTIFIER_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.LIBRARY_FLAGS_KEY;
@@ -28,6 +29,7 @@ import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecificatio
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.RETARGET_STATIC_FIELD_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.REWRITE_DERIVED_PREFIX_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.REWRITE_PREFIX_KEY;
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.REWRITTEN_TYPE_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.SHRINKER_CONFIG_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.SUPPORT_ALL_CALLBACKS_FROM_LIBRARY_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.SYNTHESIZED_LIBRARY_CLASSES_PACKAGE_PREFIX_KEY;
@@ -116,10 +118,18 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter {
         toJson.put(MAINTAIN_PREFIX_KEY, stringSetToString(flags.getMaintainPrefix()));
       }
       if (!flags.getEmulatedInterfaces().isEmpty()) {
-        toJson.put(EMULATE_INTERFACE_KEY, mapToString(flags.getEmulatedInterfaces()));
-      }
-      if (!flags.getDontRewriteInvocation().isEmpty()) {
-        toJson.put(DONT_REWRITE_KEY, setToString(flags.getDontRewriteInvocation()));
+        TreeMap<String, Map<String, Object>> emulatedInterfaces = new TreeMap<>();
+        flags
+            .getEmulatedInterfaces()
+            .forEach(
+                (itf, descriptor) -> {
+                  TreeMap<String, Object> value = new TreeMap<>();
+                  assert !descriptor.isLegacy();
+                  emulatedInterfaces.put(toString(itf), value);
+                  value.put(REWRITTEN_TYPE_KEY, toString(descriptor.getRewrittenType()));
+                  value.put(EMULATED_METHODS_KEY, setToString(descriptor.getEmulatedMethods()));
+                });
+        toJson.put(EMULATE_INTERFACE_KEY, emulatedInterfaces);
       }
       if (!flags.getRetargetStaticField().isEmpty()) {
         toJson.put(RETARGET_STATIC_FIELD_KEY, mapToString(flags.getRetargetStaticField()));
@@ -163,7 +173,7 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter {
         toJson.put(AMEND_LIBRARY_METHOD_KEY, amendLibraryToString(flags.getAmendLibraryMethod()));
       }
       if (!flags.getAmendLibraryField().isEmpty()) {
-        toJson.put(AMEND_LIBRARY_METHOD_KEY, amendLibraryToString(flags.getAmendLibraryField()));
+        toJson.put(AMEND_LIBRARY_FIELD_KEY, amendLibraryToString(flags.getAmendLibraryField()));
       }
       list.add(toJson);
     }

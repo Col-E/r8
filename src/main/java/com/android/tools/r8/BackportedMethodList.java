@@ -4,14 +4,12 @@
 
 package com.android.tools.r8;
 
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
-import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.DesugaredMethodsList;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.DesugaredMethodsListCommand;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ExceptionUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.ThreadUtils;
-import java.util.concurrent.ExecutorService;
 
 /**
  * Tool to extract the list of methods which is backported by the D8 and R8 compilers.
@@ -47,27 +45,21 @@ import java.util.concurrent.ExecutorService;
  * The above generates the list of backported methods for a compilation with a min API of <code>
  * apiLevel</code> into the file <code>methods-list.txt</code>.
  */
-@Keep
+@KeepForApi
 public class BackportedMethodList {
 
   static final String USAGE_MESSAGE =
       StringUtils.joinLines(
           "Usage: BackportedMethodList [options]",
           " Options are:",
-          "  --output <file>         # Output result in <file>.",
-          "  --min-api <number>      # Minimum Android API level for the application",
-          "  --desugared-lib <file>  # Desugared library configuration (JSON from the",
-          "                          # configuration)",
-          "  --lib <file>            # The compilation SDK library (android.jar)",
-          "  --version               # Print the version of BackportedMethodList.",
-          "  --help                  # Print this message.");
-
-  private static String formatMethod(DexMethod method) {
-    return DescriptorUtils.getClassBinaryNameFromDescriptor(method.holder.descriptor.toString())
-        + '#'
-        + method.name
-        + method.proto.toDescriptorString();
-  }
+          "  --output <file>          # Output result in <file>.",
+          "  --min-api <number>       # Minimum Android API level for the application",
+          "  --desugared-lib <file>   # Desugared library configuration (JSON from the",
+          "                           # configuration)",
+          "  --lib <file>             # The compilation SDK library (android.jar)",
+          "  --android-platform-build # Compilation of platform code",
+          "  --version                # Print the version of BackportedMethodList.",
+          "  --help                   # Print this message.");
 
   public static void run(BackportedMethodListCommand command) throws CompilationFailedException {
     if (command.isPrintHelp()) {
@@ -78,28 +70,28 @@ public class BackportedMethodList {
       System.out.println("BackportedMethodList " + Version.getVersionString());
       return;
     }
-    InternalOptions options = command.getInternalOptions();
+    DesugaredMethodsList.run(convert(command));
+  }
 
-    ExecutorService executorService = ThreadUtils.getExecutorService(options);
-    try {
-      ExceptionUtils.withD8CompilationHandler(
-          command.getReporter(),
-          () -> {
-            BackportedMethodRewriter.generateListOfBackportedMethods(
-                    command.getInputApp(), options, executorService)
-                .stream()
-                .map(BackportedMethodList::formatMethod)
-                .sorted()
-                .forEach(
-                    formattedMethod ->
-                        command
-                            .getBackportedMethodListConsumer()
-                            .accept(formattedMethod, command.getReporter()));
-            command.getBackportedMethodListConsumer().finished(command.getReporter());
-          });
-    } finally {
-      executorService.shutdown();
+  private static DesugaredMethodsListCommand convert(BackportedMethodListCommand command) {
+    DesugaredMethodsListCommand.Builder builder =
+        DesugaredMethodsListCommand.builder(command.getReporter());
+    for (ClassFileResourceProvider libraryResourceProvider :
+        command.getInputApp().getLibraryResourceProviders()) {
+      builder.addLibrary(libraryResourceProvider);
     }
+    String jsonSource = command.getDesugaredLibraryConfiguration().getJsonSource();
+    if (jsonSource != null) {
+      builder.setDesugarLibrarySpecification(
+          StringResource.fromString(jsonSource, Origin.unknown()));
+    }
+    if (command.isAndroidPlatformBuild()) {
+      builder.setAndroidPlatformBuild();
+    }
+    return builder
+        .setMinApi(command.getMinApiLevel())
+        .setOutputConsumer(command.getBackportedMethodListConsumer())
+        .build();
   }
 
   public static void run(String[] args) throws CompilationFailedException {

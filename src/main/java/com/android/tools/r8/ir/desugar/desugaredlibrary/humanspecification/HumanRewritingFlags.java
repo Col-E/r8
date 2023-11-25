@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
@@ -27,7 +28,7 @@ public class HumanRewritingFlags {
   private final Set<String> dontRewritePrefix;
   private final Set<String> maintainPrefix;
   private final Map<String, Map<String, String>> rewriteDerivedPrefix;
-  private final Map<DexType, DexType> emulatedInterfaces;
+  private final Map<DexType, HumanEmulatedInterfaceDescriptor> emulatedInterfaces;
   private final Map<DexField, DexField> retargetStaticField;
   private final Map<DexMethod, DexType> covariantRetarget;
   private final Map<DexMethod, DexType> retargetMethodToType;
@@ -37,7 +38,6 @@ public class HumanRewritingFlags {
   private final Map<DexMethod, DexMethod[]> apiGenericTypesConversion;
   private final Map<DexType, DexType> legacyBackport;
   private final Map<DexType, DexType> customConversions;
-  private final Set<DexMethod> dontRewriteInvocation;
   private final Set<DexType> dontRetarget;
   private final Map<DexType, Set<DexMethod>> wrapperConversions;
   private final Set<DexMethod> neverOutlineApi;
@@ -49,7 +49,7 @@ public class HumanRewritingFlags {
       Set<String> dontRewritePrefix,
       Set<String> maintainPrefix,
       Map<String, Map<String, String>> rewriteDerivedPrefix,
-      Map<DexType, DexType> emulateLibraryInterface,
+      Map<DexType, HumanEmulatedInterfaceDescriptor> emulateLibraryInterface,
       Map<DexField, DexField> retargetStaticField,
       Map<DexMethod, DexType> covariantRetarget,
       Map<DexMethod, DexType> retargetMethodToType,
@@ -59,7 +59,6 @@ public class HumanRewritingFlags {
       Map<DexMethod, DexMethod[]> apiGenericTypesConversion,
       Map<DexType, DexType> legacyBackport,
       Map<DexType, DexType> customConversion,
-      Set<DexMethod> dontRewriteInvocation,
       Set<DexType> dontRetarget,
       Map<DexType, Set<DexMethod>> wrapperConversion,
       Set<DexMethod> neverOutlineApi,
@@ -79,7 +78,6 @@ public class HumanRewritingFlags {
     this.apiGenericTypesConversion = apiGenericTypesConversion;
     this.legacyBackport = legacyBackport;
     this.customConversions = customConversion;
-    this.dontRewriteInvocation = dontRewriteInvocation;
     this.dontRetarget = dontRetarget;
     this.wrapperConversions = wrapperConversion;
     this.neverOutlineApi = neverOutlineApi;
@@ -104,11 +102,90 @@ public class HumanRewritingFlags {
         ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableSet.of(),
-        ImmutableSet.of(),
         ImmutableMap.of(),
         ImmutableSet.of(),
         ImmutableMap.of(),
         ImmutableMap.of());
+  }
+
+  public static class HumanEmulatedInterfaceDescriptor {
+    private final DexType rewrittenType;
+    private final Set<DexMethod> emulatedMethods;
+
+    public HumanEmulatedInterfaceDescriptor(DexType rewrittenType, Set<DexMethod> emulatedMethods) {
+      this.rewrittenType = rewrittenType;
+      this.emulatedMethods = emulatedMethods;
+    }
+
+    public boolean isLegacy() {
+      return false;
+    }
+
+    public DexType getRewrittenType() {
+      return rewrittenType;
+    }
+
+    public Set<DexMethod> getEmulatedMethods() {
+      return emulatedMethods;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (!(obj instanceof HumanEmulatedInterfaceDescriptor)) {
+        return false;
+      }
+      HumanEmulatedInterfaceDescriptor other = (HumanEmulatedInterfaceDescriptor) obj;
+      return rewrittenType.isIdenticalTo(other.getRewrittenType())
+          && getEmulatedMethods().equals(other.getEmulatedMethods());
+    }
+
+    @Override
+    public int hashCode() {
+      return 7 * rewrittenType.hashCode() + getEmulatedMethods().hashCode();
+    }
+
+    public HumanEmulatedInterfaceDescriptor merge(HumanEmulatedInterfaceDescriptor other) {
+      if (!rewrittenType.isIdenticalTo(other.getRewrittenType())) {
+        throw new UnsupportedOperationException(
+            "Emulated interface descriptor can only be merged on the same rewritten type.");
+      }
+      ImmutableSet.Builder<DexMethod> builder = ImmutableSet.builder();
+      builder.addAll(getEmulatedMethods());
+      builder.addAll(other.getEmulatedMethods());
+      return new HumanEmulatedInterfaceDescriptor(rewrittenType, builder.build());
+    }
+
+    public boolean containsEmulatedMethod(DexMethod reference, DexItemFactory factory) {
+      return getEmulatedMethods().contains(reference);
+    }
+  }
+
+  // TODO(b/309735284): Temporary work-around.
+  public static class LegacyHumanEmulatedInterfaceDescriptor
+      extends HumanEmulatedInterfaceDescriptor {
+
+    public LegacyHumanEmulatedInterfaceDescriptor(DexType rewrittenType) {
+      super(rewrittenType, ImmutableSet.of());
+    }
+
+    @Override
+    public boolean isLegacy() {
+      return true;
+    }
+
+    @Override
+    public HumanEmulatedInterfaceDescriptor merge(HumanEmulatedInterfaceDescriptor other) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean containsEmulatedMethod(DexMethod reference, DexItemFactory factory) {
+      // Equivalence for parsing specification with format version 100.
+      DexMethod dontRewrite =
+          factory.createMethod(
+              factory.iteratorType, factory.createProto(factory.voidType), "remove");
+      return !reference.isIdenticalTo(dontRewrite);
+    }
   }
 
   public static Builder builder(Reporter reporter, Origin origin) {
@@ -133,7 +210,6 @@ public class HumanRewritingFlags {
         apiGenericTypesConversion,
         legacyBackport,
         customConversions,
-        dontRewriteInvocation,
         dontRetarget,
         wrapperConversions,
         neverOutlineApi,
@@ -157,7 +233,7 @@ public class HumanRewritingFlags {
     return rewriteDerivedPrefix;
   }
 
-  public Map<DexType, DexType> getEmulatedInterfaces() {
+  public Map<DexType, HumanEmulatedInterfaceDescriptor> getEmulatedInterfaces() {
     return emulatedInterfaces;
   }
 
@@ -201,10 +277,6 @@ public class HumanRewritingFlags {
     return customConversions;
   }
 
-  public Set<DexMethod> getDontRewriteInvocation() {
-    return dontRewriteInvocation;
-  }
-
   public Set<DexType> getDontRetarget() {
     return dontRetarget;
   }
@@ -241,7 +313,7 @@ public class HumanRewritingFlags {
     private final Set<String> dontRewritePrefix;
     private final Set<String> maintainPrefix;
     private final Map<String, Map<String, String>> rewriteDerivedPrefix;
-    private final Map<DexType, DexType> emulatedInterfaces;
+    private final Map<DexType, HumanEmulatedInterfaceDescriptor> emulatedInterfaces;
     private final Map<DexField, DexField> retargetStaticField;
     private final Map<DexMethod, DexType> covariantRetarget;
     private final Map<DexMethod, DexType> retargetMethodToType;
@@ -251,7 +323,6 @@ public class HumanRewritingFlags {
     private final Map<DexMethod, DexMethod[]> apiGenericTypesConversion;
     private final Map<DexType, DexType> legacyBackport;
     private final Map<DexType, DexType> customConversions;
-    private final Set<DexMethod> dontRewriteInvocation;
     private final Set<DexType> dontRetarget;
     private final Map<DexType, Set<DexMethod>> wrapperConversions;
     private final Set<DexMethod> neverOutlineApi;
@@ -277,7 +348,6 @@ public class HumanRewritingFlags {
           new IdentityHashMap<>(),
           new IdentityHashMap<>(),
           Sets.newIdentityHashSet(),
-          Sets.newIdentityHashSet(),
           new IdentityHashMap<>(),
           Sets.newIdentityHashSet(),
           new IdentityHashMap<>(),
@@ -291,7 +361,7 @@ public class HumanRewritingFlags {
         Set<String> dontRewritePrefix,
         Set<String> maintainPrefix,
         Map<String, Map<String, String>> rewriteDerivedPrefix,
-        Map<DexType, DexType> emulateLibraryInterface,
+        Map<DexType, HumanEmulatedInterfaceDescriptor> emulateLibraryInterface,
         Map<DexField, DexField> retargetStaticField,
         Map<DexMethod, DexType> covariantRetarget,
         Map<DexMethod, DexType> retargetMethodToType,
@@ -301,7 +371,6 @@ public class HumanRewritingFlags {
         Map<DexMethod, DexMethod[]> apiConversionCollection,
         Map<DexType, DexType> backportCoreLibraryMember,
         Map<DexType, DexType> customConversions,
-        Set<DexMethod> dontRewriteInvocation,
         Set<DexType> dontRetargetLibMember,
         Map<DexType, Set<DexMethod>> wrapperConversions,
         Set<DexMethod> neverOutlineApi,
@@ -325,8 +394,6 @@ public class HumanRewritingFlags {
       this.apiGenericTypesConversion = new IdentityHashMap<>(apiConversionCollection);
       this.legacyBackport = new IdentityHashMap<>(backportCoreLibraryMember);
       this.customConversions = new IdentityHashMap<>(customConversions);
-      this.dontRewriteInvocation = Sets.newIdentityHashSet();
-      this.dontRewriteInvocation.addAll(dontRewriteInvocation);
       this.dontRetarget = Sets.newIdentityHashSet();
       this.dontRetarget.addAll(dontRetargetLibMember);
       this.wrapperConversions = new IdentityHashMap<>(wrapperConversions);
@@ -383,12 +450,22 @@ public class HumanRewritingFlags {
       return this;
     }
 
-    public Builder putEmulatedInterface(DexType interfaceType, DexType rewrittenType) {
+    public Builder putLegacyEmulatedInterface(DexType interfaceType, DexType rewrittenType) {
       put(
           emulatedInterfaces,
           interfaceType,
-          rewrittenType,
+          new LegacyHumanEmulatedInterfaceDescriptor(rewrittenType),
           HumanDesugaredLibrarySpecificationParser.EMULATE_INTERFACE_KEY);
+      return this;
+    }
+
+    public Builder putSpecifiedEmulatedInterface(
+        DexType interfaceType, HumanEmulatedInterfaceDescriptor newDescriptor) {
+      assert newDescriptor != null;
+      HumanEmulatedInterfaceDescriptor oldDescriptor = emulatedInterfaces.get(interfaceType);
+      HumanEmulatedInterfaceDescriptor mergedDescriptor =
+          oldDescriptor == null ? newDescriptor : newDescriptor.merge(oldDescriptor);
+      emulatedInterfaces.put(interfaceType, mergedDescriptor);
       return this;
     }
 
@@ -482,11 +559,6 @@ public class HumanRewritingFlags {
       return this;
     }
 
-    public Builder addDontRewriteInvocation(DexMethod dontRewrite) {
-      dontRewriteInvocation.add(dontRewrite);
-      return this;
-    }
-
     public Builder addDontRetargetLibMember(DexType dontRetargetLibMember) {
       dontRetarget.add(dontRetargetLibMember);
       return this;
@@ -523,7 +595,6 @@ public class HumanRewritingFlags {
           ImmutableMap.copyOf(apiGenericTypesConversion),
           ImmutableMap.copyOf(legacyBackport),
           ImmutableMap.copyOf(customConversions),
-          ImmutableSet.copyOf(dontRewriteInvocation),
           ImmutableSet.copyOf(dontRetarget),
           ImmutableMap.copyOf(wrapperConversions),
           ImmutableSet.copyOf(neverOutlineApi),

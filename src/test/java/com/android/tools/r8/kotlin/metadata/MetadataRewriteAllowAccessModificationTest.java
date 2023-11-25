@@ -124,7 +124,8 @@ public class MetadataRewriteAllowAccessModificationTest extends KotlinMetadataTe
             .disableAssertions()
             .compileRaw();
     assertEquals(1, mainResult.exitCode);
-    assertThat(mainResult.stderr, containsString("cannot access 'LibReference'"));
+    assertThat(
+        mainResult.stderr, containsString(cannotAccessMessage(kotlinParameters, "LibReference")));
   }
 
   private void inspect(CodeInspector inspector) {

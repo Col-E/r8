@@ -37,6 +37,7 @@ public class InstanceInitializerMergerCollection {
     this.equivalentInstanceInitializerMergers = equivalentInstanceInitializerMergers;
   }
 
+  @SuppressWarnings("BadImport")
   public static InstanceInitializerMergerCollection create(
       AppView<?> appView,
       Reference2IntMap<DexType> classIdentifiers,

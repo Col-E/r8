@@ -187,6 +187,7 @@ public class JarApplicationReader {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void checkClassForMethodHandlesLookup(DexClass dexClass, ClassKind<?> classKind) {
     if (options.shouldDesugarVarHandle()) {
       if (VarHandleDesugaring.refersToMethodHandlesLookup(dexClass.getType(), getFactory())) {

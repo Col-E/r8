@@ -180,7 +180,8 @@ public final class ClassInliner {
 
         // Is inlining allowed.
         InliningIRProvider inliningIRProvider =
-            new InliningIRProvider(appView, method, code, methodProcessor);
+            new InliningIRProvider(
+                appView, method, code, inliner.getLensCodeRewriter(), methodProcessor);
         ClassInlinerCostAnalysis costAnalysis =
             new ClassInlinerCostAnalysis(appView, inliningIRProvider, processor.getReceivers());
         if (costAnalysis.willExceedInstructionBudget(
@@ -262,6 +263,7 @@ public final class ClassInliner {
     return eligible;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Class is eligible for this optimization. Eligibility implementation:
   //   - is not an abstract class or interface
   //   - does not declare finalizer

@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.TypeReference;
 import java.util.List;
 import java.util.OptionalInt;
 
-@Keep
+@KeepForApi
 public interface RetraceClassResult extends RetraceResult<RetraceClassElement> {
 
   RetraceFieldResult lookupField(String fieldName);

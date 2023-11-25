@@ -8,9 +8,9 @@ import static com.android.tools.r8.TestBase.toDexType;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.verticalclassmerging.VerticallyMergedClasses;
 
 public class VerticallyMergedClassesInspector {
 

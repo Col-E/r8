@@ -8,17 +8,14 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.lens.GraphLens;
-import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor.Builder;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -28,6 +25,7 @@ public abstract class EnumUnboxer {
     return appView.options().enableEnumUnboxing ? new EnumUnboxerImpl(appView) : empty();
   }
 
+  @SuppressWarnings("BadImport")
   public static EmptyEnumUnboxer empty() {
     return EmptyEnumUnboxer.get();
   }
@@ -43,11 +41,9 @@ public abstract class EnumUnboxer {
 
   public abstract void recordEnumState(DexProgramClass clazz, StaticFieldValues staticFieldValues);
 
-  public abstract Set<Phi> rewriteCode(
-      IRCode code, MethodProcessor methodProcessor, RewrittenPrototypeDescription prototypeChanges);
-
   public abstract void rewriteWithLens();
 
+  @SuppressWarnings("BadImport")
   public abstract void unboxEnums(
       AppView<AppInfoWithLiveness> appView,
       IRConverter converter,
@@ -56,8 +52,6 @@ public abstract class EnumUnboxer {
       OptimizationFeedbackDelayed feedback,
       Timing timing)
       throws ExecutionException;
-
-  public abstract void unsetRewriter();
 
   public abstract void updateEnumUnboxingCandidatesInfo();
 }

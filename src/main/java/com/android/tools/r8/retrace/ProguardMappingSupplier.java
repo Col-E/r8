@@ -4,17 +4,17 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.retrace.internal.ProguardMappingSupplierBuilderImpl;
 
-@Keep
+@KeepForApi
 public abstract class ProguardMappingSupplier implements MappingSupplier<ProguardMappingSupplier> {
 
   public static Builder builder() {
     return new ProguardMappingSupplierBuilderImpl();
   }
 
-  @Keep
+  @KeepForApi
   public abstract static class Builder
       extends MappingSupplierBuilder<ProguardMappingSupplier, Builder> {
 

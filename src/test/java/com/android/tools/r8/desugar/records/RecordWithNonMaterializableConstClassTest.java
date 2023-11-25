@@ -34,6 +34,8 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
   private static final String EXPECTED_RESULT_D8 =
       String.format(EXPECTED_RESULT_FORMAT, "MyRecordWithConstClass", "theClass");
   private static final String EXPECTED_RESULT_R8 = String.format(EXPECTED_RESULT_FORMAT, "a", "a");
+  private static final String EXPECTED_RESULT_R8_ART14 =
+      String.format(EXPECTED_RESULT_FORMAT, "a", "theClass");
 
   @Parameter(0)
   public TestParameters parameters;

@@ -116,6 +116,7 @@ public class EnumLiteProtoShrinker {
    *
    * <p>We bail out if other virtual methods than the two expected ones are found and return null.
    */
+  @SuppressWarnings("ReferenceEquality")
   private DexProgramClass computeCorrespondingEnumLite(DexProgramClass enumLiteMap) {
     if (enumLiteMap.getMethodCollection().numberOfVirtualMethods() != 2) {
       return null;
@@ -145,6 +146,7 @@ public class EnumLiteProtoShrinker {
     return null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean matchesFindValueByNumberMethod(DexMethod method) {
     return method.name == references.findValueByNumberName
         && method.getArity() == 1

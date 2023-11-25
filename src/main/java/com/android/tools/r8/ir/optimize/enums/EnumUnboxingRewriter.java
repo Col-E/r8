@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.proto.ArgumentInfo;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
@@ -34,18 +35,20 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.MaterializingInstructionsInfo;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewArrayFilled;
 import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.CustomLensCodeRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldKnownData;
 import com.android.tools.r8.ir.optimize.enums.classification.CheckNotNullEnumUnboxerMethodClassification;
 import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodClassification;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -57,27 +60,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class EnumUnboxingRewriter {
+public class EnumUnboxingRewriter implements CustomLensCodeRewriter {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping;
   private final DexItemFactory factory;
   private final InternalOptions options;
   private final EnumDataMap unboxedEnumsData;
-  private final EnumUnboxingLens enumUnboxingLens;
   private final EnumUnboxingUtilityClasses utilityClasses;
 
   EnumUnboxingRewriter(
       AppView<AppInfoWithLiveness> appView,
       Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping,
-      EnumUnboxingLens enumUnboxingLens,
       EnumDataMap unboxedEnumsInstanceFieldData,
       EnumUnboxingUtilityClasses utilityClasses) {
     this.appView = appView;
-    this.checkNotNullToCheckNotZeroMapping = checkNotNullToCheckNotZeroMapping;
     this.factory = appView.dexItemFactory();
     this.options = appView.options();
-    this.enumUnboxingLens = enumUnboxingLens;
+    this.checkNotNullToCheckNotZeroMapping = checkNotNullToCheckNotZeroMapping;
     this.unboxedEnumsData = unboxedEnumsInstanceFieldData;
     this.utilityClasses = utilityClasses;
   }
@@ -115,16 +115,18 @@ public class EnumUnboxingRewriter {
           assert rewrittenTypeInfo
               .getSingleValue()
               .isMaterializableInContext(appView, code.context());
-          Instruction materializingInstruction =
+          Instruction[] materializingInstructions =
               rewrittenTypeInfo
                   .getSingleValue()
-                  .createMaterializingInstruction(
+                  .createMaterializingInstructions(
                       appView,
                       code,
-                      TypeAndLocalInfoSupplier.create(
+                      MaterializingInstructionsInfo.create(
                           rewrittenTypeInfo.getNewType().toTypeElement(appView),
-                          next.getLocalInfo()));
-          materializingInstruction.setPosition(next.getPosition());
+                          next.getLocalInfo(),
+                          next.getPosition()));
+          assert materializingInstructions.length == 1;
+          Instruction materializingInstruction = ArrayUtils.first(materializingInstructions);
           extraConstants.add(materializingInstruction);
           affectedPhis.addAll(next.outValue().uniquePhiUsers());
           next.outValue().replaceUsers(materializingInstruction.outValue());
@@ -143,15 +145,19 @@ public class EnumUnboxingRewriter {
     return convertedEnums;
   }
 
-  Set<Phi> rewriteCode(
+  @Override
+  public Set<Phi> rewriteCode(
       IRCode code,
       MethodProcessor methodProcessor,
-      RewrittenPrototypeDescription prototypeChanges) {
+      RewrittenPrototypeDescription prototypeChanges,
+      NonIdentityGraphLens graphLens) {
     // We should not process the enum methods, they will be removed and they may contain invalid
     // rewriting rules.
     if (unboxedEnumsData.isEmpty()) {
       return Sets.newIdentityHashSet();
     }
+    assert graphLens.isEnumUnboxerLens();
+    EnumUnboxingLens enumUnboxingLens = graphLens.asEnumUnboxerLens();
     assert code.isConsistentSSABeforeTypesAreCorrect(appView);
     EnumUnboxerMethodProcessorEventConsumer eventConsumer = methodProcessor.getEventConsumer();
     Set<Phi> affectedPhis = Sets.newIdentityHashSet();
@@ -189,7 +195,8 @@ public class EnumUnboxingRewriter {
               blocks,
               block,
               iterator,
-              instruction.asInvokeMethodWithReceiver());
+              instruction.asInvokeMethodWithReceiver(),
+              enumUnboxingLens);
         } else if (instruction.isNewArrayFilled()) {
           rewriteNewArrayFilled(instruction.asNewArrayFilled(), code, convertedEnums, iterator);
         } else if (instruction.isInvokeStatic()) {
@@ -361,6 +368,7 @@ public class EnumUnboxingRewriter {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Rewrites specific enum methods, such as ordinal, into their corresponding enum unboxed
   // counterpart. The rewriting (== or match) is based on the following:
   // - name, ordinal and compareTo are final and implemented only on java.lang.Enum,
@@ -375,7 +383,8 @@ public class EnumUnboxingRewriter {
       BasicBlockIterator blocks,
       BasicBlock block,
       InstructionListIterator iterator,
-      InvokeMethodWithReceiver invoke) {
+      InvokeMethodWithReceiver invoke,
+      EnumUnboxingLens enumUnboxingLens) {
     ProgramMethod context = code.context();
     // If the receiver is null, then the invoke is not rewritten even if the receiver is an
     // unboxed enum, but we end up with null.ordinal() or similar which has the correct behavior.
@@ -518,6 +527,7 @@ public class EnumUnboxingRewriter {
     convertedEnums.put(newArray, newArrayFilled.getArrayType());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void rewriteInvokeStatic(
       InvokeStatic invoke,
       IRCode code,
@@ -694,7 +704,7 @@ public class EnumUnboxingRewriter {
     }
   }
 
-  public void rewriteNullCheck(
+  private void rewriteNullCheck(
       InstructionListIterator iterator,
       InvokeMethod invoke,
       ProgramMethod context,

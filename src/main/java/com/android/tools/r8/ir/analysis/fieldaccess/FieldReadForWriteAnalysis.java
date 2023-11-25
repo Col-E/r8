@@ -25,6 +25,7 @@ public class FieldReadForWriteAnalysis {
     this.appView = appView;
   }
 
+  @SuppressWarnings("BadImport")
   public void recordFieldAccess(
       FieldInstruction instruction,
       ProgramField field,

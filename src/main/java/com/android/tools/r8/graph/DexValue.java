@@ -408,6 +408,7 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     return null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isDefault(DexType type) {
     return this == defaultForType(type);
   }
@@ -458,11 +459,6 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     @Override
     public DexValueNumber asDexValueNumber() {
       return this;
-    }
-
-    @Override
-    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
-      return factory.createSingleNumberValue(getRawValue());
     }
   }
 
@@ -533,6 +529,11 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     @Override
     public Object asAsmEncodedObject() {
       return Integer.valueOf(value);
+    }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return factory.createSingleNumberValue(getRawValue(), TypeElement.getByte());
     }
 
     @Override
@@ -628,6 +629,11 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return factory.createSingleNumberValue(getRawValue(), TypeElement.getShort());
+    }
+
+    @Override
     public int hashCode() {
       return value * 7;
     }
@@ -707,6 +713,11 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     @Override
     public Object getBoxedValue() {
       return getValue();
+    }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return factory.createSingleNumberValue(getRawValue(), TypeElement.getChar());
     }
 
     @Override
@@ -816,6 +827,11 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return factory.createSingleNumberValue(getRawValue(), TypeElement.getInt());
+    }
+
+    @Override
     public int hashCode() {
       return value * 11;
     }
@@ -905,6 +921,11 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     @Override
     public Object asAsmEncodedObject() {
       return Long.valueOf(value);
+    }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return factory.createSingleNumberValue(getRawValue(), TypeElement.getLong());
     }
 
     @Override
@@ -1010,6 +1031,11 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return factory.createSingleNumberValue(getRawValue(), TypeElement.getFloat());
+    }
+
+    @Override
     public int hashCode() {
       return (int) (value * 19);
     }
@@ -1105,6 +1131,11 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     public ConstInstruction asConstInstruction(
         AppView<? extends AppInfoWithClassHierarchy> appView, IRCode code, DebugLocalInfo local) {
       return code.createDoubleConstant(value, local);
+    }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return factory.createSingleNumberValue(getRawValue(), TypeElement.getDouble());
     }
 
     @Override
@@ -1794,11 +1825,13 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     void internalAcceptHashing(HashingVisitor visitor) {
       assert this == NULL;
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     int internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
       assert this == NULL;
       assert other == NULL;
@@ -1847,6 +1880,11 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     @Override
     public Object asAsmEncodedObject() {
       return null;
+    }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return factory.createUncheckedNullValue();
     }
 
     @Override
@@ -1943,6 +1981,11 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     @Override
     public Object asAsmEncodedObject() {
       return Integer.valueOf(value ? 1 : 0);
+    }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return factory.createSingleNumberValue(getRawValue(), TypeElement.getBoolean());
     }
 
     @Override

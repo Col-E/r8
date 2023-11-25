@@ -53,7 +53,7 @@ public class ComposeUnknownJsonD8Test extends TestBase {
         .addOptionsModification(
             options ->
                 assertTrue(options.mappingComposeOptions().enableExperimentalMappingComposition))
-        .apply(b -> b.getBuilder().setProguardInputMapFile(inputMap))
+        .apply(b -> b.getBuilder().setProguardMapInputFile(inputMap))
         .apply(testBuilder)
         .allowStdoutMessages()
         .collectStdout()

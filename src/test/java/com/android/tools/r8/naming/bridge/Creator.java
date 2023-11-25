@@ -6,7 +6,7 @@ package com.android.tools.r8.naming.bridge;
 
 public class Creator {
 
-  public static TesterImpl create() {
+  public static Tester create() {
     return new TesterImpl();
   }
 }

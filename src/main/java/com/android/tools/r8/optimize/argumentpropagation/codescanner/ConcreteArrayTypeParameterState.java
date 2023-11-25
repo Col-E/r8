@@ -50,7 +50,7 @@ public class ConcreteArrayTypeParameterState extends ConcreteReferenceTypeParame
   @Override
   public AbstractValue getAbstractValue(AppView<AppInfoWithLiveness> appView) {
     if (getNullability().isDefinitelyNull()) {
-      return appView.abstractValueFactory().createNullValue();
+      return appView.abstractValueFactory().createUncheckedNullValue();
     }
     return AbstractValue.unknown();
   }

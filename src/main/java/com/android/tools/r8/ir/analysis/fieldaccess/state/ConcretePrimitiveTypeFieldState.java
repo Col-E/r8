@@ -26,7 +26,8 @@ public class ConcretePrimitiveTypeFieldState extends ConcreteFieldState {
   }
 
   @Override
-  public AbstractValue getAbstractValue(AbstractValueFactory abstractValueFactory) {
+  public AbstractValue getAbstractValue(
+      AbstractValueFactory abstractValueFactory, ProgramField field) {
     return abstractValue;
   }
 

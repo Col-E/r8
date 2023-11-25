@@ -8,11 +8,11 @@ import static com.android.tools.r8.utils.ExceptionUtils.failWithFakeEntry;
 import static com.android.tools.r8.utils.ExceptionUtils.withMainProgramHandler;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.ParseFlagInfo;
 import com.android.tools.r8.ParseFlagInfoImpl;
 import com.android.tools.r8.ParseFlagPrinter;
 import com.android.tools.r8.Version;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
 import com.android.tools.r8.utils.PartitionMapZipContainer;
@@ -24,7 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /** A tool for creating a partition-map from a proguard map. */
-@Keep
+@KeepForApi
 public class Partition {
 
   private static final String USAGE_MESSAGE =

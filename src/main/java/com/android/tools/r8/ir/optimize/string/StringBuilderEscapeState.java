@@ -94,6 +94,7 @@ public class StringBuilderEscapeState extends AbstractState<StringBuilderEscapeS
     return newlyEscaped;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isBottom() {
     return this == BOTTOM;
   }

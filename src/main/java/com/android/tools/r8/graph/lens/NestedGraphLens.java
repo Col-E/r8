@@ -117,7 +117,7 @@ public class NestedGraphLens extends DefaultNonIdentityGraphLens {
   }
 
   @Override
-  protected DexType getNextClassType(DexType type) {
+  public DexType getNextClassType(DexType type) {
     return typeMap.getRepresentativeValueOrDefault(type, type);
   }
 
@@ -131,6 +131,7 @@ public class NestedGraphLens extends DefaultNonIdentityGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
     if (previous.hasReboundReference()) {
       // Rewrite the rebound reference and then "fixup" the non-rebound reference.
@@ -159,6 +160,7 @@ public class NestedGraphLens extends DefaultNonIdentityGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public MethodLookupResult internalDescribeLookupMethod(
       MethodLookupResult previous, DexMethod context, GraphLens codeLens) {
     if (previous.hasReboundReference()) {

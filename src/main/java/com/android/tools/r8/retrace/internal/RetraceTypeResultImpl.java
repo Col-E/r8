@@ -19,8 +19,12 @@ import java.util.stream.Stream;
 
 public class RetraceTypeResultImpl implements RetraceTypeResult {
 
+  @SuppressWarnings("UnusedVariable")
   private final TypeReference obfuscatedType;
+
   private final List<RetracedTypeReference> retracedTypeReferences;
+
+  @SuppressWarnings("UnusedVariable")
   private final Retracer retracer;
 
   private RetraceTypeResultImpl(

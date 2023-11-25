@@ -77,6 +77,7 @@ public class LensCodeRewriterUtils {
         callSite, ignored -> rewriteCallSiteInternal(callSite, context));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexCallSite rewriteCallSiteInternal(DexCallSite callSite, ProgramMethod context) {
     DexItemFactory dexItemFactory = definitions.dexItemFactory();
     DexProto newMethodProto = rewriteProto(callSite.methodProto);
@@ -117,6 +118,7 @@ public class LensCodeRewriterUtils {
         .getName();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public DexMethodHandle rewriteDexMethodHandle(
       DexMethodHandle methodHandle, MethodHandleUse use, ProgramMethod context) {
     if (methodHandle.isMethodHandle()) {
@@ -181,6 +183,7 @@ public class LensCodeRewriterUtils {
     return methodHandle;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public List<DexValue> rewriteBootstrapArguments(
       List<DexValue> bootstrapArgs, MethodHandleUse use, ProgramMethod context) {
     List<DexValue> newBootstrapArgs = null;
@@ -201,12 +204,14 @@ public class LensCodeRewriterUtils {
     return changed ? newBootstrapArgs : bootstrapArgs;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexValueMethodType rewriteDexMethodType(DexValueMethodType type) {
     DexProto oldProto = type.value;
     DexProto newProto = rewriteProto(oldProto);
     return newProto != oldProto ? new DexValueMethodType(newProto) : type;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexValue rewriteBootstrapArgument(
       DexValue value, MethodHandleUse use, ProgramMethod context) {
     switch (value.getValueKind()) {
@@ -230,6 +235,7 @@ public class LensCodeRewriterUtils {
             proto, type -> graphLens.lookupType(type, codeLens), protoFixupCache);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexValueMethodHandle rewriteDexValueMethodHandle(
       DexValueMethodHandle methodHandle, MethodHandleUse use, ProgramMethod context) {
     DexMethodHandle oldHandle = methodHandle.value;

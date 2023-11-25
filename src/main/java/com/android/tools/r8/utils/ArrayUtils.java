@@ -151,6 +151,15 @@ public class ArrayUtils {
     return array;
   }
 
+  public static <T> boolean all(T[] elements, T elementToLookFor) {
+    for (Object element : elements) {
+      if (!Objects.equals(element, elementToLookFor)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public static <T> boolean contains(T[] elements, T elementToLookFor) {
     for (Object element : elements) {
       if (Objects.equals(element, elementToLookFor)) {

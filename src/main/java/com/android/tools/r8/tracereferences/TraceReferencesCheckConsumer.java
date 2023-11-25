@@ -5,7 +5,6 @@
 package com.android.tools.r8.tracereferences;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.diagnostic.DefinitionContext;
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import com.android.tools.r8.diagnostic.internal.DefinitionContextUtils;
@@ -13,6 +12,7 @@ import com.android.tools.r8.diagnostic.internal.MissingClassInfoImpl;
 import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
 import com.android.tools.r8.diagnostic.internal.MissingFieldInfoImpl;
 import com.android.tools.r8.diagnostic.internal.MissingMethodInfoImpl;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic} as an error, if any missing
  * definitions were found.
  */
-@Keep
+@KeepForApi
 public class TraceReferencesCheckConsumer extends TraceReferencesConsumer.ForwardingConsumer {
 
   private final Map<ClassReference, Map<Object, DefinitionContext>> missingClassesContexts =

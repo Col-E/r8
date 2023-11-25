@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
-import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -41,18 +40,19 @@ interface InliningStrategy {
    * <p>Return true if the strategy will *not* allow inlining.
    */
   boolean willExceedBudget(
+      InlineAction action,
       IRCode code,
+      IRCode inlinee,
       InvokeMethod invoke,
-      InlineeWithReason inlinee,
       BasicBlock block,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 
   /** Inform the strategy that the inlinee has been inlined. */
-  void markInlined(InlineeWithReason inlinee);
+  void markInlined(IRCode inlinee);
 
   default boolean setDowncastTypeIfNeeded(
       AppView<AppInfoWithLiveness> appView,
-      InlineAction action,
+      InlineAction.Builder actionBuilder,
       InvokeMethod invoke,
       ProgramMethod singleTarget,
       ProgramMethod context) {
@@ -61,7 +61,7 @@ interface InliningStrategy {
       if (AccessControl.isClassAccessible(downcastClass, context, appView).isPossiblyFalse()) {
         return false;
       }
-      action.setDowncastClass(downcastClass);
+      actionBuilder.setDowncastClass(downcastClass);
     }
     return true;
   }

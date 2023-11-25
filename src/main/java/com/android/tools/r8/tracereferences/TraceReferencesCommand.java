@@ -13,12 +13,12 @@ import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.dump.DumpOptions;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
@@ -42,7 +42,7 @@ import java.util.Set;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 
-@Keep
+@KeepForApi
 public class TraceReferencesCommand {
   private final boolean printHelp;
   private final boolean printVersion;
@@ -116,7 +116,7 @@ public class TraceReferencesCommand {
     return printVersion;
   }
 
-  @Keep
+  @KeepForApi
   public static class Builder {
 
     private boolean printHelp = false;

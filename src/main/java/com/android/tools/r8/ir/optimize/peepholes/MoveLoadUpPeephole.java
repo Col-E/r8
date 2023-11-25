@@ -112,6 +112,7 @@ public class MoveLoadUpPeephole implements BasicBlockPeephole {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean isPotentionalIncInstruction(InstructionListIterator it) {
     it.previous();
     Load load = it.next().asLoad();

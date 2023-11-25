@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -13,7 +13,7 @@ import java.util.function.Consumer;
  *
  * <p>The number of elements is the same as the number of input frames.
  */
-@Keep
+@KeepForApi
 public interface RetraceStackTraceResult<T> extends RetraceResultWithContext {
 
   /**

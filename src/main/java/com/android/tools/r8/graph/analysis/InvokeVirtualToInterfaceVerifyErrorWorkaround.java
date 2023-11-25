@@ -59,6 +59,7 @@ public class InvokeVirtualToInterfaceVerifyErrorWorkaround implements EnqueuerIn
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isInterfaceInSomeApiLevel(DexType type) {
     // CameraDevice was added as a class in API 21 (L), but was defined as an interface in the
     // framework before then.

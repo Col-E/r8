@@ -83,7 +83,7 @@ public class IfRuleWithVerticalClassMerging extends TestBase {
   }
 
   private void configure(InternalOptions options) {
-    options.enableVerticalClassMerging = enableVerticalClassMerging;
+    options.getVerticalClassMergerOptions().setEnabled(enableVerticalClassMerging);
     // TODO(b/141093535): The precondition set for conditionals is currently based on the syntactic
     // form, when merging is enabled, if the precondition is merged to a differently named type, the
     // rule will still fire, but the reported precondition type is incorrect.

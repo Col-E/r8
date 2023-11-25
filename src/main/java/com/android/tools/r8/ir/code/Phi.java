@@ -258,6 +258,7 @@ public class Phi extends Value implements InstructionOrPhi {
     return removeTrivialPhi(null, null);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean removeTrivialPhi(IRBuilder builder, Set<Value> affectedValues) {
     Value same = null;
     for (Value op : operands) {

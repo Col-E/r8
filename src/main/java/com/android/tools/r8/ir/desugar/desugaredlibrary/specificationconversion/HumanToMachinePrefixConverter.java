@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags.HumanEmulatedInterfaceDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableMap;
@@ -120,8 +121,10 @@ public class HumanToMachinePrefixConverter {
         });
   }
 
-  private void rewriteEmulatedInterface(Map<DexType, DexType> emulateLibraryInterface) {
-    emulateLibraryInterface.forEach(builder::rewriteDerivedTypeOnly);
+  private void rewriteEmulatedInterface(
+      Map<DexType, HumanEmulatedInterfaceDescriptor> emulateLibraryInterface) {
+    emulateLibraryInterface.forEach(
+        (k, v) -> builder.rewriteDerivedTypeOnly(k, v.getRewrittenType()));
   }
 
   private void rewriteValues(

@@ -46,6 +46,7 @@ public class TypeUtils {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object obj) {
       if (this == obj) {
         return true;
@@ -186,6 +187,7 @@ public class TypeUtils {
     return staticPut.getField().getType().toTypeElement(appView);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isNullPointerException(TypeElement type, AppView<?> appView) {
     return type.isClassType()
         && type.asClassType().getClassType() == appView.dexItemFactory().npeType;

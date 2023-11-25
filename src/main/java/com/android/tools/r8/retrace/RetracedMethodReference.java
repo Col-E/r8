@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import java.util.List;
 
-@Keep
+@KeepForApi
 public interface RetracedMethodReference
     extends RetracedClassMemberReference, Comparable<RetracedMethodReference> {
 
@@ -25,7 +25,7 @@ public interface RetracedMethodReference
 
   int getOriginalPositionOrDefault(int defaultPosition);
 
-  @Keep
+  @KeepForApi
   interface KnownRetracedMethodReference extends RetracedMethodReference {
 
     boolean isVoid();

@@ -95,6 +95,7 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
     }
 
     @Override
+    @SuppressWarnings("EqualsUnsafeCast")
     public boolean equals(Object o) {
       LiveAtEntrySets other = (LiveAtEntrySets) o;
       return liveValues.equals(other.liveValues) && liveLocalValues.equals(other.liveLocalValues);
@@ -109,6 +110,8 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
   // sorting.
   private static class BlockMarker {
     final BasicBlock block;
+
+    @SuppressWarnings("UnusedVariable")
     BlockMarker(BasicBlock block) {
       this.block = block;
     }
@@ -127,7 +130,6 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
   public final NumberGenerator basicBlockNumberGenerator;
   private int usedMarkingColors = 0;
 
-  private boolean numbered = false;
   private int nextInstructionNumber = 0;
 
   private final IRMetadata metadata;
@@ -197,6 +199,7 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
   /**
    * Compute the set of live values at the entry to each block using a backwards data-flow analysis.
    */
+  @SuppressWarnings("ReferenceEquality")
   public Map<BasicBlock, LiveAtEntrySets> computeLiveAtEntrySets() {
     Map<BasicBlock, LiveAtEntrySets> liveAtEntrySets = new IdentityHashMap<>();
     Queue<BasicBlock> worklist = new ArrayDeque<>();
@@ -709,6 +712,7 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
         : "Multiple value definitions with number " + number + ": " + value + " and " + old;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean consistentDefUseChains() {
     Int2ReferenceMap<Value> values = new Int2ReferenceOpenHashMap<>();
     for (BasicBlock block : blocks) {

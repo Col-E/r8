@@ -33,7 +33,7 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "SplitBranch";
   }
 
@@ -145,6 +145,7 @@ public class SplitBranch extends CodeRewriterPass<AppInfo> {
     return newTargets;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isNumberAgainstConstNumberIf(If theIf) {
     if (!(theIf.lhs().getType().isInt() || theIf.lhs().getType().isFloat())) {
       return false;

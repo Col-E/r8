@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.keepanno.asm.KeepEdgeReader;
 import com.android.tools.r8.keepanno.ast.KeepDeclaration;
 import com.android.tools.r8.keepanno.keeprules.KeepRuleExtractor;
@@ -46,6 +47,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
+import com.android.tools.r8.utils.InternalOptions.MappingComposeOptions;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SemanticVersion;
@@ -85,7 +87,7 @@ import java.util.function.Supplier;
  *     .build();
  * </pre>
  */
-@Keep
+@KeepForApi
 public final class R8Command extends BaseCompilerCommand {
 
   /**
@@ -93,7 +95,7 @@ public final class R8Command extends BaseCompilerCommand {
    *
    * <p>A builder is obtained by calling {@link R8Command#builder}.
    */
-  @Keep
+  @KeepForApi
   public static class Builder extends BaseCompilerCommand.Builder<R8Command, Builder> {
 
     private static class DefaultR8DiagnosticsHandler implements DiagnosticsHandler {
@@ -121,7 +123,6 @@ public final class R8Command extends BaseCompilerCommand {
     private final List<ProguardConfigurationSource> proguardConfigs = new ArrayList<>();
     private boolean disableTreeShaking = false;
     private boolean disableMinification = false;
-    private boolean disableVerticalClassMerging = false;
     private boolean forceProguardCompatibility = false;
     private Optional<Boolean> includeDataResources = Optional.empty();
     private StringConsumer proguardUsageConsumer = null;
@@ -133,10 +134,13 @@ public final class R8Command extends BaseCompilerCommand {
     private final List<FeatureSplit> featureSplits = new ArrayList<>();
     private String synthesizedClassPrefix = "";
     private boolean enableMissingLibraryApiModeling = false;
-    private boolean enableExperimentalKeepAnnotations = false;
+    private boolean enableExperimentalKeepAnnotations =
+        System.getProperty("com.android.tools.r8.enableKeepAnnotations") != null;
     private SemanticVersion fakeCompilerVersion = null;
     private AndroidResourceProvider androidResourceProvider = null;
     private AndroidResourceConsumer androidResourceConsumer = null;
+    private ResourceShrinkerConfiguration resourceShrinkerConfiguration =
+        ResourceShrinkerConfiguration.DEFAULT_CONFIGURATION;
 
     private final ProguardConfigurationParserOptions.Builder parserOptionsBuilder =
         ProguardConfigurationParserOptions.builder().readEnvironment();
@@ -164,10 +168,6 @@ public final class R8Command extends BaseCompilerCommand {
     }
 
     // Internal
-
-    void setDisableVerticalClassMerging(boolean disableVerticalClassMerging) {
-      this.disableVerticalClassMerging = disableVerticalClassMerging;
-    }
 
     @Override
     Builder self() {
@@ -287,6 +287,12 @@ public final class R8Command extends BaseCompilerCommand {
     @Override
     public Builder setProguardMapOutputPath(Path proguardMapOutput) {
       return super.setProguardMapOutputPath(proguardMapOutput);
+    }
+
+    /** Set input proguard map used for distribution of classes in multi-dex. */
+    public Builder setProguardMapInputFile(Path proguardInputMap) {
+      getAppBuilder().setProguardMapInputData(proguardInputMap);
+      return self();
     }
 
     /**
@@ -530,6 +536,19 @@ public final class R8Command extends BaseCompilerCommand {
       return this;
     }
 
+    /**
+     * API for configuring resource shrinking.
+     *
+     * <p>Set the configuration properties on the provided builder.
+     */
+    public Builder setResourceShrinkerConfiguration(
+        Function<ResourceShrinkerConfiguration.Builder, ResourceShrinkerConfiguration>
+            configurationBuilder) {
+      this.resourceShrinkerConfiguration =
+          configurationBuilder.apply(ResourceShrinkerConfiguration.builder(getReporter()));
+      return this;
+    }
+
     @Override
     void validate() {
       if (isPrintHelp()) {
@@ -557,8 +576,8 @@ public final class R8Command extends BaseCompilerCommand {
         }
       }
       for (FeatureSplit featureSplit : featureSplits) {
-        assert featureSplit.getProgramConsumer() instanceof DexIndexedConsumer;
-        if (!(getProgramConsumer() instanceof DexIndexedConsumer)) {
+        verifyResourceSplitOrProgramSplit(featureSplit);
+        if (getProgramConsumer() != null && !(getProgramConsumer() instanceof DexIndexedConsumer)) {
           reporter.error("R8 does not support class file output when using feature splits");
         }
       }
@@ -576,6 +595,11 @@ public final class R8Command extends BaseCompilerCommand {
         reporter.error("Using desugared library configuration requires desugaring to be enabled");
       }
       super.validate();
+    }
+
+    private static void verifyResourceSplitOrProgramSplit(FeatureSplit featureSplit) {
+      assert featureSplit.getProgramConsumer() instanceof DexIndexedConsumer
+          || featureSplit.getAndroidResourceProvider() != null;
     }
 
     @Override
@@ -654,7 +678,6 @@ public final class R8Command extends BaseCompilerCommand {
               desugaring,
               configuration.isShrinking(),
               configuration.isObfuscating(),
-              disableVerticalClassMerging,
               forceProguardCompatibility,
               includeDataResources,
               proguardMapConsumer,
@@ -685,7 +708,8 @@ public final class R8Command extends BaseCompilerCommand {
               getClassConflictResolver(),
               getCancelCompilationChecker(),
               androidResourceProvider,
-              androidResourceConsumer);
+              androidResourceConsumer,
+              resourceShrinkerConfiguration);
 
       if (inputDependencyGraphConsumer != null) {
         inputDependencyGraphConsumer.finished();
@@ -858,7 +882,6 @@ public final class R8Command extends BaseCompilerCommand {
   private final ProguardConfiguration proguardConfiguration;
   private final boolean enableTreeShaking;
   private final boolean enableMinification;
-  private final boolean disableVerticalClassMerging;
   private final boolean forceProguardCompatibility;
   private final Optional<Boolean> includeDataResources;
   private final StringConsumer proguardMapConsumer;
@@ -876,6 +899,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final boolean enableMissingLibraryApiModeling;
   private final AndroidResourceProvider androidResourceProvider;
   private final AndroidResourceConsumer androidResourceConsumer;
+  private final ResourceShrinkerConfiguration resourceShrinkerConfiguration;
 
   /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
@@ -941,7 +965,6 @@ public final class R8Command extends BaseCompilerCommand {
       DesugarState enableDesugaring,
       boolean enableTreeShaking,
       boolean enableMinification,
-      boolean disableVerticalClassMerging,
       boolean forceProguardCompatibility,
       Optional<Boolean> includeDataResources,
       StringConsumer proguardMapConsumer,
@@ -972,7 +995,8 @@ public final class R8Command extends BaseCompilerCommand {
       ClassConflictResolver classConflictResolver,
       CancelCompilationChecker cancelCompilationChecker,
       AndroidResourceProvider androidResourceProvider,
-      AndroidResourceConsumer androidResourceConsumer) {
+      AndroidResourceConsumer androidResourceConsumer,
+      ResourceShrinkerConfiguration resourceShrinkerConfiguration) {
     super(
         inputApp,
         mode,
@@ -1001,7 +1025,6 @@ public final class R8Command extends BaseCompilerCommand {
     this.proguardConfiguration = proguardConfiguration;
     this.enableTreeShaking = enableTreeShaking;
     this.enableMinification = enableMinification;
-    this.disableVerticalClassMerging = disableVerticalClassMerging;
     this.forceProguardCompatibility = forceProguardCompatibility;
     this.includeDataResources = includeDataResources;
     this.proguardMapConsumer = proguardMapConsumer;
@@ -1019,6 +1042,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.enableMissingLibraryApiModeling = enableMissingLibraryApiModeling;
     this.androidResourceProvider = androidResourceProvider;
     this.androidResourceConsumer = androidResourceConsumer;
+    this.resourceShrinkerConfiguration = resourceShrinkerConfiguration;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -1027,7 +1051,6 @@ public final class R8Command extends BaseCompilerCommand {
     proguardConfiguration = null;
     enableTreeShaking = false;
     enableMinification = false;
-    disableVerticalClassMerging = false;
     forceProguardCompatibility = false;
     includeDataResources = null;
     proguardMapConsumer = null;
@@ -1045,6 +1068,7 @@ public final class R8Command extends BaseCompilerCommand {
     enableMissingLibraryApiModeling = false;
     androidResourceProvider = null;
     androidResourceConsumer = null;
+    resourceShrinkerConfiguration = null;
   }
 
   public DexItemFactory getDexItemFactory() {
@@ -1091,19 +1115,19 @@ public final class R8Command extends BaseCompilerCommand {
         (internal.isOptimizing() || internal.isMinifying())
             ? LineNumberOptimization.ON
             : LineNumberOptimization.OFF;
+    MappingComposeOptions mappingComposeOptions = internal.mappingComposeOptions();
+    mappingComposeOptions.enableExperimentalMappingComposition = true;
 
     HorizontalClassMergerOptions horizontalClassMergerOptions =
         internal.horizontalClassMergerOptions();
     assert internal.isOptimizing() || horizontalClassMergerOptions.isRestrictedToSynthetics();
 
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
-    assert internal.enableVerticalClassMerging || !internal.isOptimizing();
 
     if (!internal.isShrinking()) {
       // If R8 is not shrinking, there is no point in running various optimizations since the
       // optimized classes will still remain in the program (the application size could increase).
       internal.enableEnumUnboxing = false;
-      internal.enableVerticalClassMerging = false;
     }
 
     // Amend the proguard-map consumer with options from the proguard configuration.
@@ -1182,9 +1206,6 @@ public final class R8Command extends BaseCompilerCommand {
     // EXPERIMENTAL flags.
     assert !internal.forceProguardCompatibility;
     internal.forceProguardCompatibility = forceProguardCompatibility;
-    if (disableVerticalClassMerging) {
-      internal.enableVerticalClassMerging = false;
-    }
 
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
@@ -1219,6 +1240,7 @@ public final class R8Command extends BaseCompilerCommand {
 
     internal.androidResourceProvider = androidResourceProvider;
     internal.androidResourceConsumer = androidResourceConsumer;
+    internal.resourceShrinkerConfiguration = resourceShrinkerConfiguration;
 
     if (!DETERMINISTIC_DEBUGGING) {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;

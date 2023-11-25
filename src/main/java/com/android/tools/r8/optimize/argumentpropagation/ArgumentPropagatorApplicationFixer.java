@@ -61,7 +61,8 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
     assert !affectedClasses.isEmpty();
 
     timing.begin("Fixup application");
-    ThreadUtils.processItems(affectedClasses, this::fixupClass, executorService);
+    ThreadUtils.processItems(
+        affectedClasses, this::fixupClass, appView.options().getThreadingModule(), executorService);
     timing.end();
 
     // Fixup optimization info.
@@ -88,6 +89,7 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
             builder -> builder.setGenericSignature(FieldTypeSignature.noSignature())));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void fixupMethods(DexProgramClass clazz) {
     MethodCollection methodCollection = clazz.getMethodCollection();
     methodCollection.replaceMethods(
@@ -101,8 +103,9 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
           }
 
           DexEncodedMethod replacement =
-              method.toTypeSubstitutedMethod(
+              method.toTypeSubstitutedMethodAsInlining(
                   methodReferenceAfterParameterRemoval,
+                  appView.dexItemFactory(),
                   builder -> {
                     if (graphLens.hasPrototypeChanges(methodReferenceAfterParameterRemoval)) {
                       RewrittenPrototypeDescription prototypeChanges =
@@ -129,12 +132,13 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
     getSimpleFeedback()
         .fixupOptimizationInfos(
             appView,
+            appView.options().getThreadingModule(),
             executorService,
             new OptimizationInfoFixer() {
               @Override
               public void fixup(
                   DexEncodedField field, MutableFieldOptimizationInfo optimizationInfo) {
-                optimizationInfo.fixupAbstractValue(appView, graphLens, codeLens);
+                optimizationInfo.fixupAbstractValue(appView, field, graphLens, codeLens);
               }
 
               @Override
@@ -143,7 +147,7 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
                 // Fixup the return value in case the method returns a field that had its signature
                 // changed.
                 optimizationInfo
-                    .fixupAbstractReturnValue(appView, graphLens, codeLens)
+                    .fixupAbstractReturnValue(appView, method, graphLens, codeLens)
                     .fixupInstanceInitializerInfo(appView, graphLens, codeLens, prunedItems);
 
                 // Rewrite the optimization info to account for method signature changes.

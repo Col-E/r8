@@ -82,6 +82,7 @@ public class SameInstanceFields extends MultiClassSameReferencePolicy<Multiset<I
     }
 
     @Override
+    @SuppressWarnings({"EqualsGetClass", "ReferenceEquality"})
     public boolean equals(Object obj) {
       if (obj == null || getClass() != obj.getClass()) {
         return false;

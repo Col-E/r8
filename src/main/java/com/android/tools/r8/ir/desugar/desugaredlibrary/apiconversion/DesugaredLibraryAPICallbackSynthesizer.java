@@ -149,6 +149,7 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
     return overridesNonFinalLibraryMethod(method);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean overridesNonFinalLibraryMethod(ProgramMethod method) {
     // We look up everywhere to see if there is a supertype/interface implementing the method...
     DexProgramClass holder = method.getHolder();

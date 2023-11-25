@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Set;
 
@@ -36,13 +37,14 @@ public class EnumMethodOptimizer extends StatelessLibraryMethodModelCollection {
   }
 
   @Override
-  public void optimize(
+  @SuppressWarnings("ReferenceEquality")
+  public InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
+      AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove) {
     if (appView.hasLiveness()
         && singleTarget.getReference() == appView.dexItemFactory().enumMembers.valueOf
@@ -50,8 +52,10 @@ public class EnumMethodOptimizer extends StatelessLibraryMethodModelCollection {
       insertAssumeDynamicType(
           appView.withLiveness(), code, instructionIterator, invoke, affectedValues);
     }
+    return instructionIterator;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void insertAssumeDynamicType(
       AppView<AppInfoWithLiveness> appView,
       IRCode code,

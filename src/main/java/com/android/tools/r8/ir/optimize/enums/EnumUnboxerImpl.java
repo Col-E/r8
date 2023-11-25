@@ -166,9 +166,6 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       checkNotNullMethodsBuilder;
 
   private final DexClassAndField ordinalField;
-
-  private EnumUnboxingRewriter enumUnboxerRewriter;
-
   private final boolean debugLogEnabled;
   private final Map<DexType, List<Reason>> debugLogs;
 
@@ -346,6 +343,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void analyzeInvokeCustom(
       InvokeCustom invoke, Set<DexType> eligibleEnums, ProgramMethod context) {
     invoke.getCallSite().getMethodProto().forEachType(t -> markEnumEligible(t, eligibleEnums));
@@ -500,6 +498,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     eligibleEnums.add(enumType);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isLegitimateConstClassUser(
       Instruction user, ProgramMethod context, DexProgramClass enumClass) {
     if (user.isAssume()) {
@@ -576,6 +575,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         enumClass, factory.enumMembers.nameField);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isUnboxableNameMethod(DexMethod method) {
     return method == factory.classMethods.getName
         || method == factory.classMethods.getCanonicalName
@@ -673,12 +673,14 @@ public class EnumUnboxerImpl extends EnumUnboxer {
   }
 
   @Override
+  @SuppressWarnings("BadImport")
   public void rewriteWithLens() {
     methodsDependingOnLibraryModelisation =
         methodsDependingOnLibraryModelisation.rewrittenWithLens(appView.graphLens());
   }
 
   @Override
+  @SuppressWarnings("BadImport")
   public void unboxEnums(
       AppView<AppInfoWithLiveness> appView,
       IRConverter converter,
@@ -759,13 +761,12 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
     updateOptimizationInfos(executorService, feedback, treeFixerResult, previousLens);
 
-    enumUnboxerRewriter =
+    enumUnboxingLens.setCustomLensCodeRewriter(
         new EnumUnboxingRewriter(
             appView,
             treeFixerResult.getCheckNotNullToCheckNotZeroMapping(),
-            enumUnboxingLens,
             enumDataMap,
-            utilityClasses);
+            utilityClasses));
 
     // Ensure determinism of method-to-reprocess set.
     appView.testing().checkDeterminism(postMethodProcessorBuilder::dump);
@@ -788,12 +789,13 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
     feedback.fixupOptimizationInfos(
         appView,
+        appView.options().getThreadingModule(),
         executorService,
         new OptimizationInfoFixer() {
           @Override
           public void fixup(DexEncodedField field, MutableFieldOptimizationInfo optimizationInfo) {
             optimizationInfo
-                .fixupAbstractValue(appView, graphLens, codeLens)
+                .fixupAbstractValue(appView, field, graphLens, codeLens)
                 .fixupClassTypeReferences(appView, graphLens);
           }
 
@@ -815,7 +817,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
                       }
                     })
                 .fixupClassTypeReferences(appView, graphLens)
-                .fixupAbstractReturnValue(appView, graphLens, codeLens)
+                .fixupAbstractReturnValue(appView, method, graphLens, codeLens)
                 .fixupInstanceInitializerInfo(
                     appView, graphLens, codeLens, treeFixerResult.getPrunedItems());
 
@@ -852,6 +854,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return enumDataMap;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private EnumDataMap analyzeEnumInstances() {
     ImmutableMap.Builder<DexType, DexType> enumSubtypes = ImmutableMap.builder();
     ImmutableMap.Builder<DexType, EnumData> builder = ImmutableMap.builder();
@@ -1081,7 +1084,9 @@ public class EnumUnboxerImpl extends EnumUnboxer {
             enumClass, new MissingInstanceFieldValueForEnumInstanceReason(instanceField, ordinal));
         return EnumInstanceFieldUnknownData.getInstance();
       }
-      if (!(fieldValue.isSingleNumberValue() || fieldValue.isSingleStringValue())) {
+      if (!(fieldValue.isNull()
+          || fieldValue.isSingleNumberValue()
+          || fieldValue.isSingleStringValue())) {
         reportFailure(
             enumClass,
             new UnsupportedInstanceFieldValueForEnumInstanceReason(ordinal, instanceField));
@@ -1161,6 +1166,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
                 .mayHaveOtherSideEffectsThanInstanceFieldAssignments());
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Reason instructionAllowEnumUnboxing(
       Instruction instruction, IRCode code, DexProgramClass enumClass, Value enumValue) {
     ProgramMethod context = code.context();
@@ -1203,6 +1209,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     }
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Reason analyzeAssumeUser(
       Assume assume,
       IRCode code,
@@ -1212,6 +1219,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return validateEnumUsages(code, assume.outValue(), enumClass);
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Reason analyzeArrayGetUser(
       ArrayGet arrayGet,
       IRCode code,
@@ -1222,6 +1230,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.ELIGIBLE;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Reason analyzeArrayLengthUser(
       ArrayLength arrayLength,
       IRCode code,
@@ -1232,6 +1241,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.ELIGIBLE;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private boolean isAssignableToArray(Value value, ClassTypeElement arrayBaseType) {
     TypeElement valueType = value.getType();
     if (valueType.isNullType()) {
@@ -1244,6 +1254,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         valueBaseType.asClassType().getClassType(), arrayBaseType.getClassType());
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Reason analyzeArrayPutUser(
       ArrayPut arrayPut,
       IRCode code,
@@ -1265,6 +1276,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.INVALID_ARRAY_PUT;
   }
 
+  @SuppressWarnings({"ReferenceEquality", "UnusedVariable"})
   private Reason analyzeNewArrayFilledUser(
       NewArrayFilled newArrayFilled,
       IRCode code,
@@ -1293,6 +1305,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.ELIGIBLE;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Reason analyzeCheckCastUser(
       CheckCast checkCast,
       IRCode code,
@@ -1305,6 +1318,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.DOWN_CAST;
   }
 
+  @SuppressWarnings("UnusedVariable")
   // A field put is valid only if the field is not on an enum, and the field type and the valuePut
   // have identical enum type.
   private Reason analyzeFieldPutUser(
@@ -1338,6 +1352,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.ELIGIBLE;
   }
 
+  @SuppressWarnings({"ReferenceEquality", "UnusedVariable"})
   // An If using enum as inValue is valid if it matches e == null
   // or e == X with X of same enum type as e. Ex: if (e == MyEnum.A).
   private Reason analyzeIfUser(
@@ -1359,6 +1374,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.INVALID_IF_TYPES;
   }
 
+  @SuppressWarnings({"ReferenceEquality", "UnusedVariable"})
   private Reason analyzeInstanceGetUser(
       InstanceGet instanceGet,
       IRCode code,
@@ -1371,6 +1387,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return Reason.ELIGIBLE;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // All invokes in the library are invalid, besides a few cherry picked cases such as ordinal().
   private Reason analyzeInvokeUser(
       InvokeMethod invoke,
@@ -1489,6 +1506,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return reason;
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Reason comparableAsUnboxedValues(InvokeMethod invoke) {
     assert invoke.inValues().size() == 2;
     TypeElement type1 = invoke.getFirstArgument().getType();
@@ -1507,6 +1525,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return new UnboxedValueNonComparable(invoke.getInvokedMethod(), type1, type2);
   }
 
+  @SuppressWarnings({"ReferenceEquality", "UnusedVariable"})
   private Reason analyzeLibraryInvoke(
       InvokeMethod invoke,
       IRCode code,
@@ -1637,6 +1656,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     return new UnsupportedLibraryInvokeReason(singleTargetReference);
   }
 
+  @SuppressWarnings({"ReferenceEquality", "UnusedVariable"})
   // Return is used for valueOf methods.
   private Reason analyzeReturnUser(
       Return theReturn,
@@ -1760,23 +1780,5 @@ public class EnumUnboxerImpl extends EnumUnboxer {
   public void onMethodCodePruned(ProgramMethod method) {
     enumUnboxingCandidatesInfo.addPrunedMethod(method);
     methodsDependingOnLibraryModelisation.remove(method.getReference(), appView.graphLens());
-  }
-
-  @Override
-  public Set<Phi> rewriteCode(
-      IRCode code,
-      MethodProcessor methodProcessor,
-      RewrittenPrototypeDescription prototypeChanges) {
-    // This has no effect during primary processing since the enumUnboxerRewriter is set
-    // in between primary and post processing.
-    if (enumUnboxerRewriter != null) {
-      return enumUnboxerRewriter.rewriteCode(code, methodProcessor, prototypeChanges);
-    }
-    return Sets.newIdentityHashSet();
-  }
-
-  @Override
-  public void unsetRewriter() {
-    enumUnboxerRewriter = null;
   }
 }

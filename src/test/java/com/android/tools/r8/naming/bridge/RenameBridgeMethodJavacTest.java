@@ -41,11 +41,12 @@ public class RenameBridgeMethodJavacTest extends TestBase {
                 ToolHelper.getSourceFileForTestClass(Tester.class),
                 ToolHelper.getSourceFileForTestClass(TesterImpl.class))
             .compile();
-    ProcessResult processResult = compileAgainstLibrary(library);
+    Path output = temp.newFolder().toPath();
+    ProcessResult processResult = compileAgainstLibrary(library, output);
     assertEquals(0, processResult.exitCode);
     testForJvm(parameters)
         .addRunClasspathFiles(library)
-        .addRunClasspathFiles(library.getParent())
+        .addRunClasspathFiles(output)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!");
   }
@@ -61,18 +62,22 @@ public class RenameBridgeMethodJavacTest extends TestBase {
                 Creator.class, Result.class, ResultImpl.class, Tester.class)
             .addKeepClassAndMembersRulesWithAllowObfuscation(TesterImpl.class)
             .compile();
-    Path libraryZip = libraryCompileResult.writeToZip();
-    ProcessResult processResult = compileAgainstLibrary(libraryZip);
-    // TODO(b/290711987): The minifier renames the target of a bridge preventing additional
-    //  compilations to succeed.
-    assertEquals(1, processResult.exitCode);
+    Path library = libraryCompileResult.writeToZip();
+    Path output = temp.newFolder().toPath();
+    ProcessResult processResult = compileAgainstLibrary(library, output);
+    assertEquals(0, processResult.exitCode);
+    testForJvm(parameters)
+        .addProgramClasses(Main.class)
+        .addRunClasspathFiles(library)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello World!");
   }
 
-  private ProcessResult compileAgainstLibrary(Path classPath) throws Exception {
+  private ProcessResult compileAgainstLibrary(Path classPath, Path outputPath) throws Exception {
     return javac(parameters.asCfRuntime())
         .addSourceFiles(ToolHelper.getSourceFileForTestClass(Main.class))
         .addClasspathFiles(classPath)
-        .setOutputPath(classPath.getParent())
+        .setOutputPath(outputPath)
         .compileRaw();
   }
 }

@@ -84,7 +84,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "ArrayConstructionSimplifier";
   }
 
@@ -200,6 +200,7 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private FilledArrayConversionInfo computeConversionInfo(
       IRCode code, FilledArrayCandidate candidate, LinearFlowInstructionListIterator it) {
     NewArrayEmpty newArrayEmpty = candidate.newArrayEmpty;
@@ -246,17 +247,11 @@ public class ArrayConstructionSimplifier extends CodeRewriterPass<AppInfo> {
       if (arrayPut == null || arrayPut.array() != arrayValue) {
         return null;
       }
-      if (!arrayPut.index().isConstNumber()) {
+      int index = arrayPut.indexIfConstAndInBounds(values.length);
+      if (index < 0 || values[index] != null) {
         return null;
       }
       if (arrayPut.instructionInstanceCanThrow(appView, code.context())) {
-        return null;
-      }
-      int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
-      if (index < 0 || index >= values.length) {
-        return null;
-      }
-      if (values[index] != null) {
         return null;
       }
       Value value = arrayPut.value();

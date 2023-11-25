@@ -117,7 +117,7 @@ import java.util.function.Consumer;
  *       {@link OutlineOptions#threshold}). Each selected method is then converted back to IR and
  *       passed to {@link OutlinerImpl#identifyOutlineSites(IRCode)}, which then stores concrete
  *       outlining candidates in {@link OutlinerImpl#outlineSites}.
- *   <li>Third, {@link OutlinerImpl#buildOutlineMethods()} is called to construct the <em>outline
+ *   <li>Third, {@link OutlinerImpl#buildOutlineMethods} is called to construct the <em>outline
  *       support classes</em> containing a static helper method for each outline candidate that
  *       occurs frequently enough. Each selected method is then converted to IR, passed to {@link
  *       OutlinerImpl#applyOutliningCandidate(IRCode)} to perform the outlining, and converted back
@@ -135,7 +135,7 @@ public class OutlinerImpl extends Outliner {
   /** Result of second step (see {@link OutlinerImpl#selectMethodsForOutlining()}. */
   private final Map<Outline, List<ProgramMethod>> outlineSites = new HashMap<>();
 
-  /** Result of third step (see {@link OutlinerImpl#buildOutlineMethods()}. */
+  /** Result of third step (see {@link OutlinerImpl#buildOutlineMethods}. */
   private final Map<Outline, DexMethod> generatedOutlines = new HashMap<>();
 
   static final int MAX_IN_SIZE = 5; // Avoid using ranged calls for outlined code.
@@ -144,7 +144,7 @@ public class OutlinerImpl extends Outliner {
   private final DexItemFactory dexItemFactory;
   private final InliningConstraints inliningConstraints;
 
-  private abstract static class OutlineInstruction {
+  private abstract static class OutlineInstruction implements Comparable<OutlineInstruction> {
 
     // Value signaling that this is the one allowed temporary register for an outline.
     private static final int OUTLINE_TEMP = -1;
@@ -184,12 +184,6 @@ public class OutlinerImpl extends Outliner {
       }
     }
 
-    protected final OutlineInstructionType type;
-
-    protected OutlineInstruction(OutlineInstructionType type) {
-      this.type = type;
-    }
-
     static OutlineInstruction fromInstruction(Instruction instruction) {
       if (instruction.isBinop()) {
         return BinOpOutlineInstruction.fromInstruction(instruction.asBinop());
@@ -202,13 +196,7 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
-    public int hashCode() {
-      return type.ordinal();
-    }
-
-    public int compareTo(OutlineInstruction other) {
-      return type.compareTo(other.type);
-    }
+    public abstract int hashCode();
 
     @Override
     public abstract boolean equals(Object other);
@@ -216,6 +204,8 @@ public class OutlinerImpl extends Outliner {
     public abstract String getDetailsString();
 
     public abstract String getInstructionName();
+
+    public abstract OutlineInstructionType getOutlineInstructionType();
 
     public abstract boolean hasOutValue();
 
@@ -228,10 +218,11 @@ public class OutlinerImpl extends Outliner {
 
   private static class BinOpOutlineInstruction extends OutlineInstruction {
 
+    private final OutlineInstructionType type;
     private final NumericType numericType;
 
     private BinOpOutlineInstruction(OutlineInstructionType type, NumericType numericType) {
-      super(type);
+      this.type = type;
       this.numericType = numericType;
     }
 
@@ -242,22 +233,25 @@ public class OutlinerImpl extends Outliner {
 
     @Override
     public int hashCode() {
-      return super.hashCode() * 7 + numericType.ordinal();
+      return Objects.hash(type, numericType);
     }
 
     @Override
     public boolean equals(Object other) {
+      if (this == other) {
+        return true;
+      }
       if (!(other instanceof BinOpOutlineInstruction)) {
         return false;
       }
       BinOpOutlineInstruction o = (BinOpOutlineInstruction) other;
-      return o.type.equals(type) && o.numericType.equals(numericType);
+      return type.equals(o.type) && numericType.equals(o.numericType);
     }
 
     @Override
     public int compareTo(OutlineInstruction other) {
       if (!(other instanceof BinOpOutlineInstruction)) {
-        return super.compareTo(other);
+        return type.compareTo(other.getOutlineInstructionType());
       }
       BinOpOutlineInstruction o = (BinOpOutlineInstruction) other;
       int result = type.compareTo(o.type);
@@ -275,6 +269,11 @@ public class OutlinerImpl extends Outliner {
     @Override
     public String getInstructionName() {
       return type.name() + "-" + numericType.name();
+    }
+
+    @Override
+    public OutlineInstructionType getOutlineInstructionType() {
+      return type;
     }
 
     @Override
@@ -337,29 +336,30 @@ public class OutlinerImpl extends Outliner {
     private final DexType clazz;
 
     NewInstanceOutlineInstruction(DexType clazz) {
-      super(OutlineInstructionType.NEW);
       this.clazz = clazz;
     }
 
     @Override
     public boolean equals(Object other) {
+      if (this == other) {
+        return true;
+      }
       if (!(other instanceof NewInstanceOutlineInstruction)) {
         return false;
       }
       NewInstanceOutlineInstruction o = (NewInstanceOutlineInstruction) other;
-      boolean result = clazz == o.clazz;
-      return result;
+      return clazz.isIdenticalTo(o.clazz);
     }
 
     @Override
     public int hashCode() {
-      return super.hashCode() * 7 + clazz.hashCode();
+      return Objects.hash(getOutlineInstructionType(), clazz.hashCode());
     }
 
     @Override
     public int compareTo(OutlineInstruction other) {
       if (!(other instanceof NewInstanceOutlineInstruction)) {
-        return super.compareTo(other);
+        return getOutlineInstructionType().compareTo(other.getOutlineInstructionType());
       }
       NewInstanceOutlineInstruction o = (NewInstanceOutlineInstruction) other;
       return clazz.compareTo(o.clazz);
@@ -372,7 +372,12 @@ public class OutlinerImpl extends Outliner {
 
     @Override
     public String getInstructionName() {
-      return type.name();
+      return getOutlineInstructionType().name();
+    }
+
+    @Override
+    public OutlineInstructionType getOutlineInstructionType() {
+      return OutlineInstructionType.NEW;
     }
 
     @Override
@@ -398,7 +403,7 @@ public class OutlinerImpl extends Outliner {
 
     @Override
     public boolean needsLensRewriting(GraphLens currentGraphLens) {
-      return currentGraphLens.lookupType(clazz) != clazz;
+      return !currentGraphLens.lookupType(clazz).isIdenticalTo(clazz);
     }
   }
 
@@ -408,20 +413,22 @@ public class OutlinerImpl extends Outliner {
     private final boolean hasOutValue;
     private final DexProto proto;
     private final boolean hasReceiver;
+    private final boolean itf;
 
     private InvokeOutlineInstruction(
         DexMethod method,
         InvokeType type,
         boolean hasOutValue,
         ValueType[] inputTypes,
-        DexProto proto) {
-      super(OutlineInstructionType.INVOKE);
+        DexProto proto,
+        boolean itf) {
       hasReceiver = inputTypes.length != method.proto.parameters.values.length;
       assert !hasReceiver || inputTypes[0].isObject();
       this.method = method;
       this.invokeType = type;
       this.hasOutValue = hasOutValue;
       this.proto = proto;
+      this.itf = itf;
     }
 
     static InvokeOutlineInstruction fromInstruction(InvokeMethod invoke) {
@@ -435,34 +442,35 @@ public class OutlinerImpl extends Outliner {
           invoke.getType(),
           invoke.outValue() != null,
           inputTypes,
-          invoke.isInvokePolymorphic() ? invoke.asInvokePolymorphic().getProto() : null);
+          invoke.isInvokePolymorphic() ? invoke.asInvokePolymorphic().getProto() : null,
+          invoke.getInterfaceBit());
     }
 
     @Override
     public int hashCode() {
-      return super.hashCode() * 7
-          + method.hashCode() * 13
-          + invokeType.hashCode()
-          + Boolean.hashCode(hasOutValue)
-          + Objects.hashCode(proto);
+      return Objects.hash(getOutlineInstructionType(), method, invokeType, hasOutValue, proto, itf);
     }
 
     @Override
     public boolean equals(Object other) {
+      if (this == other) {
+        return true;
+      }
       if (!(other instanceof InvokeOutlineInstruction)) {
         return false;
       }
       InvokeOutlineInstruction o = (InvokeOutlineInstruction) other;
-      return method == o.method
+      return method.isIdenticalTo(o.method)
           && invokeType == o.invokeType
           && hasOutValue == o.hasOutValue
-          && Objects.equals(proto, o.proto);
+          && DexProto.identical(proto, o.proto)
+          && itf == o.itf;
     }
 
     @Override
     public int compareTo(OutlineInstruction other) {
       if (!(other instanceof InvokeOutlineInstruction)) {
-        return super.compareTo(other);
+        return getOutlineInstructionType().compareTo(other.getOutlineInstructionType());
       }
       InvokeOutlineInstruction o = (InvokeOutlineInstruction) other;
       int result = method.compareTo(o.method);
@@ -483,7 +491,11 @@ public class OutlinerImpl extends Outliner {
           return result;
         }
       }
-      assert this.equals(other);
+      result = Boolean.compare(itf, o.itf);
+      if (result != 0) {
+        return result;
+      }
+      assert equals(other);
       return 0;
     }
 
@@ -494,7 +506,12 @@ public class OutlinerImpl extends Outliner {
 
     @Override
     public String getInstructionName() {
-      return type.name() + "-" + invokeType.name();
+      return getOutlineInstructionType().name() + "-" + invokeType.name();
+    }
+
+    @Override
+    public OutlineInstructionType getOutlineInstructionType() {
+      return OutlineInstructionType.INVOKE;
     }
 
     @Override
@@ -534,14 +551,15 @@ public class OutlinerImpl extends Outliner {
             builder.writeRegister(outline.argumentCount(), latticeElement, ThrowingInfo.CAN_THROW);
       }
 
-      Instruction newInstruction = Invoke.create(invokeType, method, proto, outValue, inValues);
+      Instruction newInstruction =
+          Invoke.create(invokeType, method, proto, outValue, inValues, itf);
       builder.add(newInstruction);
       return argumentMapIndex;
     }
 
     @Override
     public boolean needsLensRewriting(GraphLens currentGraphLens) {
-      return currentGraphLens.getRenamedMethodSignature(method) != method;
+      return !currentGraphLens.getRenamedMethodSignature(method).isIdenticalTo(method);
     }
   }
 
@@ -623,6 +641,7 @@ public class OutlinerImpl extends Outliner {
       return this;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean needsLensRewriting(GraphLens currentGraphLens) {
       for (DexType argumentType : argumentTypes) {
         if (currentGraphLens.lookupType(argumentType) != argumentType) {
@@ -638,6 +657,7 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean equals(Object other) {
       if (!(other instanceof Outline)) {
         return false;
@@ -723,6 +743,7 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
+    @SuppressWarnings({"ReferenceEquality", "UnnecessaryParentheses"})
     public String toString() {
       // The printing of the code for an outline maps the value numbers to the arguments numbers.
       int outRegisterNumber = argumentTypes.size();
@@ -765,6 +786,7 @@ public class OutlinerImpl extends Outliner {
     }
   }
 
+  @SuppressWarnings("UnusedVariable")
   // Spot the outline opportunities in a basic block.
   // This is the superclass for both collection candidates and actually replacing code.
   // TODO(sgjesse): Collect more information in the candidate collection and reuse that for
@@ -863,6 +885,7 @@ public class OutlinerImpl extends Outliner {
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     // Check if the current instruction can be included in the outline.
     private boolean canIncludeInstruction(Instruction instruction) {
       // Find the users of the active out-value (potential return value).
@@ -996,6 +1019,7 @@ public class OutlinerImpl extends Outliner {
       return false;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private DexType argumentTypeFromValue(Value value, InvokeMethod invoke, int argumentIndex) {
       assert supportedArgumentType(value);
       DexItemFactory itemFactory = appView.options().itemFactory;
@@ -1246,8 +1270,9 @@ public class OutlinerImpl extends Outliner {
         argumentsMapIndex = 0;
         OutlineCallerPositionBuilder positionBuilder =
             OutlineCallerPosition.builder()
-                .setMethod(appView.graphLens().getOriginalMethodSignature(method.getReference()))
+                .setMethod(method.getReference())
                 .setOutlineCallee(outlineMethod)
+                .setIsD8R8Synthesized(method.getDefinition().isD8R8Synthesized())
                 // We set the line number to 0 here and rely on the LineNumberOptimizer to
                 // set a new disjoint line.
                 .setLine(0);
@@ -1322,6 +1347,7 @@ public class OutlinerImpl extends Outliner {
     }
 
     /** When assertions are enabled, remove method from the outline's list. */
+    @SuppressWarnings("ReferenceEquality")
     private boolean removeMethodFromOutlineList(Outline outline) {
       synchronized (outlineSites) {
         assert ListUtils.removeFirstMatch(
@@ -1430,6 +1456,7 @@ public class OutlinerImpl extends Outliner {
           CodeRewriter.removeAssumeInstructions(appView, code);
           consumer.accept(code);
         },
+        appView.options().getThreadingModule(),
         executorService);
   }
 
@@ -1732,7 +1759,7 @@ public class OutlinerImpl extends Outliner {
     public void buildInstruction(
         IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
       if (instructionIndex == outline.templateInstructions.size()) {
-        if (outline.returnType == dexItemFactory.voidType) {
+        if (outline.returnType.isVoidType()) {
           builder.addReturn();
         } else {
           builder.addReturn(outline.argumentCount());
@@ -1779,7 +1806,11 @@ public class OutlinerImpl extends Outliner {
     public Position getCurrentPosition() {
       // Always build positions for outlinee - each callsite will only build a position map for
       // instructions that are actually throwing.
-      return OutlinePosition.builder().setLine(position).setMethod(method).build();
+      return OutlinePosition.builder(method)
+          .setLine(position)
+          .setMethod(method)
+          .setIsD8R8Synthesized(true)
+          .build();
     }
 
     @Override
@@ -1810,12 +1841,6 @@ public class OutlinerImpl extends Outliner {
     @Override
     public boolean isOutlineCode() {
       return true;
-    }
-
-    @Override
-    public int estimatedSizeForInlining() {
-      // We just onlined this, so do not inline it again.
-      return Integer.MAX_VALUE;
     }
 
     @Override

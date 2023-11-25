@@ -77,7 +77,8 @@ public abstract class MergedTypeBaseTest extends TestBase {
   public void configure(R8FullTestBuilder builder) {
     builder
         .addOptionsModification(
-            options -> options.enableVerticalClassMerging = enableVerticalClassMerging)
+            options ->
+                options.getVerticalClassMergerOptions().setEnabled(enableVerticalClassMerging))
         .enableNoAccessModificationAnnotationsForClasses();
   }
 

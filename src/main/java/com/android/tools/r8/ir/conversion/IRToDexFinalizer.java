@@ -33,7 +33,7 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
   @Override
   public DexCode finalizeCode(
       IRCode code, BytecodeMetadataProvider bytecodeMetadataProvider, Timing timing) {
-    if (options.emitNestAnnotationsInDex) {
+    if (options.canUseNestBasedAccess()) {
       D8NestBasedAccessDesugaring.checkAndFailOnIncompleteNests(appView);
     }
     DexEncodedMethod method = code.method();
@@ -59,6 +59,7 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
     assert code.isConsistentSSA(appView);
   }
 
+  @SuppressWarnings("UnusedVariable")
   private RegisterAllocator performRegisterAllocation(
       IRCode code, DexEncodedMethod method, Timing timing) {
     // Always perform dead code elimination before register allocation. The register allocator

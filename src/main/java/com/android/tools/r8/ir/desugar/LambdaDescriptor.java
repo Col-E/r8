@@ -8,8 +8,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
@@ -96,10 +96,10 @@ public final class LambdaDescriptor {
     this.captures = captures;
 
     this.interfaces.add(mainInterface);
-    DexEncodedMethod targetMethod =
+    DexClassAndMethod targetMethod =
         context == null ? null : lookupTargetMethod(appView, appInfo, context);
     if (targetMethod != null) {
-      targetAccessFlags = targetMethod.accessFlags.copy();
+      targetAccessFlags = targetMethod.getAccessFlags().copy();
       targetHolder = targetMethod.getHolderType();
     } else {
       targetAccessFlags = null;
@@ -116,7 +116,7 @@ public final class LambdaDescriptor {
     return captures.length > 0 ? captures[0] : params[0];
   }
 
-  private DexEncodedMethod lookupTargetMethod(
+  private DexClassAndMethod lookupTargetMethod(
       AppView<?> appView, AppInfoWithClassHierarchy appInfo, ProgramMethod context) {
     assert context != null;
     // Find the lambda's impl-method target.
@@ -124,10 +124,10 @@ public final class LambdaDescriptor {
     switch (implHandle.type) {
       case INVOKE_DIRECT:
       case INVOKE_INSTANCE: {
-          DexEncodedMethod target =
+          DexClassAndMethod target =
               appInfo
                   .resolveMethodOnLegacy(getImplReceiverType(), method, implHandle.isInterface)
-                  .getSingleTarget();
+                  .getResolutionPair();
         if (target == null) {
             target = appInfo.lookupDirectTarget(method, context, appView, appInfo);
         }
@@ -139,22 +139,22 @@ public final class LambdaDescriptor {
       }
 
       case INVOKE_STATIC: {
-          DexEncodedMethod target = appInfo.lookupStaticTarget(method, context, appView, appInfo);
-        assert target == null || target.accessFlags.isStatic();
+          DexClassAndMethod target = appInfo.lookupStaticTarget(method, context, appView, appInfo);
+          assert target == null || target.getAccessFlags().isStatic();
         return target;
       }
 
       case INVOKE_CONSTRUCTOR: {
-          DexEncodedMethod target = appInfo.lookupDirectTarget(method, context, appView, appInfo);
-        assert target == null || target.accessFlags.isConstructor();
+          DexClassAndMethod target = appInfo.lookupDirectTarget(method, context, appView, appInfo);
+          assert target == null || target.getAccessFlags().isConstructor();
         return target;
       }
 
       case INVOKE_INTERFACE: {
-          DexEncodedMethod target =
+          DexClassAndMethod target =
               appInfo
                   .resolveMethodOnInterfaceLegacy(getImplReceiverType(), method)
-                  .getSingleTarget();
+                  .getResolutionPair();
         assert target == null || isInstanceMethod(target);
         return target;
       }
@@ -164,23 +164,23 @@ public final class LambdaDescriptor {
     }
   }
 
-  private boolean isInstanceMethod(DexEncodedMethod encodedMethod) {
-    assert encodedMethod != null;
-    return !encodedMethod.accessFlags.isConstructor() && !encodedMethod.isStatic();
+  private boolean isInstanceMethod(DexClassAndMethod method) {
+    assert method != null;
+    return !method.getAccessFlags().isConstructor() && !method.getAccessFlags().isStatic();
   }
 
-  private boolean isPrivateInstanceMethod(DexEncodedMethod encodedMethod) {
-    assert encodedMethod != null;
-    return encodedMethod.isPrivateMethod() && isInstanceMethod(encodedMethod);
+  private boolean isPrivateInstanceMethod(DexClassAndMethod method) {
+    assert method != null;
+    return method.getAccessFlags().isPrivate() && isInstanceMethod(method);
   }
 
-  private boolean isPublicizedInstanceMethod(DexEncodedMethod encodedMethod) {
-    assert encodedMethod != null;
-    return encodedMethod.isPublicized() && isInstanceMethod(encodedMethod);
+  private boolean isPublicizedInstanceMethod(DexClassAndMethod method) {
+    assert method != null;
+    return method.getDefinition().isPublicized() && isInstanceMethod(method);
   }
 
   public final boolean verifyTargetFoundInClass(DexType type) {
-    return targetHolder == type;
+    return targetHolder.isIdenticalTo(type);
   }
 
   /** If the lambda delegates to lambda$ method. */
@@ -193,10 +193,6 @@ public final class LambdaDescriptor {
     for (int i = 0; i < enforcedProto.getArity(); i++) {
       consumer.accept(erasedProto.getParameter(i), enforcedProto.getParameter(i));
     }
-  }
-
-  public Iterable<DexType> getReferencedBaseTypes(DexItemFactory dexItemFactory) {
-    return enforcedProto.getBaseTypes(dexItemFactory);
   }
 
   /** Is a stateless lambda, i.e. lambda does not capture any values */
@@ -299,6 +295,7 @@ public final class LambdaDescriptor {
    * Matches call site for lambda metafactory invocation pattern and returns extracted match
    * information, or MATCH_FAILED if match failed.
    */
+  @SuppressWarnings("ReferenceEquality")
   static LambdaDescriptor infer(
       DexCallSite callSite,
       AppView<?> appView,
@@ -460,11 +457,11 @@ public final class LambdaDescriptor {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Checks if the types are the same OR both types are reference types and
   // `subType` is derived from `b`. Note that in the latter case we only check if
   // both types are class types, for the reasons mentioned in isSameOrAdaptableTo(...).
-  static boolean isSameOrDerived(
-      DexItemFactory factory, DexType subType, DexType superType) {
+  static boolean isSameOrDerived(DexItemFactory factory, DexType subType, DexType superType) {
     if (subType == superType || (subType.isClassType() && superType.isClassType())) {
       return true;
     }

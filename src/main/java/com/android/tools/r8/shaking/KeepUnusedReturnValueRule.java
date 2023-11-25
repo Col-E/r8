@@ -12,6 +12,7 @@ public class KeepUnusedReturnValueRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "keepunusedreturnvalue";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<KeepUnusedReturnValueRule, Builder> {
 

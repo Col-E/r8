@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.conversion;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
-import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -19,6 +18,7 @@ import com.android.tools.r8.ir.conversion.callgraph.CallGraph;
 import com.android.tools.r8.ir.conversion.callgraph.PartialCallGraphBuilder;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.threading.ThreadingModule;
 import com.android.tools.r8.utils.DeterminismChecker;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -47,11 +47,6 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
     this.eventConsumer = eventConsumer;
     this.processorContext = appView.createProcessorContext();
     this.waves = createWaves(callGraph);
-  }
-
-  @Override
-  public MethodProcessingContext createMethodProcessingContext(ProgramMethod method) {
-    return processorContext.createMethodProcessingContext(method);
   }
 
   @Override
@@ -165,6 +160,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
     }
   }
 
+  @SuppressWarnings("UnusedVariable")
   private Deque<ProgramMethodSet> createWaves(CallGraph callGraph) {
     Deque<ProgramMethodSet> waves = new ArrayDeque<>();
     int waveCount = 1;
@@ -178,6 +174,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
   <E extends Exception> void forEachMethod(
       MethodAction<E> consumer,
       OptimizationFeedbackDelayed feedback,
+      ThreadingModule threadingModule,
       ExecutorService executorService,
       Timing timing)
       throws ExecutionException {
@@ -192,10 +189,13 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
             ThreadUtils.processItemsWithResults(
                 wave,
                 method -> {
-                  Timing time = consumer.apply(method, createMethodProcessingContext(method));
+                  Timing time =
+                      consumer.apply(
+                          method, processorContext.createMethodProcessingContext(method));
                   time.end();
                   return time;
                 },
+                threadingModule,
                 executorService);
         merger.add(timings);
         feedback.updateVisibleOptimizationInfo();

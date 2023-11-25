@@ -35,6 +35,7 @@ public final class CollectionMethodGenerators {
     return generateFixedMethods(factory, method, formalCount, factory.setType);
   }
 
+  @SuppressWarnings("BadImport")
   private static CfCode generateFixedMethods(
       DexItemFactory factory, DexMethod method, int formalCount, DexType returnType) {
     Builder<CfInstruction> builder = ImmutableList.builder();
@@ -62,6 +63,7 @@ public final class CollectionMethodGenerators {
     return new CfCode(method.holder, 4, formalCount, builder.build());
   }
 
+  @SuppressWarnings("BadImport")
   public static CfCode generateMapOf(DexItemFactory factory, DexMethod method, int formalCount) {
     DexType mapEntryArray = factory.createArrayType(1, factory.mapEntryType);
     DexType simpleEntry = factory.abstractMapSimpleEntryType;

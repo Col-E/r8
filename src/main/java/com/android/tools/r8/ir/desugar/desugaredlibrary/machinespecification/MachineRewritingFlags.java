@@ -177,6 +177,7 @@ public class MachineRewritingFlags {
     return dontRetarget;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isCustomConversionRewrittenType(DexType type) {
     return Iterables.any(
         customConversions.values(),
@@ -209,6 +210,7 @@ public class MachineRewritingFlags {
         || !staticFieldRetarget.isEmpty();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isEmulatedInterfaceRewrittenType(DexType type) {
     return Iterables.any(
         emulatedInterfaces.values(), descriptor -> descriptor.getRewrittenType() == type);
@@ -279,6 +281,7 @@ public class MachineRewritingFlags {
     return builder.build();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private EmulatedInterfaceDescriptor descriptorWithPostPrefix(
       EmulatedInterfaceDescriptor descriptor,
       DexItemFactory factory,
@@ -359,8 +362,8 @@ public class MachineRewritingFlags {
         emulatedVirtualRetargetThroughEmulatedInterface = ImmutableMap.builder();
     private final ImmutableMap.Builder<DexMethod, DexMethod[]> apiGenericTypesConversion =
         ImmutableMap.builder();
-    private final ImmutableMap.Builder<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces =
-        ImmutableMap.builder();
+    private final Map<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces =
+        new IdentityHashMap<>();
     private final LinkedHashMap<DexType, WrapperDescriptor> wrappers = new LinkedHashMap<>();
     private final ImmutableMap.Builder<DexType, DexType> legacyBackport = ImmutableMap.builder();
     private final ImmutableSet.Builder<DexType> dontRetarget = ImmutableSet.builder();
@@ -372,6 +375,7 @@ public class MachineRewritingFlags {
     private final ImmutableMap.Builder<DexField, FieldAccessFlags> amendLibraryField =
         ImmutableMap.builder();
 
+    @SuppressWarnings("ReferenceEquality")
     public void rewriteType(DexType src, DexType target) {
       assert src != null;
       assert target != null;
@@ -405,8 +409,12 @@ public class MachineRewritingFlags {
       nonEmulatedVirtualRetarget.put(src, dest);
     }
 
-    public void putEmulatedInterface(DexType src, EmulatedInterfaceDescriptor descriptor) {
-      emulatedInterfaces.put(src, descriptor);
+    public void putEmulatedInterface(DexType src, EmulatedInterfaceDescriptor newDescriptor) {
+      assert newDescriptor != null;
+      EmulatedInterfaceDescriptor oldDescriptor = emulatedInterfaces.get(src);
+      EmulatedInterfaceDescriptor mergedDescriptor =
+          oldDescriptor == null ? newDescriptor : newDescriptor.merge(oldDescriptor);
+      emulatedInterfaces.put(src, mergedDescriptor);
     }
 
     public void putEmulatedVirtualRetarget(DexMethod src, EmulatedDispatchMethodDescriptor dest) {
@@ -483,7 +491,7 @@ public class MachineRewritingFlags {
           emulatedVirtualRetarget.build(),
           emulatedVirtualRetargetThroughEmulatedInterface.build(),
           apiGenericTypesConversion.build(),
-          emulatedInterfaces.build(),
+          ImmutableMap.copyOf(emulatedInterfaces),
           wrappers,
           legacyBackport.build(),
           dontRetarget.build(),

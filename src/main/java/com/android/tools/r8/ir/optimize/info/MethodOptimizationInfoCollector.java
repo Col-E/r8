@@ -140,7 +140,7 @@ public class MethodOptimizationInfoCollector {
       MethodProcessor methodProcessor,
       Timing timing) {
     DexEncodedMethod definition = method.getDefinition();
-    identifyBridgeInfo(definition, code, feedback, timing);
+    identifyBridgeInfo(method, code, feedback, timing);
     analyzeReturns(code, feedback, methodProcessor, timing);
     if (options.enableClassInlining) {
       computeClassInlinerMethodConstraint(method, code, feedback, timing);
@@ -162,9 +162,9 @@ public class MethodOptimizationInfoCollector {
   }
 
   private void identifyBridgeInfo(
-      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
+      ProgramMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
     timing.begin("Identify bridge info");
-    feedback.setBridgeInfo(method, BridgeAnalyzer.analyzeMethod(method, code));
+    feedback.setBridgeInfo(method, BridgeAnalyzer.analyzeMethod(method.getDefinition(), code));
     timing.end();
   }
 
@@ -261,6 +261,7 @@ public class MethodOptimizationInfoCollector {
         method, InstanceInitializerInfoCollection.of(instanceInitializerInfo));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // This method defines trivial instance initializer as follows:
   //
   // ** The holder class must not define a finalize method.
@@ -728,6 +729,7 @@ public class MethodOptimizationInfoCollector {
    * Returns true if the given instruction is {@code v <- new-instance NullPointerException}, and
    * the next instruction is {@code invoke-direct v, NullPointerException.<init>()}.
    */
+  @SuppressWarnings("ReferenceEquality")
   private static boolean isInstantiationOfNullPointerException(
       Instruction instruction, InstructionIterator it, DexItemFactory dexItemFactory) {
     if (!instruction.isNewInstance()
@@ -845,7 +847,9 @@ public class MethodOptimizationInfoCollector {
 
     if (dynamicReturnType.isNullType()) {
       feedback.methodReturnsAbstractValue(
-          method.getDefinition(), appView, appView.abstractValueFactory().createNullValue());
+          method.getDefinition(),
+          appView,
+          appView.abstractValueFactory().createNullValue(method.getReturnType()));
       feedback.setDynamicReturnType(method, appView, dynamicReturnType);
       return;
     }
@@ -961,6 +965,7 @@ public class MethodOptimizationInfoCollector {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Returns true if the given class overrides the method `void java.lang.Object.finalize()`.
   private boolean hasNonTrivialFinalizeMethod(DexProgramClass clazz) {
     if (clazz.isInterface()) {
@@ -1012,7 +1017,7 @@ public class MethodOptimizationInfoCollector {
     }
     List<Value> arguments = code.collectArguments();
     BitSet paramsCheckedForNull = new BitSet();
-    for (int index = 0; index < arguments.size(); index++) {
+    for (int index = method.getFirstNonReceiverArgumentIndex(); index < arguments.size(); index++) {
       Value argument = arguments.get(index);
       // This handles cases where the parameter is checked via Kotlin Intrinsics:
       //
@@ -1052,7 +1057,9 @@ public class MethodOptimizationInfoCollector {
     if (nonNullParamOrThrow != null) {
       facts.or(nonNullParamOrThrow);
     }
-    for (int index = 0; index < arguments.size(); index++) {
+    for (int index = code.context().getDefinition().getFirstNonReceiverArgumentIndex();
+        index < arguments.size();
+        index++) {
       if (facts.get(index)) {
         continue;
       }

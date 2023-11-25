@@ -6,7 +6,9 @@ package com.android.tools.r8.graph.analysis;
 
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.FieldResolutionResult;
+import com.android.tools.r8.graph.FieldResolutionResult.SingleFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
 
 public interface EnqueuerFieldAccessAnalysis {
@@ -27,7 +29,7 @@ public interface EnqueuerFieldAccessAnalysis {
 
   default void traceStaticFieldRead(
       DexField field,
-      FieldResolutionResult resolutionResult,
+      SingleFieldResolutionResult<?> resolutionResult,
       ProgramMethod context,
       EnqueuerWorklist worklist) {}
   ;
@@ -38,4 +40,10 @@ public interface EnqueuerFieldAccessAnalysis {
       ProgramMethod context,
       EnqueuerWorklist worklist) {}
   ;
+
+  /**
+   * Called when the Enqueuer has reached the final fixpoint. Each analysis may use this callback to
+   * perform some post-processing.
+   */
+  default void done(Enqueuer enqueuer) {}
 }

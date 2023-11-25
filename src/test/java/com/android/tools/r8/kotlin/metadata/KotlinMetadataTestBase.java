@@ -178,4 +178,18 @@ public abstract class KotlinMetadataTestBase extends KotlinTestBase {
             equalTo("Resource 'META-INF/MANIFEST.MF' already exists."),
             equalTo("Resource 'META-INF/versions/9/module-info.class' already exists.")));
   }
+
+  protected String unresolvedReferenceMessage(KotlinTestParameters param, String ref) {
+    if (param.isKotlinDev()) {
+      return "unresolved reference '" + ref + "'";
+    }
+    return "unresolved reference: " + ref;
+  }
+
+  protected String cannotAccessMessage(KotlinTestParameters param, String ref) {
+    if (param.isKotlinDev()) {
+      return "cannot access 'class " + ref + " : Any'";
+    }
+    return "cannot access '" + ref + "'";
+  }
 }

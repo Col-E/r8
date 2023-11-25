@@ -60,7 +60,10 @@ public class ConcurrentMethodFixup {
 
     timing.begin("Process strongly connected components");
     ThreadUtils.processItems(
-        connectedComponents, this::processConnectedProgramComponents, executorService);
+        connectedComponents,
+        this::processConnectedProgramComponents,
+        appView.options().getThreadingModule(),
+        executorService);
     timing.end();
     timing.end();
   }

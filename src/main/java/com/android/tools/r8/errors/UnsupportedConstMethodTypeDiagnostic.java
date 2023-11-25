@@ -5,11 +5,11 @@ package com.android.tools.r8.errors;
 
 import static com.android.tools.r8.utils.InternalOptions.constantMethodTypeApiLevel;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 
-@Keep
+@KeepForApi
 public class UnsupportedConstMethodTypeDiagnostic extends UnsupportedFeatureDiagnostic {
 
   // API: MUST NOT CHANGE!

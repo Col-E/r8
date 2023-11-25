@@ -18,11 +18,14 @@ import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.ir.analysis.fieldaccess.TrivialFieldAccessReprocessor;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.passes.FilledNewArrayRewriter;
+import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
+import com.android.tools.r8.ir.optimize.info.MethodResolutionOptimizationInfoAnalysis;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.lightir.LirCode;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
+import com.android.tools.r8.optimize.compose.ComposableOptimizationPass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -80,6 +83,7 @@ public class PrimaryR8IRConverter extends IRConverter {
     appView.withArgumentPropagator(
         argumentPropagator -> argumentPropagator.initializeCodeScanner(executorService, timing));
     enumUnboxer.prepareForPrimaryOptimizationPass(graphLensForPrimaryOptimizationPass);
+    numberUnboxer.prepareForPrimaryOptimizationPass(timing, executorService);
     outliner.prepareForPrimaryOptimizationPass(graphLensForPrimaryOptimizationPass);
 
     if (fieldAccessAnalysis != null) {
@@ -142,6 +146,7 @@ public class PrimaryR8IRConverter extends IRConverter {
     // the parameter optimization infos, and rewrite the application.
     // TODO(b/199237357): Automatically rewrite state when lens changes.
     enumUnboxer.rewriteWithLens();
+    numberUnboxer.rewriteWithLens();
     outliner.rewriteWithLens();
     appView.withArgumentPropagator(
         argumentPropagator ->
@@ -157,14 +162,22 @@ public class PrimaryR8IRConverter extends IRConverter {
           .run(executorService, feedback, timing);
     }
 
+    numberUnboxer.rewriteWithLens();
     outliner.rewriteWithLens();
     enumUnboxer.unboxEnums(
         appView, this, postMethodProcessorBuilder, executorService, feedback, timing);
     appView.unboxedEnums().checkEnumsUnboxed(appView);
 
+    numberUnboxer.rewriteWithLens();
+    outliner.rewriteWithLens();
+    numberUnboxer.unboxNumbers(postMethodProcessorBuilder, timing, executorService);
+
     GraphLens graphLensForSecondaryOptimizationPass = appView.graphLens();
 
     outliner.rewriteWithLens();
+
+    MethodResolutionOptimizationInfoAnalysis.run(
+        appView, executorService, postMethodProcessorBuilder);
 
     {
       timing.begin("IR conversion phase 2");
@@ -188,6 +201,7 @@ public class PrimaryR8IRConverter extends IRConverter {
                     methodProcessingContext,
                     MethodConversionOptions.forLirPhase(appView)),
             feedback,
+            appView.options().getThreadingModule(),
             executorService,
             timing);
         timing.end();
@@ -198,7 +212,7 @@ public class PrimaryR8IRConverter extends IRConverter {
       timing.end();
     }
 
-    enumUnboxer.unsetRewriter();
+    appView.clearMethodResolutionOptimizationInfoCollection();
 
     // All the code that should be impacted by the lenses inserted between phase 1 and phase 2
     // have now been processed and rewritten, we clear code lens rewriting so that the class
@@ -219,6 +233,8 @@ public class PrimaryR8IRConverter extends IRConverter {
     if (identifierNameStringMarker != null) {
       identifierNameStringMarker.decoupleIdentifierNameStringsInFields(executorService);
     }
+
+    ComposableOptimizationPass.run(appView, this, timing);
 
     // Assure that no more optimization feedback left after post processing.
     assert feedback.noUpdatesLeft();
@@ -243,6 +259,7 @@ public class PrimaryR8IRConverter extends IRConverter {
         clazz ->
             clazz.forEachProgramMethod(
                 m -> finalizeLirMethodToOutputFormat(m, deadCodeRemover, appView, rewriterUtils)),
+        appView.options().getThreadingModule(),
         executorService);
     appView
         .getSyntheticItems()
@@ -320,6 +337,7 @@ public class PrimaryR8IRConverter extends IRConverter {
     appView.setGraphLens(rewrittenMemberRebindingLens);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void finalizeLirMethodToOutputFormat(
       ProgramMethod method,
       DeadCodeRemover deadCodeRemover,
@@ -337,7 +355,13 @@ public class PrimaryR8IRConverter extends IRConverter {
       method.setCode(rewrittenLirCode, appView);
     }
     IRCode irCode = method.buildIR(appView, MethodConversionOptions.forPostLirPhase(appView));
-    new FilledNewArrayRewriter(appView).run(irCode, onThreadTiming);
+    FilledNewArrayRewriter filledNewArrayRewriter = new FilledNewArrayRewriter(appView);
+    boolean changed = filledNewArrayRewriter.run(irCode, onThreadTiming).hasChanged().toBoolean();
+    if (appView.options().isGeneratingDex() && changed) {
+      ConstantCanonicalizer constantCanonicalizer =
+          new ConstantCanonicalizer(appView, method, irCode);
+      constantCanonicalizer.canonicalize();
+    }
     // Processing is done and no further uses of the meta-data should arise.
     BytecodeMetadataProvider noMetadata = BytecodeMetadataProvider.empty();
     // During processing optimization info may cause previously live code to become dead.

@@ -4,10 +4,11 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.retrace.MappingPartition;
 import com.android.tools.r8.retrace.MappingPartitionMetadata;
 
-@Keep
+@KeepForApi
 public interface PartitionMapConsumer extends Finishable {
 
   void acceptMappingPartition(MappingPartition mappingPartition);

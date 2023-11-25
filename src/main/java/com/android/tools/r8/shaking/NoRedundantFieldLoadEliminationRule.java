@@ -12,6 +12,7 @@ public class NoRedundantFieldLoadEliminationRule extends ProguardConfigurationRu
 
   public static final String RULE_NAME = "noredundantfieldloadelimination";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<NoRedundantFieldLoadEliminationRule, Builder> {
 

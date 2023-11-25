@@ -13,7 +13,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.optimize.interfaces.collection.NonEmptyOpenClosedInterfacesCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.LibraryModeledPredicate;
 import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,14 +59,14 @@ public class SuccessAndInvalidLookupTest extends TestBase {
     DynamicType dynamicTypeA =
         DynamicTypeWithUpperBound.create(appView, typeA.toTypeElement(appView));
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
-    DexEncodedMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(
-            appView, fooA, mainMethod, false, t -> false, dynamicTypeA);
+    DexClassAndMethod singleTarget =
+        appInfo.lookupSingleVirtualTargetForTesting(
+            appView, fooA, mainMethod, false, LibraryModeledPredicate.alwaysFalse(), dynamicTypeA);
     assertNotNull(singleTarget);
     assertEquals(fooA, singleTarget.getReference());
-    DexEncodedMethod invalidSingleTarget =
-        appInfo.lookupSingleVirtualTarget(
-            appView, fooA, mainMethod, true, t -> false, dynamicTypeA);
+    DexClassAndMethod invalidSingleTarget =
+        appInfo.lookupSingleVirtualTargetForTesting(
+            appView, fooA, mainMethod, true, LibraryModeledPredicate.alwaysFalse(), dynamicTypeA);
     assertNull(invalidSingleTarget);
   }
 
@@ -91,14 +92,14 @@ public class SuccessAndInvalidLookupTest extends TestBase {
         DynamicTypeWithUpperBound.create(appView, typeA.toTypeElement(appView));
     DexMethod fooI = buildNullaryVoidMethod(I.class, "foo", appInfo.dexItemFactory());
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
-    DexEncodedMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(
-            appView, fooI, mainMethod, true, t -> false, dynamicTypeA);
+    DexClassAndMethod singleTarget =
+        appInfo.lookupSingleVirtualTargetForTesting(
+            appView, fooI, mainMethod, true, LibraryModeledPredicate.alwaysFalse(), dynamicTypeA);
     assertNotNull(singleTarget);
     assertEquals(fooA, singleTarget.getReference());
-    DexEncodedMethod invalidSingleTarget =
-        appInfo.lookupSingleVirtualTarget(
-            appView, fooI, mainMethod, false, t -> false, dynamicTypeA);
+    DexClassAndMethod invalidSingleTarget =
+        appInfo.lookupSingleVirtualTargetForTesting(
+            appView, fooI, mainMethod, false, LibraryModeledPredicate.alwaysFalse(), dynamicTypeA);
     assertNull(invalidSingleTarget);
   }
 

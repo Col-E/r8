@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -54,7 +53,6 @@ public class CollectionToArrayTest extends DesugaredLibraryTestBase {
     this.compilationSpecification = compilationSpecification;
   }
 
-  @Ignore("b/266401747")
   @Test
   public void test() throws Throwable {
     testForDesugaredLibrary(parameters, libraryDesugaringSpecification, compilationSpecification)

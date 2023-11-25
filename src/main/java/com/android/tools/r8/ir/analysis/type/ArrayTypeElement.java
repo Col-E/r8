@@ -131,6 +131,7 @@ public class ArrayTypeElement extends ReferenceTypeElement {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public ArrayTypeElement fixupClassTypeReferences(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       Function<DexType, DexType> mapping,

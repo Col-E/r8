@@ -67,6 +67,7 @@ public class ProfileRewritingCfPostProcessingDesugaringEventConsumer
   }
 
   @Override
+  @SuppressWarnings("ArgumentSelectionDefectChecker")
   public void acceptCovariantRetargetMethod(ProgramMethod method, ProgramMethod context) {
     additionsCollection.addMethodAndHolderIfContextIsInProfile(context, method);
     parent.acceptCovariantRetargetMethod(method, context);

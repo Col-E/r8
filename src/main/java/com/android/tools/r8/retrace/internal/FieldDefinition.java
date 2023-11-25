@@ -55,6 +55,7 @@ abstract class FieldDefinition implements Definition {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object o) {
       if (this == o) {
         return true;
@@ -111,6 +112,7 @@ abstract class FieldDefinition implements Definition {
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object o) {
       if (this == o) {
         return true;

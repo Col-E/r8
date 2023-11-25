@@ -5,15 +5,14 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.internal.PartitionMappingSupplierBase;
-import com.android.tools.r8.retrace.internal.RetracerImpl;
 
-@Keep
+@KeepForApi
 public class PartitionMappingSupplierAsync
     extends PartitionMappingSupplierBase<PartitionMappingSupplierAsync>
     implements MappingSupplierAsync<PartitionMappingSupplierAsync> {
@@ -39,7 +38,6 @@ public class PartitionMappingSupplierAsync
    *
    * @param classReference The minified class reference allowed to be lookup up.
    */
-  @Keep
   @Override
   public PartitionMappingSupplierAsync registerClassUse(
       DiagnosticsHandler diagnosticsHandler, ClassReference classReference) {
@@ -51,7 +49,6 @@ public class PartitionMappingSupplierAsync
    *
    * @param methodReference The minified method reference allowed to be lookup up.
    */
-  @Keep
   @Override
   public PartitionMappingSupplierAsync registerMethodUse(
       DiagnosticsHandler diagnosticsHandler, MethodReference methodReference) {
@@ -63,7 +60,6 @@ public class PartitionMappingSupplierAsync
    *
    * @param fieldReference The minified field reference allowed to be lookup up.
    */
-  @Keep
   @Override
   public PartitionMappingSupplierAsync registerFieldUse(
       DiagnosticsHandler diagnosticsHandler, FieldReference fieldReference) {
@@ -80,12 +76,12 @@ public class PartitionMappingSupplierAsync
   }
 
   @Override
-  public RetracerImpl createRetracer(
+  public Retracer createRetracer(
       DiagnosticsHandler diagnosticsHandler, MappingPartitionFromKeySupplier supplier) {
     return createRetracerFromPartitionSupplier(diagnosticsHandler, supplier);
   }
 
-  @Keep
+  @KeepForApi
   public static class Builder extends PartitionMappingSupplierBuilderBase<Builder> {
 
     private byte[] metadata;

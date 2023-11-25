@@ -354,13 +354,12 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   @Override
-  public int estimatedSizeForInlining() {
-    return countNonStackOperations(Integer.MAX_VALUE);
-  }
-
-  @Override
-  public boolean estimatedSizeForInliningAtMost(int threshold) {
-    return countNonStackOperations(threshold) <= threshold;
+  public int getEstimatedSizeForInliningIfLessThanOrEquals(int threshold) {
+    int estimatedSizeForInlining = countNonStackOperations(threshold);
+    if (estimatedSizeForInlining <= threshold) {
+      return estimatedSizeForInlining;
+    }
+    return -1;
   }
 
   @Override
@@ -474,6 +473,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void writeCf(
       ProgramMethod method,
       CfVersion classFileVersion,
@@ -741,7 +741,6 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
             this,
             localVariables,
             method,
-            appView.graphLens().getOriginalMethodSignature(method.getReference()),
             callerPosition,
             origin,
             appView);
@@ -881,6 +880,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     return new CfPrinter(this, method, retracer).toString();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public ConstraintWithTarget computeInliningConstraint(
       ProgramMethod method,
       AppView<AppInfoWithLiveness> appView,
@@ -949,8 +949,17 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
 
   @Override
   public Code getCodeAsInlining(
-      DexMethod caller, DexMethod callee, DexItemFactory factory, boolean isCalleeD8R8Synthesized) {
-    Position callerPosition = SyntheticPosition.builder().setLine(0).setMethod(caller).build();
+      DexMethod caller,
+      boolean isCallerD8R8Synthesized,
+      DexMethod callee,
+      boolean isCalleeD8R8Synthesized,
+      DexItemFactory factory) {
+    Position callerPosition =
+        SyntheticPosition.builder()
+            .setLine(0)
+            .setMethod(caller)
+            .setIsD8R8Synthesized(isCallerD8R8Synthesized)
+            .build();
     List<CfInstruction> newInstructions = new ArrayList<>(instructions.size() + 2);
     CfLabel firstLabel;
     if (instructions.get(0).isLabel()) {
@@ -1024,7 +1033,8 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   @Override
-  public void forEachPosition(DexMethod method, Consumer<Position> positionConsumer) {
+  public void forEachPosition(
+      DexMethod method, boolean isD8R8Synthesized, Consumer<Position> positionConsumer) {
     for (CfInstruction instruction : getInstructions()) {
       if (instruction.isPosition()) {
         positionConsumer.accept(instruction.asPosition().getPosition());

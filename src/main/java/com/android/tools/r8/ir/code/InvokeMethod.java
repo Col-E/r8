@@ -9,14 +9,18 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DispatchTargetLookupResult;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
@@ -29,15 +33,15 @@ import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
+import com.android.tools.r8.ir.optimize.library.LibraryOptimizationInfoCollection;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -93,6 +97,7 @@ public abstract class InvokeMethod extends Invoke {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isInvokeMethod() && method == other.asInvokeMethod().getInvokedMethod();
   }
@@ -108,15 +113,67 @@ public abstract class InvokeMethod extends Invoke {
   }
 
   @Override
+  public boolean isInvokeMethod(DexMethod invokedMethod) {
+    return getInvokedMethod().isIdenticalTo(invokedMethod);
+  }
+
+  @Override
   public InvokeMethod asInvokeMethod() {
     return this;
   }
 
-  // In subclasses, e.g., invoke-virtual or invoke-super, use a narrower receiver type by using
-  // receiver type and calling context---the holder of the method where the current invocation is.
-  // TODO(b/140204899): Refactor lookup methods to be defined in a single place.
-  public abstract DexClassAndMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context);
+  public MethodResolutionResult resolveMethod(
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return appView.appInfo().resolveMethod(method, getInterfaceBit());
+  }
 
+  public MethodResolutionResult resolveMethod(AppView<?> appView, ProgramMethod context) {
+    if (appView.hasClassHierarchy()) {
+      return resolveMethod(appView.withClassHierarchy());
+    }
+    if (method.getHolderType().isIdenticalTo(context.getHolderType())) {
+      DexClass resolutionHolder = context.getHolder();
+      DexEncodedMethod lookupResult = resolutionHolder.lookupMethod(method);
+      if (lookupResult != null) {
+        return MethodResolutionResult.createSingleResolutionResult(
+            resolutionHolder, resolutionHolder, lookupResult);
+      }
+    }
+    if (appView.libraryMethodOptimizer().isModeled(method.getHolderType())) {
+      DexClassAndMethod lookupResult = appView.definitionFor(method);
+      if (lookupResult != null) {
+        DexClass resolutionHolder = lookupResult.getHolder();
+        return MethodResolutionResult.createSingleResolutionResult(
+            resolutionHolder, resolutionHolder, lookupResult.getDefinition());
+      }
+    }
+    return MethodResolutionResult.unknown();
+  }
+
+  /**
+   * In subclasses, e.g., invoke-virtual or invoke-super, use a narrower receiver type by using
+   * receiver type and calling context---the resolutionHolder of the method where the current
+   * invocation is.
+   *
+   * @deprecated Use {@link SingleResolutionResult#lookupDispatchTarget}.
+   */
+  @Deprecated
+  public final DexClassAndMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
+    MethodResolutionResult resolutionResult = resolveMethod(appView, context);
+    if (resolutionResult.isSingleResolution()) {
+      DispatchTargetLookupResult lookupResult =
+          resolutionResult.asSingleResolution().lookupDispatchTarget(appView, this, context);
+      if (lookupResult.isSingleResult()) {
+        return lookupResult.asSingleResult().getSingleDispatchTarget();
+      }
+    }
+    return null;
+  }
+
+  /**
+   * @deprecated Use {@link SingleResolutionResult#lookupDispatchTarget}.
+   */
+  @Deprecated
   public final ProgramMethod lookupSingleProgramTarget(AppView<?> appView, ProgramMethod context) {
     return DexClassAndMethod.asProgramMethodOrNull(lookupSingleTarget(appView, context));
   }
@@ -177,9 +234,8 @@ public abstract class InvokeMethod extends Invoke {
     return result;
   }
 
-  public abstract InlineAction computeInlining(
+  public abstract InlineAction.Builder computeInlining(
       ProgramMethod singleTarget,
-      Reason reason,
       DefaultInliningOracle decider,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
@@ -247,30 +303,49 @@ public abstract class InvokeMethod extends Invoke {
       AppView<?> appView, ProgramMethod context, AbstractValueSupplier abstractValueSupplier) {
     assert hasOutValue();
     DexClassAndMethod method = lookupSingleTarget(appView, context);
-    if (method != null) {
-      return method.getDefinition().getOptimizationInfo().getAbstractReturnValue();
+    if (method == null) {
+      return UnknownValue.getInstance();
     }
-    return UnknownValue.getInstance();
+    return LibraryOptimizationInfoCollection.getAbstractReturnValueOrDefault(
+        appView,
+        this,
+        method,
+        context,
+        abstractValueSupplier,
+        method.getDefinition().getOptimizationInfo().getAbstractReturnValue());
   }
 
-  boolean verifyD8LookupResult(
-      DexEncodedMethod hierarchyResult, DexEncodedMethod lookupDirectTargetOnItself) {
+  @SuppressWarnings("ReferenceEquality")
+  public boolean verifyD8LookupResult(
+      DexClassAndMethod hierarchyResult, DexClassAndMethod lookupDirectTargetOnItself) {
     if (lookupDirectTargetOnItself == null) {
       return true;
     }
-    assert lookupDirectTargetOnItself == hierarchyResult;
+    assert lookupDirectTargetOnItself.isStructurallyEqualTo(hierarchyResult);
     return true;
   }
 
   @Override
   public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, ProgramMethod context) {
+    if (!appView.hasClassHierarchy()) {
+      return false;
+    }
+    AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+        appView.withClassHierarchy();
+    SingleResolutionResult<?> resolutionResult =
+        resolveMethod(appViewWithClassHierarchy).asSingleResolution();
+    if (resolutionResult == null) {
+      return false;
+    }
     DexClassAndMethod singleTarget = lookupSingleTarget(appView, context);
-    if (singleTarget != null) {
-      BitSet nonNullParamOrThrow =
-          singleTarget.getDefinition().getOptimizationInfo().getNonNullParamOrThrow();
-      if (nonNullParamOrThrow != null) {
-        int argumentIndex = inValues.indexOf(value);
-        return argumentIndex >= 0 && nonNullParamOrThrow.get(argumentIndex);
+    MethodOptimizationInfo optimizationInfo =
+        resolutionResult.getOptimizationInfo(appView, this, singleTarget);
+    if (optimizationInfo.hasNonNullParamOrThrow()) {
+      for (int argumentIndex = 0; argumentIndex < arguments().size(); argumentIndex++) {
+        if (value == getArgument(argumentIndex)
+            && optimizationInfo.getNonNullParamOrThrow().get(argumentIndex)) {
+          return true;
+        }
       }
     }
     return false;

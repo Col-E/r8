@@ -187,6 +187,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       return definitions.containsKey(type);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     boolean containsTypeOfKind(DexType type, SyntheticKind kind) {
       SyntheticDefinition<?, ?, ?> definition = definitions.get(type);
       return definition != null && definition.getKind() == kind;
@@ -215,6 +216,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   private final ContextsForGlobalSynthetics globalContexts;
   private final GlobalSyntheticsStrategy globalSyntheticsStrategy;
 
+  @SuppressWarnings("ReferenceEquality")
   public Set<DexType> collectSyntheticsFromContext(DexType context) {
     Set<DexType> result = Sets.newIdentityHashSet();
     committed
@@ -408,6 +410,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return mode.isFinal() || isSyntheticLambda(clazz);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isSyntheticLambda(DexProgramClass clazz) {
     if (!isSynthetic(clazz)) {
       return false;
@@ -801,6 +804,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
    *
    * <p>This method is thread safe and will synchronize based on the context of the fixed synthetic.
    */
+  @SuppressWarnings("ArgumentSelectionDefectChecker")
   public DexProgramClass ensureFixedClass(
       SyntheticKindSelector kindSelector,
       DexClass context,
@@ -999,7 +1003,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       builder.setName(methodReference.getName());
       builder.setProto(methodReference.getProto());
       buildMethodCallback.accept(builder);
-      methodDefinition = builder.build();
+      methodDefinition = builder.build(clazz.getKind());
       methodCollection.addMethod(methodDefinition);
       newMethodCallback.accept((T) DexClassAndMethod.create(clazz, methodDefinition));
       return methodDefinition;
@@ -1191,10 +1195,10 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   Result computeFinalSynthetics(AppView<?> appView, Timing timing) {
     assert !hasPendingSyntheticClasses();
-    return new SyntheticFinalization(appView.options(), this, committed)
-        .computeFinalSynthetics(appView, timing);
+    return new SyntheticFinalization(this, committed).computeFinalSynthetics(appView, timing);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void reportSyntheticsInformation(SyntheticInfoConsumer consumer) {
     assert isFinalized();
     Map<DexType, DexType> seen = new IdentityHashMap<>();

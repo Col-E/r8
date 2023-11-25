@@ -61,12 +61,10 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
   private final DesugaredLibraryDisableDesugarer disableDesugarer;
-  private final AndroidApiLevelCompute apiLevelCompute;
 
   NonEmptyCfInstructionDesugaringCollection(
       AppView<?> appView, AndroidApiLevelCompute apiLevelCompute) {
     this.appView = appView;
-    this.apiLevelCompute = apiLevelCompute;
     AlwaysThrowingInstructionDesugaring alwaysThrowingInstructionDesugaring =
         appView.enableWholeProgramOptimizations()
             ? new AlwaysThrowingInstructionDesugaring(appView.withClassHierarchy())
@@ -232,6 +230,25 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     IntBox maxStackForCode = new IntBox(cfCode.getMaxStack());
     IntBox maxStackForInstruction = new IntBox(cfCode.getMaxStack());
 
+    class CfDesugaringInfoImpl implements CfDesugaringInfo {
+      int bytecodeSizeUpperBound;
+
+      private CfDesugaringInfoImpl(int bytecodeSizeUpperBound) {
+        this.bytecodeSizeUpperBound = bytecodeSizeUpperBound;
+      }
+
+      @Override
+      public boolean canIncreaseBytecodeSize() {
+        return bytecodeSizeUpperBound < 65000;
+      }
+
+      private void updateBytecodeSize(int delta) {
+        bytecodeSizeUpperBound += delta;
+      }
+    }
+
+    CfDesugaringInfoImpl desugaringInfo = new CfDesugaringInfoImpl(cfCode.bytecodeSizeUpperBound());
+
     List<CfInstruction> desugaredInstructions =
         ListUtils.flatMapSameType(
             cfCode.getInstructions(),
@@ -241,6 +258,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
                       instruction,
                       maxLocalsForInstruction::getAndIncrement,
                       maxStackForInstruction::getAndIncrement,
+                      desugaringInfo,
                       eventConsumer,
                       method,
                       methodProcessingContext);
@@ -249,6 +267,10 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
                 // and reset the next temporary locals register.
                 maxLocalsForCode.setMax(maxLocalsForInstruction.getAndSet(cfCode.getMaxLocals()));
                 maxStackForCode.setMax(maxStackForInstruction.getAndSet(cfCode.getMaxStack()));
+                // Record the change in bytecode size.
+                desugaringInfo.updateBytecodeSize(-instruction.bytecodeSizeUpperBound());
+                replacement.forEach(
+                    i -> desugaringInfo.updateBytecodeSize(i.bytecodeSizeUpperBound()));
               } else {
                 // The next temporary locals register should be unchanged.
                 assert maxLocalsForInstruction.get() == cfCode.getMaxLocals();
@@ -295,6 +317,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       CfInstruction instruction,
       FreshLocalProvider freshLocalProvider,
       LocalStackAllocator localStackAllocator,
+      CfDesugaringInfo desugaringInfo,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext) {
@@ -304,6 +327,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
             instruction,
             freshLocalProvider,
             localStackAllocator,
+            desugaringInfo,
             eventConsumer,
             context,
             methodProcessingContext,
@@ -317,6 +341,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
         instruction,
         freshLocalProvider,
         localStackAllocator,
+        desugaringInfo,
         eventConsumer,
         context,
         methodProcessingContext,
@@ -327,6 +352,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       CfInstruction instruction,
       FreshLocalProvider freshLocalProvider,
       LocalStackAllocator localStackAllocator,
+      CfDesugaringInfo desugaringInfo,
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext,
@@ -339,6 +365,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
               .desugarInstruction(
                   freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   context,
                   methodProcessingContext,

@@ -86,8 +86,8 @@ public class HorizontalClassMerger {
   public void runIfNecessary(
       ExecutorService executorService, Timing timing, RuntimeTypeCheckInfo runtimeTypeCheckInfo)
       throws ExecutionException {
-    if (options.isEnabled(mode)) {
-      timing.begin("HorizontalClassMerger (" + mode.toString() + ")");
+    timing.begin("HorizontalClassMerger (" + mode.toString() + ")");
+    if (shouldRun()) {
       IRCodeProvider codeProvider =
           appView.hasClassHierarchy()
               ? IRCodeProvider.create(appView.withClassHierarchy(), this::getConversionOptions)
@@ -99,11 +99,17 @@ public class HorizontalClassMerger {
       // Clear type elements cache after IR building.
       appView.dexItemFactory().clearTypeElementsCache();
       appView.notifyOptimizationFinishedForTesting();
-
-      timing.end();
     } else {
       appView.setHorizontallyMergedClasses(HorizontallyMergedClasses.empty(), mode);
     }
+    appView.appInfo().notifyHorizontalClassMergerFinished(mode);
+    assert ArtProfileCompletenessChecker.verify(appView);
+    timing.end();
+  }
+
+  private boolean shouldRun() {
+    return options.isEnabled(mode, appView.getWholeProgramOptimizations())
+        && !appView.hasCfByteCodePassThroughMethods();
   }
 
   private MutableMethodConversionOptions getConversionOptions() {
@@ -305,13 +311,13 @@ public class HorizontalClassMerger {
               method -> {
                 IncompleteHorizontalClassMergerCode code =
                     (IncompleteHorizontalClassMergerCode) method.getDefinition().getCode();
-                method
-                    .setCode(
-                        code.toCfCode(
-                            appView.withClassHierarchy(), method, horizontalClassMergerGraphLens),
-                        appView);
+                method.setCode(
+                    code.toCfCode(
+                        appView.withClassHierarchy(), method, horizontalClassMergerGraphLens),
+                    appView);
               });
         },
+        appView.options().getThreadingModule(),
         executorService);
   }
 
@@ -330,6 +336,7 @@ public class HorizontalClassMerger {
                   .hasNext()
               : "Expected no incomplete code";
         },
+        appView.options().getThreadingModule(),
         executorService);
     return true;
   }
@@ -411,6 +418,7 @@ public class HorizontalClassMerger {
    * Fix all references to merged classes using the {@link TreeFixer}. Construct a graph lens
    * containing all changes performed by horizontal class merging.
    */
+  @SuppressWarnings("ReferenceEquality")
   private HorizontalClassMergerGraphLens createLens(
       HorizontallyMergedClasses mergedClasses,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
@@ -427,6 +435,7 @@ public class HorizontalClassMerger {
         .fixupTypeReferences();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean verifyNoCyclesInInterfaceHierarchies(
       AppView<?> appView, Collection<MergeGroup> groups) {
     for (MergeGroup group : groups) {

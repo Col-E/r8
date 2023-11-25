@@ -28,7 +28,11 @@ public class MultiCallerInlinerCallGraphBuilder
 
   public MultiCallerInlinerCallGraph build(ExecutorService executorService)
       throws ExecutionException {
-    ThreadUtils.processItems(appView.appInfo().classes(), this::processClass, executorService);
+    ThreadUtils.processItems(
+        appView.appInfo().classes(),
+        this::processClass,
+        appView.options().getThreadingModule(),
+        executorService);
     return new MultiCallerInlinerCallGraph(nodes);
   }
 

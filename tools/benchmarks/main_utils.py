@@ -5,9 +5,10 @@
 import imp
 import os
 
-TOOLS_DIR = os.path.abspath(
-    os.path.normpath(os.path.join(__file__, '..', '..')))
+TOOLS_DIR = os.path.abspath(os.path.normpath(os.path.join(__file__, '..',
+                                                          '..')))
+
 
 def GetUtils():
-  '''Dynamically load the tools/utils.py python module.'''
-  return imp.load_source('utils', os.path.join(TOOLS_DIR, 'utils.py'))
+    '''Dynamically load the tools/utils.py python module.'''
+    return imp.load_source('utils', os.path.join(TOOLS_DIR, 'utils.py'))

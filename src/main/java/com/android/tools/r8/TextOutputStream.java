@@ -4,10 +4,11 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 
-@Keep
+@KeepForApi
 public interface TextOutputStream {
 
   OutputStream getOutputStream();

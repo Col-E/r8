@@ -71,6 +71,7 @@ public class CompileDumpCompatR8 extends CompileDumpBase {
         || name.endsWith(".aar");
   }
 
+  @SuppressWarnings("BadImport")
   public static void main(String[] args) throws CompilationFailedException {
     boolean isCompatMode = false;
     OutputMode outputMode = OutputMode.DexIndexed;

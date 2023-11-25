@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.specification;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification.*;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -64,7 +65,7 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
   public void testMultiLevelLegacy() throws IOException {
     Assume.assumeTrue(ToolHelper.isLocalDevelopment());
 
-    LibraryDesugaringSpecification legacySpec = LibraryDesugaringSpecification.JDK8;
+    LibraryDesugaringSpecification legacySpec = JDK8;
 
     LegacyToHumanSpecificationConverter converter =
         new LegacyToHumanSpecificationConverter(Timing.empty());
@@ -108,13 +109,13 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testMultiLevelLegacyUsingMain() throws IOException {
-    LibraryDesugaringSpecification legacySpec = LibraryDesugaringSpecification.JDK8;
+    LibraryDesugaringSpecification legacySpec = JDK8;
     testMultiLevelUsingMain(legacySpec);
   }
 
   @Test
   public void testMultiLevelHumanUsingMain() throws IOException {
-    LibraryDesugaringSpecification humanSpec = LibraryDesugaringSpecification.JDK11;
+    LibraryDesugaringSpecification humanSpec = JDK11;
     testMultiLevelUsingMain(humanSpec);
   }
 
@@ -133,12 +134,6 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
             output,
             options);
 
-    MachineDesugaredLibrarySpecification machineSpecParsed =
-        new MachineDesugaredLibrarySpecificationParser(
-                options.dexItemFactory(), options.reporter, true, AndroidApiLevel.B.getLevel())
-            .parse(StringResource.fromFile(output));
-    assertFalse(machineSpecParsed.getRewriteType().isEmpty());
-
     if (humanSpec == null) {
       return;
     }
@@ -154,24 +149,35 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
     assertSpecEquals(humanSpec, writtenHumanSpec);
 
     // Validate converted machine spec is identical to the written one.
-    HumanDesugaredLibrarySpecification humanSimpleSpec =
-        new HumanDesugaredLibrarySpecificationParser(
-                options.dexItemFactory(), options.reporter, true, AndroidApiLevel.B.getLevel())
-            .parse(StringResource.fromString(json.get(), Origin.unknown()));
-    HumanToMachineSpecificationConverter converter =
-        new HumanToMachineSpecificationConverter(Timing.empty());
-    DexApplication app = spec.getAppForTesting(options, true);
-    MachineDesugaredLibrarySpecification machineSimpleSpec =
-        converter.convert(humanSimpleSpec, app);
+    for (AndroidApiLevel api :
+        new AndroidApiLevel[] {AndroidApiLevel.B, AndroidApiLevel.N, AndroidApiLevel.O}) {
+      MachineDesugaredLibrarySpecification machineSpecParsed =
+          new MachineDesugaredLibrarySpecificationParser(
+                  options.dexItemFactory(), options.reporter, true, api.getLevel())
+              .parse(StringResource.fromFile(output));
+      assertEquals(
+          api.isGreaterThanOrEqualTo(AndroidApiLevel.O) && spec == JDK8,
+          machineSpecParsed.getRewriteType().isEmpty());
 
-    assertSpecEquals(machineSimpleSpec, machineSpecParsed);
+      HumanDesugaredLibrarySpecification humanSimpleSpec =
+          new HumanDesugaredLibrarySpecificationParser(
+                  options.dexItemFactory(), options.reporter, true, api.getLevel())
+              .parse(StringResource.fromString(json.get(), Origin.unknown()));
+      HumanToMachineSpecificationConverter converter =
+          new HumanToMachineSpecificationConverter(Timing.empty());
+      DexApplication app = spec.getAppForTesting(options, true);
+      MachineDesugaredLibrarySpecification machineSimpleSpec =
+          converter.convert(humanSimpleSpec, app);
+
+      assertSpecEquals(machineSimpleSpec, machineSpecParsed);
+    }
   }
 
   @Test
   public void testSingleLevel() throws IOException {
     Assume.assumeTrue(ToolHelper.isLocalDevelopment());
 
-    LibraryDesugaringSpecification humanSpec = LibraryDesugaringSpecification.JDK11_PATH;
+    LibraryDesugaringSpecification humanSpec = JDK11_PATH;
 
     InternalOptions options = new InternalOptions();
 
@@ -292,13 +298,12 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
 
     assertEquals(humanRewritingFlags1.getDontRetarget(), humanRewritingFlags2.getDontRetarget());
     assertEquals(
-        humanRewritingFlags1.getDontRewriteInvocation(),
-        humanRewritingFlags2.getDontRewriteInvocation());
-    assertEquals(
         humanRewritingFlags1.getWrapperConversions(), humanRewritingFlags2.getWrapperConversions());
 
     assertEquals(
         humanRewritingFlags1.getAmendLibraryMethod(), humanRewritingFlags2.getAmendLibraryMethod());
+    assertEquals(
+        humanRewritingFlags1.getAmendLibraryField(), humanRewritingFlags2.getAmendLibraryField());
   }
 
   private void assertTopLevelFlagsEquals(

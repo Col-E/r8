@@ -27,6 +27,10 @@ public class UnusedArgument extends Instruction {
     super(outValue);
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
@@ -111,5 +115,18 @@ public class UnusedArgument extends Instruction {
   @Override
   public int opcode() {
     return Opcodes.UNUSED_ARGUMENT;
+  }
+
+  public static class Builder extends BuilderBase<Builder, UnusedArgument> {
+
+    @Override
+    public UnusedArgument build() {
+      return amend(new UnusedArgument(outValue));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }

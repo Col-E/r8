@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
+
 /** Enumeration of the possible output formats of compilation. */
-@Keep
+@KeepForApi
 public enum OutputMode {
 
   /** Produce DEX files using standard indexed-multidex for programs larger that a single file. */

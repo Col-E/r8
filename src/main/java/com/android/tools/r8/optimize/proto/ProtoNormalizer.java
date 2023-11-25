@@ -84,6 +84,7 @@ public class ProtoNormalizer {
       }
 
       @Override
+      @SuppressWarnings("ReferenceEquality")
       protected TraversalContinuation<Void, LocalReservationState> joiner(
           DFSNodeWithState<DexClass, LocalReservationState> node,
           List<DFSNodeWithState<DexClass, LocalReservationState>> childStates) {
@@ -135,8 +136,9 @@ public class ProtoNormalizer {
                     // this should simply clear the optimization info, or replace it by a
                     // ThrowingMethodOptimizationInfo since we should never use the optimization
                     // info after this point.
-                    return method.toTypeSubstitutedMethod(
+                    return method.toTypeSubstitutedMethodAsInlining(
                         newMethodReference,
+                        dexItemFactory,
                         builder -> {
                           if (!prototypeChanges.isEmpty()) {
                             builder
@@ -208,6 +210,7 @@ public class ProtoNormalizer {
                 }
               });
         },
+        appView.options().getThreadingModule(),
         executorService);
 
     // Reserve parameter lists that won't lead to any sharing after normalization. Any method with
@@ -238,6 +241,7 @@ public class ProtoNormalizer {
         method ->
             computeExtraReservationsFromMethod(
                 method, unoptimizableParameterLists, unoptimizableSignatures),
+        appView.options().getThreadingModule(),
         executorService);
 
     return new GlobalReservationState(reservedParameterLists, unoptimizableSignatures);

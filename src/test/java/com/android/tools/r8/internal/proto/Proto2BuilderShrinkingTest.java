@@ -31,6 +31,43 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
 
+  private enum MainClassesConfig {
+    ALL,
+    BUILDER_WITH_ONE_OF_SETTER_TEST_CLASS,
+    BUILDER_WITH_PRIMITIVE_SETTERS_TEST_CLASS,
+    BUILDER_WITH_PROTO_BUILDER_SETTER_TEST_CLASS,
+    BUILDER_WITH_PROTO_SETTER_TEST_CLASS,
+    BUILDER_WITH_REUSED_SETTERS_TEST_CLASS,
+    HAS_FLAGGED_OFF_EXTENSION_BUILDER_TEST_CLASS;
+
+    List<String> getMainClasses() {
+      switch (this) {
+        case ALL:
+          return ImmutableList.of(
+              "proto2.BuilderWithOneofSetterTestClass",
+              "proto2.BuilderWithPrimitiveSettersTestClass",
+              "proto2.BuilderWithProtoBuilderSetterTestClass",
+              "proto2.BuilderWithProtoSetterTestClass",
+              "proto2.BuilderWithReusedSettersTestClass",
+              "proto2.HasFlaggedOffExtensionBuilderTestClass");
+        case BUILDER_WITH_ONE_OF_SETTER_TEST_CLASS:
+          return ImmutableList.of("proto2.BuilderWithOneofSetterTestClass");
+        case BUILDER_WITH_PRIMITIVE_SETTERS_TEST_CLASS:
+          return ImmutableList.of("proto2.BuilderWithPrimitiveSettersTestClass");
+        case BUILDER_WITH_PROTO_BUILDER_SETTER_TEST_CLASS:
+          return ImmutableList.of("proto2.BuilderWithProtoBuilderSetterTestClass");
+        case BUILDER_WITH_PROTO_SETTER_TEST_CLASS:
+          return ImmutableList.of("proto2.BuilderWithProtoSetterTestClass");
+        case BUILDER_WITH_REUSED_SETTERS_TEST_CLASS:
+          return ImmutableList.of("proto2.BuilderWithReusedSettersTestClass");
+        case HAS_FLAGGED_OFF_EXTENSION_BUILDER_TEST_CLASS:
+          return ImmutableList.of("proto2.HasFlaggedOffExtensionBuilderTestClass");
+        default:
+          throw new Unreachable();
+      }
+    }
+  }
+
   private static final String METHOD_TO_INVOKE_ENUM =
       "com.google.protobuf.GeneratedMessageLite$MethodToInvoke";
 
@@ -38,7 +75,7 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
       ImmutableList.of(PROTO2_EXAMPLES_JAR, PROTO2_PROTO_JAR, PROTOBUF_LITE_JAR);
 
   @Parameter(0)
-  public List<String> mains;
+  public MainClassesConfig config;
 
   @Parameter(1)
   public TestParameters parameters;
@@ -46,20 +83,7 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
   @Parameters(name = "{1}, {0}")
   public static List<Object[]> data() {
     return buildParameters(
-        ImmutableList.of(
-            ImmutableList.of("proto2.BuilderWithOneofSetterTestClass"),
-            ImmutableList.of("proto2.BuilderWithPrimitiveSettersTestClass"),
-            ImmutableList.of("proto2.BuilderWithProtoBuilderSetterTestClass"),
-            ImmutableList.of("proto2.BuilderWithProtoSetterTestClass"),
-            ImmutableList.of("proto2.BuilderWithReusedSettersTestClass"),
-            ImmutableList.of("proto2.HasFlaggedOffExtensionBuilderTestClass"),
-            ImmutableList.of(
-                "proto2.BuilderWithOneofSetterTestClass",
-                "proto2.BuilderWithPrimitiveSettersTestClass",
-                "proto2.BuilderWithProtoBuilderSetterTestClass",
-                "proto2.BuilderWithProtoSetterTestClass",
-                "proto2.BuilderWithReusedSettersTestClass",
-                "proto2.HasFlaggedOffExtensionBuilderTestClass")),
+        MainClassesConfig.values(),
         getTestParameters().withDefaultDexRuntime().withAllApiLevels().build());
   }
 
@@ -68,7 +92,7 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
     R8TestCompileResult result =
         testForR8(parameters.getBackend())
             .addProgramFiles(PROGRAM_FILES)
-            .addKeepMainRules(mains)
+            .addKeepMainRules(config.getMainClasses())
             .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
             .allowAccessModification()
             .allowDiagnosticMessages()
@@ -83,7 +107,7 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
             .apply(this::inspectWarningMessages)
             .inspect(this::inspect);
 
-    for (String main : mains) {
+    for (String main : config.getMainClasses()) {
       result.run(parameters.getRuntime(), main).assertSuccessWithOutput(getExpectedOutput(main));
     }
   }
@@ -195,7 +219,7 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
 
     DexType methodToInvokeType =
         outputInspector.clazz(METHOD_TO_INVOKE_ENUM).getDexProgramClass().getType();
-    for (String main : mains) {
+    for (String main : config.getMainClasses()) {
       MethodSubject mainMethodSubject = outputInspector.clazz(main).mainMethod();
       assertThat(mainMethodSubject, isPresent());
 

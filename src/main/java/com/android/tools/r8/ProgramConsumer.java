@@ -3,10 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
+
 /**
  * Base for all program consumers to allow abstracting which concrete consumer is provided to D8/R8.
  */
-@KeepForSubclassing
+@KeepForApi
 public interface ProgramConsumer {
 
   /**

@@ -310,8 +310,6 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
             .allowAccessModification()
             .enableInliningAnnotations()
             .addDontObfuscate()
-            // Using LIR changes the inlining heuristics so enable it consistently.
-            .addOptionsModification(o -> o.testing.enableLir())
             .setMinApi(parameters)
             .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);

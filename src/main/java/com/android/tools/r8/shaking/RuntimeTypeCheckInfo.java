@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
 import java.util.Set;
+import java.util.function.Function;
 
 public class RuntimeTypeCheckInfo {
 
@@ -29,6 +30,31 @@ public class RuntimeTypeCheckInfo {
     this.instanceOfTypes = instanceOfTypes;
     this.checkCastTypes = checkCastTypes;
     this.exceptionGuardTypes = exceptionGuardTypes;
+  }
+
+  public boolean isCheckCastType(DexProgramClass clazz) {
+    return checkCastTypes.contains(clazz.type);
+  }
+
+  public boolean isInstanceOfType(DexProgramClass clazz) {
+    return instanceOfTypes.contains(clazz.type);
+  }
+
+  public boolean isExceptionGuardType(DexProgramClass clazz) {
+    return exceptionGuardTypes.contains(clazz.type);
+  }
+
+  public boolean isRuntimeCheckType(DexProgramClass clazz) {
+    return isInstanceOfType(clazz) || isCheckCastType(clazz) || isExceptionGuardType(clazz);
+  }
+
+  public RuntimeTypeCheckInfo rewriteWithLens(
+      NonIdentityGraphLens graphLens, GraphLens appliedGraphLens) {
+    Function<DexType, DexType> typeRewriter = type -> graphLens.lookupType(type, appliedGraphLens);
+    return new RuntimeTypeCheckInfo(
+        SetUtils.mapIdentityHashSet(instanceOfTypes, typeRewriter),
+        SetUtils.mapIdentityHashSet(checkCastTypes, typeRewriter),
+        SetUtils.mapIdentityHashSet(exceptionGuardTypes, typeRewriter));
   }
 
   public static class Builder
@@ -52,7 +78,7 @@ public class RuntimeTypeCheckInfo {
       RuntimeTypeCheckInfo runtimeTypeCheckInfo =
           new RuntimeTypeCheckInfo(instanceOfTypes, checkCastTypes, exceptionGuardTypes);
       return graphLens.isNonIdentityLens() && graphLens != appliedGraphLens
-          ? runtimeTypeCheckInfo.rewriteWithLens(graphLens.asNonIdentityLens())
+          ? runtimeTypeCheckInfo.rewriteWithLens(graphLens.asNonIdentityLens(), appliedGraphLens)
           : runtimeTypeCheckInfo;
     }
 
@@ -89,28 +115,5 @@ public class RuntimeTypeCheckInfo {
           .registerCheckCastAnalysis(this)
           .registerExceptionGuardAnalysis(this);
     }
-  }
-
-  public boolean isCheckCastType(DexProgramClass clazz) {
-    return checkCastTypes.contains(clazz.type);
-  }
-
-  public boolean isInstanceOfType(DexProgramClass clazz) {
-    return instanceOfTypes.contains(clazz.type);
-  }
-
-  public boolean isExceptionGuardType(DexProgramClass clazz) {
-    return exceptionGuardTypes.contains(clazz.type);
-  }
-
-  public boolean isRuntimeCheckType(DexProgramClass clazz) {
-    return isInstanceOfType(clazz) || isCheckCastType(clazz) || isExceptionGuardType(clazz);
-  }
-
-  public RuntimeTypeCheckInfo rewriteWithLens(NonIdentityGraphLens graphLens) {
-    return new RuntimeTypeCheckInfo(
-        SetUtils.mapIdentityHashSet(instanceOfTypes, graphLens::lookupType),
-        SetUtils.mapIdentityHashSet(checkCastTypes, graphLens::lookupType),
-        SetUtils.mapIdentityHashSet(exceptionGuardTypes, graphLens::lookupType));
   }
 }

@@ -21,6 +21,7 @@ import com.android.aapt.Resources.Entry
 import com.android.aapt.Resources.FileReference
 import com.android.aapt.Resources.FileReference.Type.PROTO_XML
 import com.android.aapt.Resources.Reference
+import com.android.aapt.Resources.ResourceTable
 import com.android.aapt.Resources.XmlAttribute
 import com.android.aapt.Resources.XmlElement
 import com.android.aapt.Resources.XmlNode
@@ -56,12 +57,23 @@ import java.nio.file.Path
  * @param resourceTable path to resource table in proto format.
  */
 class ProtoResourcesGraphBuilder(
-    private val resourceRoot: Path,
-    private val resourceTable: Path
+    private val resourceRoot: ResFolderFileTree,
+    private val resourceTableProducer: (ResourceShrinkerModel) -> ResourceTable
 ) : ResourcesGraphBuilder {
 
+    constructor(resourceRootPath: Path, resourceTablePath: Path) : this(
+        object : ResFolderFileTree {
+            override fun getEntryByName(pathInRes: String): ByteArray {
+                val lazyVal : ByteArray by lazy {
+                    Files.readAllBytes(resourceRootPath.resolve(pathInRes))
+                }
+                return lazyVal
+            }
+        },
+        { model -> model.readResourceTable(resourceTablePath) }
+    )
     override fun buildGraph(model: ResourceShrinkerModel) {
-        model.readResourceTable(resourceTable).entriesSequence()
+        resourceTableProducer(model).entriesSequence()
             .map { (id, _, _, entry) ->
                 model.resourceStore.getResource(id)?.let {
                     ReferencesForResourceFinder(resourceRoot, model, entry, it)
@@ -71,9 +83,12 @@ class ProtoResourcesGraphBuilder(
             .forEach { it.findReferences() }
     }
 }
+interface ResFolderFileTree {
+    fun getEntryByName(pathInRes: String) : ByteArray
+}
 
 private class ReferencesForResourceFinder(
-    private val resourcesRoot: Path,
+    private val resourcesRoot: ResFolderFileTree,
     private val model: ResourceShrinkerModel,
     private val entry: Entry,
     private val current: Resource
@@ -196,10 +211,9 @@ private class ReferencesForResourceFinder(
     }
 
     private fun findFromFile(file: FileReference) {
-        val path = resourcesRoot.resolve(file.path.substringAfter("res/"))
-        val bytes: ByteArray by lazy { Files.readAllBytes(path) }
+        val bytes = resourcesRoot.getEntryByName(file.path.substringAfter("res/"))
         val content: String by lazy { String(bytes, StandardCharsets.UTF_8) }
-        val extension = Ascii.toLowerCase(path.fileName.toString()).substringAfter('.')
+        val extension = Ascii.toLowerCase(file.path.substringAfterLast('.'))
         when {
             file.type == PROTO_XML -> fillFromXmlNode(XmlNode.parseFrom(bytes))
             extension in listOf("html", "htm") -> webTokenizers.tokenizeHtml(content)

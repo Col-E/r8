@@ -6,7 +6,6 @@ package com.android.tools.r8.utils;
 
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
@@ -166,7 +165,7 @@ public class WorkList<T> {
   }
 
   public Set<T> getSeenSet() {
-    return Collections.unmodifiableSet(seen);
+    return SetUtils.unmodifiableForTesting(seen);
   }
 
   public Set<T> getMutableSeenSet() {

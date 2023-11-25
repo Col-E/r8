@@ -117,6 +117,7 @@ public abstract class DexFormat45cc extends DexBase4Format {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void write(
       ShortBuffer dest,
       ProgramMethod context,

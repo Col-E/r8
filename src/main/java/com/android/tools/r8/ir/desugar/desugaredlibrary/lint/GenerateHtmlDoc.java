@@ -4,6 +4,11 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.lint;
 
+import com.android.tools.r8.ArchiveClassFileProvider;
+import com.android.tools.r8.ArchiveProgramResourceProvider;
+import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -18,10 +23,15 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.Me
 import com.android.tools.r8.ir.desugar.desugaredlibrary.lint.SupportedClasses.SupportedClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -37,12 +47,11 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
   private static final String SUP_4 = "<sup>4</sup>";
 
   public GenerateHtmlDoc(
-      String desugarConfigurationPath,
-      String desugarImplementationPath,
-      String outputDirectory,
-      String androidJarPath)
-      throws Exception {
-    super(desugarConfigurationPath, desugarImplementationPath, outputDirectory, androidJarPath);
+      StringResource desugarSpecification,
+      Collection<ProgramResourceProvider> desugarImplementation,
+      Path outputDirectory,
+      Collection<ClassFileResourceProvider> androidJar) {
+    super(new Reporter(), desugarSpecification, desugarImplementation, outputDirectory, androidJar);
   }
 
   private static class StringBuilderWithIndent {
@@ -52,11 +61,6 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
     String indent = "";
 
     StringBuilderWithIndent() {}
-
-    StringBuilderWithIndent indent(String indent) {
-      this.indent = indent;
-      return this;
-    }
 
     StringBuilderWithIndent appendLineStart(String lineStart) {
       builder.append(indent);
@@ -284,16 +288,12 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
 
   private static class HTMLBuilder extends StringBuilderWithIndent {
 
-    private String indent = "";
-
     private void increaseIndent() {
       indent += "  ";
-      indent(indent);
     }
 
     private void decreaseIndent() {
       indent = indent.substring(0, indent.length() - 2);
-      indent(indent);
     }
 
     HTMLBuilder appendTdPackage(String s) {
@@ -557,7 +557,7 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
 
     SupportedClasses supportedClasses =
         new SupportedClassesGenerator(options, androidJar)
-            .run(desugaredLibraryImplementation, desugaredLibrarySpecificationPath);
+            .run(desugaredLibraryImplementation, desugaredLibrarySpecificationResource);
 
     // Full classes added.
     supportedClasses.forEachClass(supportedClass -> generateClassHTML(ps, supportedClass));
@@ -566,8 +566,13 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
 
   public static void main(String[] args) throws Exception {
     if (args[0].equals("--generate-api-docs")) {
-      if (args.length == 4 || args.length == 5) {
-        new GenerateHtmlDoc(args[1], args[2], args[3], getAndroidJarPath(args, 5)).run();
+      if (args.length == 5) {
+        new GenerateHtmlDoc(
+                StringResource.fromFile(Paths.get(args[1])),
+                ImmutableList.of(ArchiveProgramResourceProvider.fromArchive(Paths.get(args[2]))),
+                Paths.get(args[3]),
+                ImmutableList.of(new ArchiveClassFileProvider(Paths.get(args[4]))))
+            .run();
         return;
       }
     }
@@ -575,8 +580,8 @@ public class GenerateHtmlDoc extends AbstractGenerateFiles {
         StringUtils.joinLines(
             "Invalid invocation.",
             "Usage: GenerateHtmlDoc --generate-api-docs <desugar configuration> "
-                + "<desugar implementation> <output directory> [<android jar path for Android "
+                + "<desugar implementation> <output directory> <android jar path for Android "
                 + MAX_TESTED_ANDROID_API_LEVEL
-                + " or higher>]"));
+                + " or higher>"));
   }
 }

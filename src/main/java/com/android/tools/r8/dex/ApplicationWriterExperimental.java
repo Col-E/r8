@@ -59,6 +59,7 @@ class ApplicationWriterExperimental extends ApplicationWriter {
             virtualFile ->
                 rewriteJumboStringsAndComputeDebugRepresentationWithExternalStringIds(
                     virtualFile, lazyDexStrings, lastFile.getObjectMapping()),
+            appView.options().getThreadingModule(),
             executorService));
     return timings;
   }

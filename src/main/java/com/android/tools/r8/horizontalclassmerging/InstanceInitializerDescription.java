@@ -61,6 +61,7 @@ public class InstanceInitializerDescription {
     return new Builder(appView.dexItemFactory(), instanceInitializer);
   }
 
+  @SuppressWarnings("InvalidParam")
   public static Builder builder(
       AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod instanceInitializer) {
     return new Builder(appView.dexItemFactory(), instanceInitializer);
@@ -69,14 +70,10 @@ public class InstanceInitializerDescription {
   /**
    * Transform this description into actual CF code.
    *
-   * @param newMethodReference the reference of the method that is being synthesized
    * @param originalMethodReference the original reference of the representative method
-   * @param syntheticMethodReference the original, synthetic reference of the new method reference
-   *     ($r8$init$synthetic)
    */
   public IncompleteMergedInstanceInitializerCode createCfCode(
       DexMethod originalMethodReference,
-      DexMethod syntheticMethodReference,
       MergeGroup group,
       boolean hasClassId,
       int extraNulls) {
@@ -84,7 +81,6 @@ public class InstanceInitializerDescription {
         hasClassId ? group.getClassIdField() : null,
         extraNulls,
         originalMethodReference,
-        syntheticMethodReference,
         instanceFieldAssignmentsPre,
         instanceFieldAssignmentsPost,
         parentConstructor,
@@ -92,6 +88,7 @@ public class InstanceInitializerDescription {
   }
 
   @Override
+  @SuppressWarnings({"EqualsGetClass", "ReferenceEquality"})
   public boolean equals(Object obj) {
     if (obj == null || getClass() != obj.getClass()) {
       return false;
@@ -138,6 +135,7 @@ public class InstanceInitializerDescription {
       this(dexItemFactory, method.getReference());
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public void addInstancePut(DexField field, InstanceFieldInitializationInfo value) {
       if (parentConstructor == null) {
         instanceFieldAssignmentsPre.put(field, value);

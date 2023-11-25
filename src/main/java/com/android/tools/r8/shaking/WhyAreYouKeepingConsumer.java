@@ -60,7 +60,7 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
 
   public ClassGraphNode getClassNode(ClassReference clazz) {
     for (GraphNode node : getTargets()) {
-      if (node instanceof ClassGraphNode && ((ClassGraphNode) node).getReference() == clazz) {
+      if (node instanceof ClassGraphNode && ((ClassGraphNode) node).getReference().equals(clazz)) {
         return (ClassGraphNode) node;
       }
     }
@@ -69,7 +69,8 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
 
   public MethodGraphNode getMethodNode(MethodReference method) {
     for (GraphNode node : getTargets()) {
-      if (node instanceof MethodGraphNode && ((MethodGraphNode) node).getReference() == method) {
+      if (node instanceof MethodGraphNode
+          && ((MethodGraphNode) node).getReference().equals(method)) {
         return (MethodGraphNode) node;
       }
     }
@@ -78,7 +79,7 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
 
   public FieldGraphNode getFieldNode(FieldReference field) {
     for (GraphNode node : getTargets()) {
-      if (node instanceof FieldGraphNode && ((FieldGraphNode) node).getReference() == field) {
+      if (node instanceof FieldGraphNode && ((FieldGraphNode) node).getReference().equals(field)) {
         return (FieldGraphNode) node;
       }
     }
@@ -220,11 +221,11 @@ public class WhyAreYouKeepingConsumer extends CollectingGraphConsumer {
     }
     if (node instanceof KeepRuleGraphNode) {
       KeepRuleGraphNode keepRuleNode = (KeepRuleGraphNode) node;
-      return keepRuleNode.getOrigin() == Origin.unknown()
+      return Origin.unknown().equals(keepRuleNode.getOrigin())
           ? keepRuleNode.getContent()
           : keepRuleNode.getOrigin() + ":" + shortPositionInfo(keepRuleNode.getPosition());
     }
-    if (node == GraphNode.cycle()) {
+    if (GraphNode.cycle().equals(node)) {
       return "only cyclic dependencies remain, failed to determine a path from a keep rule";
     }
     assert false : "Unexpected graph node type: " + node;

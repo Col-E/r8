@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compilerapi;
 
+import static com.android.tools.r8.ToolHelper.getClassPathForTests;
 import static com.android.tools.r8.ToolHelper.isTestingR8Lib;
 
 import com.android.tools.r8.ToolHelper;
@@ -18,6 +19,7 @@ import com.android.tools.r8.compilerapi.extractmarker.ExtractMarkerApiTest;
 import com.android.tools.r8.compilerapi.globalsynthetics.GlobalSyntheticsTest;
 import com.android.tools.r8.compilerapi.globalsyntheticsgenerator.GlobalSyntheticsGeneratorTest;
 import com.android.tools.r8.compilerapi.inputdependencies.InputDependenciesTest;
+import com.android.tools.r8.compilerapi.inputmap.InputMapTest;
 import com.android.tools.r8.compilerapi.mapid.CustomMapIdTest;
 import com.android.tools.r8.compilerapi.mockdata.MockClass;
 import com.android.tools.r8.compilerapi.mockdata.MockClassWithAssertion;
@@ -63,7 +65,8 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
           ExtractMarkerApiTest.ApiTest.class,
           PartitionMapCommandTest.ApiTest.class,
           CancelCompilationCheckerTest.ApiTest.class,
-          GlobalSyntheticsGeneratorTest.ApiTest.class);
+          GlobalSyntheticsGeneratorTest.ApiTest.class,
+          InputMapTest.ApiTest.class);
 
   private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
       ImmutableList.of();
@@ -120,6 +123,7 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
   public List<String> getVmArgs() {
     return ImmutableList.of(
         makeProperty("com.android.tools.r8.enableTestAssertions", "1"),
+        makeProperty("TEST_DATA_LOCATION", getClassPathForTests().toString()),
         makeProperty(CompilerApiTest.API_TEST_MODE_KEY, CompilerApiTest.API_TEST_MODE_EXTERNAL),
         makeProperty(
             CompilerApiTest.API_TEST_LIB_KEY,

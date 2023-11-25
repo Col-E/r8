@@ -112,6 +112,7 @@ public class StringSwitchRemover {
         && isClassNameValue(theSwitch.value(), appView.dexItemFactory());
   }
 
+  @SuppressWarnings("UnusedVariable")
   private boolean prepareForStringSwitchRemoval(IRCode code) {
     boolean hasStringSwitch = false;
     ListIterator<BasicBlock> blockIterator = code.listIterator();

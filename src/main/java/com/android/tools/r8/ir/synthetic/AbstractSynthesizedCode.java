@@ -10,6 +10,8 @@ import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.lens.GraphLens;
@@ -17,6 +19,7 @@ import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
@@ -54,12 +57,18 @@ public abstract class AbstractSynthesizedCode extends Code {
       AppView<?> appView,
       Origin origin,
       MutableMethodConversionOptions conversionOptions) {
-    return IRBuilder.create(method, appView, getSourceCodeProvider().get(method, null), origin)
+    SyntheticPosition position =
+        SyntheticPosition.builder()
+            .setLine(0)
+            .setMethod(method.getReference())
+            .setIsD8R8Synthesized(true)
+            .build();
+    return IRBuilder.create(method, appView, getSourceCodeProvider().get(method, position), origin)
         .build(method, conversionOptions);
   }
 
   @Override
-  public IRCode buildInliningIR(
+  public final IRCode buildInliningIR(
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
@@ -77,6 +86,18 @@ public abstract class AbstractSynthesizedCode extends Code {
             valueNumberGenerator,
             protoChanges)
         .build(context, MethodConversionOptions.nonConverting());
+  }
+
+  @Override
+  public final Code getCodeAsInlining(
+      DexMethod caller,
+      boolean isCallerD8R8Synthesized,
+      DexMethod callee,
+      boolean isCalleeD8R8Synthesized,
+      DexItemFactory factory) {
+    // This code object is synthesized so "inlining" just "strips" the callee position.
+    assert isCalleeD8R8Synthesized;
+    return this;
   }
 
   @Override

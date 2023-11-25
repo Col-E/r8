@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.List;
 
 /**
@@ -11,7 +12,7 @@ import java.util.List;
  * <p>Note that this information is purly for usage information and is not an exact semantics of
  * flags.
  */
-@Keep
+@KeepForApi
 public interface ParseFlagInfo {
 
   /** Get the primary format description of the flag (including arguments). */

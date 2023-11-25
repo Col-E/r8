@@ -218,6 +218,7 @@ public class FieldMapBacking extends FieldCollectionBacking {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   void replaceFields(Function<DexEncodedField, DexEncodedField> replacement) {
     // The code assumes that when replacement.apply(field) is called, the map is up-to-date with
     // the previously replaced fields. We therefore cannot postpone the map updates to the end of

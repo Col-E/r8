@@ -57,6 +57,7 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
     FieldLookupResult lookupResult = super.internalDescribeLookupField(previous);
     if (lookupResult.getReference().getType() != previous.getReference().getType()) {
@@ -124,12 +125,14 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
       return this;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public Builder recordMove(DexField from, DexField to) {
       assert from != to;
       newFieldSignatures.put(from, to);
       return this;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public Builder recordMove(
         DexMethod from, DexMethod to, RewrittenPrototypeDescription prototypeChangesForMethod) {
       assert from != to;
@@ -160,6 +163,7 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
       return argumentPropagatorGraphLens;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void fixupPrototypeChangesAfterFieldSignatureChanges(
         ArgumentPropagatorGraphLens argumentPropagatorGraphLens) {
       for (Entry<DexMethod, RewrittenPrototypeDescription> entry : prototypeChanges.entrySet()) {

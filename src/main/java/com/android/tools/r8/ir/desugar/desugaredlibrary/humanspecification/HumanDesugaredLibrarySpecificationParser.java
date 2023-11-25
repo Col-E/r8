@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.TopLevelFlagsBuilder;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags.HumanEmulatedInterfaceDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.memberparser.HumanFieldParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.memberparser.HumanMethodParser;
 import com.android.tools.r8.origin.Origin;
@@ -35,7 +36,7 @@ import java.util.function.Consumer;
 
 public class HumanDesugaredLibrarySpecificationParser {
 
-  public static final int CURRENT_HUMAN_CONFIGURATION_FORMAT_VERSION = 100;
+  public static final int CURRENT_HUMAN_CONFIGURATION_FORMAT_VERSION = 101;
 
   static final String IDENTIFIER_KEY = "identifier";
   static final String REQUIRED_COMPILATION_API_LEVEL_KEY = "required_compilation_api_level";
@@ -49,6 +50,8 @@ public class HumanDesugaredLibrarySpecificationParser {
   static final String API_LEVEL_BELOW_OR_EQUAL_KEY = "api_level_below_or_equal";
   static final String API_LEVEL_GREATER_OR_EQUAL_KEY = "api_level_greater_or_equal";
   static final String API_GENERIC_TYPES_CONVERSION = "api_generic_types_conversion";
+  static final String REWRITTEN_TYPE_KEY = "rewrittenType";
+  static final String EMULATED_METHODS_KEY = "emulatedMethods";
   static final String WRAPPER_CONVERSION_KEY = "wrapper_conversion";
   static final String WRAPPER_CONVERSION_EXCLUDING_KEY = "wrapper_conversion_excluding";
   static final String CUSTOM_CONVERSION_KEY = "custom_conversion";
@@ -63,7 +66,6 @@ public class HumanDesugaredLibrarySpecificationParser {
       "retarget_method_with_emulated_dispatch";
   static final String REWRITE_DERIVED_PREFIX_KEY = "rewrite_derived_prefix";
   static final String EMULATE_INTERFACE_KEY = "emulate_interface";
-  static final String DONT_REWRITE_KEY = "dont_rewrite";
   static final String DONT_RETARGET_KEY = "dont_retarget";
   static final String BACKPORT_KEY = "backport";
   static final String AMEND_LIBRARY_METHOD_KEY = "amend_library_method";
@@ -343,9 +345,15 @@ public class HumanDesugaredLibrarySpecificationParser {
     if (jsonFlagSet.has(EMULATE_INTERFACE_KEY)) {
       for (Map.Entry<String, JsonElement> itf :
           jsonFlagSet.get(EMULATE_INTERFACE_KEY).getAsJsonObject().entrySet()) {
-        builder.putEmulatedInterface(
-            stringDescriptorToDexType(itf.getKey()),
-            stringDescriptorToDexType(itf.getValue().getAsString()));
+        if (itf.getValue().isJsonPrimitive()) {
+          builder.putLegacyEmulatedInterface(
+              stringDescriptorToDexType(itf.getKey()),
+              stringDescriptorToDexType(itf.getValue().getAsString()));
+        } else {
+          builder.putSpecifiedEmulatedInterface(
+              stringDescriptorToDexType(itf.getKey()),
+              parseEmulatedInterfaceDescriptor(itf.getValue()));
+        }
       }
     }
     if (jsonFlagSet.has(CUSTOM_CONVERSION_KEY)) {
@@ -369,12 +377,6 @@ public class HumanDesugaredLibrarySpecificationParser {
             parseMethods(wrapper.getValue().getAsJsonArray()));
       }
     }
-    if (jsonFlagSet.has(DONT_REWRITE_KEY)) {
-      JsonArray dontRewrite = jsonFlagSet.get(DONT_REWRITE_KEY).getAsJsonArray();
-      for (JsonElement rewrite : dontRewrite) {
-        builder.addDontRewriteInvocation(parseMethod(rewrite.getAsString()));
-      }
-    }
     if (jsonFlagSet.has(DONT_RETARGET_KEY)) {
       JsonArray dontRetarget = jsonFlagSet.get(DONT_RETARGET_KEY).getAsJsonArray();
       for (JsonElement rewrite : dontRetarget) {
@@ -395,6 +397,21 @@ public class HumanDesugaredLibrarySpecificationParser {
         builder.amendLibraryField(fieldParser.getField(), fieldParser.getFlags());
       }
     }
+  }
+
+  private HumanEmulatedInterfaceDescriptor parseEmulatedInterfaceDescriptor(JsonElement value) {
+    JsonObject jsonObject = value.getAsJsonObject();
+    DexType rewrittenType =
+        stringDescriptorToDexType(required(jsonObject, REWRITTEN_TYPE_KEY).getAsString());
+    Set<DexMethod> emulatedMethods = Sets.newIdentityHashSet();
+    if (jsonObject.has(EMULATED_METHODS_KEY)) {
+      JsonArray methods = jsonObject.get(EMULATED_METHODS_KEY).getAsJsonArray();
+      for (JsonElement method : methods) {
+        methodParser.parseMethod(method.getAsString());
+        emulatedMethods.add(methodParser.getMethod());
+      }
+    }
+    return new HumanEmulatedInterfaceDescriptor(rewrittenType, emulatedMethods);
   }
 
   private Set<DexMethod> parseMethods(JsonArray array) {

@@ -467,6 +467,7 @@ public class IRBuilder {
     currentBlock = block;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void buildArgumentsWithRewrittenPrototypeChanges(
       int register, DexEncodedMethod method, BiConsumer<Integer, DexType> writeCallback) {
     ArgumentInfoCollection argumentsInfo = prototypeChanges.getArgumentInfoCollection();
@@ -531,7 +532,7 @@ public class IRBuilder {
       int newArgumentIndex =
           argumentsInfo.getNewArgumentIndex(argumentIndex, numberOfRemovedArguments);
       DexType extraArgumentType = method.getArgumentType(newArgumentIndex);
-      if (extraParameter instanceof ExtraUnusedNullParameter) {
+      if (extraParameter.isUnused()) {
         addExtraUnusedArgument(extraArgumentType);
       } else {
         addNonThisArgument(register, extraParameter.getTypeElement(appView, extraArgumentType));
@@ -914,6 +915,7 @@ public class IRBuilder {
     addInstruction(ir);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void addThisArgument(int register) {
     boolean receiverCouldBeNull = context != null && context != method;
     Nullability nullability = receiverCouldBeNull ? maybeNull() : definitelyNotNull();
@@ -962,12 +964,14 @@ public class IRBuilder {
     argumentValues.add(argument.outValue());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean isValidFor(Value value, DebugLocalInfo local) {
     // Invalid debug-info may cause attempt to read a local that is not actually alive.
     // See b/37722432 and regression test {@code jasmin.InvalidDebugInfoTests::testInvalidInfoThrow}
     return !value.isUninitializedLocal() && value.getLocalInfo() == local;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void addDebugLocalStart(int register, DebugLocalInfo local) {
     assert local != null;
     if (!isDebugMode()) {
@@ -1238,6 +1242,7 @@ public class IRBuilder {
     addMove(ValueTypeConstraint.fromValueType(valueType), dest, src);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public void addMove(ValueTypeConstraint constraint, int dest, int src) {
     Value in = readRegister(src, constraint);
     if (isDebugMode()) {
@@ -1441,6 +1446,7 @@ public class IRBuilder {
     add(new RecordFieldValues(fields, out, arguments));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean verifyRepresentablePolymorphicInvoke(InvokeType type, DexItem item) {
     if (type != InvokeType.POLYMORPHIC) {
       return true;
@@ -2043,6 +2049,7 @@ public class IRBuilder {
 
   // Value abstraction methods.
 
+  @SuppressWarnings("ReferenceEquality")
   public Value readRegister(int register, ValueTypeConstraint constraint) {
     DebugLocalInfo local = getIncomingLocal(register);
     Value value =
@@ -2184,6 +2191,7 @@ public class IRBuilder {
     return null;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private Value getUninitializedDebugLocalValue(int register, ValueTypeConstraint typeConstraint) {
     if (appView.options().invalidDebugInfoStrict) {
       throw new InvalidDebugInfoException(
@@ -2260,6 +2268,7 @@ public class IRBuilder {
     return value;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public Value writeRegister(int register, TypeElement typeLattice, ThrowingInfo throwing) {
     DebugLocalInfo incomingLocal = getIncomingLocal(register);
     DebugLocalInfo outgoingLocal = getOutgoingLocal(register);
@@ -2350,6 +2359,7 @@ public class IRBuilder {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void attachLocalValues(Instruction ir) {
     if (!isDebugMode()) {
       assert previousLocalValue == null;
@@ -2651,6 +2661,7 @@ public class IRBuilder {
   }
 
   @Override
+  @SuppressWarnings("UnnecessaryParentheses")
   public String toString() {
     StringBuilder builder = new StringBuilder();
     builder.append(("blocks:\n"));

@@ -30,7 +30,6 @@ public class InliningOptimize extends TestBase {
         .addKeepRules("-keep,allowoptimization class ** {\n" + "*;\n" + "}")
         .addOptionsModification(
             options -> {
-              options.testing.enableLir();
               options.inlinerOptions().simpleInliningInstructionLimit = 5;
             })
         .compile()

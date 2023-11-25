@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.lightir.LirBuilder;
+import com.android.tools.r8.utils.ListUtils;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -72,7 +73,11 @@ public class Goto extends JumpInstruction {
 
   @Override
   public String toString() {
-    if (getBlock() != null && !getBlock().getSuccessors().isEmpty()) {
+    BasicBlock myBlock = getBlock();
+    // Avoids BasicBlock.exit(), since it will assert when block is invalid.
+    if (myBlock != null
+        && !myBlock.getSuccessors().isEmpty()
+        && ListUtils.last(myBlock.getInstructions()) == this) {
       return super.toString() + "block " + getTarget().getNumberAsString();
     }
     return super.toString() + "block <unknown>";

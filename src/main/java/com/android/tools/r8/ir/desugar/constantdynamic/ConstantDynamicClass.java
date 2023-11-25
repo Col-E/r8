@@ -88,6 +88,7 @@ public class ConstantDynamicClass {
   // Considered final but is set after due to circularity in allocation.
   private DexProgramClass clazz = null;
 
+  @SuppressWarnings("ReferenceEquality")
   public ConstantDynamicClass(
       SyntheticProgramClassBuilder builder,
       AppView<?> appView,
@@ -404,6 +405,7 @@ public class ConstantDynamicClass {
     assert finalMethod.getDefinition().isPublicMethod();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexType mapLookupTypeToObject(DexType type) {
     return type == appView.dexItemFactory().lookupType ? appView.dexItemFactory().objectType : type;
   }

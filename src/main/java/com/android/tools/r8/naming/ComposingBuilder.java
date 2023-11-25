@@ -685,6 +685,7 @@ public class ComposingBuilder {
       return composedRanges;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private List<MappedRange> fixupInlinedOutlines(
         ComputedOutlineInformation computedOutlineInformation, List<MappedRange> composedRanges)
         throws MappingComposeException {
@@ -1051,6 +1052,7 @@ public class ComposingBuilder {
           : committedPreviousClassBuilder;
     }
 
+    @SuppressWarnings("MixedMutabilityReturnType")
     private void registerMappingInformationFromMappedRanges(MappedRange mappedRange)
         throws MappingComposeException {
       for (MappingInformation mappingInformation : mappedRange.getAdditionalMappingInformation()) {
@@ -1079,6 +1081,7 @@ public class ComposingBuilder {
       }
     }
 
+    @SuppressWarnings("MixedMutabilityReturnType")
     private List<MappedRange> composeMappedRangesForMethod(
         ComposingClassBuilder existingClassBuilder,
         List<MappedRange> existingRanges,

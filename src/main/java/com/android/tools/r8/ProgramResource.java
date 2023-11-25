@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.StreamUtils;
@@ -16,16 +17,16 @@ import java.util.Set;
 /**
  * Represents program application resources.
  *
- * The content kind or format of a program resource can be either a Java class-file or an Android
- * DEX file. In both cases, the resource must be able to provide the content as a byte stream.
- * A resource may optionally include a set describing the class descriptors for each type that is
+ * <p>The content kind or format of a program resource can be either a Java class-file or an Android
+ * DEX file. In both cases, the resource must be able to provide the content as a byte stream. A
+ * resource may optionally include a set describing the class descriptors for each type that is
  * defined by the resource.
  */
-@KeepForSubclassing
+@KeepForApi
 public interface ProgramResource extends Resource {
 
   /** Type of program-format kinds. */
-  @Keep
+  @KeepForApi
   enum Kind {
     /** Format-kind for Java class-file resources. */
     CF,
@@ -78,7 +79,7 @@ public interface ProgramResource extends Resource {
   Set<String> getClassDescriptors();
 
   /** File-based program resource. */
-  @Keep
+  @KeepForApi
   class FileResource implements ProgramResource {
     private final Origin origin;
     private final Kind kind;
@@ -127,7 +128,7 @@ public interface ProgramResource extends Resource {
   }
 
   /** Byte-content based program resource. */
-  @Keep
+  @KeepForApi
   class ByteResource implements ProgramResource {
     private final Origin origin;
     private final Kind kind;

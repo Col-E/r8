@@ -100,6 +100,7 @@ public class DesugaredLibraryLibRewriter implements CfInstructionDesugaring {
           .setDesugarRewrite(
               (freshLocalProvider,
                   localStackAllocator,
+                  desugaringInfo,
                   eventConsumer,
                   localContext,
                   methodProcessingContext,

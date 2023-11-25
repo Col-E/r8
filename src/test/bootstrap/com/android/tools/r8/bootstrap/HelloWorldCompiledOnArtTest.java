@@ -19,8 +19,8 @@ import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.desugar.desugaredlibrary.test.CompilationSpecification;
 import com.android.tools.r8.desugar.desugaredlibrary.test.DesugaredLibraryTestCompileResult;
 import com.android.tools.r8.desugar.desugaredlibrary.test.LibraryDesugaringSpecification;
-import com.android.tools.r8.examples.hello.HelloTestRunner;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -33,6 +33,16 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
+
+  static class HelloWorldProgram {
+    public static void main(String[] args) {
+      System.out.println("Hello, world!");
+    }
+  }
+
+  private static final Class<?> HELLO_CLASS = HelloWorldProgram.class;
+  private static final String HELLO_NAME = typeName(HELLO_CLASS);
+  private static String HELLO_EXPECTED = StringUtils.lines("Hello, world!");
 
   private final TestParameters parameters;
   private final CompilationSpecification compilationSpecification;
@@ -62,13 +72,17 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
     return Paths.get(string).toAbsolutePath().toString();
   }
 
-  private static final String HELLO_NAME = typeName(HelloTestRunner.getHelloClass());
+  private Path writeHelloProgramJar() throws IOException {
+    Path jar = temp.newFolder().toPath().resolve("hello.jar");
+    writeClassesToJar(jar, HELLO_CLASS);
+    return jar;
+  }
 
   @Test
   public void testHelloCompiledWithR8Dex() throws Exception {
     Path keepRules =
         writeTextToTempFile(keepMainProguardConfiguration(HELLO_NAME)).toAbsolutePath();
-    Path helloInput = HelloTestRunner.writeHelloProgramJar(temp);
+    Path helloInput = writeHelloProgramJar().toAbsolutePath();
     Path helloOutput = temp.newFolder("helloOutput").toPath().resolve("out.zip").toAbsolutePath();
     compileR8ToDexWithD8()
         .run(
@@ -88,7 +102,7 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testHelloCompiledWithD8Dex() throws Exception {
-    Path helloInput = HelloTestRunner.writeHelloProgramJar(temp).toAbsolutePath();
+    Path helloInput = writeHelloProgramJar().toAbsolutePath();
     Path helloOutput = temp.newFolder("helloOutput").toPath().resolve("out.zip").toAbsolutePath();
     compileR8ToDexWithD8()
         .run(
@@ -106,7 +120,7 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
 
   private void verifyResult(Path helloOutput) throws IOException {
     ProcessResult processResult = ToolHelper.runArtRaw(helloOutput.toString(), HELLO_NAME);
-    assertEquals(HelloTestRunner.getExpectedOutput(), processResult.stdout);
+    assertEquals(HELLO_EXPECTED, processResult.stdout);
   }
 
   private DesugaredLibraryTestCompileResult<?> compileR8ToDexWithD8() throws Exception {

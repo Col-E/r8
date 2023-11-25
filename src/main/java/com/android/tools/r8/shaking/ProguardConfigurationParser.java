@@ -47,7 +47,9 @@ import java.util.function.Predicate;
 
 public class ProguardConfigurationParser {
 
+  @SuppressWarnings("BadImport")
   private final Builder configurationBuilder;
+
   private final DexItemFactory dexItemFactory;
   private final ProguardConfigurationParserOptions options;
   private final Reporter reporter;
@@ -679,6 +681,7 @@ public class ProguardConfigurationParser {
       throw unknownOption(unknownOption, optionStart, "");
     }
 
+    @SuppressWarnings("UnnecessaryParentheses")
     private RuntimeException unknownOption(
         String unknownOption, TextPosition optionStart, String additionalMessage) {
       throw reporter.fatalError((new StringDiagnostic(
@@ -835,8 +838,8 @@ public class ProguardConfigurationParser {
       }
     }
 
-    private ProguardKeepRule parseKeepRule(Position start)
-        throws ProguardRuleParserException {
+    @SuppressWarnings("NonCanonicalType")
+    private ProguardKeepRule parseKeepRule(Position start) throws ProguardRuleParserException {
       ProguardKeepRule.Builder keepRuleBuilder = ProguardKeepRule.builder()
           .setOrigin(origin)
           .setStart(start);
@@ -858,6 +861,7 @@ public class ProguardConfigurationParser {
       return keepRuleBuilder.build();
     }
 
+    @SuppressWarnings("NonCanonicalType")
     private <R extends ProguardConfigurationRule, B extends ProguardConfigurationRule.Builder<R, B>>
         R parseRuleWithClassSpec(Position start, B builder) throws ProguardRuleParserException {
       builder.setOrigin(origin).setStart(start);

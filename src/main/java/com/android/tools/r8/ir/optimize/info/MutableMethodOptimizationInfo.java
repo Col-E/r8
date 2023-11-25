@@ -13,7 +13,9 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.analysis.inlining.NeverSimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
@@ -138,7 +140,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     initializedClassesOnNormalExit = template.initializedClassesOnNormalExit;
     returnedArgument = template.returnedArgument;
     abstractReturnValue = template.abstractReturnValue;
-    dynamicType = template.dynamicType;
+    setDynamicType(template.dynamicType);
     inlining = template.inlining;
     simpleInliningConstraint = template.simpleInliningConstraint;
     bridgeInfo = template.bridgeInfo;
@@ -174,13 +176,38 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
 
   public MutableMethodOptimizationInfo fixupClassTypeReferences(
       AppView<AppInfoWithLiveness> appView, GraphLens lens, Set<DexType> prunedTypes) {
-    dynamicType = dynamicType.rewrittenWithLens(appView, lens, prunedTypes);
-    return this;
+    DynamicType rewrittenDynamicType = dynamicType.rewrittenWithLens(appView, lens, prunedTypes);
+    if (rewrittenDynamicType.hasDynamicUpperBoundType()) {
+      DynamicTypeWithUpperBound rewrittenDynamicTypeWithUpperBound =
+          rewrittenDynamicType.asDynamicTypeWithUpperBound();
+      if (rewrittenDynamicTypeWithUpperBound.getDynamicUpperBoundType().isPrimitiveType()) {
+        // Do not store primitive dynamic types.
+        assert verifyDynamicTypeIsUnboxedEnum(appView, dynamicType);
+        return unsetDynamicType();
+      }
+    }
+    return setDynamicType(rewrittenDynamicType);
+  }
+
+  private static boolean verifyDynamicTypeIsUnboxedEnum(
+      AppView<?> appView, DynamicType dynamicType) {
+    assert dynamicType.isDynamicTypeWithUpperBound();
+    DynamicTypeWithUpperBound dynamicTypeWithUpperBound = dynamicType.asDynamicTypeWithUpperBound();
+    TypeElement dynamicUpperBoundType = dynamicTypeWithUpperBound.getDynamicUpperBoundType();
+    assert dynamicUpperBoundType.isClassType();
+    ClassTypeElement dynamicUpperBoundClassType = dynamicUpperBoundType.asClassType();
+    assert appView.hasUnboxedEnums();
+    assert appView.unboxedEnums().isUnboxedEnum(dynamicUpperBoundClassType.getClassType());
+    return true;
   }
 
   public MutableMethodOptimizationInfo fixupAbstractReturnValue(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
-    abstractReturnValue = abstractReturnValue.rewrittenWithLens(appView, lens, codeLens);
+      AppView<AppInfoWithLiveness> appView,
+      DexEncodedMethod method,
+      GraphLens lens,
+      GraphLens codeLens) {
+    abstractReturnValue =
+        abstractReturnValue.rewrittenWithLens(appView, method.getReturnType(), lens, codeLens);
     return this;
   }
 
@@ -632,7 +659,12 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     clearFlag(NEVER_RETURNS_NORMALLY_FLAG);
   }
 
-  void markReturnsAbstractValue(AbstractValue value) {
+  void setAbstractReturnValue(AbstractValue value, DexEncodedMethod method) {
+    assert !value.isNull() || method.getReturnType().isReferenceType();
+    setAbstractReturnValue(value);
+  }
+
+  private void setAbstractReturnValue(AbstractValue value) {
     assert !abstractReturnValue.isSingleValue() || abstractReturnValue.equals(value)
         : "return single value changed from " + abstractReturnValue + " to " + value;
     abstractReturnValue = value;
@@ -643,6 +675,11 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   void setDynamicType(AppView<?> appView, DynamicType newDynamicType, DexEncodedMethod method) {
+    setDynamicType(appView, newDynamicType, method.getReturnType().toTypeElement(appView));
+  }
+
+  public void setDynamicType(
+      AppView<?> appView, DynamicType newDynamicType, TypeElement staticReturnType) {
     assert newDynamicType != null;
     // We may get more precise type information if the method is reprocessed (e.g., due to
     // optimization info collected from all call sites), and hence the
@@ -651,14 +688,20 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     // Nullability could be less precise, though. For example, suppose a value is known to be
     // non-null after a safe invocation, hence recorded with the non-null variant. If that call is
     // inlined and the method is reprocessed, such non-null assumption cannot be made again.
-    assert verifyDynamicType(appView, newDynamicType, method);
-    dynamicType = newDynamicType;
+    assert verifyDynamicType(appView, newDynamicType, staticReturnType);
+    setDynamicType(newDynamicType);
+  }
+
+  private MutableMethodOptimizationInfo setDynamicType(DynamicType dynamicType) {
+    assert !dynamicType.hasDynamicUpperBoundType()
+        || !dynamicType.asDynamicTypeWithUpperBound().getDynamicUpperBoundType().isPrimitiveType();
+    this.dynamicType = dynamicType;
+    return this;
   }
 
   private boolean verifyDynamicType(
-      AppView<?> appView, DynamicType newDynamicType, DexEncodedMethod method) {
+      AppView<?> appView, DynamicType newDynamicType, TypeElement staticReturnType) {
     if (appView.enableWholeProgramOptimizations()) {
-      TypeElement staticReturnType = method.getReturnType().toTypeElement(appView);
       TypeElement previousDynamicUpperBoundType =
           dynamicType.getDynamicUpperBoundType(staticReturnType);
       TypeElement newDynamicUpperBoundType =
@@ -673,8 +716,8 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     return true;
   }
 
-  void unsetDynamicType() {
-    dynamicType = DynamicType.unknown();
+  MutableMethodOptimizationInfo unsetDynamicType() {
+    return setDynamicType(DynamicType.unknown());
   }
 
   // TODO(b/140214568): Should be package-private.

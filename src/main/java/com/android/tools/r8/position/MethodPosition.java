@@ -3,17 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.position;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /** A {@link Position} denoting a method. */
-@Keep
+@KeepForApi
 public class MethodPosition implements Position {
 
   private final MethodReference method;

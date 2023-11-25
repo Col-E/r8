@@ -21,6 +21,7 @@ public class CompareToVisitorWithTypeTable extends CompareToVisitorWithStringTab
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public int visitDexType(DexType type1, DexType type2) {
     if (type1 == type2) {
       return 0;

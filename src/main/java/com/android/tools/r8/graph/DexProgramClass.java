@@ -215,6 +215,7 @@ public class DexProgramClass extends DexClass
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public DexProgramClass getContext() {
     return this;
   }
@@ -234,6 +235,7 @@ public class DexProgramClass extends DexClass
     return reachabilitySensitive.isTrue();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean internalComputeReachabilitySensitive(AppView<?> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     for (DexEncodedMember<?, ?> member : members()) {
@@ -596,6 +598,11 @@ public class DexProgramClass extends DexClass
     return kotlinInfo;
   }
 
+  @Override
+  public ClassKind<DexProgramClass> getKind() {
+    return ClassKind.PROGRAM;
+  }
+
   public void setKotlinInfo(KotlinClassLevelInfo kotlinInfo) {
     assert kotlinInfo != null;
     assert this.kotlinInfo == getNoKotlinInfo();
@@ -893,6 +900,7 @@ public class DexProgramClass extends DexClass
         };
   }
 
+  @SuppressWarnings("DoNotCallSuggester")
   public static long invalidChecksumRequest(DexProgramClass clazz) {
     throw new CompilationError(
         clazz + " has no checksum information while checksum encoding is requested", clazz.origin);

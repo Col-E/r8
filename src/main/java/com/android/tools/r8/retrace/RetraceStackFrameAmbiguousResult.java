@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -17,7 +17,7 @@ import java.util.function.Consumer;
  * https://r8.googlesource.com/r8/+/main/doc/retrace.md for what information Retrace uses to discard
  * frames.
  */
-@Keep
+@KeepForApi
 public interface RetraceStackFrameAmbiguousResult<T> {
 
   /**

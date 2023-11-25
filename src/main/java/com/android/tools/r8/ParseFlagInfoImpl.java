@@ -202,6 +202,7 @@ public class ParseFlagInfoImpl implements ParseFlagInfo {
     return builder.toString();
   }
 
+  @SuppressWarnings("UnusedVariable")
   public static ParseFlagInfoImpl flag(String flag, List<String> args, List<String> help) {
     return new ParseFlagInfoImpl(flag, fmt(flag, args), Collections.emptyList(), help);
   }
@@ -213,7 +214,9 @@ public class ParseFlagInfoImpl implements ParseFlagInfo {
 
   // Note that the raw flag may be non-representable as in the case of the family of flags for
   // assertions.
+  @SuppressWarnings("UnusedVariable")
   private final String rawFlag;
+
   private final String flagWithArgs;
   private final List<String> alternatives;
   private final List<String> flagHelp;

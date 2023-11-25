@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.conversion.callgraph;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.conversion.callgraph.CallSiteInformation.CallGraphBasedCallSiteInformation;
-import com.android.tools.r8.ir.conversion.callgraph.CycleEliminator.CycleEliminationResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -28,7 +27,8 @@ import java.util.stream.Collectors;
  * <p>Each node in the graph contain the methods called and the calling methods. For virtual and
  * interface calls all potential calls from subtypes are recorded.
  *
- * <p>Only methods in the program - not library methods - are represented.
+ * <p>Only methods in the program - not library methods - are
+ * represented. @SuppressWarnings("UnusedVariable")
  *
  * <p>The directional edges are represented as sets of nodes in each node (called methods and
  * callees).
@@ -40,15 +40,8 @@ import java.util.stream.Collectors;
  */
 public class CallGraph extends CallGraphBase<Node> {
 
-  private final CycleEliminationResult cycleEliminationResult;
-
   CallGraph(Map<DexMethod, Node> nodes) {
-    this(nodes, null);
-  }
-
-  CallGraph(Map<DexMethod, Node> nodes, CycleEliminationResult cycleEliminationResult) {
     super(nodes);
-    this.cycleEliminationResult = cycleEliminationResult;
   }
 
   public static CallGraphBuilder builder(AppView<AppInfoWithLiveness> appView) {

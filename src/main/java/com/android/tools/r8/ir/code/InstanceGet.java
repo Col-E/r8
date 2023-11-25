@@ -47,8 +47,7 @@ public class InstanceGet extends FieldInstruction implements FieldGet, InstanceF
   }
 
   public static InstanceGet copyOf(IRCode code, InstanceGet original) {
-    Value newValue =
-        new Value(code.valueNumberGenerator.next(), original.getOutType(), original.getLocalInfo());
+    Value newValue = code.createValue(original.getOutType(), original.getLocalInfo());
     return copyOf(newValue, original);
   }
 
@@ -150,6 +149,7 @@ public class InstanceGet extends FieldInstruction implements FieldGet, InstanceF
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     if (!other.isInstanceGet()) {
       return false;

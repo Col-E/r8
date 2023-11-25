@@ -15,6 +15,7 @@ import com.android.tools.r8.profile.art.ArtProfileRule;
 import com.android.tools.r8.profile.rewriting.ProfileAdditions;
 import java.util.Comparator;
 
+@SuppressWarnings("BadImport")
 public class ArtProfileAdditions
     extends ProfileAdditions<
         ArtProfileAdditions,
@@ -56,6 +57,7 @@ public class ArtProfileAdditions
   }
 
   @Override
+  @SuppressWarnings("BadImport")
   public ArtProfileAdditions self() {
     return this;
   }

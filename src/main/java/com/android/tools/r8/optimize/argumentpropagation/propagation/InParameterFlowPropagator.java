@@ -62,7 +62,11 @@ public class InParameterFlowPropagator {
 
     List<Set<ParameterNode>> stronglyConnectedComponents =
         flowGraph.computeStronglyConnectedComponents();
-    ThreadUtils.processItems(stronglyConnectedComponents, this::process, executorService);
+    ThreadUtils.processItems(
+        stronglyConnectedComponents,
+        this::process,
+        appView.options().getThreadingModule(),
+        executorService);
 
     // The algorithm only changes the parameter states of each monomorphic method state. In case any
     // of these method states have effectively become unknown, we replace them by the canonicalized
@@ -120,7 +124,10 @@ public class InParameterFlowPropagator {
 
   private void postProcessMethodStates(ExecutorService executorService) throws ExecutionException {
     ThreadUtils.processItems(
-        appView.appInfo().classes(), this::postProcessMethodStates, executorService);
+        appView.appInfo().classes(),
+        this::postProcessMethodStates,
+        appView.options().getThreadingModule(),
+        executorService);
   }
 
   private void postProcessMethodStates(DexProgramClass clazz) {

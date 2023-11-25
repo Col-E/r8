@@ -26,6 +26,8 @@ public interface DesugaredLibrarySpecification {
 
   boolean isLibraryCompilation();
 
+  String getIdentifier();
+
   String getJsonSource();
 
   String getSynthesizedLibraryClassesPackagePrefix();

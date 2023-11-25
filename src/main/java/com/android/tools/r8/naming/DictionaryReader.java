@@ -79,6 +79,7 @@ public class DictionaryReader implements AutoCloseable {
     }
   }
 
+  @SuppressWarnings("BadImport")
   public static ImmutableList<String> readAllNames(Path path, Reporter reporter) {
     if (path != null) {
       Set<String> seenNames = new HashSet<>();

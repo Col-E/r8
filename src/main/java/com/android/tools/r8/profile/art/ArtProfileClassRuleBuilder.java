@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.profile.art;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.ClassReference;
 
 /** API for defining a class rule for an ART profile. */
-@Keep
+@KeepForApi
 public interface ArtProfileClassRuleBuilder {
 
   ArtProfileClassRuleBuilder setClassReference(ClassReference classReference);

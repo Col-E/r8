@@ -22,8 +22,8 @@ import com.android.tools.r8.shaking.InlineRule.Type;
 import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSetBuilder;
 import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
+import com.android.tools.r8.threading.TaskCollection;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions.ProguardIfRuleEvaluationData;
-import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 public class IfRuleEvaluator {
@@ -44,10 +43,9 @@ public class IfRuleEvaluator {
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final SubtypingInfo subtypingInfo;
   private final Enqueuer enqueuer;
-  private final ExecutorService executorService;
-  private final List<Future<?>> futures = new ArrayList<>();
   private final Map<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> ifRules;
   private final ConsequentRootSetBuilder rootSetBuilder;
+  private final TaskCollection<?> tasks;
 
   IfRuleEvaluator(
       AppView<? extends AppInfoWithClassHierarchy> appView,
@@ -59,9 +57,9 @@ public class IfRuleEvaluator {
     this.appView = appView;
     this.subtypingInfo = subtypingInfo;
     this.enqueuer = enqueuer;
-    this.executorService = executorService;
     this.ifRules = ifRules;
     this.rootSetBuilder = rootSetBuilder;
+    this.tasks = new TaskCollection<>(appView.options(), executorService);
   }
 
   public ConsequentRootSet run() throws ExecutionException {
@@ -96,23 +94,22 @@ public class IfRuleEvaluator {
               // When matching an if rule against a type, the if-rule are filled with the current
               // capture of wildcards. Propagate this down to member rules with same class part
               // equivalence.
-              ifRulesInEquivalence.forEach(
-                  ifRule -> {
-                    registerClassCapture(ifRule, clazz, clazz);
-                    if (appView.options().testing.measureProguardIfRuleEvaluations) {
-                      ifRuleEvaluationData.numberOfProguardIfRuleMemberEvaluations++;
-                    }
-                    boolean matched = evaluateIfRuleMembersAndMaterialize(ifRule, clazz, clazz);
-                    if (matched && canRemoveSubsequentKeepRule(ifRule)) {
-                      toRemove.add(ifRule);
-                    }
-                  });
+              for (ProguardIfRule ifRule : ifRulesInEquivalence) {
+                registerClassCapture(ifRule, clazz, clazz);
+                if (appView.options().testing.measureProguardIfRuleEvaluations) {
+                  ifRuleEvaluationData.numberOfProguardIfRuleMemberEvaluations++;
+                }
+                boolean matched = evaluateIfRuleMembersAndMaterialize(ifRule, clazz, clazz);
+                if (matched && canRemoveSubsequentKeepRule(ifRule)) {
+                  toRemove.add(ifRule);
+                }
+              }
             }
 
             // Check if one of the types that have been merged into `clazz` satisfies the if-rule.
-            if (appView.verticallyMergedClasses() != null) {
+            if (appView.getVerticallyMergedClasses() != null) {
               Iterable<DexType> sources =
-                  appView.verticallyMergedClasses().getSourcesFor(clazz.type);
+                  appView.getVerticallyMergedClasses().getSourcesFor(clazz.type);
               for (DexType sourceType : sources) {
                 // Note that, although `sourceType` has been merged into `type`, the dex class for
                 // `sourceType` is still available until the second round of tree shaking. This
@@ -131,17 +128,16 @@ public class IfRuleEvaluator {
                   ifRuleEvaluationData.numberOfProguardIfRuleClassEvaluations++;
                 }
                 if (evaluateClassForIfRule(ifRuleKey, sourceClass)) {
-                  ifRulesInEquivalence.forEach(
-                      ifRule -> {
-                        registerClassCapture(ifRule, sourceClass, clazz);
-                        if (appView.options().testing.measureProguardIfRuleEvaluations) {
-                          ifRuleEvaluationData.numberOfProguardIfRuleMemberEvaluations++;
-                        }
-                        if (evaluateIfRuleMembersAndMaterialize(ifRule, sourceClass, clazz)
-                            && canRemoveSubsequentKeepRule(ifRule)) {
-                          toRemove.add(ifRule);
-                        }
-                      });
+                  for (ProguardIfRule ifRule : ifRulesInEquivalence) {
+                    registerClassCapture(ifRule, sourceClass, clazz);
+                    if (appView.options().testing.measureProguardIfRuleEvaluations) {
+                      ifRuleEvaluationData.numberOfProguardIfRuleMemberEvaluations++;
+                    }
+                    if (evaluateIfRuleMembersAndMaterialize(ifRule, sourceClass, clazz)
+                        && canRemoveSubsequentKeepRule(ifRule)) {
+                      toRemove.add(ifRule);
+                    }
+                  }
                 }
               }
             }
@@ -152,7 +148,7 @@ public class IfRuleEvaluator {
             ifRulesInEquivalence.removeAll(toRemove);
           }
         }
-        ThreadUtils.awaitFutures(futures);
+        tasks.await();
       }
     } finally {
       appView.appInfo().app().timing.end();
@@ -224,8 +220,9 @@ public class IfRuleEvaluator {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean evaluateIfRuleMembersAndMaterialize(
-      ProguardIfRule rule, DexClass sourceClass, DexClass targetClass) {
+      ProguardIfRule rule, DexClass sourceClass, DexClass targetClass) throws ExecutionException {
     Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
     if (memberKeepRules.isEmpty()) {
       materializeIfRule(rule, ImmutableSet.of(sourceClass.getReference()));
@@ -325,7 +322,9 @@ public class IfRuleEvaluator {
     return field.getOrComputeIsInlinableByJavaC(appView.dexItemFactory());
   }
 
-  private void materializeIfRule(ProguardIfRule rule, Set<DexReference> preconditions) {
+  @SuppressWarnings("BadImport")
+  private void materializeIfRule(ProguardIfRule rule, Set<DexReference> preconditions)
+      throws ExecutionException {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     ProguardIfRule materializedRule = rule.materialize(dexItemFactory, preconditions);
 
@@ -335,14 +334,13 @@ public class IfRuleEvaluator {
       ClassInlineRule neverClassInlineRuleForCondition =
           materializedRule.neverClassInlineRuleForCondition(dexItemFactory);
       if (neverClassInlineRuleForCondition != null) {
-        rootSetBuilder.runPerRule(executorService, futures, neverClassInlineRuleForCondition, null);
+        rootSetBuilder.runPerRule(tasks, neverClassInlineRuleForCondition, null);
       }
 
       InlineRule neverInlineForClassInliningRuleForCondition =
           materializedRule.neverInlineRuleForCondition(dexItemFactory, Type.NEVER_CLASS_INLINE);
       if (neverInlineForClassInliningRuleForCondition != null) {
-        rootSetBuilder.runPerRule(
-            executorService, futures, neverInlineForClassInliningRuleForCondition, null);
+        rootSetBuilder.runPerRule(tasks, neverInlineForClassInliningRuleForCondition, null);
       }
 
       // If the condition of the -if rule has any members, then we need to keep these members to
@@ -351,20 +349,19 @@ public class IfRuleEvaluator {
       InlineRule neverInlineRuleForCondition =
           materializedRule.neverInlineRuleForCondition(dexItemFactory, Type.NEVER);
       if (neverInlineRuleForCondition != null) {
-        rootSetBuilder.runPerRule(executorService, futures, neverInlineRuleForCondition, null);
+        rootSetBuilder.runPerRule(tasks, neverInlineRuleForCondition, null);
       }
 
       // Prevent horizontal class merging of any -if rule members.
       NoHorizontalClassMergingRule noHorizontalClassMergingRule =
           materializedRule.noHorizontalClassMergingRuleForCondition(dexItemFactory);
       if (noHorizontalClassMergingRule != null) {
-        rootSetBuilder.runPerRule(executorService, futures, noHorizontalClassMergingRule, null);
+        rootSetBuilder.runPerRule(tasks, noHorizontalClassMergingRule, null);
       }
     }
 
     // Keep whatever is required by the -if rule.
-    rootSetBuilder.runPerRule(
-        executorService, futures, materializedRule.subsequentRule, materializedRule);
+    rootSetBuilder.runPerRule(tasks, materializedRule.subsequentRule, materializedRule);
     rule.markAsUsed();
   }
 }

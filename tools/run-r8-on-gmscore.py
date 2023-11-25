@@ -7,6 +7,7 @@ import sys
 import run_on_app
 
 if __name__ == '__main__':
-  # Default compiler is R8.
-  sys.exit(run_on_app.main(sys.argv[1:]
-      + ['--app', 'gmscore', '--compiler', 'r8']))
+    # Default compiler is R8.
+    sys.exit(
+        run_on_app.main(sys.argv[1:] +
+                        ['--app', 'gmscore', '--compiler', 'r8']))

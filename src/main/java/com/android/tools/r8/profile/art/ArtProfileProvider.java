@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.profile.art;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.Resource;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /** API for providing an ART profile to the compiler. */
-@Keep
+@KeepForApi
 public interface ArtProfileProvider extends Resource {
 
   void getArtProfile(ArtProfileBuilder profileBuilder);

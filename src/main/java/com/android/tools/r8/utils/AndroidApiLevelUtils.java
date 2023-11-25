@@ -35,6 +35,7 @@ public class AndroidApiLevelUtils {
         caller, inlinee, options, NopWhyAreYouNotInliningReporter.getInstance());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isApiSafeForInlining(
       ProgramMethod caller,
       ProgramMethod inlinee,
@@ -121,6 +122,7 @@ public class AndroidApiLevelUtils {
         definition, appView.apiLevelCompute(), appView.options(), appView.dexItemFactory());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean isApiSafeForReference(
       LibraryDefinition definition,
       AndroidApiLevelCompute androidApiLevelCompute,
@@ -153,6 +155,7 @@ public class AndroidApiLevelUtils {
     return apiLevel.isLessThanOrEqualTo(apiLevelOfOriginal).isTrue();
   }
 
+  @SuppressWarnings({"MixedMutabilityReturnType", "ReferenceEquality"})
   public static boolean isApiSafeForTypeStrengthening(
       DexType newType, DexType oldType, AppView<? extends AppInfoWithClassHierarchy> appView) {
     // Type strengthening only applies to reference types.
@@ -276,6 +279,7 @@ public class AndroidApiLevelUtils {
         .getValue();
   }
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   private static Set<DexClass> findAllFirstLibraryInterfacesOrProgramClassWithDefinition(
       AppInfoWithClassHierarchy appInfo, DexClass originalClass, DexMember<?, ?> reference) {
     Set<DexClass> interfaces = Sets.newLinkedHashSet();

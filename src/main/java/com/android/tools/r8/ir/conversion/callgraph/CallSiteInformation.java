@@ -111,6 +111,9 @@ public abstract class CallSiteInformation {
 
         int numberOfCallSites = node.getNumberOfCallSites();
         if (numberOfCallSites == 1) {
+          if (appView.appInfo().isNeverInlineDueToSingleCallerMethod(method)) {
+            continue;
+          }
           Set<Node> callersWithDeterministicOrder = node.getCallersWithDeterministicOrder();
           DexMethod caller = reference;
           // We can have recursive methods where the recursive call is the only call site. We do
@@ -134,6 +137,7 @@ public abstract class CallSiteInformation {
      * library method this always returns false.
      */
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean hasSingleCallSite(ProgramMethod method, ProgramMethod context) {
       return singleCallerMethods.get(method.getReference()) == context.getReference();
     }

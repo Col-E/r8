@@ -36,6 +36,7 @@ class SyntheticProgramClassReference
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   SyntheticProgramClassReference internalRewrite(
       SynthesizingContext rewrittenContext, NonIdentityGraphLens lens) {
     DexType rewritten = lens.lookupType(type);

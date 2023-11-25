@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.code;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
-import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
 import com.android.tools.r8.graph.AppView;
@@ -21,6 +20,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
@@ -30,6 +30,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
@@ -41,7 +42,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   protected final BasicBlock block;
   protected final ListIterator<Instruction> listIterator;
   protected Instruction current;
-  protected Position position = null;
+  private Position position = null;
 
   private final IRMetadata metadata;
 
@@ -84,6 +85,16 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   @Override
+  public Instruction peekNext() {
+    // Reset current since listIterator.remove() changes based on whether next() or previous() was
+    // last called.
+    // E.g.: next() -> current=C
+    // peekNext(): next() -> current=D, previous() -> current=D
+    current = null;
+    return IteratorUtils.peekNext(listIterator);
+  }
+
+  @Override
   public boolean hasPrevious() {
     return listIterator.hasPrevious();
   }
@@ -100,8 +111,26 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   @Override
+  public Instruction peekPrevious() {
+    // Reset current since listIterator.remove() changes based on whether next() or previous() was
+    // last called.
+    // E.g.: previous() -> current=B
+    // peekPrevious(): previous() -> current=A, next() -> current=A
+    current = null;
+    return IteratorUtils.peekPrevious(listIterator);
+  }
+
+  @Override
   public boolean hasInsertionPosition() {
     return position != null;
+  }
+
+  public Position getInsertionPosition() {
+    return position;
+  }
+
+  public Position getInsertionPositionOrDefault(Position defaultValue) {
+    return hasInsertionPosition() ? getInsertionPosition() : defaultValue;
   }
 
   @Override
@@ -111,12 +140,12 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
   @Override
   public void unsetInsertionPosition() {
-    this.position = null;
+    setInsertionPosition(null);
   }
 
   /**
-   * Adds an instruction to the block. The instruction will be added just before the current cursor
-   * position.
+   * Adds an instruction to the block. The instruction will be added just before the instruction
+   * that would be returned by a call to next().
    *
    * <p>The instruction will be assigned to the block it is added to.
    *
@@ -126,11 +155,78 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   public void add(Instruction instruction) {
     instruction.setBlock(block);
     assert instruction.getBlock() == block;
-    if (position != null && !instruction.hasPosition()) {
-      instruction.setPosition(position);
+    if (!instruction.hasPosition() && hasInsertionPosition()) {
+      instruction.setPosition(getInsertionPosition());
     }
     listIterator.add(instruction);
     metadata.record(instruction);
+  }
+
+  private boolean hasPriorThrowingInstruction() {
+    Instruction next = peekNext();
+    for (Instruction ins : block.getInstructions()) {
+      if (ins == next) {
+        break;
+      }
+      if (ins.instructionTypeCanThrow()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Collection<Instruction> instructionsToAdd,
+      InternalOptions options) {
+    // Assert that we are not inserting after the final jump, and also store peekNext() for later.
+    Instruction origNext = null;
+    assert (origNext = peekNext()) != null;
+    InstructionListIterator ret =
+        addPossiblyThrowingInstructionsToPossiblyThrowingBlockImpl(
+            this, code, blockIterator, instructionsToAdd, options);
+    assert ret.peekNext() == origNext;
+    return ret;
+  }
+
+  // Use a static method to ensure dstIterator is used instead of "this".
+  private static InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlockImpl(
+      BasicBlockInstructionListIterator dstIterator,
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Collection<Instruction> instructionsToAdd,
+      InternalOptions options) {
+    if (!dstIterator.block.hasCatchHandlers() || instructionsToAdd.isEmpty()) {
+      dstIterator.addAll(instructionsToAdd);
+      return dstIterator;
+    }
+
+    Iterator<Instruction> srcIterator = instructionsToAdd.iterator();
+
+    // If the throwing instruction is before the cursor, then we must split the block first.
+    // If there is one afterwards, we can add instructions and when we split, the throwing one
+    // will be moved to the split block.
+    boolean splitBeforeAdding = dstIterator.hasPriorThrowingInstruction();
+    if (splitBeforeAdding) {
+      BasicBlock nextBlock =
+          dstIterator.splitCopyCatchHandlers(
+              code, blockIterator, options, UnaryOperator.identity());
+      dstIterator = nextBlock.listIterator(code);
+    }
+    do {
+      boolean addedThrowing = dstIterator.addUntilThrowing(srcIterator);
+      if (!addedThrowing || (!srcIterator.hasNext() && splitBeforeAdding)) {
+        break;
+      }
+      BasicBlock nextBlock =
+          dstIterator.splitCopyCatchHandlers(
+              code, blockIterator, options, UnaryOperator.identity());
+      dstIterator = nextBlock.listIterator(code);
+    } while (srcIterator.hasNext());
+
+    return dstIterator;
   }
 
   @Override
@@ -263,31 +359,29 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     current = newInstruction;
   }
 
+  private Position getPreviousPosition() {
+    // Cannot use "current" because it is invalidated by peekNext().
+    Instruction prev = peekPrevious();
+    return prev != null ? prev.getPosition() : block.getPosition();
+  }
+
+  private void addWithPreviousPosition(Instruction instruction, InternalOptions options) {
+    instruction.setPosition(getInsertionPositionOrDefault(getPreviousPosition()), options);
+    add(instruction);
+  }
+
   @Override
   public Value insertConstNumberInstruction(
       IRCode code, InternalOptions options, long value, TypeElement type) {
     ConstNumber constNumberInstruction = code.createNumberConstant(value, type);
-    // Note that we only keep position info for throwing instructions in release mode.
-    if (!hasInsertionPosition()) {
-      Position position;
-      if (options.debug) {
-        position = current != null ? current.getPosition() : block.getPosition();
-      } else {
-        position = Position.none();
-      }
-      constNumberInstruction.setPosition(position);
-    }
-    add(constNumberInstruction);
+    addWithPreviousPosition(constNumberInstruction, options);
     return constNumberInstruction.outValue();
   }
 
   @Override
   public Value insertConstStringInstruction(AppView<?> appView, IRCode code, DexString value) {
     ConstString constStringInstruction = code.createStringConstant(appView, value);
-    // Note that we only keep position info for throwing instructions in release mode.
-    constStringInstruction.setPosition(
-        appView.options().debug ? current.getPosition() : Position.none());
-    add(constStringInstruction);
+    addWithPreviousPosition(constStringInstruction, appView.options());
     return constStringInstruction.outValue();
   }
 
@@ -383,7 +477,11 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
   @Override
   public void replaceCurrentInstructionWithConstClass(
-      AppView<?> appView, IRCode code, DexType type, DebugLocalInfo localInfo) {
+      AppView<?> appView,
+      IRCode code,
+      DexType type,
+      DebugLocalInfo localInfo,
+      AffectedValues affectedValues) {
     if (current == null) {
       throw new IllegalStateException();
     }
@@ -391,7 +489,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     TypeElement typeElement = TypeElement.classClassType(appView, definitelyNotNull());
     Value value = code.createValue(typeElement, localInfo);
     ConstClass constClass = new ConstClass(value, type);
-    replaceCurrentInstruction(constClass);
+    replaceCurrentInstruction(constClass, affectedValues);
   }
 
   @Override
@@ -409,14 +507,14 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
   @Override
   public void replaceCurrentInstructionWithConstString(
-      AppView<?> appView, IRCode code, DexString value) {
+      AppView<?> appView, IRCode code, DexString value, AffectedValues affectedValues) {
     if (current == null) {
       throw new IllegalStateException();
     }
 
     // Replace the instruction by const-string.
     ConstString constString = code.createStringConstant(appView, value, current.getLocalInfo());
-    replaceCurrentInstruction(constString);
+    replaceCurrentInstruction(constString, affectedValues);
   }
 
   @Override
@@ -441,16 +539,10 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     }
 
     // Replace the instruction by static-get.
-    TypeElement newType = TypeElement.fromDexType(field.type, maybeNull(), appView);
-    TypeElement oldType = current.getOutType();
+    TypeElement newType = field.getTypeElement(appView);
     Value value = code.createValue(newType, current.getLocalInfo());
     StaticGet staticGet = new StaticGet(value, field);
-    replaceCurrentInstruction(staticGet);
-
-    // Update affected values.
-    if (value.hasAnyUsers() && !newType.equals(oldType)) {
-      affectedValues.addAll(value.affectedValues());
-    }
+    replaceCurrentInstruction(staticGet, affectedValues);
   }
 
   @Override
@@ -504,16 +596,15 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     assert !throwBlockInstructionIterator.hasNext();
 
     // Replace the instruction by throw.
-    Throw throwInstruction = new Throw(exceptionValue);
-    if (hasInsertionPosition()) {
-      throwInstruction.setPosition(position);
-    } else if (toBeReplaced.getPosition().isSome()) {
-      throwInstruction.setPosition(toBeReplaced.getPosition());
-    } else {
-      assert !toBeReplaced.instructionTypeCanThrow();
-      throwInstruction.setPosition(Position.syntheticNone());
-    }
-    throwBlockInstructionIterator.replaceCurrentInstruction(throwInstruction);
+    throwBlockInstructionIterator.replaceCurrentInstruction(
+        Throw.builder()
+            .setExceptionValue(exceptionValue)
+            .setPosition(
+                getInsertionPositionOrDefault(
+                    toBeReplaced.getPosition().isSome()
+                        ? toBeReplaced.getPosition()
+                        : Position.syntheticNone()))
+            .build());
   }
 
   @Override
@@ -563,7 +654,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       throwBlockInstructionIterator = this;
     } else {
       throwBlockInstructionIterator = throwBlock.listIterator(code);
-      throwBlockInstructionIterator.setInsertionPosition(position);
+      throwBlockInstructionIterator.setInsertionPosition(getInsertionPosition());
     }
 
     // Insert constant null before the goto instruction.
@@ -575,18 +666,15 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     assert !throwBlockInstructionIterator.hasNext();
 
     // Replace the instruction by throw.
-    Throw throwInstruction = new Throw(nullValue);
-    if (hasInsertionPosition()) {
-      throwInstruction.setPosition(position);
-    } else if (toBeReplaced.getPosition().isSome()) {
-      throwInstruction.setPosition(toBeReplaced.getPosition());
-    } else {
-      // The instruction that is being removed cannot throw, and thus it must be unreachable as we
-      // are replacing it by `throw null`, so we can safely use a none-position.
-      assert !toBeReplaced.instructionTypeCanThrow();
-      throwInstruction.setPosition(Position.syntheticNone());
-    }
-    throwBlockInstructionIterator.replaceCurrentInstruction(throwInstruction);
+    throwBlockInstructionIterator.replaceCurrentInstruction(
+        Throw.builder()
+            .setExceptionValue(nullValue)
+            .setPosition(
+                getInsertionPositionOrDefault(
+                    toBeReplaced.getPosition().isSome()
+                        ? toBeReplaced.getPosition()
+                        : Position.syntheticNone()))
+            .build());
 
     if (block.hasCatchHandlers()) {
       if (block == throwBlock) {
@@ -626,7 +714,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     assert hasNext();
 
     // Get the position at which the block is being split.
-    Position position = current != null ? current.getPosition() : block.getPosition();
+    Position position = getPreviousPosition();
 
     // Prepare the new block, placing the exception handlers on the block with the throwing
     // instruction.

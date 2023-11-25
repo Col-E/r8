@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.stream.Stream;
 
-@Keep
+@KeepForApi
 public interface RetraceStackTraceElementProxyResult<T, ST extends StackTraceElementProxy<T, ST>> {
 
   Stream<? extends RetraceStackTraceElementProxy<T, ST>> stream();

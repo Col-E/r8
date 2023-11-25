@@ -161,6 +161,11 @@ public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<
   }
 
   @Override
+  public ClassKind<DexLibraryClass> getKind() {
+    return ClassKind.LIBRARY;
+  }
+
+  @Override
   public DexLibraryClass get() {
     return this;
   }

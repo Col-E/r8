@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /***
  * Interface for registering a mapping partition to be used later.
  */
 @FunctionalInterface
-@Keep
+@KeepForApi
 public interface RegisterMappingPartitionCallback {
 
   RegisterMappingPartitionCallback EMPTY_INSTANCE = key -> {};

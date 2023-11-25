@@ -109,7 +109,7 @@ public class MemberResolutionAsmTest extends TestBase {
             .addOptionsModification(
                 options -> {
                   options.inlinerOptions().enableInlining = false;
-                  options.enableVerticalClassMerging = false;
+                  options.getVerticalClassMergerOptions().disable();
                 })
             .run(parameters.getRuntime(), noMappingMain)
             .assertSuccessWithOutput(noMappingExpected)
@@ -208,7 +208,7 @@ public class MemberResolutionAsmTest extends TestBase {
             .addOptionsModification(
                 options -> {
                   options.inlinerOptions().enableInlining = false;
-                  options.enableVerticalClassMerging = false;
+                  options.getVerticalClassMergerOptions().disable();
                 })
             .compile();
 

@@ -161,8 +161,8 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         if (staticType.isArrayType()) {
           Nullability nullability = concreteParameterState.asArrayParameter().getNullability();
           if (nullability.isDefinitelyNull()) {
-              newCallSiteInfo.constants.put(
-                  argumentIndex, appView.abstractValueFactory().createNullValue());
+            newCallSiteInfo.constants.put(
+                argumentIndex, appView.abstractValueFactory().createNullValue(staticType));
             isTop = false;
           } else if (nullability.isDefinitelyNotNull()) {
             newCallSiteInfo.dynamicTypes.put(

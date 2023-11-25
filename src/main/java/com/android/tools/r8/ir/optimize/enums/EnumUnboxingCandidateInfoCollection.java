@@ -90,6 +90,7 @@ public class EnumUnboxingCandidateInfoCollection {
   }
 
   /** Answers true if both enums are identical, or if one inherit from the other. */
+  @SuppressWarnings("ReferenceEquality")
   public boolean isAssignableTo(DexType subtype, DexType superType) {
     assert superType != null;
     assert subtype != null;

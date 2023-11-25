@@ -60,6 +60,7 @@ public class NoDefaultInterfaceMethodMerging extends MultiClassPolicy {
     return removeTrivialGroups(Lists.newLinkedList(newGroups.keySet()));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void addClassToGroup(
       DexProgramClass clazz,
       Map<MergeGroup, DexMethodSignatureMap<DexType>> newGroups,
@@ -94,6 +95,7 @@ public class NoDefaultInterfaceMethodMerging extends MultiClassPolicy {
     newGroups.put(new MergeGroup(clazz), classSignatures);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void addDefaultMethods(DexMethodSignatureMap<DexType> signatures, DexProgramClass iface) {
     // When the same signature is added from several interfaces just move to the "multiple" state
     // and do not keep track of the actual interfaces.

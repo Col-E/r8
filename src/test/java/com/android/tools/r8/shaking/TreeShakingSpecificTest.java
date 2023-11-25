@@ -15,18 +15,12 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
+import com.android.tools.r8.mappingcompose.ComposeTestHelpers;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -50,10 +44,6 @@ public class TreeShakingSpecificTest extends TestBase {
 
   private Path getProgramFiles(String test) {
     return Paths.get(EXAMPLES_BUILD_DIR, test + ".jar");
-  }
-
-  private byte[] getProgramDexFileData(String test) throws IOException {
-    return Files.readAllBytes(Paths.get(EXAMPLES_BUILD_DIR, test, "classes.dex"));
   }
 
   @Test
@@ -97,6 +87,36 @@ public class TreeShakingSpecificTest extends TestBase {
             });
   }
 
+  private String getExpectedCf() {
+    return StringUtils.lines(
+        "shaking1.Shaking -> shaking1.Shaking:",
+        "# {'id':'sourceFile','fileName':'Shaking.java'}",
+        "    1:2:void main(java.lang.String[]):8:9 -> main",
+        "shaking1.Used -> a.a:",
+        "# {'id':'sourceFile','fileName':'Used.java'}",
+        "    java.lang.String name -> a",
+        "    1:14:void <init>(java.lang.String):0:13 -> <init>",
+        "    1:1:java.lang.String method():17:17 -> a",
+        "    1:1:java.lang.String aMethodThatIsNotUsedButKept():21:21 "
+            + "-> aMethodThatIsNotUsedButKept");
+  }
+
+  private String getExpectedDex() {
+    return StringUtils.lines(
+        "shaking1.Shaking -> shaking1.Shaking:",
+        "# {'id':'sourceFile','fileName':'Shaking.java'}",
+        "    0:6:void main(java.lang.String[]):8:8 -> main",
+        "    7:21:void main(java.lang.String[]):9:9 -> main",
+        "shaking1.Used -> a.a:",
+        "# {'id':'sourceFile','fileName':'Used.java'}",
+        "    java.lang.String name -> a",
+        "    0:2:void <init>(java.lang.String):12:12 -> <init>",
+        "    3:5:void <init>(java.lang.String):13:13 -> <init>",
+        "    0:16:java.lang.String method():17:17 -> a",
+        "    0:2:java.lang.String aMethodThatIsNotUsedButKept():21:21 "
+            + "-> aMethodThatIsNotUsedButKept");
+  }
+
   @Test
   public void testPrintMapping() throws Throwable {
     // Generate R8 processed version without library option.
@@ -109,25 +129,20 @@ public class TreeShakingSpecificTest extends TestBase {
         .compile()
         .inspectProguardMap(
             proguardMap -> {
-              // Remove comments.
-              String actualMapping =
-                  Stream.of(proguardMap.split("\n"))
-                      .filter(line -> !line.startsWith("#"))
-                      .collect(Collectors.joining("\n"));
-              String refMapping =
-                  new String(
-                      Files.readAllBytes(
-                          Paths.get(
-                              EXAMPLES_DIR,
-                              "shaking1",
-                              "print-mapping-" + StringUtils.toLowerCase(backend.name()) + ".ref")),
-                      StandardCharsets.UTF_8);
-              assertEquals(sorted(refMapping), sorted(actualMapping));
+              // Remove header.
+              List<String> lines = StringUtils.splitLines(proguardMap);
+              int firstNonHeaderLine = 0;
+              for (String line : lines) {
+                if (line.startsWith("#")) {
+                  firstNonHeaderLine++;
+                } else {
+                  break;
+                }
+              }
+              assertEquals(
+                  backend.isCf() ? getExpectedCf() : getExpectedDex(),
+                  ComposeTestHelpers.doubleToSingleQuote(
+                      StringUtils.lines(lines.subList(firstNonHeaderLine, lines.size()))));
             });
-  }
-
-  private static String sorted(String str) {
-    return new BufferedReader(new StringReader(str))
-        .lines().sorted().filter(s -> !s.isEmpty()).collect(Collectors.joining("\n"));
   }
 }

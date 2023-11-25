@@ -89,9 +89,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
           .addProperty("publicLateInitProp", JAVA_LANG_STRING, Visibility.PUBLIC);
 
   private final Consumer<InternalOptions> disableAggressiveClassOptimizations =
-      o -> {
-        o.enableClassInlining = false;
-        o.enableVerticalClassMerging = false;
+      options -> {
+        options.enableClassInlining = false;
+        options.getVerticalClassMergerOptions().disable();
       };
 
   @Parameterized.Parameters(name = "{0}, {1}, allowAccessModification: {2}")

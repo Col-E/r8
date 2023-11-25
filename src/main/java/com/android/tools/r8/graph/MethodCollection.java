@@ -224,6 +224,7 @@ public class MethodCollection {
     cachedClassInitializer = DexEncodedMethod.SENTINEL;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public synchronized DexEncodedMethod getClassInitializer() {
     if (cachedClassInitializer == DexEncodedMethod.SENTINEL) {
       cachedClassInitializer = null;
@@ -394,6 +395,7 @@ public class MethodCollection {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean verifyCorrectnessOfMethodHolder(DexEncodedMethod method) {
     assert method.getHolderType() == holder.type
         : "Expected method `"

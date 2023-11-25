@@ -21,6 +21,7 @@ import java.util.function.Predicate;
 
 public class InterfaceCollection {
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isKnownToImplement(
       DexType iface, DexType implementor, InternalOptions options) {
     if (options.canHaveZipFileWithMissingCloseableBug()

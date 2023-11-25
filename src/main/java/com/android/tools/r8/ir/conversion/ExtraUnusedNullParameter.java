@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
+import com.android.tools.r8.ir.analysis.value.SingleNullValue;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -20,9 +20,11 @@ public class ExtraUnusedNullParameter extends ExtraParameter {
   private final DexType type;
 
   public ExtraUnusedNullParameter(DexType type) {
+    assert type.isReferenceType();
     this.type = type;
   }
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   public static List<ExtraUnusedNullParameter> computeExtraUnusedNullParameters(
       DexMethod from, DexMethod to) {
     int numberOfExtraNullParameters = to.getArity() - from.getArity();
@@ -52,11 +54,17 @@ public class ExtraUnusedNullParameter extends ExtraParameter {
   }
 
   @Override
-  public SingleNumberValue getValue(AppView<?> appView) {
-    return appView.abstractValueFactory().createNullValue();
+  public SingleNullValue getValue(AppView<?> appView) {
+    return appView.abstractValueFactory().createNullValue(type);
   }
 
   @Override
+  public boolean isUnused() {
+    return true;
+  }
+
+  @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object obj) {
     return obj != null && getClass() == obj.getClass();
   }

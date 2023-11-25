@@ -14,7 +14,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicTypeWithLowerBound;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.LibraryModeledPredicate;
 import com.google.common.collect.Sets;
 import java.util.Set;
 import org.junit.Test;
@@ -64,13 +65,13 @@ public class InstantiatedLowerBoundTest extends TestBase {
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     TypeElement latticeA = typeA.toTypeElement(appView);
     ClassTypeElement latticeB = typeB.toTypeElement(appView).asClassType();
-    DexEncodedMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(
+    DexClassAndMethod singleTarget =
+        appInfo.lookupSingleVirtualTargetForTesting(
             appView,
             fooA,
             mainMethod,
             false,
-            t -> false,
+            LibraryModeledPredicate.alwaysFalse(),
             DynamicTypeWithLowerBound.create(appView, latticeA, latticeB));
     assertNotNull(singleTarget);
     DexMethod fooB = buildNullaryVoidMethod(B.class, "foo", appInfo.dexItemFactory());
@@ -97,13 +98,13 @@ public class InstantiatedLowerBoundTest extends TestBase {
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     TypeElement latticeA = typeA.toTypeElement(appView);
     ClassTypeElement latticeB = typeB.toTypeElement(appView).asClassType();
-    DexEncodedMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(
+    DexClassAndMethod singleTarget =
+        appInfo.lookupSingleVirtualTargetForTesting(
             appView,
             fooA,
             mainMethod,
             false,
-            t -> false,
+            LibraryModeledPredicate.alwaysFalse(),
             DynamicTypeWithLowerBound.create(appView, latticeA, latticeB));
     assertNotNull(singleTarget);
     DexMethod fooB = buildNullaryVoidMethod(B.class, "foo", appInfo.dexItemFactory());
@@ -153,13 +154,13 @@ public class InstantiatedLowerBoundTest extends TestBase {
     assertEquals(expected, actual);
     TypeElement latticeA = typeA.toTypeElement(appView);
     ClassTypeElement latticeC = typeC.toTypeElement(appView).asClassType();
-    DexEncodedMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(
+    DexClassAndMethod singleTarget =
+        appInfo.lookupSingleVirtualTargetForTesting(
             appView,
             fooA,
             mainMethod,
             false,
-            t -> false,
+            LibraryModeledPredicate.alwaysFalse(),
             DynamicTypeWithLowerBound.create(appView, latticeA, latticeC));
     assertNull(singleTarget);
   }

@@ -174,11 +174,12 @@ public abstract class ClassMap<T extends DexClass> {
 
   /**
    * Forces loading of all the classes satisfying the criteria specified.
-   * <p>
-   * NOTE: after this method finishes, the class map is considered to be fully-loaded and thus
+   *
+   * <p>NOTE: after this method finishes, the class map is considered to be fully-loaded and thus
    * sealed. This has one side-effect: if we filter out some of the classes with `load` predicate,
    * these classes will never be loaded.
    */
+  @SuppressWarnings("ReferenceEquality")
   public void forceLoad(Predicate<DexType> load) {
     Set<DexType> knownClasses;
     ClassProvider<T> classProvider;
@@ -268,6 +269,7 @@ public abstract class ClassMap<T extends DexClass> {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public T get() {
       if (ready) {
         return clazz;

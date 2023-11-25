@@ -243,6 +243,7 @@ public class EnqueuerDeferredTracingImpl extends EnqueuerDeferredTracing {
     ThreadUtils.processItems(
         methodsToProcess,
         (method, ignored) -> rewriteMethod(method, initializedClassesWithContexts, prunedFields),
+        appView.options().getThreadingModule(),
         executorService,
         WorkLoad.HEAVY);
 

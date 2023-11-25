@@ -49,6 +49,7 @@ public final class InvokeCustom extends Invoke {
     return visitor.visit(this);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static boolean verifyLambdaInterfaces(
       TypeElement returnType, InterfaceCollection lambdaInterfaceSet, DexType objectType) {
     InterfaceCollection primaryInterfaces = returnType.asClassType().getInterfaces();
@@ -67,6 +68,7 @@ public final class InvokeCustom extends Invoke {
   }
 
   @Override
+  @SuppressWarnings({"BadImport", "ReferenceEquality"})
   public TypeElement evaluate(AppView<?> appView) {
     TypeElement returnType = super.evaluate(appView);
     if (!appView.appInfo().hasLiveness()) {
@@ -163,6 +165,7 @@ public final class InvokeCustom extends Invoke {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isInvokeCustom() && callSite == other.asInvokeCustom().callSite;
   }
@@ -217,5 +220,12 @@ public final class InvokeCustom extends Invoke {
   @Override
   void internalRegisterUse(UseRegistry<?> registry, DexClassAndMethod context) {
     registry.registerCallSite(callSite);
+  }
+
+  @Override
+  protected boolean needsRangedInvoke(DexBuilder builder) {
+    return builder.getOptions().testing.forceInvokeRangeForInvokeCustom
+        ? true
+        : super.needsRangedInvoke(builder);
   }
 }

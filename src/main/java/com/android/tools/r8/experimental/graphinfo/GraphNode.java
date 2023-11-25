@@ -3,9 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.graphinfo;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
-@Keep
+@KeepForApi
 public abstract class GraphNode {
 
   private static final GraphNode CYCLE =
@@ -36,6 +36,7 @@ public abstract class GraphNode {
     return CYCLE;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public final boolean isCycle() {
     return this == cycle();
   }

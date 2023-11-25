@@ -4,18 +4,20 @@
 
 package com.android.tools.r8.desugar.records;
 
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.GlobalSyntheticsConsumer;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.synthesis.globals.GlobalSyntheticsTestingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,9 +47,14 @@ public class SimpleRecordTest extends TestBase {
   @Parameter(0)
   public TestParameters parameters;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+  @Parameter(1)
+  public boolean forceInvokeRangeForInvokeCustom;
+
+  @Parameters(name = "{0}, forceInvokeRangeForInvokeCustom: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        BooleanUtils.values());
   }
 
   private boolean isCfRuntimeWithNativeRecordSupport() {
@@ -59,6 +66,7 @@ public class SimpleRecordTest extends TestBase {
   @Test
   public void testReference() throws Exception {
     assumeTrue(isCfRuntimeWithNativeRecordSupport());
+    assumeFalse(forceInvokeRangeForInvokeCustom);
     testForJvm(parameters)
         .addProgramClassFileData(PROGRAM_DATA)
         .run(parameters.getRuntime(), MAIN_TYPE)
@@ -67,6 +75,7 @@ public class SimpleRecordTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
+    assumeFalse(forceInvokeRangeForInvokeCustom);
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters)
@@ -75,12 +84,18 @@ public class SimpleRecordTest extends TestBase {
             RecordTestUtils::assertNoJavaLangRecord,
             options -> options.testing.disableRecordApplicationReaderMap = true)
         .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .applyIf(
+            isRecordsDesugaredForD8(parameters)
+                || runtimeWithRecordsSupport(parameters.getRuntime()),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT),
+            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
+    ;
   }
 
   @Test
   public void testD8Intermediate() throws Exception {
     assumeTrue(parameters.isDexRuntime());
+    assumeFalse(forceInvokeRangeForInvokeCustom);
     GlobalSyntheticsTestingConsumer globals = new GlobalSyntheticsTestingConsumer();
     Path path = compileIntermediate(globals);
     testForD8()
@@ -98,6 +113,7 @@ public class SimpleRecordTest extends TestBase {
   @Test
   public void testD8IntermediateNoDesugaringInStep2() throws Exception {
     assumeTrue(parameters.isDexRuntime());
+    assumeFalse(forceInvokeRangeForInvokeCustom);
     GlobalSyntheticsTestingConsumer globals = new GlobalSyntheticsTestingConsumer();
     Path path = compileIntermediate(globals);
     // In Android Studio they disable desugaring at this point to improve build speed.
@@ -130,8 +146,13 @@ public class SimpleRecordTest extends TestBase {
   public void testR8() throws Exception {
     parameters.assumeR8TestParameters();
     assumeTrue(parameters.isDexRuntime() || isCfRuntimeWithNativeRecordSupport());
+    assumeTrue(forceInvokeRangeForInvokeCustom || !parameters.isDexRuntime());
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
+            .addOptionsModification(
+                opptions ->
+                    opptions.testing.forceInvokeRangeForInvokeCustom =
+                        forceInvokeRangeForInvokeCustom)
             .addProgramClassFileData(PROGRAM_DATA)
             .setMinApi(parameters)
             .addKeepMainRule(MAIN_TYPE);
@@ -140,6 +161,10 @@ public class SimpleRecordTest extends TestBase {
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
           .compile()
           .inspect(RecordTestUtils::assertRecordsAreRecords)
+          .inspect(
+              inspector -> {
+                inspector.clazz("records.SimpleRecord$Person").isRenamed();
+              })
           .run(parameters.getRuntime(), MAIN_TYPE)
           .assertSuccessWithOutput(EXPECTED_RESULT);
       return;
@@ -157,6 +182,7 @@ public class SimpleRecordTest extends TestBase {
   public void testR8NoMinification() throws Exception {
     parameters.assumeR8TestParameters();
     assumeTrue(parameters.isDexRuntime() || isCfRuntimeWithNativeRecordSupport());
+    assumeTrue(forceInvokeRangeForInvokeCustom || !parameters.isDexRuntime());
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)

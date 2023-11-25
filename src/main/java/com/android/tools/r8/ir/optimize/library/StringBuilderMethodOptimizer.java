@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.library.StringBuilderMethodOptimizer.State;
@@ -68,13 +69,14 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
   }
 
   @Override
-  public void optimize(
+  @SuppressWarnings("ReferenceEquality")
+  public InstructionListIterator optimize(
       IRCode code,
       BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
+      AffectedValues affectedValues,
       Set<BasicBlock> blocksToRemove,
       State state,
       MethodProcessor methodProcessor,
@@ -94,6 +96,7 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
         optimizeToString(instructionIterator, invokeWithReceiver);
       }
     }
+    return instructionIterator;
   }
 
   private void optimizeAppend(
@@ -195,6 +198,7 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
      * Adds all the aliases of the given StringBuilder value to {@param aliases}, or returns false
      * if all aliases were not found (e.g., due to a phi user).
      */
+    @SuppressWarnings("ReferenceEquality")
     private boolean computeAllAliasesIfUnusedStringBuilder(Value value, Set<Value> aliases) {
       WorkList<Value> worklist = WorkList.newIdentityWorkList(value);
       while (worklist.hasNext()) {

@@ -125,6 +125,7 @@ public class GenericSignaturePartialTypeArgumentApplier implements GenericSignat
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public List<FieldTypeSignature> visitTypeArguments(
       DexType originalType, DexType lookedUpType, List<FieldTypeSignature> typeArguments) {
     assert originalType == lookedUpType;

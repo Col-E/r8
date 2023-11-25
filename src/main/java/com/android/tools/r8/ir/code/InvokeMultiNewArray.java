@@ -74,6 +74,7 @@ public class InvokeMultiNewArray extends Invoke {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isInvokeMultiNewArray() && type == other.asInvokeMultiNewArray().type;
   }
@@ -121,6 +122,7 @@ public class InvokeMultiNewArray extends Invoke {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean instructionInstanceCanThrow(
       AppView<?> appView,
       ProgramMethod context,

@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.google.common.base.Predicates.alwaysFalse;
 
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DefaultInstanceInitializerCode;
 import com.android.tools.r8.graph.DexClass;
@@ -284,6 +285,7 @@ public class TreePruner {
                     && !isLive.test(nestMemberAttr.getNestMember()));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void claimNestOwnership(
       DexClass newHost, Predicate<DexType> isLive, Function<DexType, DexClass> definition) {
     DexClass previousHost = definition.apply(newHost.getNestHost());
@@ -361,10 +363,12 @@ public class TreePruner {
         reachableMethods.add(method);
       } else if (options.configurationDebugging) {
         // Keep the method but rewrite its body, if it has one.
-        reachableMethods.add(
-            method.shouldNotHaveCode() && !method.hasCode()
-                ? method
-                : method.toMethodThatLogsError(appView));
+        if (method.shouldNotHaveCode() && !method.hasCode()) {
+          method.setApiLevelForDefinition(ComputedApiLevel.unknown());
+          reachableMethods.add(method);
+        } else {
+          reachableMethods.add(method.toMethodThatLogsError(appView));
+        }
         methodsToKeepForConfigurationDebugging.add(method.getReference());
       } else if (appInfo.isTargetedMethod(method.getReference())) {
         // If the method is already abstract, and doesn't have code, let it be.
@@ -376,6 +380,7 @@ public class TreePruner {
         // an invalid invoke. They will not actually be called at runtime but we have to keep them
         // as non-abstract (see above) to produce the same failure mode.
         new ProgramMethod(clazz, method).convertToAbstractOrThrowNullMethod(appView);
+        method.markNotProcessed();
         reachableMethods.add(method);
       } else {
         unusedItemsPrinter.registerUnusedMethod(method);
@@ -432,6 +437,7 @@ public class TreePruner {
     OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
     feedback.fixupOptimizationInfos(
         application.classes(),
+        appView.options().getThreadingModule(),
         executorService,
         new OptimizationInfoFixer() {
           @Override

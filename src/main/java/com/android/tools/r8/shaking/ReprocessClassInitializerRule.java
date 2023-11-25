@@ -15,6 +15,7 @@ public class ReprocessClassInitializerRule extends ProguardConfigurationRule {
     NEVER
   }
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<ReprocessClassInitializerRule, Builder> {
 

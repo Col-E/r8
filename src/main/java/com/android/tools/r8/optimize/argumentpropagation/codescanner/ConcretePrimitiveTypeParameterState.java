@@ -50,6 +50,7 @@ public class ConcretePrimitiveTypeParameterState extends ConcreteParameterState 
     return new ConcretePrimitiveTypeParameterState(abstractValue, copyInParameters());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public ParameterState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       ConcretePrimitiveTypeParameterState parameterState,

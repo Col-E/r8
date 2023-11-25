@@ -4,6 +4,10 @@
 
 // TODO(b/270105162): Move this file out the repository root when old gradle is removed.
 
+import java.nio.file.Files
+import java.nio.file.attribute.FileTime
+import org.gradle.internal.os.OperatingSystem
+
 rootProject.name = "d8-r8"
 
 // Bootstrap building by downloading dependencies.
@@ -29,8 +33,12 @@ fun downloadFromGoogleStorage(outputDir : File) {
       return
   }
 
+  var downloadScript = "download_from_google_storage.py"
+  if (OperatingSystem.current().isWindows()) {
+    downloadScript = "download_from_google_storage.bat"
+  }
   val cmd = listOf(
-    "download_from_google_storage.py",
+    downloadScript,
     "--extract",
     "--bucket",
     dependencies_bucket,
@@ -43,25 +51,31 @@ fun downloadFromGoogleStorage(outputDir : File) {
   process.waitFor()
   if (process.exitValue() != 0) {
     throw GradleException(
-      "Bootstrapping dependencies_new download failed:\n"
+      "Bootstrapping ${outputDir} download failed:\n"
         + "${String(process.getErrorStream().readAllBytes(),
                     java.nio.charset.StandardCharsets.UTF_8)}\n"
         + String(process.getInputStream().readAllBytes(),
                  java.nio.charset.StandardCharsets.UTF_8))
+  } else {
+    // Ensure that the gz file is more recent than the .sha1 file
+    // People that upload a new version will generally have an older .sha1 file
+    println("Updating timestamp on " + targz)
+    val now = FileTime.fromMillis(System.currentTimeMillis())
+    Files.setLastModifiedTime(targz.toPath(), now)
   }
 }
 
 val thirdParty = getRepoRoot().resolve("third_party")
 downloadFromGoogleStorage(thirdParty.resolve("dependencies"))
-downloadFromGoogleStorage(thirdParty.resolve("dependencies_new"))
+downloadFromGoogleStorage(thirdParty.resolve("dependencies_plugin"))
 
 pluginManagement {
   repositories {
     maven {
-      url = uri("file:../third_party/dependencies")
+      url = uri("file:../third_party/dependencies_plugin")
     }
     maven {
-      url = uri("file:../third_party/dependencies_new")
+      url = uri("file:../third_party/dependencies")
     }
   }
   includeBuild(rootProject.projectDir.resolve("commonBuildSrc"))
@@ -72,14 +86,10 @@ dependencyResolutionManagement {
     maven {
       url = uri("file:../third_party/dependencies")
     }
-    maven {
-      url = uri("file:../third_party/dependencies_new")
-    }
   }
 }
 
-// This project is temporarily located in d8_r8. When moved to root, the parent
-// folder should just be removed.
+includeBuild(root.resolve("shared"))
 includeBuild(root.resolve("keepanno"))
 includeBuild(root.resolve("resourceshrinker"))
 
@@ -88,7 +98,3 @@ includeBuild(root.resolve("resourceshrinker"))
 includeBuild(root.resolve("main"))
 includeBuild(root.resolve("library_desugar"))
 includeBuild(root.resolve("test"))
-
-// Include r8lib as standalone to have a nice separation between source artifacts and r8 compiled
-// artifacts
-includeBuild(root.resolve("r8lib"))

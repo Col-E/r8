@@ -15,6 +15,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
@@ -305,6 +306,7 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
         .addProgramClassFileData(ImmutableList.of(dumpAndroidRUtilsObjectsMethods()))
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
+        .enableConstantArgumentAnnotations()
         .noMinification()
         .addKeepRules("-keep class AndroidRUtilsObjectsMethods { *; }")
         .addKeepRules("-neverinline class AndroidRUtilsObjectsMethods { *; }")
@@ -342,6 +344,9 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
       System.out.println(Objects.hash(o1, o2));
     }
 
+    // We keep constant arguments to avoid the argument to be proven non-null leading to
+    // Objects#hashCode(Object) being rewritten to Object#hashCode().
+    @KeepConstantArguments
     @NeverInline
     private static void objectsHashCode(Object o) {
       System.out.println(Objects.hashCode(o));

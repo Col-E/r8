@@ -11,6 +11,7 @@ public class KeepUnusedArgumentRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "keepunusedarguments";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<KeepUnusedArgumentRule, Builder> {
 

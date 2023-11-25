@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.records;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.GlobalSyntheticsConsumer;
@@ -64,7 +65,11 @@ public class RecordInterfaceTest extends TestBase {
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .applyIf(
+            isRecordsDesugaredForD8(parameters)
+                || runtimeWithRecordsSupport(parameters.getRuntime()),
+            r -> r.assertSuccessWithOutput(EXPECTED_RESULT),
+            r -> r.assertFailureWithErrorThatThrows(NoClassDefFoundError.class));
   }
 
   @Test
@@ -75,10 +80,12 @@ public class RecordInterfaceTest extends TestBase {
     Path path = compileIntermediate(globals);
     testForD8()
         .addProgramFiles(path)
-        .apply(
+        .applyIf(
+            isRecordsDesugaredForD8(parameters),
             b ->
                 b.getBuilder()
-                    .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()))
+                    .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()),
+            b -> assertFalse(globals.hasGlobals()))
         .apply(b -> b.getBuilder().setDesugarGraphConsumer(consumer))
         .setMinApi(parameters)
         .setIncludeClassesChecksum(true)
@@ -97,10 +104,12 @@ public class RecordInterfaceTest extends TestBase {
     Path path = compileIntermediate(globals);
     testForD8()
         .addProgramFiles(path)
-        .apply(
+        .applyIf(
+            isRecordsDesugaredForD8(parameters),
             b ->
                 b.getBuilder()
-                    .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()))
+                    .addGlobalSyntheticsResourceProviders(globals.getIndexedModeProvider()),
+            b -> assertFalse(globals.hasGlobals()))
         .apply(b -> b.getBuilder().setDesugarGraphConsumer(consumer))
         .setMinApi(parameters)
         .setIncludeClassesChecksum(true)

@@ -46,7 +46,7 @@ public class StringOptimizer extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "StringOptimizer";
   }
 
@@ -69,6 +69,7 @@ public class StringOptimizer extends CodeRewriterPass<AppInfo> {
     return CodeRewriterResult.hasChanged(hasChanged);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // boolean String#isEmpty()
   // boolean String#startsWith(String)
   // boolean String#endsWith(String)
@@ -252,6 +253,7 @@ public class StringOptimizer extends CodeRewriterPass<AppInfo> {
     return hasChanged;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Find Class#get*Name() with a constant-class and replace it with a const-string if possible.
   private boolean rewriteClassGetName(IRCode code) {
     boolean hasChanged = false;
@@ -413,6 +415,7 @@ public class StringOptimizer extends CodeRewriterPass<AppInfo> {
     return hasChanged;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // String#valueOf(null) -> "null"
   // String#valueOf(String s) -> s
   // str.toString() -> str
@@ -436,9 +439,8 @@ public class StringOptimizer extends CodeRewriterPass<AppInfo> {
         Value out = invoke.outValue();
         TypeElement inType = in.getType();
         if (out != null && in.isAlwaysNull(appView)) {
-          affectedValues.addAll(out.affectedValues());
           it.replaceCurrentInstructionWithConstString(
-              appView, code, dexItemFactory.createString("null"));
+              appView, code, dexItemFactory.createString("null"), affectedValues);
         } else if (inType.nullability().isDefinitelyNotNull()
             && inType.isClassType()
             && inType.asClassType().getClassType().equals(dexItemFactory.stringType)) {
@@ -492,6 +494,7 @@ public class StringOptimizer extends CodeRewriterPass<AppInfo> {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean isLegitimateEscapeRoute(
         AppView<?> appView,
         EscapeAnalysis escapeAnalysis,

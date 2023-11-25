@@ -50,6 +50,7 @@ public class StringBuilderEscapeTransferFunction
   }
 
   @Override
+  @SuppressWarnings("UnnecessaryParentheses")
   public TransferFunctionResult<StringBuilderEscapeState> apply(
       Instruction instruction, StringBuilderEscapeState state) {
     StringBuilderEscapeState.Builder builder = state.builder();

@@ -85,7 +85,7 @@ public class NonTrivialInstanceFieldInitializationInfoCollection
         (field, info) ->
             builder.recordInitializationInfo(
                 lens.lookupField(field, codeLens),
-                info.rewrittenWithLens(appView, lens, codeLens)));
+                info.rewrittenWithLens(appView, field.getType(), lens, codeLens)));
     return builder.build();
   }
 

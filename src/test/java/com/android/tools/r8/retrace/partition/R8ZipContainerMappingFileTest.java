@@ -21,6 +21,7 @@ import com.android.tools.r8.retrace.MappingPartitionMetadata;
 import com.android.tools.r8.retrace.PartitionMappingSupplier;
 import com.android.tools.r8.retrace.partition.testclasses.R8ZipContainerMappingFileTestClasses;
 import com.android.tools.r8.retrace.partition.testclasses.R8ZipContainerMappingFileTestClasses.Main;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
@@ -92,9 +93,12 @@ public class R8ZipContainerMappingFileTest extends TestBase {
             .getOriginalStackTrace();
 
     assertTrue(Files.exists(pgMapFile));
+    BooleanBox calledFinished = new BooleanBox();
     assertThat(
-        originalStackTrace.retrace(createMappingSupplierFromPartitionZip(pgMapFile)),
+        originalStackTrace.retrace(
+            createMappingSupplierFromPartitionZip(pgMapFile, calledFinished::set)),
         isSame(EXPECTED));
+    assertTrue(calledFinished.get());
   }
 
   private PartitionMapConsumer createPartitionZipConsumer(Path pgMapFile) throws IOException {
@@ -130,8 +134,8 @@ public class R8ZipContainerMappingFileTest extends TestBase {
     };
   }
 
-  private PartitionMappingSupplier createMappingSupplierFromPartitionZip(Path pgMapFile)
-      throws IOException {
+  private PartitionMappingSupplier createMappingSupplierFromPartitionZip(
+      Path pgMapFile, Runnable finishedCallback) throws IOException {
     ZipFile zipFile = new ZipFile(pgMapFile.toFile());
     byte[] metadata = ByteStreams.toByteArray(zipFile.getInputStream(zipFile.getEntry("METADATA")));
     return PartitionMappingSupplier.builder()
@@ -140,6 +144,15 @@ public class R8ZipContainerMappingFileTest extends TestBase {
             key -> {
               try {
                 return ByteStreams.toByteArray(zipFile.getInputStream(zipFile.getEntry(key)));
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+            })
+        .setFinishedPartitionMappingCallback(
+            handler -> {
+              try {
+                zipFile.close();
+                finishedCallback.run();
               } catch (IOException e) {
                 throw new RuntimeException(e);
               }

@@ -12,8 +12,8 @@ import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis.InitializedClassesInInstanceMethods;
+import com.android.tools.r8.graph.analysis.ResourceAccessAnalysis.ResourceAnalysisResult;
 import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
-import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.InitClassLens;
 import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
@@ -31,12 +31,14 @@ import com.android.tools.r8.ir.analysis.value.AbstractValueJoiner.AbstractValueF
 import com.android.tools.r8.ir.analysis.value.AbstractValueJoiner.AbstractValueParameterJoiner;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
+import com.android.tools.r8.ir.optimize.info.MethodResolutionOptimizationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
 import com.android.tools.r8.ir.optimize.library.LibraryMemberOptimizer;
 import com.android.tools.r8.ir.optimize.library.LibraryMethodSideEffectModelCollection;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
+import com.android.tools.r8.optimize.compose.ComposeReferences;
 import com.android.tools.r8.optimize.interfaces.collection.OpenClosedInterfacesCollection;
 import com.android.tools.r8.profile.art.ArtProfileCollection;
 import com.android.tools.r8.profile.startup.profile.StartupProfile;
@@ -62,6 +64,7 @@ import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.threads.ThreadTask;
 import com.android.tools.r8.utils.threads.ThreadTaskUtils;
+import com.android.tools.r8.verticalclassmerging.VerticallyMergedClasses;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -76,9 +79,13 @@ import java.util.function.Supplier;
 
 public class AppView<T extends AppInfo> implements DexDefinitionSupplier, LibraryModeledPredicate {
 
-  private enum WholeProgramOptimizations {
+  public enum WholeProgramOptimizations {
     ON,
-    OFF
+    OFF;
+
+    public boolean isOn() {
+      return this == ON;
+    }
   }
 
   private T appInfo;
@@ -95,6 +102,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private NamingLens namingLens = NamingLens.getIdentityLens();
   private ProguardCompatibilityActions proguardCompatibilityActions;
   private RootSet rootSet;
+  private MethodResolutionOptimizationInfoCollection methodResolutionOptimizationInfoCollection =
+      MethodResolutionOptimizationInfoCollection.empty();
   private MainDexRootSet mainDexRootSet = null;
   private StartupProfile startupProfile;
 
@@ -102,7 +111,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   // Currently however the liveness may be downgraded thus loosing the computed keep info.
   private KeepInfoCollection keepInfo = null;
 
-  private final AbstractValueFactory abstractValueFactory = new AbstractValueFactory();
+  private ComposeReferences composeReferences = null;
+
+  private final AbstractValueFactory abstractValueFactory;
   private final AbstractValueConstantPropagationJoiner abstractValueConstantPropagationJoiner;
   private final AbstractValueFieldJoiner abstractValueFieldJoiner;
   private final AbstractValueParameterJoiner abstractValueParameterJoiner;
@@ -137,6 +148,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private final Map<DexType, String> sourceFileForPrunedTypes = new IdentityHashMap<>();
 
   private SeedMapper applyMappingSeedMapper;
+
+  private ResourceAnalysisResult resourceAnalysisResult = null;
 
   // When input has been (partially) desugared these are the classes which has been library
   // desugared. This information is populated in the IR converter.
@@ -177,6 +190,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
         timing.time(
             "Compilation context", () -> CompilationContext.createInitialContext(options()));
     this.wholeProgramOptimizations = wholeProgramOptimizations;
+    abstractValueFactory = new AbstractValueFactory(options());
     abstractValueConstantPropagationJoiner = new AbstractValueConstantPropagationJoiner(this);
     if (enableWholeProgramOptimizations()) {
       abstractValueFieldJoiner = new AbstractValueFieldJoiner(withClassHierarchy());
@@ -340,6 +354,20 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return abstractValueParameterJoiner;
   }
 
+  public void clearMethodResolutionOptimizationInfoCollection() {
+    methodResolutionOptimizationInfoCollection = MethodResolutionOptimizationInfoCollection.empty();
+  }
+
+  public MethodResolutionOptimizationInfoCollection
+      getMethodResolutionOptimizationInfoCollection() {
+    return methodResolutionOptimizationInfoCollection;
+  }
+
+  public void setMethodResolutionOptimizationInfoCollection(
+      MethodResolutionOptimizationInfoCollection getMethodResolutionOptimizationInfoCollection) {
+    this.methodResolutionOptimizationInfoCollection = getMethodResolutionOptimizationInfoCollection;
+  }
+
   public InstanceFieldInitializationInfoFactory instanceFieldInitializationInfoFactory() {
     return instanceFieldInitializationInfoFactory;
   }
@@ -493,8 +521,20 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return appInfo.dexItemFactory();
   }
 
+  public ComposeReferences getComposeReferences() {
+    assert testing().modelUnknownChangedAndDefaultArgumentsToComposableFunctions;
+    if (composeReferences == null) {
+      composeReferences = new ComposeReferences(dexItemFactory());
+    }
+    return composeReferences;
+  }
+
   public boolean enableWholeProgramOptimizations() {
     return wholeProgramOptimizations == WholeProgramOptimizations.ON;
+  }
+
+  public WholeProgramOptimizations getWholeProgramOptimizations() {
+    return wholeProgramOptimizations;
   }
 
   /**
@@ -662,6 +702,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public void setCfByteCodePassThrough(Set<DexMethod> cfByteCodePassThrough) {
+    assert options().enableCfByteCodePassThrough;
     this.cfByteCodePassThrough = cfByteCodePassThrough;
   }
 
@@ -784,11 +825,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       HorizontallyMergedClasses horizontallyMergedClasses, HorizontalClassMerger.Mode mode) {
     assert !hasHorizontallyMergedClasses() || mode.isFinal();
     this.horizontallyMergedClasses = horizontallyMergedClasses().extend(horizontallyMergedClasses);
-    if (mode.isFinal()) {
-      testing()
-          .horizontallyMergedClassesConsumer
-          .accept(dexItemFactory(), horizontallyMergedClasses());
-    }
+    testing()
+        .horizontallyMergedClassesConsumer
+        .accept(dexItemFactory(), horizontallyMergedClasses(), mode);
   }
 
   public boolean hasVerticallyMergedClasses() {
@@ -799,7 +838,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
    * Get the result of vertical class merging. Returns null if vertical class merging has not been
    * run.
    */
-  public VerticallyMergedClasses verticallyMergedClasses() {
+  public VerticallyMergedClasses getVerticallyMergedClasses() {
     return verticallyMergedClasses;
   }
 
@@ -830,6 +869,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     assert !hasUnboxedEnums();
     this.unboxedEnums = unboxedEnums;
     testing().unboxedEnumsConsumer.accept(dexItemFactory(), unboxedEnums);
+  }
+
+  public void setResourceAnalysisResult(ResourceAnalysisResult resourceAnalysisResult) {
+    this.resourceAnalysisResult = resourceAnalysisResult;
+  }
+
+  public ResourceAnalysisResult getResourceAnalysisResult() {
+    return resourceAnalysisResult;
   }
 
   public boolean validateUnboxedEnumsHaveBeenPruned() {
@@ -869,6 +916,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return appViewWithLiveness;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public OptionalBool isSubtype(DexType subtype, DexType supertype) {
     // Even if we can compute isSubtype by having class hierarchy we may not be allowed to ask the
     // question for all code paths in D8. Having the check for liveness ensure that we are in R8
@@ -883,9 +931,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public boolean isCfByteCodePassThrough(DexEncodedMethod method) {
-    if (!options().isGeneratingClassFiles()) {
+    if (!options().enableCfByteCodePassThrough) {
       return false;
     }
+    assert options().isGeneratingClassFiles();
     if (cfByteCodePassThrough.contains(method.getReference())) {
       return true;
     }
@@ -922,6 +971,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       setProguardCompatibilityActions(
           getProguardCompatibilityActions().withoutPrunedItems(prunedItems, timing));
     }
+    if (resourceAnalysisResult != null) {
+      resourceAnalysisResult.withoutPrunedItems(prunedItems, timing);
+    }
     if (hasRootSet()) {
       rootSet.pruneItems(prunedItems, timing);
     }
@@ -957,6 +1009,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       throws ExecutionException {
     rewriteWithLensAndApplication(
         lens, application, executorService, timing, withClassHierarchy(), lens.getPrevious());
+    assert verifyMovedMethodsHaveOriginalMethodPosition();
   }
 
   private static void rewriteWithLensAndApplication(
@@ -1125,6 +1178,17 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
               new ThreadTask() {
                 @Override
                 public void run(Timing threadTiming) {
+                  appView.resourceAnalysisResult.rewrittenWithLens(lens, threadTiming);
+                }
+
+                @Override
+                public boolean shouldRun() {
+                  return appView.resourceAnalysisResult != null;
+                }
+              },
+              new ThreadTask() {
+                @Override
+                public void run(Timing threadTiming) {
                   appView.setRootSet(appView.rootSet().rewrittenWithLens(lens, threadTiming));
                 }
 
@@ -1264,5 +1328,34 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public String getPrunedClassSourceFileInfo(DexType dexType) {
     return sourceFileForPrunedTypes.get(dexType);
+  }
+
+  public boolean verifyMovedMethodsHaveOriginalMethodPosition() {
+    DirectMappedDexApplication application = app().asDirect();
+    application
+        .classesWithDeterministicOrder()
+        .forEach(
+            clazz ->
+                clazz.forEachProgramMethod(
+                    method -> {
+                      assert verifyOriginalMethodInPosition(method);
+                    }));
+    return true;
+  }
+
+  private static boolean verifyOriginalMethodInPosition(ProgramMethod context) {
+    Code code = context.getDefinition().getCode();
+    if (code == null) {
+      return true;
+    }
+    DexMethod thisMethod = context.getReference();
+    code.forEachPosition(
+        context.getReference(),
+        context.getDefinition().isD8R8Synthesized(),
+        position -> {
+          DexMethod outerCaller = position.getOutermostCaller().getMethod();
+          assert thisMethod.isIdenticalTo(outerCaller);
+        });
+    return true;
   }
 }

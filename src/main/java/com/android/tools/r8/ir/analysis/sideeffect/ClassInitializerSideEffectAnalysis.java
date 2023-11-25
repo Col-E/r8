@@ -38,6 +38,7 @@ public class ClassInitializerSideEffectAnalysis {
    * A class initializer cannot be postponed if it writes a static field of another class, or if any
    * non-static-put instructions may have side effects.
    */
+  @SuppressWarnings("ReferenceEquality")
   public static ClassInitializerSideEffect classInitializerCanBePostponed(
       AppView<AppInfoWithLiveness> appView, IRCode code) {
     ProgramMethod context = code.context();

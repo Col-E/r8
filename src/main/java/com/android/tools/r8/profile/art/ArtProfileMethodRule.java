@@ -74,6 +74,7 @@ public class ArtProfileMethodRule extends ArtProfileRule implements AbstractProf
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object o) {
     if (this == o) {
       return true;

@@ -261,8 +261,7 @@ public class DexBuilder {
         dexInstruction.setOffset(instructionOffset);
         instructionOffset += dexInstruction.getSize();
       }
-      debugEventBuilder.add(
-          instructionStartOffset, instructionOffset, irInstruction, getProgramMethod());
+      debugEventBuilder.add(instructionStartOffset, instructionOffset, irInstruction);
     }
 
     // Workaround dalvik tracing bug, where the dalvik tracing JIT can end up tracing
@@ -436,6 +435,7 @@ public class DexBuilder {
     return current.exit().asGoto().getTarget() != nextBlock;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Eliminates unneeded debug positions.
   //
   // After this pass all remaining debug positions mark places where we must ensure a materializing
@@ -663,6 +663,7 @@ public class DexBuilder {
     add(branch, new IfInfo(branch));
   }
 
+  @SuppressWarnings("UnnecessaryParentheses")
   public void addMove(Move move) {
     add(move, new MoveInfo(move));
   }
@@ -679,6 +680,7 @@ public class DexBuilder {
         || (instruction.isGoto() && instruction.asGoto().getTarget() == nextBlock);
   }
 
+  @SuppressWarnings("UnnecessaryParentheses")
   private static boolean isNonMaterializingConstNumber(
       com.android.tools.r8.ir.code.Instruction instruction) {
     return instruction.isConstNumber()
@@ -1002,6 +1004,7 @@ public class DexBuilder {
     return tries;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private TryHandler[] getDexTryHandlers(Map<Integer, CatchHandlers<BasicBlock>> catchHandlers) {
     TryHandler[] handlers = new TryHandler[catchHandlers.size()];
     for (int j = 0; j < catchHandlers.size(); j++) {

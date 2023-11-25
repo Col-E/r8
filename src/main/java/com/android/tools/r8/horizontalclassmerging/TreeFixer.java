@@ -161,6 +161,7 @@ class TreeFixer extends TreeFixerBase {
         fixupPermittedSubclassAttribute(clazz.getPermittedSubclassAttributes()));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void fixupProgramClassSuperTypes(DexProgramClass clazz) {
     DexType rewrittenSuperType = fixupType(clazz.getSuperType());
     if (rewrittenSuperType != clazz.getSuperType()) {
@@ -200,6 +201,7 @@ class TreeFixer extends TreeFixerBase {
     return remappedClassVirtualMethods;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexEncodedMethod fixupVirtualInterfaceMethod(DexEncodedMethod method) {
     DexMethod originalMethodReference = method.getReference();
 
@@ -235,7 +237,7 @@ class TreeFixer extends TreeFixerBase {
         newMethodSignature.withHolder(originalMethodReference, dexItemFactory);
     lensBuilder.fixupMethod(originalMethodReference, newMethodReference);
     return newMethodReference != originalMethodReference
-        ? method.toTypeSubstitutedMethod(newMethodReference)
+        ? method.toTypeSubstitutedMethodAsInlining(newMethodReference, dexItemFactory)
         : method;
   }
 
@@ -255,6 +257,7 @@ class TreeFixer extends TreeFixerBase {
     lensBuilder.commitPendingUpdates();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexTypeList fixupInterfaces(DexProgramClass clazz, DexTypeList interfaceTypes) {
     Set<DexType> seen = Sets.newIdentityHashSet();
     return interfaceTypes.map(
@@ -265,6 +268,7 @@ class TreeFixer extends TreeFixerBase {
         });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexEncodedMethod fixupProgramMethod(
       DexMethod newMethodReference, DexEncodedMethod method) {
     DexMethod originalMethodReference = method.getReference();
@@ -274,7 +278,8 @@ class TreeFixer extends TreeFixerBase {
 
     lensBuilder.fixupMethod(originalMethodReference, newMethodReference);
 
-    DexEncodedMethod newMethod = method.toTypeSubstitutedMethod(newMethodReference);
+    DexEncodedMethod newMethod =
+        method.toTypeSubstitutedMethodAsInlining(newMethodReference, dexItemFactory);
     if (newMethod.isNonPrivateVirtualMethod()) {
       // Since we changed the return type or one of the parameters, this method cannot be a
       // classpath or library method override, since we only class merge program classes.
@@ -434,6 +439,7 @@ class TreeFixer extends TreeFixerBase {
     return fixupProgramMethod(newMethodReference, method);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexEncodedField[] fixupFields(
       DexEncodedField[] fields, Set<DexField> newFieldReferences) {
     if (fields == null || ArrayUtils.isEmpty(fields)) {

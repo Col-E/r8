@@ -109,7 +109,8 @@ public abstract class CompilerApiTest {
 
   public Path getPathForClass(Class<?> clazz) {
     String file = clazz.getName().replace('.', '/') + ".class";
-    return Paths.get("build", "classes", "java", "test", file);
+    assert System.getProperty("TEST_DATA_LOCATION") != null;
+    return Paths.get(System.getProperty("TEST_DATA_LOCATION"), file);
   }
 
   public byte[] getBytesForClass(Class<?> clazz) throws IOException {

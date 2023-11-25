@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import static com.android.tools.r8.graph.DexEncodedMethod.asProgramMethodOrNull;
-import static com.android.tools.r8.graph.DexEncodedMethod.toMethodDefinitionOrNull;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult.isOverriding;
 import static com.android.tools.r8.utils.collections.ThrowingSet.isThrowingSet;
@@ -18,6 +16,7 @@ import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMember;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
@@ -30,6 +29,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.DispatchTargetLookupResult;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
@@ -46,7 +46,9 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.graph.SingleDispatchTargetLookupResult;
 import com.android.tools.r8.graph.SubtypingInfo;
+import com.android.tools.r8.graph.UnknownDispatchTargetLookupResult;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.graph.lens.NonIdentityGraphLens;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
@@ -62,11 +64,11 @@ import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.repackaging.RepackagingUtils;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.synthesis.CommittedItems;
+import com.android.tools.r8.threading.TaskCollection;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PredicateSet;
-import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
@@ -78,7 +80,6 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -87,7 +88,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -130,12 +130,14 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * kept.
    */
   private Set<DexMethod> liveMethods;
+
   /**
    * Information about all fields that are accessed by the program. The information includes whether
    * a given field is read/written by the program, and it also includes all indirect accesses to
    * each field. The latter is used, for example, during member rebinding.
    */
-  private FieldAccessInfoCollectionImpl fieldAccessInfoCollection;
+  private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection;
+
   /** Set of all methods referenced in invokes along with their calling contexts. */
   private final MethodAccessInfoCollection methodAccessInfoCollection;
   /** Information about instantiated classes and their allocation sites. */
@@ -318,49 +320,46 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   private AppInfoWithLiveness(
-      AppInfoWithLiveness previous,
-      PrunedItems prunedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
+      AppInfoWithLiveness previous, PrunedItems prunedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
     this(
         previous.getSyntheticItems().commitPrunedItems(prunedItems),
         previous.getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
         previous.getMainDexInfo().withoutPrunedItems(prunedItems),
         previous.getMissingClasses(),
         previous.deadProtoTypes,
-        pruneClasses(previous.liveTypes, prunedItems, executorService, futures),
-        pruneMethods(previous.targetedMethods, prunedItems, executorService, futures),
-        pruneClasses(previous.failedClassResolutionTargets, prunedItems, executorService, futures),
-        pruneMethods(previous.failedMethodResolutionTargets, prunedItems, executorService, futures),
-        pruneFields(previous.failedFieldResolutionTargets, prunedItems, executorService, futures),
-        pruneMethods(previous.bootstrapMethods, prunedItems, executorService, futures),
-        pruneMethods(
-            previous.virtualMethodsTargetedByInvokeDirect, prunedItems, executorService, futures),
-        pruneMethods(previous.liveMethods, prunedItems, executorService, futures),
+        pruneClasses(previous.liveTypes, prunedItems, tasks),
+        pruneMethods(previous.targetedMethods, prunedItems, tasks),
+        pruneClasses(previous.failedClassResolutionTargets, prunedItems, tasks),
+        pruneMethods(previous.failedMethodResolutionTargets, prunedItems, tasks),
+        pruneFields(previous.failedFieldResolutionTargets, prunedItems, tasks),
+        pruneMethods(previous.bootstrapMethods, prunedItems, tasks),
+        pruneMethods(previous.virtualMethodsTargetedByInvokeDirect, prunedItems, tasks),
+        pruneMethods(previous.liveMethods, prunedItems, tasks),
         previous.fieldAccessInfoCollection,
         previous.methodAccessInfoCollection.withoutPrunedItems(prunedItems),
         previous.objectAllocationInfoCollection.withoutPrunedItems(prunedItems),
         pruneCallSites(previous.callSites, prunedItems),
         extendPinnedItems(previous, prunedItems.getAdditionalPinnedItems()),
         previous.mayHaveSideEffects,
-        pruneMethods(previous.alwaysInline, prunedItems, executorService, futures),
-        pruneMethods(previous.neverInlineDueToSingleCaller, prunedItems, executorService, futures),
-        pruneMethods(previous.whyAreYouNotInlining, prunedItems, executorService, futures),
-        pruneMethods(previous.reprocess, prunedItems, executorService, futures),
-        pruneMethods(previous.neverReprocess, prunedItems, executorService, futures),
+        pruneMethods(previous.alwaysInline, prunedItems, tasks),
+        pruneMethods(previous.neverInlineDueToSingleCaller, prunedItems, tasks),
+        pruneMethods(previous.whyAreYouNotInlining, prunedItems, tasks),
+        pruneMethods(previous.reprocess, prunedItems, tasks),
+        pruneMethods(previous.neverReprocess, prunedItems, tasks),
         previous.alwaysClassInline,
-        pruneClasses(previous.neverClassInline, prunedItems, executorService, futures),
-        pruneClasses(previous.noClassMerging, prunedItems, executorService, futures),
-        pruneClasses(previous.noVerticalClassMerging, prunedItems, executorService, futures),
-        pruneClasses(previous.noHorizontalClassMerging, prunedItems, executorService, futures),
-        pruneMembers(previous.neverPropagateValue, prunedItems, executorService, futures),
-        pruneMapFromMembers(previous.identifierNameStrings, prunedItems, executorService, futures),
+        pruneClasses(previous.neverClassInline, prunedItems, tasks),
+        pruneClasses(previous.noClassMerging, prunedItems, tasks),
+        pruneClasses(previous.noVerticalClassMerging, prunedItems, tasks),
+        pruneClasses(previous.noHorizontalClassMerging, prunedItems, tasks),
+        pruneMembers(previous.neverPropagateValue, prunedItems, tasks),
+        pruneMapFromMembers(previous.identifierNameStrings, prunedItems, tasks),
         prunedItems.hasRemovedClasses()
             ? CollectionUtils.mergeSets(previous.prunedTypes, prunedItems.getRemovedClasses())
             : previous.prunedTypes,
         previous.switchMaps,
-        pruneClasses(previous.lockCandidates, prunedItems, executorService, futures),
-        pruneMapFromClasses(previous.initClassReferences, prunedItems, executorService, futures),
+        pruneClasses(previous.lockCandidates, prunedItems, tasks),
+        pruneMapFromClasses(previous.initClassReferences, prunedItems, tasks),
         previous.recordFieldValuesReferences);
   }
 
@@ -382,114 +381,91 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   private static Set<DexType> pruneClasses(
-      Set<DexType> methods,
-      PrunedItems prunedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
-    return pruneItems(methods, prunedItems.getRemovedClasses(), executorService, futures);
+      Set<DexType> methods, PrunedItems prunedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
+    return pruneItems(methods, prunedItems.getRemovedClasses(), tasks);
   }
 
   private static Set<DexField> pruneFields(
-      Set<DexField> fields,
-      PrunedItems prunedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
-    return pruneItems(fields, prunedItems.getRemovedFields(), executorService, futures);
+      Set<DexField> fields, PrunedItems prunedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
+    return pruneItems(fields, prunedItems.getRemovedFields(), tasks);
   }
 
   private static Set<DexMember<?, ?>> pruneMembers(
-      Set<DexMember<?, ?>> members,
-      PrunedItems prunedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
+      Set<DexMember<?, ?>> members, PrunedItems prunedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
     if (prunedItems.hasRemovedMembers()) {
-      futures.add(
-          ThreadUtils.processAsynchronously(
-              () -> {
-                Set<DexField> removedFields = prunedItems.getRemovedFields();
-                Set<DexMethod> removedMethods = prunedItems.getRemovedMethods();
-                if (members.size() <= removedFields.size() + removedMethods.size()) {
-                  members.removeIf(
-                      member ->
-                          member.isDexField()
-                              ? removedFields.contains(member.asDexField())
-                              : removedMethods.contains(member.asDexMethod()));
-                } else {
-                  removedFields.forEach(members::remove);
-                  removedMethods.forEach(members::remove);
-                }
-              },
-              executorService));
+      tasks.submit(
+          () -> {
+            Set<DexField> removedFields = prunedItems.getRemovedFields();
+            Set<DexMethod> removedMethods = prunedItems.getRemovedMethods();
+            if (members.size() <= removedFields.size() + removedMethods.size()) {
+              members.removeIf(
+                  member ->
+                      member.isDexField()
+                          ? removedFields.contains(member.asDexField())
+                          : removedMethods.contains(member.asDexMethod()));
+            } else {
+              removedFields.forEach(members::remove);
+              removedMethods.forEach(members::remove);
+            }
+          });
     }
     return members;
   }
 
   private static Set<DexMethod> pruneMethods(
-      Set<DexMethod> methods,
-      PrunedItems prunedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
-    return pruneItems(methods, prunedItems.getRemovedMethods(), executorService, futures);
+      Set<DexMethod> methods, PrunedItems prunedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
+    return pruneItems(methods, prunedItems.getRemovedMethods(), tasks);
   }
 
-  private static <T> Set<T> pruneItems(
-      Set<T> items, Set<T> removedItems, ExecutorService executorService, List<Future<?>> futures) {
+  private static <T> Set<T> pruneItems(Set<T> items, Set<T> removedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
     if (!isThrowingSet(items) && !removedItems.isEmpty()) {
-      futures.add(
-          ThreadUtils.processAsynchronously(
-              () -> {
-                if (items.size() <= removedItems.size()) {
-                  items.removeAll(removedItems);
-                } else {
-                  removedItems.forEach(items::remove);
-                }
-              },
-              executorService));
+      tasks.submit(
+          () -> {
+            if (items.size() <= removedItems.size()) {
+              items.removeAll(removedItems);
+            } else {
+              removedItems.forEach(items::remove);
+            }
+          });
     }
     return items;
   }
 
   private static <V> Map<DexType, V> pruneMapFromClasses(
-      Map<DexType, V> map,
-      PrunedItems prunedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
-    return pruneMap(map, prunedItems.getRemovedClasses(), executorService, futures);
+      Map<DexType, V> map, PrunedItems prunedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
+    return pruneMap(map, prunedItems.getRemovedClasses(), tasks);
   }
 
   private static Object2BooleanMap<DexMember<?, ?>> pruneMapFromMembers(
-      Object2BooleanMap<DexMember<?, ?>> map,
-      PrunedItems prunedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
+      Object2BooleanMap<DexMember<?, ?>> map, PrunedItems prunedItems, TaskCollection<?> tasks)
+      throws ExecutionException {
     if (prunedItems.hasRemovedMembers()) {
-      futures.add(
-          ThreadUtils.processAsynchronously(
-              () -> {
-                prunedItems.getRemovedFields().forEach(map::removeBoolean);
-                prunedItems.getRemovedMethods().forEach(map::removeBoolean);
-              },
-              executorService));
+      tasks.submit(
+          () -> {
+            prunedItems.getRemovedFields().forEach(map::removeBoolean);
+            prunedItems.getRemovedMethods().forEach(map::removeBoolean);
+          });
     }
     return map;
   }
 
   private static <K, V> Map<K, V> pruneMap(
-      Map<K, V> map,
-      Set<K> removedItems,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
+      Map<K, V> map, Set<K> removedItems, TaskCollection<?> tasks) throws ExecutionException {
     if (!removedItems.isEmpty()) {
-      futures.add(
-          ThreadUtils.processAsynchronously(
-              () -> {
-                if (map.size() <= removedItems.size()) {
-                  map.keySet().removeAll(removedItems);
-                } else {
-                  removedItems.forEach(map::remove);
-                }
-              },
-              executorService));
+      tasks.submit(
+          () -> {
+            if (map.size() <= removedItems.size()) {
+              map.keySet().removeAll(removedItems);
+            } else {
+              removedItems.forEach(map::remove);
+            }
+          });
     }
     return map;
   }
@@ -497,21 +473,17 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   @Override
   public void notifyHorizontalClassMergerFinished(
       HorizontalClassMerger.Mode horizontalClassMergerMode) {
-    if (horizontalClassMergerMode.isInitial()
-        && !options().getAccessModifierOptions().isLegacyAccessModifierEnabled()) {
+    if (horizontalClassMergerMode.isInitial()) {
       getMethodAccessInfoCollection().destroy();
     }
   }
 
   public void notifyMemberRebindingFinished(AppView<AppInfoWithLiveness> appView) {
     getFieldAccessInfoCollection().restrictToProgram(appView);
-    if (!options().getAccessModifierOptions().isLegacyAccessModifierEnabled()) {
-      getMethodAccessInfoCollection().destroyNonDirectNonSuperInvokes();
-    }
   }
 
   public void notifyRedundantBridgeRemoverFinished(boolean initial) {
-    if (initial && !options().getAccessModifierOptions().isLegacyAccessModifierEnabled()) {
+    if (initial) {
       getMethodAccessInfoCollection().destroySuperInvokes();
     }
   }
@@ -519,9 +491,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   @Override
   public void notifyMinifierFinished() {
     liveMethods = ThrowingSet.get();
-    if (!options().getAccessModifierOptions().isLegacyAccessModifierEnabled()) {
-      getMethodAccessInfoCollection().destroy();
-    }
+    getMethodAccessInfoCollection().destroy();
   }
 
   public void notifyTreePrunerFinished(Enqueuer.Mode mode) {
@@ -767,10 +737,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return alwaysInline.contains(method);
   }
 
-  public boolean hasNoAlwaysInlineMethods() {
-    return alwaysInline.isEmpty();
-  }
-
   public boolean isNeverInlineDueToSingleCallerMethod(ProgramMethod method) {
     return neverInlineDueToSingleCaller.contains(method.getReference());
   }
@@ -831,6 +797,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * @param callSite Call site to resolve.
    * @return Methods implemented by the lambda expression that created the {@code callSite}.
    */
+  @SuppressWarnings("ReferenceEquality")
   public Set<DexEncodedMethod> lookupLambdaImplementedMethods(
       DexCallSite callSite, AppView<AppInfoWithLiveness> appView) {
     assert checkIfObsolete();
@@ -877,8 +844,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * can potentially cause incorrect behavior when merging classes. A conservative choice is to not
    * merge any const-class classes. More info at b/142438687.
    */
-  public boolean isLockCandidate(DexType type) {
-    return lockCandidates.contains(type);
+  public boolean isLockCandidate(DexProgramClass clazz) {
+    return lockCandidates.contains(clazz.getType());
   }
 
   public Set<DexType> getDeadProtoTypes() {
@@ -996,6 +963,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         && !fieldAccessInfo.isWrittenOutside(method);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isInstanceFieldWrittenOnlyInInstanceInitializers(DexClassAndField field) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
@@ -1177,10 +1145,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     } else if (prunedItems.hasRemovedMembers()) {
       keepInfo.mutate(keepInfo -> keepInfo.removeKeepInfoForPrunedItems(prunedItems));
     }
-    List<Future<?>> futures = new ArrayList<>();
-    AppInfoWithLiveness appInfoWithLiveness =
-        new AppInfoWithLiveness(this, prunedItems, executorService, futures);
-    ThreadUtils.awaitFutures(futures);
+    TaskCollection<?> tasks = new TaskCollection<>(options(), executorService);
+    AppInfoWithLiveness appInfoWithLiveness = new AppInfoWithLiveness(this, prunedItems, tasks);
+    tasks.await();
     timing.end();
     return appInfoWithLiveness;
   }
@@ -1279,68 +1246,67 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return prunedTypes;
   }
 
-  public DexEncodedMethod lookupSingleTarget(
+  public DexClassAndMethod lookupSingleTarget(
       AppView<AppInfoWithLiveness> appView,
       InvokeType type,
       DexMethod target,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethod context,
       LibraryModeledPredicate modeledPredicate) {
     assert checkIfObsolete();
-    DexType holder = target.holder;
-    if (!holder.isClassType()) {
+    if (!target.getHolderType().isClassType()) {
       return null;
     }
     switch (type) {
-      case VIRTUAL:
-        return lookupSingleVirtualTarget(appView, target, context, false, modeledPredicate);
       case INTERFACE:
-        return lookupSingleVirtualTarget(appView, target, context, true, modeledPredicate);
+      case VIRTUAL:
+        return lookupSingleVirtualTarget(
+            appView,
+            target,
+            resolutionResult,
+            context,
+            type.isInterface(),
+            modeledPredicate,
+            DynamicType.unknown());
       case DIRECT:
         return lookupDirectTarget(target, context, appView);
       case STATIC:
         return lookupStaticTarget(target, context, appView);
       case SUPER:
-        return toMethodDefinitionOrNull(lookupSuperTarget(target, context, appView));
+        return lookupSuperTarget(target, context, appView);
       default:
         return null;
     }
   }
 
-  public ProgramMethod lookupSingleProgramTarget(
-      AppView<AppInfoWithLiveness> appView,
-      InvokeType type,
-      DexMethod target,
-      ProgramMethod context,
-      LibraryModeledPredicate modeledPredicate) {
-    return asProgramMethodOrNull(
-        lookupSingleTarget(appView, type, target, context, modeledPredicate), this);
-  }
-
   /** For mapping invoke virtual instruction to single target method. */
-  public DexEncodedMethod lookupSingleVirtualTarget(
-      AppView<AppInfoWithLiveness> appView,
-      DexMethod method,
-      ProgramMethod context,
-      boolean isInterface) {
-    assert checkIfObsolete();
-    return lookupSingleVirtualTarget(appView, method, context, isInterface, type -> false);
-  }
-
-  /** For mapping invoke virtual instruction to single target method. */
-  public DexEncodedMethod lookupSingleVirtualTarget(
+  public DexClassAndMethod lookupSingleVirtualTargetForTesting(
       AppView<AppInfoWithLiveness> appView,
       DexMethod method,
       ProgramMethod context,
       boolean isInterface,
-      LibraryModeledPredicate modeledPredicate) {
+      LibraryModeledPredicate modeledPredicate,
+      DynamicType dynamicReceiverType) {
     assert checkIfObsolete();
-    return lookupSingleVirtualTarget(
-        appView, method, context, isInterface, modeledPredicate, DynamicType.unknown());
+    SingleResolutionResult<?> resolutionResult =
+        appView.appInfo().resolveMethodLegacy(method, isInterface).asSingleResolution();
+    if (resolutionResult != null) {
+      return lookupSingleVirtualTarget(
+          appView,
+          method,
+          resolutionResult,
+          context,
+          isInterface,
+          modeledPredicate,
+          dynamicReceiverType);
+    }
+    return null;
   }
 
-  public DexEncodedMethod lookupSingleVirtualTarget(
+  public DexClassAndMethod lookupSingleVirtualTarget(
       AppView<AppInfoWithLiveness> appView,
       DexMethod method,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethod context,
       boolean isInterface,
       LibraryModeledPredicate modeledPredicate,
@@ -1356,8 +1322,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         .isDefinitelyInstanceOfStaticType(appView, () -> dynamicReceiverType, staticReceiverType)) {
       return null;
     }
-    DexClass initialResolutionHolder = definitionFor(method.holder);
-    if (initialResolutionHolder == null || initialResolutionHolder.isInterface() != isInterface) {
+    DexClass initialResolutionHolder = resolutionResult.getInitialResolutionHolder();
+    if (initialResolutionHolder.isInterface() != isInterface) {
       return null;
     }
     DexType refinedReceiverType =
@@ -1367,53 +1333,54 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       // The refined receiver is not defined in the program and we cannot determine the target.
       return null;
     }
-    if (!dynamicReceiverType.hasDynamicLowerBoundType()
-        && singleTargetLookupCache.hasCachedItem(refinedReceiverType, method)) {
-      DexEncodedMethod cachedItem =
-          singleTargetLookupCache.getCachedItem(refinedReceiverType, method);
-      return cachedItem;
+    if (singleTargetLookupCache.hasPositiveCacheHit(refinedReceiverType, method)) {
+      return singleTargetLookupCache.getPositiveCacheHit(refinedReceiverType, method);
     }
-    SingleResolutionResult<?> resolution =
-        resolveMethodOnLegacy(initialResolutionHolder, method).asSingleResolution();
-    if (resolution == null
-        || resolution.isAccessibleForVirtualDispatchFrom(context.getHolder(), appView).isFalse()) {
+    if (!dynamicReceiverType.hasDynamicLowerBoundType()
+        && singleTargetLookupCache.hasNegativeCacheHit(refinedReceiverType, method)) {
       return null;
     }
-    // If the method is modeled, return the resolution.
-    DexEncodedMethod resolvedMethod = resolution.getResolvedMethod();
-    if (modeledPredicate.isModeled(resolution.getResolvedHolder().type)) {
-      if (resolution.getResolvedHolder().isFinal()
-          || (resolvedMethod.isFinal() && resolvedMethod.accessFlags.isPublic())) {
-        singleTargetLookupCache.addToCache(refinedReceiverType, method, resolvedMethod);
-        return resolvedMethod;
+    if (resolutionResult
+        .isAccessibleForVirtualDispatchFrom(context.getHolder(), appView)
+        .isFalse()) {
+      return null;
+    }
+    // If the resolved method is final, return the resolution.
+    DexClassAndMethod resolvedMethod = resolutionResult.getResolutionPair();
+    if (resolvedMethod.getHolder().isFinal() || resolvedMethod.getAccessFlags().isFinal()) {
+      if (!resolvedMethod.isLibraryMethod()
+          || modeledPredicate.isModeled(resolvedMethod.getHolderType())) {
+        return singleTargetLookupCache.addToCache(refinedReceiverType, method, resolvedMethod);
       }
     }
-    DexEncodedMethod exactTarget =
+    DispatchTargetLookupResult exactTarget =
         getMethodTargetFromExactRuntimeInformation(
             refinedReceiverType,
             dynamicReceiverType.getDynamicLowerBoundType(),
-            resolution,
+            resolutionResult,
             refinedReceiverClass);
     if (exactTarget != null) {
       // We are not caching single targets here because the cache does not include the
       // lower bound dimension.
-      return exactTarget == DexEncodedMethod.SENTINEL ? null : exactTarget;
+      return exactTarget.isSingleResult()
+          ? exactTarget.asSingleResult().getSingleDispatchTarget()
+          : null;
     }
     if (refinedReceiverClass.isNotProgramClass()) {
       // The refined receiver is not defined in the program and we cannot determine the target.
-      singleTargetLookupCache.addToCache(refinedReceiverType, method, null);
+      singleTargetLookupCache.addNoSingleTargetToCache(refinedReceiverType, method);
       return null;
     }
-    DexClass resolvedHolder = resolution.getResolvedHolder();
+    DexClass resolvedHolder = resolutionResult.getResolvedHolder();
     // TODO(b/148769279): Disable lookup single target on lambda's for now.
     if (resolvedHolder.isInterface()
         && resolvedHolder.isProgramClass()
         && objectAllocationInfoCollection.isImmediateInterfaceOfInstantiatedLambda(
             resolvedHolder.asProgramClass())) {
-      singleTargetLookupCache.addToCache(refinedReceiverType, method, null);
+      singleTargetLookupCache.addNoSingleTargetToCache(refinedReceiverType, method);
       return null;
     }
-    DexEncodedMethod singleMethodTarget = null;
+    DexClassAndMethod singleMethodTarget = null;
     DexProgramClass refinedLowerBound = null;
     if (dynamicReceiverType.hasDynamicLowerBoundType()) {
       DexClass refinedLowerBoundClass =
@@ -1427,7 +1394,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       }
     }
     LookupResultSuccess lookupResult =
-        resolution
+        resolutionResult
             .lookupVirtualDispatchTargets(
                 context.getHolder(),
                 appView,
@@ -1437,7 +1404,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (lookupResult != null && !lookupResult.isIncomplete()) {
       LookupTarget singleTarget = lookupResult.getSingleLookupTarget();
       if (singleTarget != null && singleTarget.isMethodTarget()) {
-        singleMethodTarget = singleTarget.asMethodTarget().getDefinition();
+        singleMethodTarget = singleTarget.asMethodTarget().getTarget();
       }
     }
     if (!dynamicReceiverType.hasDynamicLowerBoundType()) {
@@ -1446,7 +1413,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return singleMethodTarget;
   }
 
-  private DexEncodedMethod getMethodTargetFromExactRuntimeInformation(
+  @SuppressWarnings("ReferenceEquality")
+  private DispatchTargetLookupResult getMethodTargetFromExactRuntimeInformation(
       DexType refinedReceiverType,
       ClassTypeElement receiverLowerBoundType,
       SingleResolutionResult<?> resolution,
@@ -1465,21 +1433,21 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
                     .getMethodInfo(methodTarget.getTarget().asProgramMethod())
                     .isOptimizationAllowed(options()))) {
           // TODO(b/150640456): We should maybe only consider program methods.
-          return DexEncodedMethod.SENTINEL;
+          return new UnknownDispatchTargetLookupResult(resolution);
         }
-        return methodTarget.getDefinition();
+        return new SingleDispatchTargetLookupResult(methodTarget.getTarget(), resolution);
       } else {
         // TODO(b/150640456): We should maybe only consider program methods.
         // If we resolved to a method on the refined receiver in the library, then we report the
         // method as a single target as well. This is a bit iffy since the library could change
         // implementation, but we use this for library modelling.
-        DexEncodedMethod resolvedMethod = resolution.getResolvedMethod();
-        DexEncodedMethod targetOnReceiver =
-            refinedReceiverClass.lookupVirtualMethod(resolvedMethod.getReference());
+        DexClassAndMethod resolvedMethod = resolution.getResolutionPair();
+        DexClassAndMethod targetOnReceiver =
+            refinedReceiverClass.lookupVirtualClassMethod(resolvedMethod.getReference());
         if (targetOnReceiver != null && isOverriding(resolvedMethod, targetOnReceiver)) {
-          return targetOnReceiver;
+          return new SingleDispatchTargetLookupResult(targetOnReceiver, resolution);
         }
-        return DexEncodedMethod.SENTINEL;
+        return new UnknownDispatchTargetLookupResult(resolution);
       }
     }
     return null;
@@ -1546,13 +1514,15 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   /** Predicate on types that *must* never be merged horizontally. */
-  public boolean isNoHorizontalClassMergingOfType(DexType type) {
-    return noClassMerging.contains(type) || noHorizontalClassMerging.contains(type);
+  public boolean isNoHorizontalClassMergingOfType(DexProgramClass clazz) {
+    return noClassMerging.contains(clazz.getType())
+        || noHorizontalClassMerging.contains(clazz.getType());
   }
 
   /** Predicate on types that *must* never be merged vertically. */
-  public boolean isNoVerticalClassMergingOfType(DexType type) {
-    return noClassMerging.contains(type) || noVerticalClassMerging.contains(type);
+  public boolean isNoVerticalClassMergingOfType(DexProgramClass clazz) {
+    return noClassMerging.contains(clazz.getType())
+        || noVerticalClassMerging.contains(clazz.getType());
   }
 
   public boolean verifyNoIteratingOverPrunedClasses() {

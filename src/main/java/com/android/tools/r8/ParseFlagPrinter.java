@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +13,7 @@ import java.util.List;
  *
  * <p>This utility can be used to support wrapping the compilers command-line interface.
  */
-@Keep
+@KeepForApi
 public class ParseFlagPrinter {
 
   private final List<ParseFlagInfo> flags = new ArrayList<>();

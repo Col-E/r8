@@ -367,6 +367,7 @@ public class StringUtils {
     }
   }
 
+  @SuppressWarnings("DefaultCharset")
   public static String computeMD5Hash(String name) {
     byte[] digest = null;
     try {
@@ -451,6 +452,15 @@ public class StringUtils {
 
   public static int firstNonWhitespaceCharacter(String string) {
     for (int i = 0; i < string.length(); i++) {
+      if (!isWhitespace(string.charAt(i))) {
+        return i;
+      }
+    }
+    return string.length();
+  }
+
+  public static int firstNonWhitespaceCharacter(String string, int index) {
+    for (int i = index; i < string.length(); i++) {
       if (!isWhitespace(string.charAt(i))) {
         return i;
       }

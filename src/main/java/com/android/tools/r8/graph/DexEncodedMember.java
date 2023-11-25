@@ -106,22 +106,4 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
   public void setApiLevelForDefinition(ComputedApiLevel apiLevelForDefinition) {
     this.apiLevelForDefinition = apiLevelForDefinition;
   }
-
-  public boolean hasComputedApiReferenceLevel() {
-    return !getApiLevel().isNotSetApiLevel();
-  }
-
-  @Override
-  public final boolean equals(Object other) {
-    if (other == this) {
-      return true;
-    }
-    return other.getClass() == getClass()
-        && ((DexEncodedMember<?, ?>) other).getReference().equals(getReference());
-  }
-
-  @Override
-  public final int hashCode() {
-    return getReference().hashCode();
-  }
 }

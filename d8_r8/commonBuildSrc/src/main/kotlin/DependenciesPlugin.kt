@@ -4,8 +4,10 @@
 
 import DependenciesPlugin.Companion.computeRoot
 import java.io.File
-import java.net.URI
 import java.nio.file.Paths
+import java.security.MessageDigest
+import java.util.UUID
+import kotlin.reflect.full.declaredMemberProperties
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -21,14 +23,13 @@ import org.gradle.kotlin.dsl.register
 import org.gradle.nativeplatform.platform.OperatingSystem
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
+
 class DependenciesPlugin: Plugin<Project> {
 
   override fun apply(target: Project) {
     // Setup all test tasks to listen after system properties passed in by test.py.
-    val testTask = target.tasks.findByName("test")
-    if (testTask != null) {
-      TestConfigurationHelper.setupTestTask(testTask as Test)
-    }
+    val testTask = target.tasks.findByName("test") as Test?
+    testTask?.configure(isR8Lib = false, r8Jar = null, r8LibMappingFile = null)
   }
 
   companion object {
@@ -47,7 +48,7 @@ enum class Jdk(val folder : String) {
   JDK_9("openjdk-9.0.4"),
   JDK_11("jdk-11"),
   JDK_17("jdk-17"),
-  JDK_20("jdk-20");
+  JDK_21("jdk-21");
 
   fun isJdk8() : Boolean {
     return this == JDK_8
@@ -74,29 +75,53 @@ enum class Jdk(val folder : String) {
   }
 }
 
+fun Test.configure(isR8Lib: Boolean, r8Jar: File?, r8LibMappingFile: File? = null) {
+  TestConfigurationHelper.setupTestTask(this, isR8Lib, r8Jar, r8LibMappingFile)
+}
+
 fun Project.getRoot() : File {
   return computeRoot(this.projectDir)
 }
 
-fun Project.header(title : String) : String {
-  return "****** ${title} ******"
+// See https://datatracker.ietf.org/doc/html/rfc4122#section-4.3 for the algorithm.
+fun uuid5(namespace: UUID, name: String): UUID? {
+  val md = MessageDigest.getInstance("SHA-1")
+  md.update(uuidToBytes(namespace))
+  md.update(name.encodeToByteArray())
+  val sha1Bytes = md.digest()
+  // Set version 5 (upper 4 bits of octet 6).
+  sha1Bytes[6] = (sha1Bytes[6].toInt() and 0x0f).toByte()
+  sha1Bytes[6] = (sha1Bytes[6].toInt() or 0x50).toByte()
+  // Set two upper bits of octet 8 to 10.
+  sha1Bytes[8] = (sha1Bytes[8].toInt() and 0x3f).toByte()
+  sha1Bytes[8] = (sha1Bytes[8].toInt() or 0x80).toByte()
+  return uuidFromBytes(sha1Bytes)
 }
 
-fun Project.ensureThirdPartyDependencies(name : String, deps : List<ThirdPartyDependency>) : Task {
-  val outputFiles : MutableList<File> = mutableListOf()
-  val depsTasks = deps.map { tpd ->
-    val projectAndTaskName = "${project.name}-$name"
-    val downloadTaskName = "download-third-party-$projectAndTaskName-${tpd.packageName}"
-    val downloadTask = tasks.register<DownloadDependencyTask>(downloadTaskName) {
-      setDependency(getRoot().resolve(tpd.sha1File), getRoot().resolve(tpd.path), tpd.type)
-    }.get()
-    outputFiles.add(tpd.path)
-    downloadTask
-  }
-  return tasks.register("ensure-third-party-$name") {
-    dependsOn(*depsTasks.toTypedArray())
-    outputs.files(outputFiles)
-  }.get()
+private fun uuidFromBytes(data: ByteArray): UUID? {
+  assert(data.size >= 16)
+  return UUID(toNetworkOrder(data, 0), toNetworkOrder(data, 8))
+}
+
+private fun uuidToBytes(uuid: UUID): ByteArray? {
+  val result = ByteArray(16)
+  fromNetworkByteOrder(uuid.mostSignificantBits, result, 0)
+  fromNetworkByteOrder(uuid.leastSignificantBits, result, 8)
+  return result
+}
+
+private fun toNetworkOrder(data: ByteArray, dataIndex: Int): Long {
+  var result: Long = 0
+  for (i in 0..7) result = result shl 8 or (data[dataIndex + i].toInt() and 0xff).toLong()
+  return result
+}
+
+private fun fromNetworkByteOrder(value: Long, dest: ByteArray, destIndex: Int) {
+  for (i in 0..7) dest[i + destIndex] = (value shr (7 - i) * 8 and 0xffL).toByte()
+}
+
+fun Project.header(title : String) : String {
+  return "****** ${title} ******"
 }
 
 /**
@@ -190,7 +215,8 @@ fun Project.getExampleJarsTaskName(name: String) : String {
 }
 
 fun Project.resolve(
-    thirdPartyDependency: ThirdPartyDependency, vararg paths: String) : ConfigurableFileCollection {
+  thirdPartyDependency: ThirdPartyDependency, vararg paths: String,
+) : ConfigurableFileCollection {
   return files(project.getRoot().resolve(thirdPartyDependency.path).resolveAll(*paths))
 }
 
@@ -219,18 +245,35 @@ fun File.resolveAll(vararg xs: String) : File {
 }
 
 fun Project.getJavaHome(jdk : Jdk) : File {
-  // TODO(b/270105162): Make sure this works on other platforms.
-  return getRoot().resolveAll("third_party", "openjdk", jdk.folder, "linux")
+  val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
+  var osFolder = "linux"
+  if (os.isWindows()) {
+    osFolder = "windows"
+  }
+  if (os.isMacOsX) {
+    osFolder = "osx/Contents/Home"
+  }
+  return getRoot().resolveAll("third_party", "openjdk", jdk.folder, osFolder)
 }
 
 fun Project.getCompilerPath(jdk : Jdk) : String {
-  // TODO(b/270105162): Make sure this works on other platforms.
-  return getJavaHome(jdk).resolveAll("bin", "javac").toString()
+  val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
+  val binary = if (os.isWindows()) "javac.exe" else "javac"
+  return getJavaHome(jdk).resolveAll("bin", binary).toString()
 }
 
 fun Project.getJavaPath(jdk : Jdk) : String {
-  // TODO(b/270105162): Make sure this works on other platforms.
-  return getJavaHome(jdk).resolveAll("bin", "java").toString()
+  val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
+  val binary = if (os.isWindows()) "java.exe" else "java"
+  return getJavaHome(jdk).resolveAll("bin", binary).toString()
+}
+
+fun Project.getClasspath(vararg paths: File) : String {
+  val os: OperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
+  assert (!paths.isEmpty())
+  val separator = if (os.isWindows()) ";"  else ":"
+  var classpath = paths.joinToString(separator = separator) { it -> it.toString() }
+  return classpath
 }
 
 fun Project.baseCompilerCommandLine(
@@ -243,7 +286,7 @@ fun Project.baseCompilerCommandLine(
     "-Xmx8g",
     "-ea",
     "-cp",
-    "$jar:$deps",
+    getClasspath(jar, deps),
     "com.android.tools.r8.SwissArmyKnife",
     compiler) + args
 }
@@ -269,23 +312,34 @@ fun Project.createR8LibCommandLine(
   output: File,
   pgConf: List<File>,
   excludingDepsVariant: Boolean,
+  debugVariant: Boolean,
   lib: List<File> = listOf(),
-  classpath: List<File> = listOf()
+  classpath: List<File> = listOf(),
+  pgInputMap: File? = null,
 ) : List<String> {
-  val pgList = pgConf.flatMap({ listOf("--pg-conf", "$it") })
-  val libList = lib.flatMap({ listOf("--lib", "$it") })
-  val cpList = classpath.flatMap({ listOf("--classpath", "$it") })
-  val exclList = if (excludingDepsVariant) listOf("--excldeps-variant") else listOf()
-  return listOf(
-    "python3",
-    "${getRoot().resolve("tools").resolve("create_r8lib.py")}",
-    "--r8compiler",
-    "${r8Compiler}",
-    "--r8jar",
-    "${input}",
-    "--output",
-    "${output}",
-  ) + exclList + pgList + libList + cpList
+  return buildList {
+    add("python3")
+    add("${getRoot().resolve("tools").resolve("create_r8lib.py")}")
+    add("--r8compiler")
+    add("${r8Compiler}")
+    add("--r8jar")
+    add("${input}")
+    add("--output")
+    add("${output}")
+    pgConf.forEach { add("--pg-conf"); add("$it") }
+    lib.forEach { add("--lib"); add("$it") }
+    classpath.forEach { add("--classpath"); add("$it") }
+    if (excludingDepsVariant) {
+      add("--excldeps-variant")
+    }
+    if (debugVariant) {
+      add("--debug-variant")
+    }
+    if (pgInputMap != null) {
+      add("--pg-map")
+      add("$pgInputMap")
+    }
+  }
 }
 
 object JvmCompatibility {
@@ -294,15 +348,15 @@ object JvmCompatibility {
 }
 
 object Versions {
-  const val asmVersion = "9.5"
+  const val asmVersion = "9.6"
   const val errorproneVersion = "2.18.0"
   const val fastUtilVersion = "7.2.1"
   const val gsonVersion = "2.10.1"
   const val guavaVersion = "32.1.2-jre"
   const val javassist = "3.29.2-GA"
   const val junitVersion = "4.13-beta-2"
-  const val kotlinVersion = "1.8.10"
-  const val kotlinMetadataVersion = "0.6.2"
+  const val kotlinVersion = "1.9.0"
+  const val kotlinMetadataVersion = "0.7.0"
   const val mockito = "2.10.0"
   const val smaliVersion = "3.0.3"
 }
@@ -323,6 +377,7 @@ object Deps {
   val kotlinReflect by lazy { "org.jetbrains.kotlin:kotlin-reflect:${Versions.kotlinVersion}" }
   val mockito by lazy { "org.mockito:mockito-core:${Versions.mockito}" }
   val smali by lazy { "com.android.tools.smali:smali:${Versions.smaliVersion}" }
+  val smaliUtil by lazy { "com.android.tools.smali:smali-util:${Versions.smaliVersion}" }
 }
 
 object ThirdPartyDeps {
@@ -349,6 +404,11 @@ object ThirdPartyDeps {
     Paths.get("third_party", "chrome", "clank_google3_prebuilt").toFile(),
     Paths.get("third_party", "chrome", "clank_google3_prebuilt.tar.gz.sha1").toFile(),
     DependencyType.X20)
+  val chrome = ThirdPartyDependency(
+    "chrome",
+    Paths.get("third_party", "chrome", "chrome_200430").toFile(),
+    Paths.get("third_party", "chrome", "chrome_200430.tar.gz.sha1").toFile(),
+    DependencyType.X20)
   val compilerApi = ThirdPartyDependency(
     "compiler-api",
     Paths.get(
@@ -357,10 +417,22 @@ object ThirdPartyDeps {
       "third_party",
       "binary_compatibility_tests",
       "compiler_api_tests.tar.gz.sha1").toFile())
+  val composeExamplesChangedBitwiseValuePropagation = ThirdPartyDependency(
+    "compose-examples-changed-bitwise-value-propagation",
+    Paths.get(
+      "third_party", "opensource-apps", "compose-examples",
+      "changed-bitwise-value-propagation").toFile(),
+    Paths.get(
+      "third_party", "opensource-apps", "compose-examples",
+      "changed-bitwise-value-propagation.tar.gz.sha1").toFile())
   val coreLambdaStubs = ThirdPartyDependency(
     "coreLambdaStubs",
     Paths.get("third_party", "core-lambda-stubs").toFile(),
     Paths.get("third_party", "core-lambda-stubs.tar.gz.sha1").toFile())
+  val customConversion = ThirdPartyDependency(
+    "customConversion",
+    Paths.get("third_party", "openjdk", "custom_conversion").toFile(),
+    Paths.get("third_party", "openjdk", "custom_conversion.tar.gz.sha1").toFile())
   val dagger = ThirdPartyDependency(
     "dagger",
     Paths.get("third_party", "dagger", "2.41").toFile(),
@@ -369,10 +441,34 @@ object ThirdPartyDeps {
     "ddmlib",
     Paths.get("third_party", "ddmlib").toFile(),
     Paths.get("third_party", "ddmlib.tar.gz.sha1").toFile())
+  val examples = ThirdPartyDependency(
+    "examples",
+    Paths.get("third_party", "examples").toFile(),
+    Paths.get("third_party", "examples.tar.gz.sha1").toFile())
+  val examplesAndroidN = ThirdPartyDependency(
+    "examplesAndroidN",
+    Paths.get("third_party", "examplesAndroidN").toFile(),
+    Paths.get("third_party", "examplesAndroidN.tar.gz.sha1").toFile())
+  val examplesAndroidO = ThirdPartyDependency(
+    "examplesAndroidO",
+    Paths.get("third_party", "examplesAndroidO").toFile(),
+    Paths.get("third_party", "examplesAndroidO.tar.gz.sha1").toFile())
+  val examplesAndroidOGenerated = ThirdPartyDependency(
+    "examplesAndroidOGenerated",
+    Paths.get("third_party", "examplesAndroidOGenerated").toFile(),
+    Paths.get("third_party", "examplesAndroidOGenerated.tar.gz.sha1").toFile())
   val examplesAndroidOLegacy = ThirdPartyDependency(
     "examplesAndroidOLegacy",
     Paths.get("third_party", "examplesAndroidOLegacy").toFile(),
     Paths.get("third_party", "examplesAndroidOLegacy.tar.gz.sha1").toFile())
+  val examplesAndroidP = ThirdPartyDependency(
+    "examplesAndroidP",
+    Paths.get("third_party", "examplesAndroidP").toFile(),
+    Paths.get("third_party", "examplesAndroidP.tar.gz.sha1").toFile())
+  val examplesAndroidPGenerated = ThirdPartyDependency(
+    "examplesAndroidPGenerated",
+    Paths.get("third_party", "examplesAndroidPGenerated").toFile(),
+    Paths.get("third_party", "examplesAndroidPGenerated.tar.gz.sha1").toFile())
   val desugarJdkLibs = ThirdPartyDependency(
     "desugar-jdk-libs",
     Paths.get("third_party", "openjdk", "desugar_jdk_libs").toFile(),
@@ -388,10 +484,26 @@ object ThirdPartyDeps {
     Paths.get("third_party", "framework").toFile(),
     Paths.get("third_party", "framework.tar.gz.sha1").toFile(),
     DependencyType.X20)
+  val googleJavaFormat = ThirdPartyDependency(
+    "google-java-format",
+    Paths.get("third_party", "google-java-format").toFile(),
+    Paths.get("third_party", "google-java-format.tar.gz.sha1").toFile())
+  val googleJavaFormat_1_14 = ThirdPartyDependency(
+    "google-java-format-1.14",
+    Paths.get("third_party", "google", "google-java-format", "1.14.0").toFile(),
+    Paths.get("third_party", "google", "google-java-format", "1.14.0.tar.gz.sha1").toFile())
+  val googleYapf_20231013 = ThirdPartyDependency(
+    "google-yapf-20231013",
+    Paths.get("third_party", "google", "yapf", "20231013").toFile(),
+    Paths.get("third_party", "google", "yapf", "20231013.tar.gz.sha1").toFile())
   val gson = ThirdPartyDependency(
     "gson",
     Paths.get("third_party", "gson", "gson-2.10.1").toFile(),
     Paths.get("third_party", "gson", "gson-2.10.1.tar.gz.sha1").toFile())
+  val guavaJre = ThirdPartyDependency(
+    "guava-jre",
+    Paths.get("third_party", "guava", "guava-32.1.2-jre").toFile(),
+    Paths.get("third_party", "guava", "guava-32.1.2-jre.tar.gz.sha1").toFile())
   val desugarJdkLibs11 = ThirdPartyDependency(
     "desugar-jdk-libs-11",
     Paths.get("third_party", "openjdk", "desugar_jdk_libs_11").toFile(),
@@ -419,11 +531,23 @@ object ThirdPartyDeps {
     "jdk-11-test",
     Paths.get("third_party", "openjdk", "jdk-11-test").toFile(),
     Paths.get("third_party", "openjdk", "jdk-11-test.tar.gz.sha1").toFile())
+  val junit = ThirdPartyDependency(
+    "junit",
+    Paths.get("third_party", "junit").toFile(),
+    Paths.get("third_party", "junit.tar.gz.sha1").toFile())
   val jdwpTests = ThirdPartyDependency(
     "jdwp-tests",
     Paths.get("third_party", "jdwp-tests").toFile(),
     Paths.get("third_party", "jdwp-tests.tar.gz.sha1").toFile())
   val kotlinCompilers = getThirdPartyKotlinCompilers()
+  val kotlinR8TestResources = ThirdPartyDependency(
+    "kotlinR8TestResources",
+    Paths.get("third_party", "kotlinR8TestResources").toFile(),
+    Paths.get("third_party", "kotlinR8TestResources.tar.gz.sha1").toFile())
+  val kotlinxCoroutines = ThirdPartyDependency(
+    "kotlinx-coroutines-1.3.6",
+    Paths.get("third_party", "kotlinx-coroutines-1.3.6").toFile(),
+    Paths.get("third_party", "kotlinx-coroutines-1.3.6.tar.gz.sha1").toFile())
   val multidex = ThirdPartyDependency(
     "multidex",
     Paths.get("third_party", "multidex").toFile(),
@@ -468,6 +592,10 @@ object ThirdPartyDeps {
     "retrace-binary-compatibility",
     Paths.get("third_party", "retrace", "binary_compatibility").toFile(),
     Paths.get("third_party", "retrace", "binary_compatibility.tar.gz.sha1").toFile())
+  val retracePartitionFormats = ThirdPartyDependency(
+    "retrace-partition-formats",
+    Paths.get("third_party", "retrace", "partition_formats").toFile(),
+    Paths.get("third_party", "retrace", "partition_formats.tar.gz.sha1").toFile())
   val retraceInternal = ThirdPartyDependency(
     "retrace-internal",
     Paths.get("third_party", "retrace_internal").toFile(),
@@ -592,7 +720,8 @@ fun getThirdPartyDesugarLibraryReleases() : List<ThirdPartyDependency> {
     "1.0.10",
     "1.1.0",
     "1.1.1",
-    "1.1.5")
+    "1.1.5",
+    "2.0.3")
     .map { ThirdPartyDependency(
       "desugar-library-release-$it",
       Paths.get("third_party", "openjdk", "desugar_jdk_libs_releases", it).toFile(),
@@ -617,4 +746,25 @@ fun getGmsCoreVersions() : List<ThirdPartyDependency> {
       Paths.get("third_party", "gmscore", it).toFile(),
       Paths.get("third_party", "gmscore", "${it}.tar.gz.sha1").toFile(),
       DependencyType.X20)}
+}
+
+private fun Project.allDependencies() : List<ThirdPartyDependency> {
+  val allDeps = mutableListOf<ThirdPartyDependency>()
+  ThirdPartyDeps::class.declaredMemberProperties.forEach {
+    val value = it.get(ThirdPartyDeps)
+    if (value is List<*>) {
+      allDeps.addAll(value as List<ThirdPartyDependency>)
+    } else {
+      allDeps.add(value as ThirdPartyDependency)
+    }
+  }
+  return allDeps
+}
+
+fun Project.allPublicDependencies() : List<ThirdPartyDependency> {
+  return allDependencies().filter { x -> x.type == DependencyType.GOOGLE_STORAGE }
+}
+
+fun Project.allInternalDependencies() : List<ThirdPartyDependency> {
+  return allDependencies().filter { x -> x.type == DependencyType.X20 }
 }

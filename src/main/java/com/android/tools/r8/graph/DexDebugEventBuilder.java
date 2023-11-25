@@ -35,7 +35,6 @@ public class DexDebugEventBuilder {
   public static final int NO_PC_INFO = -1;
   private static final int NO_LINE_INFO = -1;
 
-  private final AppView<?> appView;
   private final DexEncodedMethod method;
   private final DexItemFactory factory;
   private final InternalOptions options;
@@ -57,6 +56,7 @@ public class DexDebugEventBuilder {
   private int emittedPc = NO_PC_INFO;
   private Position emittedPosition = Position.none();
   private Int2ReferenceMap<DebugLocalInfo> emittedLocals;
+  private final boolean isComposing;
 
   // Emitted events.
   private final List<DexDebugEvent> events = new ArrayList<>();
@@ -65,14 +65,16 @@ public class DexDebugEventBuilder {
   private int startLine = NO_LINE_INFO;
 
   public DexDebugEventBuilder(AppView<?> appView, IRCode code) {
-    this.appView = appView;
-    this.method = code.method();
-    this.factory = appView.dexItemFactory();
-    this.options = appView.options();
+    method = code.context().getDefinition();
+    factory = appView.dexItemFactory();
+    options = appView.options();
+    isComposing =
+        options.mappingComposeOptions().enableExperimentalMappingComposition
+            && appView.appInfo().app().getProguardMap() != null;
   }
 
   /** Add events at pc for instruction. */
-  public void add(int pc, int postPc, Instruction instruction, ProgramMethod context) {
+  public void add(int pc, int postPc, Instruction instruction) {
     boolean isBlockEntry = instruction.getBlock().entry() == instruction;
     boolean isBlockExit = instruction.getBlock().exit() == instruction;
 
@@ -94,7 +96,7 @@ public class DexDebugEventBuilder {
       updateLocals(instruction.asDebugLocalsChange());
     } else if (pcAdvancing) {
       if (!position.isNone() && !position.equals(emittedPosition)) {
-        if (options.debug || instruction.instructionInstanceCanThrow(appView, context)) {
+        if (options.debug || instruction.instructionTypeCanThrow() || isComposing) {
           emitDebugPosition(pc, position);
         }
       }
@@ -200,10 +202,12 @@ public class DexDebugEventBuilder {
         return;
       }
       startLine = position.getLine();
+      Position outermostCaller = position.getOutermostCaller();
       emittedPosition =
           SourcePosition.builder()
               .setLine(position.getLine())
-              .setMethod(position.getOutermostCaller().getMethod())
+              .setMethod(outermostCaller.getMethod())
+              .setIsD8R8Synthesized(outermostCaller.isD8R8Synthesized())
               .build();
     }
     assert emittedPc != pc;
@@ -234,6 +238,7 @@ public class DexDebugEventBuilder {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static void emitAdvancementEvents(
       int previousPc,
       Position previousPosition,
@@ -292,6 +297,7 @@ public class DexDebugEventBuilder {
     events.add(factory.createDefault(specialOpcode));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private static void emitLocalChangeEvents(
       Int2ReferenceMap<DebugLocalInfo> previousLocals,
       Int2ReferenceMap<DebugLocalInfo> nextLocals,

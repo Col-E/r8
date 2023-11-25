@@ -11,6 +11,7 @@ public class NoVerticalClassMergingRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "noverticalclassmerging";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<NoVerticalClassMergingRule, Builder> {
 

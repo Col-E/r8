@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramField;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldKnownData;
@@ -60,6 +61,7 @@ public class EnumDataMap {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isAssignableTo(DexType subtype, DexType superType) {
     assert superType != null;
     assert subtype != null;
@@ -86,7 +88,7 @@ public class EnumDataMap {
     assert isUnboxedEnum(enumType);
     EnumData enumData = get(enumType);
     return isSuperUnboxedEnum(enumType)
-        ? enumData.superEnumTypeSingleValue(factory, enumType)
+        ? enumData.superEnumTypeSingleValue(factory)
         : enumData.subEnumTypeSingleValue(factory, enumType);
   }
 
@@ -219,24 +221,26 @@ public class EnumDataMap {
       return valuesSize;
     }
 
-    public SingleNumberValue superEnumTypeSingleValue(AbstractValueFactory factory, DexType type) {
+    public SingleNumberValue superEnumTypeSingleValue(AbstractValueFactory factory) {
       // If there is a single live enum instance, then return the unboxed value for this one.
       if (hasValues()) {
         if (valuesSize == 1) {
-          return factory.createSingleNumberValue(ordinalToUnboxedInt(0));
+          return factory.createSingleNumberValue(ordinalToUnboxedInt(0), TypeElement.getInt());
         }
       } else if (unboxedValues.size() == 1) {
         Integer next = unboxedValues.values().iterator().next();
-        return factory.createSingleNumberValue(ordinalToUnboxedInt(next));
+        return factory.createSingleNumberValue(ordinalToUnboxedInt(next), TypeElement.getInt());
       }
       return null;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public SingleNumberValue subEnumTypeSingleValue(AbstractValueFactory factory, DexType type) {
       assert valuesTypes.values().stream().filter(t -> t == type).count() <= 1;
       for (Entry<DexType> entry : valuesTypes.int2ReferenceEntrySet()) {
         if (entry.getValue() == type) {
-          return factory.createSingleNumberValue(ordinalToUnboxedInt(entry.getIntKey()));
+          return factory.createSingleNumberValue(
+              ordinalToUnboxedInt(entry.getIntKey()), TypeElement.getInt());
         }
       }
       return null;

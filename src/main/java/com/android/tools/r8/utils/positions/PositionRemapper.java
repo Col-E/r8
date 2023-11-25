@@ -79,7 +79,7 @@ public interface PositionRemapper {
     @Override
     public Pair<Position, Position> createRemappedPosition(Position position) {
       assert position.getMethod() != null;
-      if (previousMethod == position.getMethod()) {
+      if (position.getMethod().isIdenticalTo(previousMethod)) {
         assert previousSourceLine >= 0;
         if (position.getLine() > previousSourceLine
             && position.getLine() - previousSourceLine <= maxLineDelta) {
@@ -169,11 +169,8 @@ public interface PositionRemapper {
               parsedData.lookupCalleePosition(line);
           if (calleePosition != null) {
             // Take the first line as the callee position
-            position =
-                position
-                    .builderWithCopy()
-                    .setLine(calleePosition.getValue().getRange().from)
-                    .build();
+            int calleeLine = Math.max(0, calleePosition.getValue().getRange().from);
+            position = position.builderWithCopy().setLine(calleeLine).build();
           }
           return baseRemapper.createRemappedPosition(
               SourcePosition.builder()

@@ -5,6 +5,9 @@
 package com.android.tools.r8.ir.desugar.records;
 
 import com.android.tools.r8.cf.code.CfInvokeDynamic;
+import com.android.tools.r8.dex.code.DexInstruction;
+import com.android.tools.r8.dex.code.DexInvokeCustom;
+import com.android.tools.r8.dex.code.DexInvokeCustomRange;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -28,6 +31,13 @@ public class RecordRewriterHelper {
     return isInvokeDynamicOnRecord(invokeDynamic.getCallSite(), appView, context);
   }
 
+  public static boolean isInvokeCustomOnRecord(
+      DexInstruction invokeCustom, AppView<?> appView, ProgramMethod context) {
+    assert invokeCustom instanceof DexInvokeCustom || invokeCustom instanceof DexInvokeCustomRange;
+    return isInvokeDynamicOnRecord(invokeCustom.getCallSite(), appView, context);
+  }
+
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isInvokeDynamicOnRecord(
       DexCallSite callSite, AppView<?> appView, ProgramMethod context) {
     DexItemFactory factory = appView.dexItemFactory();
@@ -60,7 +70,10 @@ public class RecordRewriterHelper {
       assert false : "Invoke-dynamic invoking method ObjectMethods#bootstrap with an invalid type.";
       return false;
     }
-    DexClass recordClass = appView.definitionFor(recordType.getValue(), context);
+    DexType codeRecordType = recordType.getValue();
+    DexClass recordClass =
+        appView.definitionFor(
+            appView.graphLens().lookupType(codeRecordType, appView.codeLens()), context);
     if (recordClass == null || recordClass.isNotProgramClass()) {
       return false;
     }
@@ -86,16 +99,16 @@ public class RecordRewriterHelper {
     }
     // 3. Check it matches one of the 3 invokeDynamicOnRecord instruction.
     if (callSite.methodName == factory.toStringMethodName) {
-      assert callSite.methodProto == factory.createProto(factory.stringType, recordClass.getType());
+      assert callSite.methodProto == factory.createProto(factory.stringType, codeRecordType);
       return true;
     }
     if (callSite.methodName == factory.hashCodeMethodName) {
-      assert callSite.methodProto == factory.createProto(factory.intType, recordClass.getType());
+      assert callSite.methodProto == factory.createProto(factory.intType, codeRecordType);
       return true;
     }
     if (callSite.methodName == factory.equalsMethodName) {
       assert callSite.methodProto
-          == factory.createProto(factory.booleanType, recordClass.getType(), factory.objectType);
+          == factory.createProto(factory.booleanType, codeRecordType, factory.objectType);
       return true;
     }
     return false;
@@ -104,7 +117,17 @@ public class RecordRewriterHelper {
   public static RecordInvokeDynamic parseInvokeDynamicOnRecord(
       CfInvokeDynamic invokeDynamic, AppView<?> appView, ProgramMethod context) {
     assert isInvokeDynamicOnRecord(invokeDynamic, appView, context);
-    DexCallSite callSite = invokeDynamic.getCallSite();
+    return parseInvokeDynamicOnRecord(invokeDynamic.getCallSite(), appView, context);
+  }
+
+  public static RecordInvokeDynamic parseInvokeCustomOnRecord(
+      DexInstruction invokeCustom, AppView<?> appView, ProgramMethod context) {
+    assert isInvokeCustomOnRecord(invokeCustom, appView, context);
+    return parseInvokeDynamicOnRecord(invokeCustom.getCallSite(), appView, context);
+  }
+
+  public static RecordInvokeDynamic parseInvokeDynamicOnRecord(
+      DexCallSite callSite, AppView<?> appView, ProgramMethod context) {
     DexValueType recordValueType = callSite.bootstrapArgs.get(0).asDexValueType();
     DexValueString valueString = callSite.bootstrapArgs.get(1).asDexValueString();
     DexString fieldNames = valueString.getValue();
@@ -113,10 +136,11 @@ public class RecordRewriterHelper {
       DexValueMethodHandle handle = callSite.bootstrapArgs.get(i).asDexValueMethodHandle();
       fields[i - 2] = handle.value.member.asDexField();
     }
+    DexType recordCodeType = recordValueType.getValue();
     DexProgramClass recordClass =
-        appView.definitionFor(recordValueType.getValue()).asProgramClass();
+        appView.definitionFor(appView.graphLens().lookupType(recordCodeType)).asProgramClass();
     return new RecordInvokeDynamic(
-        callSite.methodName, callSite.methodProto, fieldNames, fields, recordClass);
+        callSite.methodName, callSite.methodProto, fieldNames, fields, recordClass, recordCodeType);
   }
 
   static class RecordInvokeDynamic {
@@ -126,22 +150,26 @@ public class RecordRewriterHelper {
     private final DexString fieldNames;
     private final DexField[] fields;
     private final DexProgramClass recordClass;
+    private final DexType recordCodeType;
 
     private RecordInvokeDynamic(
         DexString methodName,
         DexProto methodProto,
         DexString fieldNames,
         DexField[] fields,
-        DexProgramClass recordClass) {
+        DexProgramClass recordClass,
+        DexType recordCodeType) {
       this.methodName = methodName;
       this.methodProto = methodProto;
       this.fieldNames = fieldNames;
       this.fields = fields;
       this.recordClass = recordClass;
+      this.recordCodeType = recordCodeType;
     }
 
     RecordInvokeDynamic withFieldNamesAndFields(DexString fieldNames, DexField[] fields) {
-      return new RecordInvokeDynamic(methodName, methodProto, fieldNames, fields, recordClass);
+      return new RecordInvokeDynamic(
+          methodName, methodProto, fieldNames, fields, recordClass, recordCodeType);
     }
 
     DexField[] getFields() {
@@ -150,6 +178,10 @@ public class RecordRewriterHelper {
 
     DexType getRecordType() {
       return recordClass.getType();
+    }
+
+    DexType getRecordCodeType() {
+      return recordCodeType;
     }
 
     DexProgramClass getRecordClass() {

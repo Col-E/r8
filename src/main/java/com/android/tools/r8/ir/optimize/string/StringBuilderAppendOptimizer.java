@@ -90,7 +90,7 @@ public class StringBuilderAppendOptimizer extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "StringBuilderAppendOptimizer";
   }
 
@@ -285,6 +285,7 @@ public class StringBuilderAppendOptimizer extends CodeRewriterPass<AppInfo> {
             }
           }
 
+          @SuppressWarnings("ReferenceEquality")
           private void createNodesForStringBuilderInstruction(
               Instruction instruction,
               StringBuilderEscapeState escapeState,

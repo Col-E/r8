@@ -116,6 +116,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,
@@ -1087,6 +1088,16 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     }
 
     private void initializeAndroidQMethodProviders(DexItemFactory factory) {
+      // BigDecimal BigDecimal.stripTrailingZeros()
+      DexType bigDecimal = factory.createType("Ljava/math/BigDecimal;");
+      addProvider(
+          new StatifyingMethodWithForwardingGenerator(
+              factory.createMethod(
+                  bigDecimal, factory.createProto(bigDecimal), "stripTrailingZeros"),
+              BackportedMethods::BigDecimalMethods_stripTrailingZeros,
+              "stripTrailingZeros",
+              bigDecimal));
+
       // void android.drm.DrmManagerClient.close()
       addProvider(
           new InvokeRewriter(
@@ -1842,16 +1853,15 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
   private static class MethodGenerator extends MethodProvider {
 
     private final TemplateMethodFactory factory;
-    private final String methodName;
 
     MethodGenerator(DexMethod method, TemplateMethodFactory factory) {
       this(method, factory, method.name.toString());
     }
 
+    @SuppressWarnings("UnusedVariable")
     MethodGenerator(DexMethod method, TemplateMethodFactory factory, String methodName) {
       super(method);
       this.factory = factory;
-      this.methodName = methodName;
     }
 
     protected SyntheticKind getSyntheticKind(SyntheticNaming naming) {

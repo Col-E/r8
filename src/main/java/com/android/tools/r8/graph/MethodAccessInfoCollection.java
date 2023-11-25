@@ -119,6 +119,10 @@ public class MethodAccessInfoCollection {
     virtualInvokes.getOrDefault(method, ProgramMethodSet.empty()).forEach(consumer);
   }
 
+  public boolean isVirtualInvokesDestroyed() {
+    return isThrowingMap(virtualInvokes);
+  }
+
   public MethodAccessInfoCollection rewrittenWithLens(
       DexDefinitionSupplier definitions, GraphLens lens, Timing timing) {
     timing.begin("Rewrite MethodAccessInfoCollection");

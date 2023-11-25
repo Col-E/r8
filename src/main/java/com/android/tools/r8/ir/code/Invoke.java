@@ -26,11 +26,13 @@ public abstract class Invoke extends Instruction {
 
   static final int NO_SUCH_DEX_INSTRUCTION = -1;
 
+  @SuppressWarnings("InlineMeSuggester")
   protected Invoke(Value result, List<Value> arguments) {
     super(result, arguments);
   }
 
   @Deprecated
+  @SuppressWarnings("InlineMeSuggester")
   public static Invoke create(
       InvokeType type, DexItem target, DexProto proto, Value result, List<Value> arguments) {
     return create(type, target, proto, result, arguments, false);
@@ -74,6 +76,7 @@ public abstract class Invoke extends Instruction {
     return !arguments().isEmpty();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean hasReturnTypeVoid(DexItemFactory factory) {
     return getReturnType() == factory.voidType;
   }

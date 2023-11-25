@@ -103,6 +103,7 @@ public class SwitchMapCollector {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void extractSwitchMap(DexEncodedField encodedField, IRCode initializer) {
     DexField field = encodedField.getReference();
     Int2ReferenceMap<DexField> switchMap = new Int2ReferenceArrayMap<>();
@@ -164,6 +165,7 @@ public class SwitchMapCollector {
     switchMaps.put(field, switchMap);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean maybeIsSwitchMap(DexEncodedField dexEncodedField) {
     // We are looking for synthetic fields of type int[].
     DexField field = dexEncodedField.getReference();

@@ -54,6 +54,7 @@ public enum InvokeType {
     return fromCfOpcode(opcode, invokedMethod, context, appView, appView.codeLens());
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static InvokeType fromCfOpcode(
       int opcode,
       DexMethod invokedMethod,
@@ -77,6 +78,7 @@ public enum InvokeType {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static InvokeType fromInvokeSpecial(
       DexMethod invokedMethod, DexClassAndMethod context, AppView<?> appView, GraphLens codeLens) {
     if (invokedMethod.isInstanceInitializer(appView.dexItemFactory())) {
@@ -94,7 +96,14 @@ public enum InvokeType {
         if (holderType != null
             && holderType.isInANest()
             && holderType.isInSameNest(context.getHolder())) {
-          return InvokeType.DIRECT;
+          // Invoking a private super method within a nest must use invoke-direct. Invoking a
+          // non-private super method within a nest must use invoke-super.
+          MethodLookupResult lookupResult =
+              graphLens.lookupMethod(invokedMethod, context.getReference(), InvokeType.DIRECT);
+          DexEncodedMethod definition = holderType.lookupMethod(lookupResult.getReference());
+          return definition != null && definition.isPrivate()
+              ? InvokeType.DIRECT
+              : InvokeType.SUPER;
         }
       }
       return InvokeType.SUPER;
@@ -128,7 +137,7 @@ public enum InvokeType {
         context.getHolder().isInterface()
             || (appView.hasVerticallyMergedClasses()
                 && appView
-                    .verticallyMergedClasses()
+                    .getVerticallyMergedClasses()
                     .hasInterfaceBeenMergedIntoSubtype(originalContext.getHolderType()));
     if (originalContextIsInterface) {
       // On interfaces invoke-special should be mapped to invoke-super if the invoke-special

@@ -14,6 +14,11 @@ import java.util.function.Function;
 /** A common interface for {@link DexType}, {@link DexField}, and {@link DexMethod}. */
 public abstract class DexReference extends IndexedDexItem implements LirConstant {
 
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean identical(DexReference t1, DexReference t2) {
+    return t1 == t2;
+  }
+
   public abstract <T> T apply(
       Function<DexType, T> classConsumer,
       Function<DexField, T> fieldConsumer,
@@ -30,6 +35,7 @@ public abstract class DexReference extends IndexedDexItem implements LirConstant
       BiConsumer<DexMethod, T> methodConsumer,
       T arg);
 
+  @SuppressWarnings("MissingImplementsComparable")
   public static <R extends DexReference, T> T applyPair(
       R one,
       R other,
@@ -48,6 +54,7 @@ public abstract class DexReference extends IndexedDexItem implements LirConstant
 
   public abstract void collectIndexedItems(AppView<?> appView, IndexedItemCollection indexedItems);
 
+  @SuppressWarnings("MissingImplementsComparable")
   public abstract int compareTo(DexReference other);
 
   public abstract DexType getContextType();

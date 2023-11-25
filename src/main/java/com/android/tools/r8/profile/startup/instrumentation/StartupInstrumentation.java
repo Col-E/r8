@@ -75,7 +75,11 @@ public class StartupInstrumentation {
   }
 
   private void instrumentAllClasses(ExecutorService executorService) throws ExecutionException {
-    ThreadUtils.processItems(appView.appInfo().classes(), this::instrumentClass, executorService);
+    ThreadUtils.processItems(
+        appView.appInfo().classes(),
+        this::instrumentClass,
+        appView.options().getThreadingModule(),
+        executorService);
   }
 
   private void injectStartupRuntimeLibrary(ExecutorService executorService)
@@ -135,6 +139,7 @@ public class StartupInstrumentation {
         InstrumentationServerFactory.createClass(dexItemFactory), instrumentationServerImplClass);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void instrumentClass(DexProgramClass clazz) {
     // Do not instrument the instrumentation server if it is already in the app.
     if (clazz.getType() == references.instrumentationServerType

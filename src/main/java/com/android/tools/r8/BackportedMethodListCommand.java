@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -35,13 +36,14 @@ import java.util.Set;
  *     .build();
  * </pre>
  */
-@Keep
+@KeepForApi
 public class BackportedMethodListCommand {
 
   private final boolean printHelp;
   private final boolean printVersion;
   private final Reporter reporter;
   private final int minApiLevel;
+  private final boolean androidPlatformBuild;
   private final DesugaredLibrarySpecification desugaredLibrarySpecification;
   private final AndroidApp app;
   private final StringConsumer backportedMethodListConsumer;
@@ -53,6 +55,10 @@ public class BackportedMethodListCommand {
 
   public boolean isPrintVersion() {
     return printVersion;
+  }
+
+  public boolean isAndroidPlatformBuild() {
+    return androidPlatformBuild;
   }
 
   Reporter getReporter() {
@@ -80,6 +86,7 @@ public class BackportedMethodListCommand {
     this.printVersion = printVersion;
     this.reporter = new Reporter();
     this.minApiLevel = -1;
+    this.androidPlatformBuild = false;
     this.desugaredLibrarySpecification = null;
     this.app = null;
     this.backportedMethodListConsumer = null;
@@ -89,6 +96,7 @@ public class BackportedMethodListCommand {
   private BackportedMethodListCommand(
       Reporter reporter,
       int minApiLevel,
+      boolean androidPlatformBuild,
       DesugaredLibrarySpecification desugaredLibrarySpecification,
       AndroidApp app,
       StringConsumer backportedMethodListConsumer,
@@ -97,6 +105,7 @@ public class BackportedMethodListCommand {
     this.printVersion = false;
     this.reporter = reporter;
     this.minApiLevel = minApiLevel;
+    this.androidPlatformBuild = androidPlatformBuild;
     this.desugaredLibrarySpecification = desugaredLibrarySpecification;
     this.app = app;
     this.backportedMethodListConsumer = backportedMethodListConsumer;
@@ -139,6 +148,8 @@ public class BackportedMethodListCommand {
         builder.setPrintHelp(true);
       } else if (arg.equals("--version")) {
         builder.setPrintVersion(true);
+      } else if (arg.equals("--android-platform-build")) {
+        builder.setAndroidPlatformBuild(true);
       } else if (arg.equals("--min-api")) {
         if (hasDefinedApiLevel) {
           builder.error(new StringDiagnostic("Cannot set multiple --min-api options"));
@@ -174,7 +185,7 @@ public class BackportedMethodListCommand {
     builder.setMinApiLevel(minApi);
   }
 
-  @Keep
+  @KeepForApi
   public static class Builder {
 
     private final Reporter reporter;
@@ -184,6 +195,7 @@ public class BackportedMethodListCommand {
     private StringConsumer backportedMethodListConsumer;
     private boolean printHelp = false;
     private boolean printVersion = false;
+    private boolean androidPlatformBuild = false;
 
     private Builder() {
       this(new DiagnosticsHandler() {});
@@ -289,6 +301,11 @@ public class BackportedMethodListCommand {
       return this;
     }
 
+    public Builder setAndroidPlatformBuild(boolean androidPlatformBuild) {
+      this.androidPlatformBuild = androidPlatformBuild;
+      return this;
+    }
+
     /** True if the print-version flag is enabled. */
     public boolean isPrintVersion() {
       return printVersion;
@@ -332,6 +349,7 @@ public class BackportedMethodListCommand {
       return new BackportedMethodListCommand(
           reporter,
           minApiLevel,
+          androidPlatformBuild,
           getDesugaredLibraryConfiguration(factory),
           library,
           backportedMethodListConsumer,

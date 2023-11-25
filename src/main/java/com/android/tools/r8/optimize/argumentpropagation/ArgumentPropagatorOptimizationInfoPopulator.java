@@ -7,10 +7,8 @@ package com.android.tools.r8.optimize.argumentpropagation;
 import static com.android.tools.r8.ir.optimize.info.OptimizationFeedback.getSimpleFeedback;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -28,9 +26,6 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.StateCloner;
-import com.android.tools.r8.optimize.argumentpropagation.propagation.InParameterFlowPropagator;
-import com.android.tools.r8.optimize.argumentpropagation.propagation.InterfaceMethodArgumentPropagator;
-import com.android.tools.r8.optimize.argumentpropagation.propagation.VirtualDispatchMethodArgumentPropagator;
 import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -40,10 +35,8 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.function.BiConsumer;
 
 /**
  * Propagates the argument flow information collected by the {@link ArgumentPropagatorCodeScanner}.
@@ -58,28 +51,16 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
   private final InternalOptions options;
   private final PostMethodProcessor.Builder postMethodProcessorBuilder;
 
-  private final ImmediateProgramSubtypingInfo immediateSubtypingInfo;
-  private final List<Set<DexProgramClass>> stronglyConnectedProgramComponents;
-
-  private final BiConsumer<Set<DexProgramClass>, DexMethodSignature>
-      interfaceDispatchOutsideProgram;
-
-  ArgumentPropagatorOptimizationInfoPopulator(
+  public ArgumentPropagatorOptimizationInfoPopulator(
       AppView<AppInfoWithLiveness> appView,
       PrimaryR8IRConverter converter,
-      ImmediateProgramSubtypingInfo immediateSubtypingInfo,
       MethodStateCollectionByReference methodStates,
-      PostMethodProcessor.Builder postMethodProcessorBuilder,
-      List<Set<DexProgramClass>> stronglyConnectedProgramComponents,
-      BiConsumer<Set<DexProgramClass>, DexMethodSignature> interfaceDispatchOutsideProgram) {
+      PostMethodProcessor.Builder postMethodProcessorBuilder) {
     this.appView = appView;
     this.converter = converter;
-    this.immediateSubtypingInfo = immediateSubtypingInfo;
     this.methodStates = methodStates;
     this.options = appView.options();
     this.postMethodProcessorBuilder = postMethodProcessorBuilder;
-    this.stronglyConnectedProgramComponents = stronglyConnectedProgramComponents;
-    this.interfaceDispatchOutsideProgram = interfaceDispatchOutsideProgram;
   }
 
   /**
@@ -88,23 +69,6 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
    */
   void populateOptimizationInfo(ExecutorService executorService, Timing timing)
       throws ExecutionException {
-    // TODO(b/190154391): Propagate argument information to handle virtual dispatch.
-    // TODO(b/190154391): To deal with arguments that are themselves passed as arguments to invoke
-    //  instructions, build a flow graph where nodes are parameters and there is an edge from a
-    //  parameter p1 to p2 if the value of p2 is at least the value of p1. Then propagate the
-    //  collected argument information throughout the flow graph.
-    timing.begin("Propagate argument information for virtual methods");
-    ThreadUtils.processItems(
-        stronglyConnectedProgramComponents,
-        this::processStronglyConnectedComponent,
-        executorService);
-    timing.end();
-
-    // Solve the parameter flow constraints.
-    timing.begin("Solve flow constraints");
-    new InParameterFlowPropagator(appView, converter, methodStates).run(executorService);
-    timing.end();
-
     // The information stored on each method is now sound, and can be used as optimization info.
     timing.begin("Set optimization info");
     setOptimizationInfo(executorService);
@@ -113,46 +77,12 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     assert methodStates.isEmpty();
   }
 
-  private void processStronglyConnectedComponent(Set<DexProgramClass> stronglyConnectedComponent) {
-    // Invoke instructions that target interface methods may dispatch to methods that are not
-    // defined on a subclass of the interface method holder.
-    //
-    // Example: Calling I.m() will dispatch to A.m(), but A is not a subtype of I.
-    //
-    //   class A { public void m() {} }
-    //   interface I { void m(); }
-    //   class B extends A implements I {}
-    //
-    // To handle this we first propagate any argument information stored for I.m() to A.m() by doing
-    // a top-down traversal over the interfaces in the strongly connected component.
-    new InterfaceMethodArgumentPropagator(
-            appView,
-            immediateSubtypingInfo,
-            methodStates,
-            signature ->
-                interfaceDispatchOutsideProgram.accept(stronglyConnectedComponent, signature))
-        .run(stronglyConnectedComponent);
-
-    // Now all the argument information for a given method is guaranteed to be stored on a supertype
-    // of the method's holder. All that remains is to propagate the information downwards in the
-    // class hierarchy to propagate the argument information for a non-private virtual method to its
-    // overrides.
-    // TODO(b/190154391): Before running the top-down traversal, consider lowering the argument
-    //  information for non-private virtual methods. If we have some argument information with upper
-    //  bound=B, which is stored on a method on class A, we could move this argument information
-    //  from class A to B. This way we could potentially get rid of the "inactive argument
-    //  information" during the depth-first class hierarchy traversal, since the argument
-    //  information would be active by construction when it is first seen during the top-down class
-    //  hierarchy traversal.
-    new VirtualDispatchMethodArgumentPropagator(appView, immediateSubtypingInfo, methodStates)
-        .run(stronglyConnectedComponent);
-  }
-
   private void setOptimizationInfo(ExecutorService executorService) throws ExecutionException {
     ProgramMethodSet prunedMethods = ProgramMethodSet.createConcurrent();
     ThreadUtils.processItems(
         appView.appInfo().classes(),
         clazz -> prunedMethods.addAll(setOptimizationInfo(clazz)),
+        appView.options().getThreadingModule(),
         executorService);
     for (ProgramMethod prunedMethod : prunedMethods) {
       converter.onMethodPruned(prunedMethod);
@@ -168,8 +98,12 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     return prunedMethods;
   }
 
-  private void setOptimizationInfo(ProgramMethod method, ProgramMethodSet prunedMethods) {
-    MethodState methodState = methodStates.remove(method);
+  public void setOptimizationInfo(ProgramMethod method, ProgramMethodSet prunedMethods) {
+    setOptimizationInfo(method, prunedMethods, methodStates.remove(method));
+  }
+
+  public void setOptimizationInfo(
+      ProgramMethod method, ProgramMethodSet prunedMethods, MethodState methodState) {
     if (methodState.isBottom()) {
       if (method.getDefinition().isClassInitializer()) {
         return;
@@ -285,7 +219,8 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
                 return parameterState;
               }
               return new ConcreteClassTypeParameterState(
-                  appView.abstractValueFactory().createNullValue(), DynamicType.definitelyNull());
+                  appView.abstractValueFactory().createNullValue(argumentType),
+                  DynamicType.definitelyNull());
             },
             null);
     return narrowedParameterStates != null

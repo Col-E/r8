@@ -136,10 +136,6 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
     return addProgramClasses(classes).addInnerClasses(classes);
   }
 
-  public T addAndroidResources(AndroidTestResource testResource) throws IOException {
-    return addProgramClassFileData(testResource.getRClass().getClassFileData());
-  }
-
   public T addInnerClasses(Class<?>... classes) throws IOException {
     return addInnerClasses(Arrays.asList(classes));
   }

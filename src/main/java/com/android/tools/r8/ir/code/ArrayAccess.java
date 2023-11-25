@@ -26,10 +26,27 @@ public abstract class ArrayAccess extends Instruction implements ImpreciseMember
     return inValues.get(INDEX_INDEX);
   }
 
-  public int getIndexOrDefault(int defaultValue) {
-    return index().isConstant()
-        ? index().getConstInstruction().asConstInstruction().asConstNumber().getIntValue()
-        : defaultValue;
+  public int indexOrDefault(int defaultValue) {
+    int ret = indexIfConstAndInBounds(Integer.MAX_VALUE);
+    return ret == -1 ? defaultValue : ret;
+  }
+
+  public int indexIfConstAndInBounds(int size) {
+    int ret = index().getConstIntValueIfNonNegative();
+    return ret < size ? ret : -1;
+  }
+
+  public int arraySizeIfConst() {
+    Value arrayRoot = array().getAliasedValue();
+    if (arrayRoot.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmptyOrNewArrayFilled)) {
+      Instruction definition = arrayRoot.getDefinition();
+      if (definition.isNewArrayEmpty()) {
+        Value newArraySizeValue = definition.asNewArrayEmpty().size();
+        return newArraySizeValue.getConstIntValueIfNonNegative();
+      }
+      return definition.asNewArrayFilled().size();
+    }
+    return -1;
   }
 
   @Override
@@ -56,31 +73,7 @@ public abstract class ArrayAccess extends Instruction implements ImpreciseMember
       AbstractValueSupplier abstractValueSupplier,
       SideEffectAssumption assumption) {
     // TODO(b/203731608): Add parameters to the method and use abstract value in R8.
-    int arraySize;
-    Value arrayRoot = array().getAliasedValue();
-    if (arrayRoot.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmptyOrNewArrayFilled)) {
-      Instruction definition = arrayRoot.getDefinition();
-      if (definition.isNewArrayEmpty()) {
-        Value newArraySizeValue = definition.asNewArrayEmpty().size();
-        if (newArraySizeValue.isConstant()) {
-          arraySize = newArraySizeValue.getConstInstruction().asConstNumber().getIntValue();
-        } else {
-          return true;
-        }
-      } else {
-        arraySize = definition.asNewArrayFilled().size();
-      }
-    } else {
-      return true;
-    }
-
-    int index;
-    if (index().isConstant()) {
-      index = index().getConstInstruction().asConstNumber().getIntValue();
-    } else {
-      return true;
-    }
-
-    return arraySize <= 0 || index < 0 || arraySize <= index;
+    int arraySize = arraySizeIfConst();
+    return arraySize < 0 || indexIfConstAndInBounds(arraySize) < 0;
   }
 }

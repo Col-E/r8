@@ -5,6 +5,7 @@ package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.cf.CfVersion;
+import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -19,6 +20,7 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.OptionalBool;
 
 public class SyntheticMethodBuilder {
 
@@ -40,6 +42,7 @@ public class SyntheticMethodBuilder {
   private ComputedApiLevel apiLevelForDefinition = ComputedApiLevel.notSet();
   private ComputedApiLevel apiLevelForCode = ComputedApiLevel.notSet();
   private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.getInstance();
+  private OptionalBool isLibraryMethodOverride = OptionalBool.UNKNOWN;
 
   private boolean checkAndroidApiLevels = true;
 
@@ -55,14 +58,16 @@ public class SyntheticMethodBuilder {
     this.syntheticKind = syntheticKind;
   }
 
-  public boolean hasName() {
-    return name != null;
+  public SyntheticMethodBuilder setIsLibraryMethodOverride(OptionalBool isLibraryMethodOverride) {
+    this.isLibraryMethodOverride = isLibraryMethodOverride;
+    return this;
   }
 
   public SyntheticMethodBuilder setName(String name) {
     return setName(factory.createString(name));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public SyntheticMethodBuilder setName(DexString name) {
     assert name != null;
     assert this.name == null || this.name == name;
@@ -126,7 +131,7 @@ public class SyntheticMethodBuilder {
     return this;
   }
 
-  DexEncodedMethod build() {
+  DexEncodedMethod build(ClassKind<?> classKind) {
     assert name != null;
     DexMethod methodSignature = getMethodSignature();
     MethodAccessFlags accessFlags = getAccessFlags();
@@ -144,6 +149,11 @@ public class SyntheticMethodBuilder {
             .setApiLevelForCode(apiLevelForCode)
             .setOptimizationInfo(optimizationInfo)
             .applyIf(!checkAndroidApiLevels, DexEncodedMethod.Builder::disableAndroidApiLevelCheck)
+            .applyIf(
+                classKind == ClassKind.PROGRAM
+                    && accessFlags.belongsToVirtualPool()
+                    && !isLibraryMethodOverride.isUnknown(),
+                builder -> builder.setIsLibraryMethodOverride(isLibraryMethodOverride))
             .build();
     assert !syntheticKind.isSingleSyntheticMethod()
         || isValidSingleSyntheticMethod(method, syntheticKind);

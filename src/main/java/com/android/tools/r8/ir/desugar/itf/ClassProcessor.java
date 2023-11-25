@@ -229,6 +229,7 @@ final class ClassProcessor {
       return this == EMPTY;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     boolean isTargetedByForwards(DexClassAndMethod method) {
       return IterableUtils.any(
               forwardedMethodTargets,
@@ -521,6 +522,7 @@ final class ClassProcessor {
             }
           }
         },
+        appView.options().getThreadingModule(),
         executorService);
     newExtraInterfaceSignatures.forEach(
         (clazz, extraInterfaceSignatures) -> {
@@ -534,6 +536,7 @@ final class ClassProcessor {
         });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Computes the set of method signatures that may need forwarding methods on derived classes.
   private SignaturesInfo computeInterfaceInfo(DexClass iface, SignaturesInfo interfaceInfo) {
     assert iface.isInterface();
@@ -550,6 +553,7 @@ final class ClassProcessor {
     return interfaceInfo;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private SignaturesInfo computeEmulatedInterfaceInfo(
       DexClass iface, SignaturesInfo interfaceInfo) {
     assert iface.isInterface();
@@ -583,6 +587,7 @@ final class ClassProcessor {
     return MethodSignatures.create(defaultMethods);
   }
 
+  @SuppressWarnings("UnusedVariable")
   // Computes the set of signatures of that may need forwarding methods on classes that derive
   // from a library class.
   private SignaturesInfo computeLibraryClassInfo(DexLibraryClass clazz, SignaturesInfo signatures) {
@@ -617,6 +622,7 @@ final class ClassProcessor {
         superInfo, additionalForwards.build(), signatureInfo.emulatedInterfaceInfo);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // All classes implementing an emulated interface and overriding a default method should now
   // implement the interface and the emulated one for correct emulated dispatch.
   // The class signature won't include the correct type parameters for the duplicated interfaces,
@@ -788,6 +794,7 @@ final class ClassProcessor {
     return false;
   }
 
+  @SuppressWarnings("BadImport")
   private boolean overridesAbstractNonLibraryInterfaceMethod(
       DexClass clazz, DexMethod dexMethod, EmulatedInterfaceInfo emulatedInterfaceInfo) {
     List<Entry<DexClass, DexEncodedMethod>> abstractInterfaceMethods =
@@ -802,6 +809,7 @@ final class ClassProcessor {
     return false;
   }
 
+  @SuppressWarnings("BadImport")
   private void resolveForwardingMethods(
       DexClass clazz,
       ClassInfo superInfo,
@@ -819,6 +827,7 @@ final class ClassProcessor {
 
   // Looks up a method signature from the point of 'clazz', if it can dispatch to a default method
   // the 'addForward' call-back is called with the target of the forward.
+  @SuppressWarnings("BadImport")
   private void resolveForwardForSignature(
       DexClass clazz,
       ClassInfo superInfo,
@@ -1027,6 +1036,7 @@ final class ClassProcessor {
         desugaringForwardingMethod.asProgramMethod(clazz.asProgramClass()), target);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   // Topological order traversal and its helpers.
   private DexClass definitionOrNull(DexType type, ReportingContext context) {
     // No forwards at the top of the class hierarchy (assuming java.lang.Object is never amended).

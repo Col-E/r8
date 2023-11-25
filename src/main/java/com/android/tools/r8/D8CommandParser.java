@@ -265,7 +265,7 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
       } else if (arg.equals("--classfile")) {
         outputMode = OutputMode.ClassFile;
       } else if (arg.equals("--pg-map")) {
-        builder.setProguardInputMapFile(Paths.get(nextArg));
+        builder.setProguardMapInputFile(Paths.get(nextArg));
       } else if (arg.equals("--pg-map-output")) {
         builder.setProguardMapOutputPath(Paths.get(nextArg));
       } else if (arg.equals("--partition-map-output")) {

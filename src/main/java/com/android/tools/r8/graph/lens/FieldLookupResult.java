@@ -48,6 +48,7 @@ public class FieldLookupResult extends MemberLookupResult<DexField> {
     return writeCastType;
   }
 
+  @SuppressWarnings("UnusedVariable")
   public DexType getRewrittenWriteCastType(Function<DexType, DexType> fn) {
     return hasWriteCastType() ? fn.apply(writeCastType) : null;
   }
@@ -56,6 +57,8 @@ public class FieldLookupResult extends MemberLookupResult<DexField> {
 
     private DexType readCastType;
     private DexType writeCastType;
+
+    @SuppressWarnings("UnusedVariable")
     private GraphLens lens;
 
     private Builder(GraphLens lens) {

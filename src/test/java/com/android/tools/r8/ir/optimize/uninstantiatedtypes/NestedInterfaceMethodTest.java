@@ -60,7 +60,6 @@ public class NestedInterfaceMethodTest extends TestBase {
             .enableNoVerticalClassMergingAnnotations()
             .addOptionsModification(
                 options -> {
-                  options.testing.enableLir();
                   options.enableDevirtualization = false;
                   options.inlinerOptions().enableInliningOfInvokesWithNullableReceivers = false;
                   // The checks for I being present rely on not simple inlining.

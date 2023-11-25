@@ -71,8 +71,8 @@ public class OnlyDirectlyConnectedOrUnrelatedInterfaces
   }
 
   // TODO(b/270398965): Replace LinkedList.
-  @SuppressWarnings("JdkObsolete")
   @Override
+  @SuppressWarnings({"JdkObsolete", "MixedMutabilityReturnType"})
   public Collection<MergeGroup> apply(MergeGroup group, SubtypingInfo subtypingInfo) {
     if (!group.isInterfaceGroup()) {
       return ImmutableList.of(group);

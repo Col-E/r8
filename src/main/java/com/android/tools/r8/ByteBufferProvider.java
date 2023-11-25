@@ -3,10 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.nio.ByteBuffer;
 
 /** Interface to enable manual memory management for a pool of byte buffers. */
-@KeepForSubclassing
+@KeepForApi
 public interface ByteBufferProvider {
 
   /**

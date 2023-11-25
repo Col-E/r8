@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 
 /***
  * Callback to be called to prepare all partitions registered by
@@ -12,7 +12,7 @@ import com.android.tools.r8.Keep;
  * {@link MappingPartitionFromKeySupplier}.
  */
 @FunctionalInterface
-@Keep
+@KeepForApi
 public interface PrepareMappingPartitionsCallback {
 
   PrepareMappingPartitionsCallback EMPTY_INSTANCE = () -> {};

@@ -55,6 +55,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
           clazz, superclass -> addParentState(clazz, superclass));
     }
 
+    @SuppressWarnings("ReferenceEquality")
     // TODO(b/190154391): This currently copies the state of the superclass into its immediate
     //  given subclass. Instead of copying the state, consider linking the states. This would reduce
     //  memory usage, but would require visiting all transitive (program) super classes for each
@@ -159,6 +160,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
       return methodState;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean shouldActivateMethodStateGuardedByBounds(
         ClassTypeElement upperBound, DexProgramClass currentClass, DexProgramClass superClass) {
       ClassTypeElement classType =
@@ -276,6 +278,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
     propagationStates.put(clazz, propagationState);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isUpperBoundSatisfied(ClassTypeElement upperBound, DexProgramClass currentClass) {
     DexType upperBoundType =
         upperBound.getClassType() == appView.dexItemFactory().objectType

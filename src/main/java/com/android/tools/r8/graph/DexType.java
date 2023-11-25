@@ -30,6 +30,20 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class DexType extends DexReference implements NamingLensComparable<DexType> {
+
+  @SuppressWarnings("ReferenceEquality")
+  public static boolean identical(DexType t1, DexType t2) {
+    return t1 == t2;
+  }
+
+  public final boolean isIdenticalTo(DexType other) {
+    return identical(this, other);
+  }
+
+  public final boolean isNotIdenticalTo(DexType other) {
+    return !isIdenticalTo(other);
+  }
+
   public static final DexType[] EMPTY_ARRAY = {};
 
   // Bundletool is merging classes that may originate from a build with an old version of R8.
@@ -327,7 +341,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
 
   public boolean isNullValueType() {
     boolean isNullValueType = descriptor.getFirstByteAsChar() == 'N';
-    assert !isNullValueType || this == DexItemFactory.nullValueType;
+    assert !isNullValueType || isIdenticalTo(DexItemFactory.nullValueType);
     return isNullValueType;
   }
 

@@ -45,12 +45,13 @@ public abstract class PositionRangeAllocator {
 
   public static class NonCardinalPositionRangeAllocator extends PositionRangeAllocator {
 
-    private final NonCardinalPositionRangeFixedDeltaCache[] cache =
-        new NonCardinalPositionRangeFixedDeltaCache[MAX_DELTA + 1];
+    private final NonCardinalPositionRangeFixedDeltaCache[]
+        nonCardinalPositionRangeFixedDeltaCache =
+            new NonCardinalPositionRangeFixedDeltaCache[MAX_DELTA + 1];
 
     private NonCardinalPositionRangeAllocator() {
       for (int i = 0; i <= MAX_DELTA; i++) {
-        cache[i] = new NonCardinalPositionRangeFixedDeltaCache(i);
+        nonCardinalPositionRangeFixedDeltaCache[i] = new NonCardinalPositionRangeFixedDeltaCache(i);
       }
     }
 
@@ -65,7 +66,7 @@ public abstract class PositionRangeAllocator {
       if (thisDelta > MAX_DELTA) {
         return new Range(from, to);
       }
-      return cache[thisDelta].get(from);
+      return nonCardinalPositionRangeFixedDeltaCache[thisDelta].get(from);
     }
   }
 }

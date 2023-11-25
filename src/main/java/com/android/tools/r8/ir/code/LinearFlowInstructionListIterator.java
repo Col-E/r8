@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.optimize.AffectedValues;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -100,8 +101,13 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
 
   @Override
   public void replaceCurrentInstructionWithConstClass(
-      AppView<?> appView, IRCode code, DexType type, DebugLocalInfo localInfo) {
-    currentBlockIterator.replaceCurrentInstructionWithConstClass(appView, code, type, localInfo);
+      AppView<?> appView,
+      IRCode code,
+      DexType type,
+      DebugLocalInfo localInfo,
+      AffectedValues affectedValues) {
+    currentBlockIterator.replaceCurrentInstructionWithConstClass(
+        appView, code, type, localInfo, affectedValues);
   }
 
   @Override
@@ -111,8 +117,9 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
 
   @Override
   public void replaceCurrentInstructionWithConstString(
-      AppView<?> appView, IRCode code, DexString value) {
-    currentBlockIterator.replaceCurrentInstructionWithConstString(appView, code, value);
+      AppView<?> appView, IRCode code, DexString value, AffectedValues affectedValues) {
+    currentBlockIterator.replaceCurrentInstructionWithConstString(
+        appView, code, value, affectedValues);
   }
 
   @Override
@@ -189,6 +196,16 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
   }
 
   @Override
+  public InstructionListIterator addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Collection<Instruction> instructionsToAdd,
+      InternalOptions options) {
+    return currentBlockIterator.addPossiblyThrowingInstructionsToPossiblyThrowingBlock(
+        code, blockIterator, instructionsToAdd, options);
+  }
+
+  @Override
   public BasicBlock addThrowingInstructionToPossiblyThrowingBlock(
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
@@ -239,6 +256,27 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
     return currentBlockIterator.next();
   }
 
+  @Override
+  public Instruction peekNext() {
+    // Default impl calls next() / previous(), which will alter this.seen.
+    Instruction current = currentBlockIterator.peekNext();
+    if (!current.isGoto()) {
+      return current;
+    }
+    BasicBlock target = current.asGoto().getTarget();
+    if (!isLinearEdge(currentBlock, target)) {
+      return current;
+    }
+    while (target.isTrivialGoto()) {
+      BasicBlock candidate = target.exit().asGoto().getTarget();
+      if (!isLinearEdge(target, candidate)) {
+        break;
+      }
+      target = candidate;
+    }
+    return target.entry();
+  }
+
   private BasicBlock getBeginningOfTrivialLinearGotoChain(BasicBlock block) {
     if (block.getPredecessors().size() != 1
         || !isLinearEdge(block.getPredecessors().get(0), block)) {
@@ -277,6 +315,20 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
     // Iterate over the jump.
     currentBlockIterator.previous();
     return currentBlockIterator.previous();
+  }
+
+  @Override
+  public Instruction peekPrevious() {
+    // Default impl calls next() / previous(), which will alter this.seen.
+    Instruction ret = currentBlockIterator.peekPrevious();
+    if (ret != null) {
+      return ret;
+    }
+    BasicBlock target = getBeginningOfTrivialLinearGotoChain(currentBlock);
+    if (target == null || target.size() < 2) {
+      return null;
+    }
+    return target.getInstructions().get(target.size() - 2);
   }
 
   @Override

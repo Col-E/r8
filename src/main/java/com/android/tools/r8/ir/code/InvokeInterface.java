@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.graph.DexEncodedMethod.asDexClassAndMethodOrNull;
-
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.dex.code.DexInvokeDirect;
@@ -13,7 +11,6 @@ import com.android.tools.r8.dex.code.DexInvokeInterface;
 import com.android.tools.r8.dex.code.DexInvokeInterfaceRange;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -21,7 +18,6 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
-import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -117,26 +113,6 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
   @Override
   public InvokeInterface asInvokeInterface() {
     return this;
-  }
-
-  @Override
-  public DexClassAndMethod lookupSingleTarget(
-      AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType) {
-    if (!appView.appInfo().hasLiveness()) {
-      return null;
-    }
-    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-    DexEncodedMethod result =
-        appViewWithLiveness
-            .appInfo()
-            .lookupSingleVirtualTarget(
-                appViewWithLiveness,
-                getInvokedMethod(),
-                context,
-                true,
-                appView,
-                dynamicReceiverType);
-    return asDexClassAndMethodOrNull(result, appView);
   }
 
   @Override

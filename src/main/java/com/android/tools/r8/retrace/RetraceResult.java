@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -17,7 +17,7 @@ import java.util.stream.Stream;
  * itself provide methods for providing contextual information to further restrict the ambiguity of
  * the result.
  */
-@Keep
+@KeepForApi
 public interface RetraceResult<E extends RetraceElement<?>> {
 
   /** Basic operation over 'elements' which represent a possible non-ambiguous retracing. */

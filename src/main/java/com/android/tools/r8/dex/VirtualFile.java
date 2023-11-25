@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import static com.android.tools.r8.errors.StartupClassesNonStartupFractionDiagnostic.Factory.createStartupClassesNonStartupFractionDiagnostic;
 import static com.android.tools.r8.errors.StartupClassesOverflowDiagnostic.Factory.createStartupClassesOverflowDiagnostic;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
@@ -28,6 +29,7 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.profile.startup.distribution.MultiStartupDexDistributor;
 import com.android.tools.r8.profile.startup.profile.StartupProfile;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticNaming;
@@ -35,6 +37,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -247,7 +250,7 @@ public class VirtualFile {
             timing);
   }
 
-  void addClass(DexProgramClass clazz) {
+  public void addClass(DexProgramClass clazz) {
     transaction.addClassAndDependencies(clazz);
   }
 
@@ -256,7 +259,7 @@ public class VirtualFile {
         || (transaction.getNumberOfFields() > maxEntries);
   }
 
-  boolean isFull() {
+  public boolean isFull() {
     return isFull(MAX_ENTRIES);
   }
 
@@ -338,6 +341,7 @@ public class VirtualFile {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public List<VirtualFile> run() {
       Map<DexType, VirtualFile> files = new IdentityHashMap<>();
       Map<DexType, List<DexProgramClass>> derivedSynthetics = new LinkedHashMap<>();
@@ -1169,15 +1173,15 @@ public class VirtualFile {
   /**
    * Helper class to cycle through the set of virtual files.
    *
-   * Iteration starts at the first file and iterates through all files.
+   * <p>Iteration starts at the first file and iterates through all files.
    *
-   * When {@link VirtualFileCycler#restart()} is called iteration of all files is restarted at the
-   * current file.
+   * <p>When {@link VirtualFileCycler#restart()} is called iteration of all files is restarted at
+   * the current file.
    *
-   * If the fill strategy indicate that the main dex file should be minimal, then the main dex file
-   * will not be part of the iteration.
+   * <p>If the fill strategy indicate that the main dex file should be minimal, then the main dex
+   * file will not be part of the iteration.
    */
-  static class VirtualFileCycler {
+  public static class VirtualFileCycler {
 
     private final List<VirtualFile> files;
     private final List<VirtualFile> filesForDistribution;
@@ -1255,14 +1259,19 @@ public class VirtualFile {
     }
 
     // Start a new iteration over all files, starting at the current one.
-    void restart() {
+    public void restart() {
       activeFiles = Iterators.limit(allFilesCyclic, filesForDistribution.size());
     }
 
-    VirtualFile addFile() {
+    public VirtualFile addFile() {
       VirtualFile newFile = internalAddFile();
       reset();
       return newFile;
+    }
+
+    void addFileForDistribution(VirtualFile file) {
+      filesForDistribution.add(file);
+      reset();
     }
 
     private VirtualFile internalAddFile() {
@@ -1290,7 +1299,7 @@ public class VirtualFile {
    * <p>The populator cycles through the files until all classes have been successfully placed and
    * adds new files to the passed in map if it can't fit in the existing files.
    */
-  private static class PackageSplitPopulator {
+  public static class PackageSplitPopulator {
 
     static class PackageSplitClassPartioning {
 
@@ -1396,6 +1405,7 @@ public class VirtualFile {
     private final DexItemFactory dexItemFactory;
     private final InternalOptions options;
     private final VirtualFileCycler cycler;
+    private final StartupProfile startupProfile;
 
     PackageSplitPopulator(
         List<VirtualFile> files,
@@ -1411,6 +1421,7 @@ public class VirtualFile {
       this.dexItemFactory = appView.dexItemFactory();
       this.options = appView.options();
       this.cycler = new VirtualFileCycler(files, filesForDistribution, appView, nextFileId);
+      this.startupProfile = startupProfile;
     }
 
     static boolean coveredByPrefix(String originalName, String currentPrefix) {
@@ -1431,8 +1442,7 @@ public class VirtualFile {
 
     public void run() {
       addStartupClasses();
-      List<DexProgramClass> nonPackageClasses = addNonStartupClasses();
-      addNonPackageClasses(cycler, nonPackageClasses);
+      distributeClasses(classPartioning.getNonStartupClasses());
     }
 
     private void addStartupClasses() {
@@ -1450,43 +1460,51 @@ public class VirtualFile {
         virtualFile.addClass(startupClass);
       }
 
-      if (hasSpaceForTransaction(virtualFile, options)) {
+      boolean isSingleStartupDexFile = hasSpaceForTransaction(virtualFile, options);
+      if (isSingleStartupDexFile) {
         virtualFile.commitTransaction();
       } else {
         virtualFile.abortTransaction();
 
-        // If the above failed, then add the startup classes one by one.
-        for (DexProgramClass startupClass : classPartioning.getStartupClasses()) {
-          virtualFile.addClass(startupClass);
-          if (hasSpaceForTransaction(virtualFile, options)) {
-            virtualFile.commitTransaction();
-          } else {
-            virtualFile.abortTransaction();
-            virtualFile = cycler.addFile();
-            virtualFile.addClass(startupClass);
-            assert hasSpaceForTransaction(virtualFile, options);
-            virtualFile.commitTransaction();
-          }
-        }
+        // If the above failed, then apply the selected multi startup dex distribution strategy.
+        MultiStartupDexDistributor distributor =
+            MultiStartupDexDistributor.get(options, startupProfile);
+        distributor.distribute(classPartioning.getStartupClasses(), this, virtualFile, cycler);
 
         options.reporter.warning(
             createStartupClassesOverflowDiagnostic(cycler.filesForDistribution.size()));
       }
 
+      options.reporter.info(
+          createStartupClassesNonStartupFractionDiagnostic(
+              classPartioning.getStartupClasses(), startupProfile));
+
       if (options.getStartupOptions().isMinimalStartupDexEnabled()) {
+        // Minimal startup dex only applies to the case where there is a single startup DEX file.
+        // When there are multiple startup DEX files, we allow filling up the last startup DEX file
+        // with non-startup classes.
+        VirtualFile lastFileForDistribution = ListUtils.last(cycler.filesForDistribution);
         cycler.clearFilesForDistribution();
+        if (!isSingleStartupDexFile) {
+          cycler.addFileForDistribution(lastFileForDistribution);
+        }
       } else {
         cycler.restart();
       }
     }
 
-    private List<DexProgramClass> addNonStartupClasses() {
+    public void distributeClasses(List<DexProgramClass> classes) {
+      List<DexProgramClass> nonPackageClasses = addPackageClasses(classes);
+      addNonPackageClasses(cycler, nonPackageClasses);
+    }
+
+    @SuppressWarnings("ReferenceEquality")
+    private List<DexProgramClass> addPackageClasses(List<DexProgramClass> classes) {
       int prefixLength = MINIMUM_PREFIX_LENGTH;
       int transactionStartIndex = 0;
       String currentPrefix = null;
       Object2IntMap<String> packageAssignments = new Object2IntOpenHashMap<>();
       VirtualFile current = cycler.ensureFile().next();
-      List<DexProgramClass> classes = classPartioning.getNonStartupClasses();
       List<DexProgramClass> nonPackageClasses = new ArrayList<>();
       for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
         DexProgramClass clazz = classes.get(classIndex);

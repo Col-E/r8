@@ -25,15 +25,22 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
 
   private final DexType known;
   private final String originalName;
+  // A KotlinTypeReference may be either a Kotlin classifier or a binary name.
+  // We need to maintain the right type to avoid unnecessary difference between original and
+  // rewritten metadata.
+  private final boolean exportAsKotlinClassifier;
 
-  private KotlinTypeReference(String originalName, DexType known) {
+  private KotlinTypeReference(
+      String originalName, DexType known, boolean exportAsKotlinClassifier) {
     this.originalName = originalName;
     this.known = known;
+    this.exportAsKotlinClassifier = exportAsKotlinClassifier;
     assert known != null;
   }
 
   private KotlinTypeReference(String originalName) {
     this.known = null;
+    this.exportAsKotlinClassifier = false;
     this.originalName = originalName;
     assert originalName != null;
   }
@@ -46,24 +53,40 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
     return originalName;
   }
 
-  static KotlinTypeReference fromBinaryName(
-      String binaryName, DexItemFactory factory, String originalName) {
-    if (DescriptorUtils.isValidBinaryName(binaryName)) {
+  static KotlinTypeReference fromBinaryNameOrKotlinClassifier(
+      String binaryNameOrKotlinClassifier, DexItemFactory factory, String originalName) {
+    // Kotlin classifiers are valid binary names.
+    if (DescriptorUtils.isValidBinaryName(binaryNameOrKotlinClassifier)) {
+      boolean interpretAsKotlinClassifier =
+          shouldBeInterpretedAsKotlinClassifier(binaryNameOrKotlinClassifier);
       return fromDescriptor(
-          DescriptorUtils.getDescriptorFromClassBinaryName(binaryName), factory, originalName);
+          interpretAsKotlinClassifier
+              ? DescriptorUtils.getDescriptorFromKotlinClassifier(binaryNameOrKotlinClassifier)
+              : DescriptorUtils.getDescriptorFromClassBinaryName(binaryNameOrKotlinClassifier),
+          factory,
+          originalName,
+          interpretAsKotlinClassifier);
     }
-    return new KotlinTypeReference(binaryName);
+    return new KotlinTypeReference(binaryNameOrKotlinClassifier);
+  }
+
+  private static boolean shouldBeInterpretedAsKotlinClassifier(
+      String binaryNameOrKotlinClassifier) {
+    return binaryNameOrKotlinClassifier.contains(".");
   }
 
   static KotlinTypeReference fromDescriptor(String descriptor, DexItemFactory factory) {
-    return fromDescriptor(descriptor, factory, descriptor);
+    return fromDescriptor(descriptor, factory, descriptor, false);
   }
 
   static KotlinTypeReference fromDescriptor(
-      String descriptor, DexItemFactory factory, String originalName) {
+      String descriptor,
+      DexItemFactory factory,
+      String originalName,
+      boolean exportAsKotlinClassifier) {
     if (DescriptorUtils.isDescriptor(descriptor)) {
       DexType type = factory.createType(descriptor);
-      return new KotlinTypeReference(originalName, type);
+      return new KotlinTypeReference(originalName, type, exportAsKotlinClassifier);
     }
     return new KotlinTypeReference(originalName);
   }
@@ -117,7 +140,11 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
           if (descriptor == null || descriptor.equals(defaultValue)) {
             rewrittenConsumer.accept(descriptor);
           } else {
-            rewrittenConsumer.accept(DescriptorUtils.getBinaryNameFromDescriptor(descriptor));
+            String rewritten =
+                exportAsKotlinClassifier
+                    ? DescriptorUtils.descriptorToKotlinClassifier(descriptor)
+                    : DescriptorUtils.getBinaryNameFromDescriptor(descriptor);
+            rewrittenConsumer.accept(rewritten);
           }
         },
         appView,

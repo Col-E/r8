@@ -40,6 +40,7 @@ public class RepackagingLens extends NestedGraphLens {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public <T extends DexReference> boolean isSimpleRenaming(T from, T to) {
     if (from == to) {
       assert false : "The from and to references should not be equal";
@@ -58,6 +59,7 @@ public class RepackagingLens extends NestedGraphLens {
         this::isSimpleTypeRenamingOrEqual);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isSimpleTypeRenamingOrEqual(DexType from, DexType to) {
     return from == to || newTypes.get(from) == to;
   }

@@ -12,6 +12,7 @@ public class NoParameterTypeStrengtheningRule extends ProguardConfigurationRule 
 
   public static final String RULE_NAME = "noparametertypestrengthening";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<NoParameterTypeStrengtheningRule, Builder> {
 

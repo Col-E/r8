@@ -138,6 +138,8 @@ public interface ClassInstanceFieldsMerger {
 
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
     private final MergeGroup group;
+
+    @SuppressWarnings("BadImport")
     private final Builder lensBuilder;
 
     private DexEncodedField classIdField;
@@ -229,6 +231,7 @@ public interface ClassInstanceFieldsMerger {
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean needsRelaxedType(
         DexEncodedField targetField, Iterable<DexEncodedField> sourceFields) {
       return Iterables.any(

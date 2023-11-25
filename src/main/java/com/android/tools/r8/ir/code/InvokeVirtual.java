@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.graph.DexEncodedMethod.asDexClassAndMethodOrNull;
-
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.dex.code.DexInstruction;
 import com.android.tools.r8.dex.code.DexInvokeDirect;
@@ -12,9 +10,7 @@ import com.android.tools.r8.dex.code.DexInvokeDirectRange;
 import com.android.tools.r8.dex.code.DexInvokeVirtual;
 import com.android.tools.r8.dex.code.DexInvokeVirtualRange;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -22,7 +18,6 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
-import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -122,44 +117,6 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   @Override
   public InvokeVirtual asInvokeVirtual() {
     return this;
-  }
-
-  @Override
-  public DexClassAndMethod lookupSingleTarget(
-      AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType) {
-    return lookupSingleTarget(appView, context, dynamicReceiverType, getInvokedMethod());
-  }
-
-  public static DexClassAndMethod lookupSingleTarget(
-      AppView<?> appView,
-      ProgramMethod context,
-      DynamicType dynamicReceiverType,
-      DexMethod method) {
-    DexEncodedMethod result = null;
-    if (appView.appInfo().hasLiveness()) {
-      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      result =
-          appViewWithLiveness
-              .appInfo()
-              .lookupSingleVirtualTarget(
-                  appViewWithLiveness, method, context, false, appView, dynamicReceiverType);
-    } else {
-      // In D8, allow lookupSingleTarget() to be used for finding final library methods. This is
-      // used for library modeling.
-      DexType holder = method.holder;
-      if (holder.isClassType()) {
-        DexClass clazz = appView.definitionFor(holder);
-        if (clazz != null
-            && (clazz.isLibraryClass() || appView.libraryMethodOptimizer().isModeled(clazz.type))) {
-          DexEncodedMethod singleTargetCandidate = clazz.lookupMethod(method);
-          if (singleTargetCandidate != null
-              && (clazz.isFinal() || singleTargetCandidate.isFinal())) {
-            result = singleTargetCandidate;
-          }
-        }
-      }
-    }
-    return asDexClassAndMethodOrNull(result, appView);
   }
 
   @Override

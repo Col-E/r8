@@ -270,6 +270,11 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
       return this;
     }
 
+    public Builder setAbstract() {
+      flags.setAbstract();
+      return this;
+    }
+
     public Builder setBridge() {
       flags.setBridge();
       return this;

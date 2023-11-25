@@ -335,6 +335,7 @@ public abstract class CfInstructionDesugaringEventConsumer
       acceptUtilityMethod(method, context);
     }
 
+    @SuppressWarnings("UnusedVariable")
     private void acceptUtilityMethod(ProgramMethod method, ProgramMethod context) {
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
@@ -594,11 +595,13 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
+    @SuppressWarnings("UnusedVariable")
     public void acceptUtilityThrowRuntimeExceptionWithMessageMethod(
         ProgramMethod method, ProgramMethod context) {
       acceptUtilityMethod(method, context);
     }
 
+    @SuppressWarnings("UnusedVariable")
     private void acceptUtilityMethod(ProgramMethod method, ProgramMethod context) {
       // Intentionally empty. The method will be hit by tracing if required.
     }

@@ -5,7 +5,7 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -13,7 +13,7 @@ import com.android.tools.r8.references.TypeReference;
 import java.util.OptionalInt;
 
 /** This is the main api interface for retrace. */
-@Keep
+@KeepForApi
 public interface Retracer {
 
   RetraceClassResult retraceClass(ClassReference classReference);

@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.Sets;
 import java.io.File;
@@ -15,11 +16,8 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Lazy resource provider returning class file resources based
- * on filesystem directory content.
- */
-@Keep
+/** Lazy resource provider returning class file resources based on filesystem directory content. */
+@KeepForApi
 public final class DirectoryClassFileProvider implements ClassFileResourceProvider {
   private final Path root;
 

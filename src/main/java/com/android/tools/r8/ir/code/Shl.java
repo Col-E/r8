@@ -102,7 +102,7 @@ public class Shl extends LogicalBinop {
     }
     if (left.isSingleNumberValue()) {
       int result = foldIntegers(left.asSingleNumberValue().getIntValue(), rightConst);
-      return appView.abstractValueFactory().createSingleNumberValue(result);
+      return appView.abstractValueFactory().createSingleNumberValue(result, getOutType());
     }
     if (left.hasDefinitelySetAndUnsetBitsInformation() && rightConst > 0) {
       // Shift the known bits and add that we now know that the lowermost n bits are definitely

@@ -69,6 +69,7 @@ import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationIn
 import com.android.tools.r8.ir.optimize.membervaluepropagation.D8MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.R8MemberValuePropagation;
+import com.android.tools.r8.ir.optimize.numberunboxer.NumberUnboxer;
 import com.android.tools.r8.ir.optimize.outliner.Outliner;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.lightir.IR2LirConverter;
@@ -127,6 +128,7 @@ public class IRConverter {
   private final TypeChecker typeChecker;
   protected ServiceLoaderRewriter serviceLoaderRewriter;
   protected final EnumUnboxer enumUnboxer;
+  protected final NumberUnboxer numberUnboxer;
   protected InstanceInitializerOutliner instanceInitializerOutliner;
   protected final RemoveVerificationErrorForUnknownReturnedValues
       removeVerificationErrorForUnknownReturnedValues;
@@ -214,6 +216,7 @@ public class IRConverter {
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
       this.enumUnboxer = EnumUnboxer.empty();
+      this.numberUnboxer = NumberUnboxer.empty();
       this.assumeInserter = null;
       this.instanceInitializerOutliner = null;
       this.removeVerificationErrorForUnknownReturnedValues = null;
@@ -255,7 +258,8 @@ public class IRConverter {
               ? new LibraryMethodOverrideAnalysis(appViewWithLiveness)
               : null;
       this.enumUnboxer = EnumUnboxer.create(appViewWithLiveness);
-      this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, enumUnboxer);
+      this.numberUnboxer = NumberUnboxer.create(appViewWithLiveness);
+      this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness);
       this.inliner = new Inliner(appViewWithLiveness, this, lensCodeRewriter);
       this.outliner = Outliner.create(appViewWithLiveness);
       this.memberValuePropagation = new R8MemberValuePropagation(appViewWithLiveness);
@@ -293,6 +297,7 @@ public class IRConverter {
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
       this.enumUnboxer = EnumUnboxer.empty();
+      this.numberUnboxer = NumberUnboxer.empty();
     }
     this.stringSwitchRemover =
         options.isStringSwitchConversionEnabled()
@@ -336,6 +341,7 @@ public class IRConverter {
                 DexEncodedMethod::isAbstract, method -> method.convertToThrowNullMethod(appView));
           }
         },
+        appView.options().getThreadingModule(),
         executorService);
   }
 
@@ -356,7 +362,10 @@ public class IRConverter {
   public void processSimpleSynthesizeMethods(
       List<ProgramMethod> methods, ExecutorService executorService) throws ExecutionException {
     ThreadUtils.processItems(
-        methods, this::processAndFinalizeSimpleSynthesizedMethod, executorService);
+        methods,
+        this::processAndFinalizeSimpleSynthesizedMethod,
+        options.getThreadingModule(),
+        executorService);
   }
 
   private void processAndFinalizeSimpleSynthesizedMethod(ProgramMethod method) {
@@ -445,6 +454,7 @@ public class IRConverter {
                   methodProcessor,
                   methodProcessingContext,
                   conversionOptions),
+          appView.options().getThreadingModule(),
           executorService);
     }
   }
@@ -535,6 +545,10 @@ public class IRConverter {
 
     if (options.testing.irModifier != null) {
       options.testing.irModifier.accept(code, appView);
+    }
+
+    if (options.testing.forceThrowInConvert) {
+      throw new RuntimeException("Forcing compilation failure for testing");
     }
 
     if (lensCodeRewriter != null) {
@@ -801,7 +815,7 @@ public class IRConverter {
     }
 
     // TODO(mkroghj) Test if shorten live ranges is worth it.
-    if (!options.isGeneratingClassFiles()) {
+    if (options.isGeneratingDex()) {
       timing.begin("Canonicalize constants");
       ConstantCanonicalizer constantCanonicalizer =
           new ConstantCanonicalizer(appView, context, code);
@@ -919,8 +933,13 @@ public class IRConverter {
     appView.withArgumentPropagator(
         argumentPropagator -> argumentPropagator.scan(method, code, methodProcessor, timing));
 
+    if (methodProcessor.isComposeMethodProcessor()) {
+      methodProcessor.asComposeMethodProcessor().scan(method, code, timing);
+    }
+
     if (methodProcessor.isPrimaryMethodProcessor()) {
       enumUnboxer.analyzeEnums(code, methodProcessor);
+      numberUnboxer.analyze(code);
     }
 
     if (inliner != null) {
@@ -1053,7 +1072,6 @@ public class IRConverter {
             appView,
             null,
             RewrittenPrototypeDescription.none(),
-            appView.graphLens().getOriginalMethodSignature(code.context().getReference()),
             (MutableMethodConversionOptions) code.getConversionOptions());
     timing.end();
     return irCode;
@@ -1134,6 +1152,7 @@ public class IRConverter {
     assert method.getHolder().lookupMethod(method.getReference()) == null;
     appView.withArgumentPropagator(argumentPropagator -> argumentPropagator.onMethodPruned(method));
     enumUnboxer.onMethodPruned(method);
+    numberUnboxer.onMethodPruned(method);
     outliner.onMethodPruned(method);
     if (inliner != null) {
       inliner.onMethodPruned(method);
@@ -1151,6 +1170,7 @@ public class IRConverter {
     appView.withArgumentPropagator(
         argumentPropagator -> argumentPropagator.onMethodCodePruned(method));
     enumUnboxer.onMethodCodePruned(method);
+    numberUnboxer.onMethodCodePruned(method);
     outliner.onMethodCodePruned(method);
     if (inliner != null) {
       inliner.onMethodCodePruned(method);

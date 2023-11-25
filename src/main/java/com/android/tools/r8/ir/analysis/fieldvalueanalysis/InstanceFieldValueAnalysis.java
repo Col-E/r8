@@ -120,6 +120,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   boolean isSubjectToOptimization(DexClassAndField field) {
     return !field.getAccessFlags().isStatic() && field.getHolderType() == context.getHolderType();
   }
@@ -136,6 +137,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   void analyzeForwardingConstructorCall(InvokeDirect invoke, Value thisValue) {
     if (invoke.getReceiver() != thisValue
         || invoke.getInvokedMethod().getHolderType() != context.getHolderType()) {
@@ -166,6 +168,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void analyzeParentConstructorCall() {
     if (parentConstructor.getHolderType() == context.getHolderType()) {
       // Forwarding constructor calls are handled similar to instance-put instructions.
@@ -229,6 +232,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
         field, getInstanceFieldInitializationInfo(field, value));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean fieldNeverWrittenBetweenInstancePutAndMethodExit(
       DexClassAndField field, InstancePut instancePut) {
     if (field.getAccessFlags().isFinal()) {

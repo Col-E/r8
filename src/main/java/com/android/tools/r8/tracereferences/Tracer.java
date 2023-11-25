@@ -215,6 +215,7 @@ public class Tracer {
       addType(field.getType(), referencedFrom);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void registerMethod(ProgramMethod method) {
       DefinitionContext referencedFrom = DefinitionContextUtils.create(method);
       addTypes(method.getParameters(), referencedFrom);
@@ -244,6 +245,7 @@ public class Tracer {
       method.registerCodeReferences(new MethodUseCollector(method));
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void registerSuperType(
         DexProgramClass clazz, DexType superType, DefinitionContext referencedFrom) {
       addType(superType, referencedFrom);
@@ -389,6 +391,7 @@ public class Tracer {
             method, resolvedMethod == null ? null : resolvedMethod.getDefinition());
       }
 
+      @SuppressWarnings("ReferenceEquality")
       private void handleRewrittenMethodReference(
           DexMethod method, DexEncodedMethod resolvedMethod) {
         assert resolvedMethod == null
@@ -451,6 +454,7 @@ public class Tracer {
         handleRewrittenFieldReference(lookupResult.getReference());
       }
 
+      @SuppressWarnings("ReferenceEquality")
       private void handleRewrittenFieldReference(DexField field) {
         addType(field.getHolderType(), referencedFrom);
         addType(field.getType(), referencedFrom);

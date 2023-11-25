@@ -128,11 +128,10 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 10, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 11, "lambdadesugaring"))
         .run(Paths.get(ToolHelper.THIRD_PARTY_DIR, "examplesAndroidOLegacy"));
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
-        .withOptionConsumer(o -> o.testing.enableLir())
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
@@ -168,12 +167,11 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 10, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 11, "lambdadesugaring"))
         .run(Paths.get(ToolHelper.THIRD_PARTY_DIR, "examplesAndroidOLegacy"));
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(AndroidApiLevel.N)
-        .withOptionConsumer(opts -> opts.testing.enableLir())
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
         .withDexCheck(inspector -> checkLambdaCount(inspector, 1, "lambdadesugaring"))

@@ -98,6 +98,7 @@ public class ArgumentInfoCollection {
     return getArgumentInfo(argumentIndex).isRemovedArgumentInfo();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isEmpty() {
     return this == EMPTY;
   }
@@ -175,6 +176,7 @@ public class ArgumentInfoCollection {
     return argumentInfosSize;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public ArgumentInfoCollection rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
     if (isEmpty()) {
@@ -205,6 +207,7 @@ public class ArgumentInfoCollection {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object obj) {
     if (this == obj) {
       return true;

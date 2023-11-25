@@ -101,6 +101,7 @@ public class DexMethodHandle extends IndexedDexItem
       return kind;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public static MethodHandleType fromAsmHandle(
         Handle handle, JarApplicationReader application, DexType clazz) {
       switch (handle.getTag()) {

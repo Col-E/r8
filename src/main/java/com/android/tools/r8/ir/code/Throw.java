@@ -22,6 +22,10 @@ public class Throw extends JumpInstruction {
     super(exception);
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public int opcode() {
     return Opcodes.THROW;
@@ -84,6 +88,7 @@ public class Throw extends JumpInstruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public void buildCf(CfBuilder builder) {
     builder.add(CfThrow.INSTANCE, this);
   }
@@ -94,6 +99,7 @@ public class Throw extends JumpInstruction {
   }
 
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, ProgramMethod context) {
     if (exception() == value) {
       return true;
@@ -118,5 +124,25 @@ public class Throw extends JumpInstruction {
       }
     }
     return false;
+  }
+
+  public static class Builder extends BuilderBase<Builder, Throw> {
+
+    private Value exceptionValue;
+
+    public Builder setExceptionValue(Value exceptionValue) {
+      this.exceptionValue = exceptionValue;
+      return this;
+    }
+
+    @Override
+    public Throw build() {
+      return amend(new Throw(exceptionValue));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }

@@ -119,6 +119,7 @@ public class PhiInInstructionsStrategy extends LirStrategy<Value, Integer> {
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public Value getValueDefinitionForInstructionIndex(
         int index, TypeElement type, Function<Integer, DebugLocalInfo> getLocalInfo) {
       DebugLocalInfo localInfo = getLocalInfo.apply(index);

@@ -37,7 +37,7 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "NaturalIntLoopRemover";
   }
 
@@ -66,6 +66,7 @@ public class NaturalIntLoopRemover extends CodeRewriterPass<AppInfo> {
         && code.getBlocks().size() >= 4;
   }
 
+  @SuppressWarnings("UnnecessaryParentheses")
   private boolean isComparisonBlock(BasicBlock comparisonBlockCandidate) {
     if (!comparisonBlockCandidate.exit().isIf()
         || comparisonBlockCandidate.exit().asIf().isZeroTest()) {

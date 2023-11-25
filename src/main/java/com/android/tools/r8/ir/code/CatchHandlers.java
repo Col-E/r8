@@ -83,6 +83,7 @@ public class CatchHandlers<T> implements Iterable<CatchHandler<T>> {
     return uniqueTargets;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean hasCatchAll(DexItemFactory factory) {
     return getGuards().size() > 0
         && getGuards().get(getGuards().size() - 1) == factory.throwableType;
@@ -95,6 +96,7 @@ public class CatchHandlers<T> implements Iterable<CatchHandler<T>> {
     return new CatchHandlers<>(newGuards, newTargets);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public CatchHandlers<T> removeGuard(DexType guardToBeRemoved) {
     List<DexType> newGuards = new ArrayList<>();
     List<T> newTargets = new ArrayList<>();

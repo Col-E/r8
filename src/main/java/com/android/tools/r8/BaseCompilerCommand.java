@@ -11,6 +11,7 @@ import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.profile.art.ArtProfileConsumer;
 import com.android.tools.r8.profile.art.ArtProfileForRewriting;
@@ -44,7 +45,7 @@ import java.util.function.Function;
  * <p>For concrete builders, see for example {@link D8Command.Builder} and {@link
  * R8Command.Builder}.
  */
-@Keep
+@KeepForApi
 public abstract class BaseCompilerCommand extends BaseCommand {
 
   private final CompilationMode mode;
@@ -268,7 +269,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
    * @param <B> Concrete builder extending this base, e.g., {@link R8Command.Builder} or {@link
    *     D8Command.Builder}.
    */
-  @Keep
+  @KeepForApi
   public abstract static class Builder<C extends BaseCompilerCommand, B extends Builder<C, B>>
       extends BaseCommand.Builder<C, B> {
 
@@ -642,6 +643,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     }
 
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     public B addSpecialLibraryConfiguration(String configuration) {
       return addDesugaredLibraryConfiguration(configuration);
     }

@@ -46,6 +46,7 @@ public class ArtProfileProviderUtils {
   }
 
   /** Serialize the given {@param artProfileProvider} to a string for writing it to a dump. */
+  @SuppressWarnings("DefaultCharset")
   public static String serializeToString(ArtProfileProvider artProfileProvider) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     try (OutputStreamWriter outputStreamWriter =
@@ -106,6 +107,7 @@ public class ArtProfileProviderUtils {
             }
 
             @Override
+            @SuppressWarnings("DefaultCharset")
             public ArtProfileBuilder addHumanReadableArtProfile(
                 TextInputStream textInputStream,
                 Consumer<HumanReadableArtProfileParserBuilder> parserBuilderConsumer) {

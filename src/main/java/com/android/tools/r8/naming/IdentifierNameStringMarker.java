@@ -69,8 +69,8 @@ public class IdentifierNameStringMarker {
             decoupleIdentifierNameStringInStaticField(field);
           }
         },
-        executorService
-    );
+        appView.options().getThreadingModule(),
+        executorService);
   }
 
   private void decoupleIdentifierNameStringInStaticField(DexEncodedField encodedField) {
@@ -333,6 +333,7 @@ public class IdentifierNameStringMarker {
     return iterator;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private int getIdentifierPositionInArguments(InvokeMethod invoke) {
     DexType returnType = invoke.getReturnType();
     if (isClassNameComparison(invoke, appView.dexItemFactory())) {

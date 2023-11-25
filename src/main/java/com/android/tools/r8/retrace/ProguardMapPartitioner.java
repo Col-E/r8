@@ -5,11 +5,11 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.retrace.internal.ProguardMapPartitionerOnClassNameToText.ProguardMapPartitionerBuilderImpl;
 import java.io.IOException;
 
-@Keep
+@KeepForApi
 public interface ProguardMapPartitioner {
 
   MappingPartitionMetadata run() throws IOException;

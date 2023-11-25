@@ -42,6 +42,7 @@ public class NoEnums extends SingleClassPolicy {
     return true;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isEnumSubtype(DexClass clazz) {
     if (cache.containsKey(clazz)) {
       return cache.getBoolean(clazz);

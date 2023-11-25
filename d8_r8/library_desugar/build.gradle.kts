@@ -10,21 +10,11 @@ plugins {
 java {
   sourceSets.main.configure {
     java.srcDir(getRoot().resolveAll("src", "library_desugar", "java"))
-    output.resourcesDir = getRoot().resolveAll("build", "classes", "library_desugar_conversions")
+    output.setResourcesDir(getRoot().resolveAll("build", "classes", "library_desugar_conversions"))
   }
   sourceCompatibility = JavaVersion.VERSION_1_8
   targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 dependencies {
-}
-
-val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
-  "compileDeps",
-  listOf(Jdk.JDK_11.getThirdPartyDependency()))
-
-tasks {
-  withType<JavaCompile> {
-    dependsOn(thirdPartyCompileDependenciesTask)
-  }
 }

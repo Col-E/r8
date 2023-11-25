@@ -85,6 +85,7 @@ class EnumUnboxingCandidateAnalysis {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void analyzeEnum(GraphLens graphLensForPrimaryOptimizationPass, DexProgramClass clazz) {
     if (clazz.superType == factory.enumType) {
       if (isSuperEnumUnboxingCandidate(clazz)) {
@@ -102,6 +103,7 @@ class EnumUnboxingCandidateAnalysis {
     }
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isSubEnumUnboxingCandidate(DexProgramClass clazz) {
     assert clazz.isEnum();
     boolean result = true;
@@ -130,6 +132,7 @@ class EnumUnboxingCandidateAnalysis {
     return result;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isSuperEnumUnboxingCandidate(DexProgramClass clazz) {
     assert clazz.isEnum();
 
@@ -197,6 +200,7 @@ class EnumUnboxingCandidateAnalysis {
         options);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void removePinnedIfNotHolder(DexMember<?, ?> member, DexType type) {
     DexType baseType = type.toBaseType(factory);
     if (baseType != member.holder) {

@@ -31,10 +31,10 @@ public class LambdaAbstractMethodErrorTest extends TestBase {
         .addProgramClassesAndInnerClasses(Task.class, OuterClass.class)
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            internalOptions -> {
-              internalOptions.inlinerOptions().enableInlining = false;
-              internalOptions.enableClassInlining = false;
-              internalOptions.enableVerticalClassMerging = false;
+            options -> {
+              options.inlinerOptions().enableInlining = false;
+              options.enableClassInlining = false;
+              options.getVerticalClassMergerOptions().disable();
             })
         .setMinApi(parameters)
         .run(parameters.getRuntime(), Main.class.getTypeName())

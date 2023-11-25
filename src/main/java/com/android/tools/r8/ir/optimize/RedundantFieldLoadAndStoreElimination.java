@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult.SingleFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
@@ -47,6 +46,8 @@ import com.android.tools.r8.ir.optimize.RedundantFieldLoadAndStoreElimination.Re
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.verticalclassmerging.VerticallyMergedClasses;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
@@ -77,7 +78,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "RedundantFieldLoadAndStoreElimination";
   }
 
@@ -154,6 +155,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object other) {
       if (this == other) {
         return true;
@@ -186,6 +188,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
     }
 
     @Override
+    @SuppressWarnings("EqualsGetClass")
     public boolean equals(Object other) {
       if (this == other) {
         return true;
@@ -215,6 +218,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public boolean equals(Object other) {
       if (!(other instanceof FieldAndObject)) {
         return false;
@@ -299,9 +303,11 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
 
       @Override
       public void eliminateRedundantRead(InstructionListIterator it, Instruction redundant) {
-        affectedValues.addAll(redundant.outValue().affectedValues());
-        it.replaceCurrentInstruction(
-            value.createMaterializingInstruction(appView.withClassHierarchy(), code, redundant));
+        Instruction[] materializingInstructions =
+            value.createMaterializingInstructions(appView.withClassHierarchy(), code, redundant);
+        assert materializingInstructions.length == 1;
+        Instruction materializingInstruction = ArrayUtils.first(materializingInstructions);
+        it.replaceCurrentInstruction(materializingInstruction, affectedValues);
         hasChanged = true;
       }
 
@@ -337,6 +343,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
       return appView.libraryMethodOptimizer().isFinalLibraryField(field.getDefinition());
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private DexClassAndField resolveField(DexField field) {
       if (appView.enableWholeProgramOptimizations()) {
         SingleFieldResolutionResult resolutionResult =
@@ -500,7 +507,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
     }
 
     private boolean verifyWasInstanceInitializer() {
-      VerticallyMergedClasses verticallyMergedClasses = appView.verticallyMergedClasses();
+      VerticallyMergedClasses verticallyMergedClasses = appView.getVerticallyMergedClasses();
       assert verticallyMergedClasses != null;
       assert verticallyMergedClasses.isMergeTarget(method.getHolderType())
           || appView.horizontallyMergedClasses().isMergeTarget(method.getHolderType());
@@ -554,7 +561,8 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
               }
             } else if (info.isSingleValue()) {
               SingleValue value = info.asSingleValue();
-              if (value.isMaterializableInContext(appViewWithLiveness, method)) {
+              if (value.hasSingleMaterializingInstruction()
+                  && value.isMaterializableInContext(appViewWithLiveness, method)) {
                 Value object = invoke.getReceiver().getAliasedValue();
                 FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
                 if (field.isFinalOrEffectivelyFinal(appViewWithLiveness)) {
@@ -614,6 +622,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
       return activeState.markClassAsInitialized(type);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void markMostRecentInitClassForRemoval(DexType initializedType) {
       InitClass mostRecentInitClass = activeState.getMostRecentInitClass();
       if (mostRecentInitClass != null && mostRecentInitClass.getClassValue() == initializedType) {
@@ -650,7 +659,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
     }
 
     private void handleArrayPut(ArrayPut arrayPut) {
-      int index = arrayPut.getIndexOrDefault(-1);
+      int index = arrayPut.indexOrDefault(-1);
       MemberType memberType = arrayPut.getMemberType();
 
       // An array-put instruction can potentially write the given array slot on all arrays because
@@ -852,7 +861,8 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
             if (appViewWithLiveness.appInfo().mayPropagateValueFor(appViewWithLiveness, field)
                 && fieldValue.isSingleValue()) {
               SingleValue singleFieldValue = fieldValue.asSingleValue();
-              if (singleFieldValue.isMaterializableInContext(appViewWithLiveness, method)) {
+              if (singleFieldValue.hasSingleMaterializingInstruction()
+                  && singleFieldValue.isMaterializableInContext(appViewWithLiveness, method)) {
                 activeState.putFinalOrEffectivelyFinalInstanceField(
                     new FieldAndObject(field, value), new MaterializableValue(singleFieldValue));
               }
@@ -1093,6 +1103,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
       clearMostRecentStaticFieldWrites();
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public void clearMostRecentInstanceFieldWrite(DexField field) {
       if (mostRecentInstanceFieldWrites != null) {
         mostRecentInstanceFieldWrites.keySet().removeIf(key -> key.field == field);
@@ -1308,6 +1319,7 @@ public class RedundantFieldLoadAndStoreElimination extends CodeRewriterPass<AppI
       }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     public void removeNonFinalInstanceFields(DexField field) {
       if (nonFinalInstanceFieldValues != null) {
         nonFinalInstanceFieldValues.keySet().removeIf(key -> key.field == field);

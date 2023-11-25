@@ -59,7 +59,7 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
   }
 
   @Override
-  protected String getTimingId() {
+  protected String getRewriterId() {
     return "DexConstantOptimizer";
   }
 
@@ -240,11 +240,7 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
     LinkedList<BasicBlock> blocks = code.blocks;
     for (BasicBlock block : blocks) {
       shortenLiveRangesInsideBlock(
-          code,
-          block,
-          dominatorTreeMemoization,
-          addConstantInBlock,
-          canonicalizer::isConstantCanonicalizationCandidate);
+          code, block, dominatorTreeMemoization, addConstantInBlock, canonicalizer::isConstant);
     }
 
     // Heuristic to decide if constant instructions are shared in dominator block
@@ -442,10 +438,13 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
       DominatorTree dominatorTree = dominatorTreeMemoization.computeIfAbsent();
       BasicBlock dominator = dominatorTree.closestDominator(userBlocks);
 
+      // Do not move the constant if the constant instruction can throw and the dominator or the
+      // original block has catch handlers, or if the code may have monitor instructions, since this
+      // could lead to verification errors.
       if (instruction.instructionTypeCanThrow()) {
-        if (block.hasCatchHandlers() || dominator.hasCatchHandlers()) {
-          // Do not move the constant if the constant instruction can throw
-          // and the dominator or the original block has catch handlers.
+        if (block.hasCatchHandlers()
+            || dominator.hasCatchHandlers()
+            || code.metadata().mayHaveMonitorInstruction()) {
           continue;
         }
       }
@@ -485,7 +484,8 @@ public class DexConstantOptimizer extends CodeRewriterPass<AppInfo> {
       addConstantInBlock
           .computeIfAbsent(dominator, k -> new LinkedHashMap<>())
           .put(copy.outValue(), copy);
-      assert iterator.peekPrevious() == instruction;
+      // Using peekPrevious() would disable remove().
+      assert iterator.previous() == instruction && iterator.next() == instruction;
       iterator.removeOrReplaceByDebugLocalRead();
     }
   }

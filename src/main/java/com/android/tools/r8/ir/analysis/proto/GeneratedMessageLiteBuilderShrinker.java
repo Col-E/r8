@@ -132,6 +132,7 @@ public class GeneratedMessageLiteBuilderShrinker {
     Set<DexProgramClass> seen = Sets.newIdentityHashSet();
     return new EnqueuerAnalysis() {
       @Override
+      @SuppressWarnings("ReferenceEquality")
       public void notifyFixpoint(Enqueuer enqueuer, EnqueuerWorklist worklist, Timing timing) {
         builders.forEach(
             (builder, dynamicMethod) -> {
@@ -184,6 +185,7 @@ public class GeneratedMessageLiteBuilderShrinker {
   }
 
   /** Returns true if an action was deferred. */
+  @SuppressWarnings("ReferenceEquality")
   public boolean deferDeadProtoBuilders(
       DexProgramClass clazz, ProgramMethod method, BooleanSupplier register) {
     if (!enableAggressiveBuilderOptimization) {
@@ -224,11 +226,13 @@ public class GeneratedMessageLiteBuilderShrinker {
                 appView, builder, dynamicMethod, converter, conversionOptions);
           }
         },
+        appView.options().getThreadingModule(),
         executorService);
     builders.clear();
     timing.end(); // Remove dead builder references
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private void rewriteDeadBuilderReferencesFromDynamicMethod(
       AppView<AppInfoWithLiveness> appView,
       DexProgramClass builder,
@@ -395,6 +399,7 @@ public class GeneratedMessageLiteBuilderShrinker {
    * <p>This is assuming that calling dynamicMethod() on a proto message with
    * MethodToInvoke.NEW_MUTABLE_INSTANCE will create an instance of the enclosing class.
    */
+  @SuppressWarnings("ReferenceEquality")
   private void strengthenCheckCastInstructions(IRCode code) {
     AffectedValues affectedValues = new AffectedValues();
     InstructionListIterator instructionIterator = code.instructionListIterator();
@@ -484,6 +489,7 @@ public class GeneratedMessageLiteBuilderShrinker {
                   .isStrictSubtypeOf(type, references.generatedMessageLiteBuilderType));
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void bypassClinitforInliningNewBuilderMethods(SubtypingInfo subtypingInfo) {
       for (DexType type : subtypingInfo.subtypes(references.generatedMessageLiteType)) {
         DexProgramClass clazz = appView.definitionFor(type).asProgramClass();

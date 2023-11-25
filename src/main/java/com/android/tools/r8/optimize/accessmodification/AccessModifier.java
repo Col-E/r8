@@ -62,8 +62,7 @@ public class AccessModifier {
       throws ExecutionException {
     timing.begin("Access modification");
     AccessModifierOptions accessModifierOptions = appView.options().getAccessModifierOptions();
-    if (accessModifierOptions.isAccessModificationEnabled()
-        && !accessModifierOptions.isLegacyAccessModifierEnabled()) {
+    if (accessModifierOptions.isAccessModificationEnabled()) {
       new AccessModifier(appView)
           .processStronglyConnectedComponents(executorService)
           .installLens(executorService, timing);
@@ -78,7 +77,10 @@ public class AccessModifier {
         new ProgramClassesBidirectedGraph(appView, immediateSubtypingInfo)
             .computeStronglyConnectedComponents();
     ThreadUtils.processItems(
-        stronglyConnectedComponents, this::processStronglyConnectedComponent, executorService);
+        stronglyConnectedComponents,
+        this::processStronglyConnectedComponent,
+        appView.options().getThreadingModule(),
+        executorService);
     return this;
   }
 
@@ -157,6 +159,7 @@ public class AccessModifier {
             method -> publicizeMethod(method, localNamingState, namingState, traversalState));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexEncodedMethod publicizeMethod(
       ProgramMethod method,
       BiMap<DexMethod, DexMethod> localNamingState,
@@ -207,6 +210,7 @@ public class AccessModifier {
     return commitMethod(method, localNamingState, namingState);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod getAndReserveNewMethodReference(
       ProgramMethod method,
       BiMap<DexMethod, DexMethod> localNamingState,
@@ -308,13 +312,17 @@ public class AccessModifier {
         method, getAndReserveNewMethodReference(method, localNamingState, namingState));
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexEncodedMethod commitMethod(ProgramMethod method, DexMethod newMethodReference) {
     DexProgramClass holder = method.getHolder();
     if (newMethodReference != method.getReference()) {
       lensBuilder.recordMove(method.getReference(), newMethodReference);
       method =
           new ProgramMethod(
-              holder, method.getDefinition().toTypeSubstitutedMethod(newMethodReference));
+              holder,
+              method
+                  .getDefinition()
+                  .toTypeSubstitutedMethodAsInlining(newMethodReference, appView.dexItemFactory()));
     }
     if (method.getAccessFlags().isPromotedFromPrivateToPublic()
         && method.getAccessFlags().belongsToVirtualPool()) {

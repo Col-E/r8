@@ -114,6 +114,7 @@ public class EnumUnboxingUtilityClasses {
                   methodProcessor,
                   methodProcessingContext,
                   MethodConversionOptions.forLirPhase(appView)),
+          appView.options().getThreadingModule(),
           executorService);
       return utilityClasses;
     }

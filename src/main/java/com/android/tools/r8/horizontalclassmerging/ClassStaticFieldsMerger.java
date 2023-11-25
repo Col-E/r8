@@ -18,6 +18,8 @@ public class ClassStaticFieldsMerger {
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
   private final MergeGroup group;
+
+  @SuppressWarnings("BadImport")
   private final Builder lensBuilder;
 
   private final Map<DexField, DexEncodedField> targetFields = new LinkedHashMap<>();

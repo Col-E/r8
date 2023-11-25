@@ -59,10 +59,8 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
       DexItemFactory factory,
       Reporter reporter,
       Consumer<DexEncodedMethod> keepByteCode,
-      KotlinJvmSignatureExtensionInformation extensionInformation,
       KotlinMetadataMembersTracker originalAssignmentTracker) {
     ImmutableList.Builder<KotlinFunctionInfo> notBackedFunctions = ImmutableList.builder();
-    int functionCounter = 0;
     for (KmFunction kmFunction : container.getFunctions()) {
       JvmMethodSignature signature = JvmExtensionsKt.getSignature(kmFunction);
       if (signature == null) {
@@ -70,11 +68,7 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
         continue;
       }
       KotlinFunctionInfo kotlinFunctionInfo =
-          KotlinFunctionInfo.create(
-              kmFunction,
-              factory,
-              reporter,
-              extensionInformation.hasJvmMethodSignatureExtensionForFunction(functionCounter++));
+          KotlinFunctionInfo.create(kmFunction, factory, reporter);
       DexEncodedMethod method = methodSignatureMap.get(signature.asString());
       if (method == null) {
         notBackedFunctions.add(kotlinFunctionInfo);
@@ -179,6 +173,7 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
     return builder.build();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   boolean rewrite(
       Consumer<KmFunction> functionConsumer,
       Consumer<KmProperty> propertyConsumer,

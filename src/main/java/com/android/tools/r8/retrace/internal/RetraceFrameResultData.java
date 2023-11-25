@@ -24,6 +24,7 @@ class RetraceFrameResultData {
     this.position = position;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   boolean isAmbiguous() {
     if (memberNamingWithMappedRanges == null) {
       return false;

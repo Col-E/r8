@@ -3,8 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.errors;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
+import com.android.tools.r8.keepanno.annotations.KeepItemKind;
 
 /** Common interface type for all diagnostics related to interface-method desugaring. */
-@Keep
+@KeepForApi(kind = KeepItemKind.ONLY_CLASS)
 public interface InterfaceDesugarDiagnostic extends DesugarDiagnostic {}

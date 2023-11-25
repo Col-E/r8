@@ -44,7 +44,6 @@ public class ExceptionTablesTest extends VerticalClassMergerTestBase {
         .addKeepMainRule(TestClass.class)
         .addVerticallyMergedClassesInspector(this::inspectVerticallyMergedClasses)
         .setMinApi(parameters)
-        .addOptionsModification(o -> o.testing.enableLir())
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

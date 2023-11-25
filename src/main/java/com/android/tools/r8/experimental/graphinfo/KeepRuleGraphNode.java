@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.experimental.graphinfo;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;
@@ -16,7 +16,7 @@ import java.util.Set;
 
 // Note: this could potentially be merged with ConditionalKeepRuleGraphNode
 // and an empty precondition set.
-@Keep
+@KeepForApi
 public final class KeepRuleGraphNode extends GraphNode {
 
   private final Origin origin;
@@ -81,6 +81,7 @@ public final class KeepRuleGraphNode extends GraphNode {
    * {@code <keep-rule-file>:<keep-rule-start-line>:<keep-rule-start-column>}.
    */
   @Override
+  @SuppressWarnings("ReferenceEquality")
   public String toString() {
     return (getOrigin() == Origin.unknown() ? getContent() : getOrigin())
         + ":"

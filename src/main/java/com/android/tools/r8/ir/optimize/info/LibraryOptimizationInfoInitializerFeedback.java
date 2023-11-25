@@ -18,8 +18,7 @@ public class LibraryOptimizationInfoInitializerFeedback extends OptimizationFeed
     return INSTANCE;
   }
 
-  public void recordLibraryFieldHasAbstractValue(
-      DexEncodedField field, AbstractValue abstractValue) {
-    field.getMutableOptimizationInfo().setAbstractValue(abstractValue);
+  public void setAbstractFieldValue(AbstractValue abstractValue, DexEncodedField field) {
+    field.getMutableOptimizationInfo().setAbstractValue(abstractValue, field);
   }
 }

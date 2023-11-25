@@ -8,7 +8,16 @@ import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess.LookupResultCollectionState;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
+import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
+import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MethodResolutionOptimizationInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.InstantiatedObject;
 import com.android.tools.r8.utils.BooleanBox;
@@ -29,6 +38,10 @@ import java.util.function.Consumer;
 
 public abstract class MethodResolutionResult
     extends MemberResolutionResult<DexEncodedMethod, DexMethod> {
+
+  public static UnknownMethodResolutionResult unknown() {
+    return UnknownMethodResolutionResult.get();
+  }
 
   @Override
   public boolean isMethodResolutionResult() {
@@ -132,7 +145,13 @@ public abstract class MethodResolutionResult
     return null;
   }
 
-  /** Short-hand to get the single resolution method if resolution finds it, null otherwise. */
+  /**
+   * Short-hand to get the single resolution method if resolution finds it, null otherwise.
+   *
+   * @deprecated Use {@link #getResolvedMethod()}.
+   */
+  @Deprecated
+  @SuppressWarnings("InlineMeSuggester")
   public final DexEncodedMethod getSingleTarget() {
     return isSingleResolution() ? asSingleResolution().getResolvedMethod() : null;
   }
@@ -169,21 +188,21 @@ public abstract class MethodResolutionResult
       DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo);
 
   /** Lookup the single target of an invoke-direct on this resolution result if possible. */
-  public final DexEncodedMethod lookupInvokeDirectTarget(
+  public final DexClassAndMethod lookupInvokeDirectTarget(
       DexProgramClass context, AppView<? extends AppInfoWithClassHierarchy> appView) {
     return lookupInvokeDirectTarget(context, appView, appView.appInfo());
   }
 
-  public abstract DexEncodedMethod lookupInvokeDirectTarget(
+  public abstract DexClassAndMethod lookupInvokeDirectTarget(
       DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo);
 
   /** Lookup the single target of an invoke-static on this resolution result if possible. */
-  public final DexEncodedMethod lookupInvokeStaticTarget(
+  public final DexClassAndMethod lookupInvokeStaticTarget(
       DexProgramClass context, AppView<? extends AppInfoWithClassHierarchy> appView) {
     return lookupInvokeStaticTarget(context, appView, appView.appInfo());
   }
 
-  public abstract DexEncodedMethod lookupInvokeStaticTarget(
+  public abstract DexClassAndMethod lookupInvokeStaticTarget(
       DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo);
 
   public abstract LookupResult lookupVirtualDispatchTargets(
@@ -266,6 +285,7 @@ public abstract class MethodResolutionResult
     private final T resolvedHolder;
     private final DexEncodedMethod resolvedMethod;
 
+    @SuppressWarnings("ReferenceEquality")
     public SingleResolutionResult(
         DexClass initialResolutionHolder, T resolvedHolder, DexEncodedMethod resolvedMethod) {
       assert initialResolutionHolder != null;
@@ -281,6 +301,140 @@ public abstract class MethodResolutionResult
 
     public abstract SingleResolutionResult<T> withInitialResolutionHolder(
         DexClass newInitialResolutionHolder);
+
+    public MethodOptimizationInfo getOptimizationInfo(
+        AppView<?> appView, InvokeMethod invoke, DexClassAndMethod singleTarget) {
+      if (singleTarget != null) {
+        return singleTarget.getOptimizationInfo();
+      }
+      if (invoke.isInvokeMethodWithDynamicDispatch() && resolvedMethod.belongsToVirtualPool()) {
+        MethodResolutionOptimizationInfoCollection methodResolutionOptimizationInfoCollection =
+            appView.getMethodResolutionOptimizationInfoCollection();
+        return methodResolutionOptimizationInfoCollection.get(resolvedMethod, resolvedHolder);
+      }
+      return DefaultMethodOptimizationInfo.getInstance();
+    }
+
+    public DispatchTargetLookupResult lookupDispatchTarget(
+        AppView<?> appView, InvokeMethod invoke, ProgramMethod context) {
+      switch (invoke.getType()) {
+        case DIRECT:
+          return lookupDirectDispatchTarget(appView, invoke.asInvokeDirect(), context);
+        case POLYMORPHIC:
+          return new UnknownDispatchTargetLookupResult(this);
+        case STATIC:
+          return lookupStaticDispatchTarget(appView, invoke.asInvokeStatic(), context);
+        case SUPER:
+          return lookupSuperDispatchTarget(appView, invoke.asInvokeSuper(), context);
+        default:
+          break;
+      }
+      assert invoke.isInvokeInterface() || invoke.isInvokeVirtual();
+      InvokeMethodWithReceiver invokeMethodWithReceiver = invoke.asInvokeMethodWithReceiver();
+      DynamicType dynamicReceiverType =
+          appView.hasLiveness()
+              ? invokeMethodWithReceiver.getReceiver().getDynamicType(appView.withLiveness())
+              : DynamicType.unknown();
+      return lookupVirtualDispatchTarget(
+          appView, invokeMethodWithReceiver, dynamicReceiverType, context);
+    }
+
+    private DispatchTargetLookupResult lookupDirectDispatchTarget(
+        AppView<?> appView, InvokeDirect invoke, ProgramMethod context) {
+      DexMethod invokedMethod = invoke.getInvokedMethod();
+      DexClassAndMethod result;
+      if (appView.hasLiveness()) {
+        AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+        AppInfoWithLiveness appInfo = appViewWithLiveness.appInfo();
+        result = appInfo.lookupDirectTarget(invokedMethod, context, appViewWithLiveness);
+        assert invoke.verifyD8LookupResult(
+            result, appView.appInfo().lookupDirectTargetOnItself(invokedMethod, context));
+      } else {
+        // In D8, we can treat invoke-direct instructions as having a single target if the invoke is
+        // targeting a method in the enclosing class.
+        result = appView.appInfo().lookupDirectTargetOnItself(invokedMethod, context);
+      }
+      return DispatchTargetLookupResult.create(result, this);
+    }
+
+    private DispatchTargetLookupResult lookupStaticDispatchTarget(
+        AppView<?> appView, InvokeStatic invoke, ProgramMethod context) {
+      DexMethod invokedMethod = invoke.getInvokedMethod();
+      DexClassAndMethod result;
+      if (appView.appInfo().hasLiveness()) {
+        AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+        AppInfoWithLiveness appInfo = appViewWithLiveness.appInfo();
+        result = appInfo.lookupStaticTarget(invokedMethod, context, appViewWithLiveness);
+        assert invoke.verifyD8LookupResult(
+            result, appInfo.lookupStaticTargetOnItself(invokedMethod, context));
+      } else {
+        // Allow optimizing static library invokes in D8.
+        DexClass clazz = appView.definitionForHolder(invokedMethod);
+        if (clazz != null
+            && (clazz.isLibraryClass() || appView.libraryMethodOptimizer().isModeled(clazz.type))) {
+          result = clazz.lookupClassMethod(invokedMethod);
+        } else {
+          // In D8, we can treat invoke-static instructions as having a single target if the invoke
+          // is targeting a method in the enclosing class.
+          result = appView.appInfo().lookupStaticTargetOnItself(invokedMethod, context);
+        }
+      }
+      return DispatchTargetLookupResult.create(result, this);
+    }
+
+    private DispatchTargetLookupResult lookupSuperDispatchTarget(
+        AppView<?> appView, InvokeSuper invoke, ProgramMethod context) {
+      DexClassAndMethod result = null;
+      if (appView.appInfo().hasLiveness() && context != null) {
+        AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+        AppInfoWithLiveness appInfo = appViewWithLiveness.appInfo();
+        DexMethod invokedMethod = invoke.getInvokedMethod();
+        if (appInfo.isSubtype(context.getHolderType(), invokedMethod.getHolderType())) {
+          result = appInfo.lookupSuperTarget(invokedMethod, context, appViewWithLiveness);
+        }
+      }
+      return DispatchTargetLookupResult.create(result, this);
+    }
+
+    public DispatchTargetLookupResult lookupVirtualDispatchTarget(
+        AppView<?> appView,
+        InvokeMethodWithReceiver invoke,
+        DynamicType dynamicReceiverType,
+        ProgramMethod context) {
+      DexMethod invokedMethod = invoke.getInvokedMethod();
+      DexClassAndMethod result = null;
+      if (appView.appInfo().hasLiveness()) {
+        AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+        result =
+            appViewWithLiveness
+                .appInfo()
+                .lookupSingleVirtualTarget(
+                    appViewWithLiveness,
+                    invokedMethod,
+                    this,
+                    context,
+                    invoke.getInterfaceBit(),
+                    appView,
+                    dynamicReceiverType);
+      } else {
+        // In D8, allow lookupSingleTarget() to be used for finding final library methods. This is
+        // used for library modeling.
+        DexType holder = invokedMethod.getHolderType();
+        if (holder.isClassType()) {
+          DexClass clazz = appView.definitionFor(holder);
+          if (clazz != null
+              && (clazz.isLibraryClass()
+                  || appView.libraryMethodOptimizer().isModeled(clazz.getType()))) {
+            DexClassAndMethod singleTargetCandidate = clazz.lookupClassMethod(invokedMethod);
+            if (singleTargetCandidate != null
+                && (clazz.isFinal() || singleTargetCandidate.getAccessFlags().isFinal())) {
+              result = singleTargetCandidate;
+            }
+          }
+        }
+      }
+      return DispatchTargetLookupResult.create(result, this);
+    }
 
     @Override
     public DexClass getInitialResolutionHolder() {
@@ -423,13 +577,13 @@ public abstract class MethodResolutionResult
      * @return The actual target or {@code null} if none found.
      */
     @Override
-    public DexEncodedMethod lookupInvokeStaticTarget(
+    public DexClassAndMethod lookupInvokeStaticTarget(
         DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       if (isAccessibleFrom(context, appView, appInfo).isFalse()) {
         return null;
       }
       if (resolvedMethod.isStatic()) {
-        return resolvedMethod;
+        return getResolutionPair();
       }
       return null;
     }
@@ -444,17 +598,18 @@ public abstract class MethodResolutionResult
      * @return The actual target or {@code null} if none found.
      */
     @Override
-    public DexEncodedMethod lookupInvokeDirectTarget(
+    public DexClassAndMethod lookupInvokeDirectTarget(
         DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       if (isAccessibleFrom(context, appView, appInfo).isFalse()) {
         return null;
       }
       if (resolvedMethod.isDirectMethod()) {
-        return resolvedMethod;
+        return getResolutionPair();
       }
       return null;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private DexClassAndMethod internalInvokeSpecialOrSuper(
         DexProgramClass context,
         AppInfoWithClassHierarchy appInfo,
@@ -538,6 +693,7 @@ public abstract class MethodResolutionResult
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public LookupResult lookupVirtualDispatchTargets(
         DexProgramClass context,
         AppView<? extends AppInfoWithClassHierarchy> appView,
@@ -724,6 +880,7 @@ public abstract class MethodResolutionResult
     }
 
     @Override
+    @SuppressWarnings("ReferenceEquality")
     public LookupMethodTarget lookupVirtualDispatchTarget(
         DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
       return lookupVirtualDispatchTarget(
@@ -750,6 +907,7 @@ public abstract class MethodResolutionResult
           lambdaInstance, appInfo, typeCausingFailureConsumer, methodCausingFailureConsumer);
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private LookupMethodTarget lookupVirtualDispatchTarget(
         DexClass dynamicInstance,
         AppInfoWithClassHierarchy appInfo,
@@ -856,24 +1014,32 @@ public abstract class MethodResolutionResult
       return null;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private static DexClassAndMethod findWideningOverride(
         DexClassAndMethod resolvedMethod, DexClass clazz, AppInfoWithClassHierarchy appInfo) {
       // Otherwise, lookup to first override that is distinct from resolvedMethod.
-      assert resolvedMethod.getDefinition().accessFlags.isPackagePrivate();
-      while (clazz.superType != null) {
-        clazz = definitionForHelper(appInfo, clazz.superType);
+      assert resolvedMethod.getDefinition().getAccessFlags().isPackagePrivate();
+      while (clazz.hasSuperType()) {
+        clazz = definitionForHelper(appInfo, clazz.getSuperType());
         if (clazz == null) {
           return resolvedMethod;
         }
-        DexEncodedMethod otherOverride = clazz.lookupVirtualMethod(resolvedMethod.getReference());
+        DexClassAndMethod otherOverride =
+            clazz.lookupVirtualClassMethod(resolvedMethod.getReference());
         if (otherOverride != null
-            && isOverriding(resolvedMethod.getDefinition(), otherOverride)
-            && (otherOverride.accessFlags.isPublic() || otherOverride.accessFlags.isProtected())) {
-          assert resolvedMethod.getDefinition() != otherOverride;
-          return DexClassAndMethod.create(clazz, otherOverride);
+            && isOverriding(resolvedMethod, otherOverride)
+            && (otherOverride.getAccessFlags().isPublic()
+                || otherOverride.getAccessFlags().isProtected())) {
+          assert resolvedMethod.getDefinition() != otherOverride.getDefinition();
+          return otherOverride;
         }
       }
       return resolvedMethod;
+    }
+
+    public static boolean isOverriding(
+        DexClassAndMethod resolvedMethod, DexClassAndMethod candidate) {
+      return isOverriding(resolvedMethod.getDefinition(), candidate.getDefinition());
     }
 
     /**
@@ -1017,13 +1183,13 @@ public abstract class MethodResolutionResult
     }
 
     @Override
-    public DexEncodedMethod lookupInvokeStaticTarget(
+    public DexClassAndMethod lookupInvokeStaticTarget(
         DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       return null;
     }
 
     @Override
-    public DexEncodedMethod lookupInvokeDirectTarget(
+    public DexClassAndMethod lookupInvokeDirectTarget(
         DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       return null;
     }
@@ -1340,6 +1506,7 @@ public abstract class MethodResolutionResult
       return true;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private boolean verifyInvalidSymbolicReference() {
       BooleanBox invalidSymbolicReference = new BooleanBox(true);
       forEachFailureDependency(
@@ -1405,13 +1572,13 @@ public abstract class MethodResolutionResult
     }
 
     @Override
-    public DexEncodedMethod lookupInvokeDirectTarget(
+    public DexClassAndMethod lookupInvokeDirectTarget(
         DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       throw new Unreachable("Should not be called on MultipleFieldResolutionResult");
     }
 
     @Override
-    public DexEncodedMethod lookupInvokeStaticTarget(
+    public DexClassAndMethod lookupInvokeStaticTarget(
         DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
       throw new Unreachable("Should not be called on MultipleFieldResolutionResult");
     }
@@ -1661,6 +1828,108 @@ public abstract class MethodResolutionResult
       return typesCausingError.isEmpty()
           ? NoSuchMethodResult.INSTANCE
           : new NoSuchMethodResultDueToMultipleClassDefinitions(typesCausingError);
+    }
+  }
+
+  public static class UnknownMethodResolutionResult extends MethodResolutionResult {
+
+    private static final UnknownMethodResolutionResult INSTANCE =
+        new UnknownMethodResolutionResult();
+
+    private UnknownMethodResolutionResult() {}
+
+    static UnknownMethodResolutionResult get() {
+      return INSTANCE;
+    }
+
+    @Override
+    public OptionalBool isAccessibleFrom(
+        ProgramDefinition context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
+      return OptionalBool.unknown();
+    }
+
+    @Override
+    public OptionalBool isAccessibleForVirtualDispatchFrom(
+        ProgramDefinition context, AppView<? extends AppInfoWithClassHierarchy> appView) {
+      return OptionalBool.unknown();
+    }
+
+    @Override
+    public boolean isVirtualTarget() {
+      throw new Unreachable();
+    }
+
+    @Override
+    public DexClassAndMethod lookupInvokeSpecialTarget(
+        DexProgramClass context, AppView<? extends AppInfoWithClassHierarchy> appView) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public DexClassAndMethod lookupInvokeSuperTarget(
+        DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public DexClassAndMethod lookupInvokeDirectTarget(
+        DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public DexClassAndMethod lookupInvokeStaticTarget(
+        DexProgramClass context, AppView<?> appView, AppInfoWithClassHierarchy appInfo) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public LookupResult lookupVirtualDispatchTargets(
+        DexProgramClass context,
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        InstantiatedSubTypeInfo instantiatedInfo,
+        PinnedPredicate pinnedPredicate) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public LookupResult lookupVirtualDispatchTargets(
+        DexProgramClass context,
+        AppView<AppInfoWithLiveness> appView,
+        DexProgramClass refinedReceiverUpperBound,
+        DexProgramClass refinedReceiverLowerBound) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public LookupTarget lookupVirtualDispatchTarget(
+        InstantiatedObject instance, AppInfoWithClassHierarchy appInfo) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public LookupMethodTarget lookupVirtualDispatchTarget(
+        DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public LookupTarget lookupVirtualDispatchTarget(
+        LambdaDescriptor lambdaInstance,
+        AppInfoWithClassHierarchy appInfo,
+        Consumer<DexType> typeCausingFailureConsumer,
+        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public void visitMethodResolutionResults(
+        Consumer<? super SingleResolutionResult<? extends ProgramOrClasspathClass>>
+            programOrClasspathConsumer,
+        Consumer<? super SingleLibraryResolutionResult> libraryResultConsumer,
+        Consumer<? super ArrayCloneMethodResult> cloneResultConsumer,
+        Consumer<? super FailedResolutionResult> failedResolutionConsumer) {
+      throw new Unreachable();
     }
   }
 }

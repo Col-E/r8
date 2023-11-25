@@ -7,15 +7,16 @@ import os
 import sys
 
 import main_utils
-utils = main_utils.GetUtils();
+
+utils = main_utils.GetUtils()
 
 ANDROID_EMULATORS = os.path.join(utils.TOOLS_DIR, 'benchmarks',
                                  'android-sdk-linux.tar.gz.sha1')
 
+
 def Main():
-  utils.DownloadFromGoogleCloudStorage(ANDROID_EMULATORS)
+    utils.DownloadFromGoogleCloudStorage(ANDROID_EMULATORS)
+
 
 if __name__ == '__main__':
-  sys.exit(Main())
-
-
+    sys.exit(Main())

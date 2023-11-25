@@ -20,11 +20,9 @@ import com.google.common.collect.ImmutableList;
  */
 public class BufferCovariantReturnTypeRewriter implements CfInstructionDesugaring {
 
-  private final AppView<?> appView;
   private final DexItemFactory factory;
 
   public BufferCovariantReturnTypeRewriter(AppView<?> appView) {
-    this.appView = appView;
     this.factory = appView.dexItemFactory();
   }
 
@@ -52,6 +50,7 @@ public class BufferCovariantReturnTypeRewriter implements CfInstructionDesugarin
         .setDesugarRewrite(
             (freshLocalProvider,
                 localStackAllocator,
+                desugaringInfo,
                 eventConsumer,
                 context,
                 methodProcessingContext,
@@ -61,6 +60,7 @@ public class BufferCovariantReturnTypeRewriter implements CfInstructionDesugarin
         .build();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private DexMethod matchingBufferCovariantMethod(DexMethod invokedMethod) {
     if (invokedMethod.getArity() > 1
         || (invokedMethod.getArity() == 1 && !invokedMethod.getParameter(0).isIntType())

@@ -38,12 +38,12 @@ public abstract class CodeRewriterPass<T extends AppInfo> {
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext,
       Timing timing) {
-    return timing.time(getTimingId(), () -> run(code, methodProcessor, methodProcessingContext));
+    return timing.time(getRewriterId(), () -> run(code, methodProcessor, methodProcessingContext));
   }
 
   @Deprecated
   public final CodeRewriterResult run(IRCode code, Timing timing) {
-    return timing.time(getTimingId(), () -> run(code, null, null));
+    return timing.time(getRewriterId(), () -> run(code, null, null));
   }
 
   private CodeRewriterResult run(
@@ -51,17 +51,24 @@ public abstract class CodeRewriterPass<T extends AppInfo> {
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     if (shouldRewriteCode(code)) {
-      assert isAcceptingSSA()
-          ? code.isConsistentSSA(appView)
-          : code.isConsistentGraph(appView, false);
+      assert verifyConsistentCode(code, isAcceptingSSA(), "before");
       CodeRewriterResult result = rewriteCode(code, methodProcessor, methodProcessingContext);
-      assert result.hasChanged().isFalse()
-          || (isProducingSSA()
-              ? code.isConsistentSSA(appView)
-              : code.isConsistentGraph(appView, false));
+      assert result.hasChanged().isFalse() || verifyConsistentCode(code, isProducingSSA(), "after");
       return result;
     }
     return noChange();
+  }
+
+  private boolean verifyConsistentCode(IRCode code, boolean ssa, String preposition) {
+    boolean result;
+    String message = "Invalid code " + preposition + " " + getRewriterId();
+    try {
+      result = ssa ? code.isConsistentSSA(appView) : code.isConsistentGraph(appView, false);
+    } catch (AssertionError ae) {
+      throw new AssertionError(message, ae);
+    }
+    assert result : message;
+    return true;
   }
 
   protected CodeRewriterResult noChange() {
@@ -72,7 +79,7 @@ public abstract class CodeRewriterPass<T extends AppInfo> {
     return options.debug || context.getOrComputeReachabilitySensitive(appView);
   }
 
-  protected abstract String getTimingId();
+  protected abstract String getRewriterId();
 
   protected boolean isAcceptingSSA() {
     return true;

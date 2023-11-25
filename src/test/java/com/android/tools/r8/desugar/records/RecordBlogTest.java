@@ -15,7 +15,6 @@ import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableMap;
-import java.nio.file.Path;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import org.junit.Test;
@@ -42,12 +41,12 @@ public class RecordBlogTest extends TestBase {
                   + CLASS
                   + " { <fields>; }",
               "a[name=%s]")
+          .put("-keep class " + CLASS + " { <fields>; }", "RecordBlog$Person[name=%s, age=42]")
           .put(
               "-keepclassmembers,allowobfuscation,allowoptimization class "
                   + CLASS
                   + " { <fields>; }",
               "a[a=%s, b=42]")
-          .put("-keep class " + CLASS + " { <fields>; }", "RecordBlog$Person[name=%s, age=42]")
           .build();
 
   @Parameter(0)
@@ -83,14 +82,17 @@ public class RecordBlogTest extends TestBase {
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters)
         .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(computeOutput(REFERENCE_OUTPUT_FORMAT));
+        .applyIf(
+            isRecordsDesugaredForD8(parameters)
+                || runtimeWithRecordsSupport(parameters.getRuntime()),
+            r -> r.assertSuccessWithOutput(computeOutput(REFERENCE_OUTPUT_FORMAT)),
+            r -> r.assertFailureWithErrorThatThrows(ClassNotFoundException.class));
   }
 
   @Test
   public void testR8() throws Exception {
     parameters.assumeR8TestParameters();
     assumeTrue(parameters.isDexRuntime() || isCfRuntimeWithNativeRecordSupport());
-    Path[] jdk15LibraryFiles = RecordTestUtils.getJdk15LibraryFiles(temp);
     Map<String, String> results = new IdentityHashMap<>();
     KEEP_RULE_TO_OUTPUT_FORMAT.forEach(
         (kr, outputFormat) -> {
@@ -105,7 +107,7 @@ public class RecordBlogTest extends TestBase {
             if (parameters.isCfRuntime()) {
               res =
                   builder
-                      .addLibraryFiles(jdk15LibraryFiles)
+                      .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
                       .run(parameters.getRuntime(), MAIN_TYPE)
                       .getStdOut();
             } else {

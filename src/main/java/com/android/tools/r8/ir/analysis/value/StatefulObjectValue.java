@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.lens.GraphLens;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -51,7 +52,7 @@ public class StatefulObjectValue extends AbstractValue {
 
   @Override
   public AbstractValue rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
+      AppView<AppInfoWithLiveness> appView, DexType newType, GraphLens lens, GraphLens codeLens) {
     return create(getObjectState().rewrittenWithLens(appView, lens, codeLens));
   }
 
@@ -71,6 +72,7 @@ public class StatefulObjectValue extends AbstractValue {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object o) {
     if (o == this) {
       return true;

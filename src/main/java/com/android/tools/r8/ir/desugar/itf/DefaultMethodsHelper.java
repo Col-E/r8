@@ -39,6 +39,7 @@ final class DefaultMethodsHelper {
       this.hidden = hidden;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     // If there is just one live method having specified
     // signature return it, otherwise return null.
     DexMethod getSingleCandidate(DexMethod method) {

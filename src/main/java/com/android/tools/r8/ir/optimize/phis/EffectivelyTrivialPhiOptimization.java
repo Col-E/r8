@@ -17,10 +17,11 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.MaterializingInstructionsInfo;
 import com.android.tools.r8.ir.code.Phi;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.AffectedValues;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
@@ -80,9 +81,9 @@ public class EffectivelyTrivialPhiOptimization {
     // Otherwise all phis can be replaced by the operand value. If we found only a single non-phi
     // operand value then this is guaranteed to dominate all phis. Otherwise we try to materialize
     // the abstract value in a position that dominates all phis.
-    Value replacement;
+    Value replacementValue;
     if (singleValueOrValue.hasValue()) {
-      replacement = singleValueOrValue.getValue();
+      replacementValue = singleValueOrValue.getValue();
     } else {
       assert singleValueOrValue.hasSingleValue();
       SingleValue singleValue = singleValueOrValue.getSingleValue();
@@ -93,7 +94,9 @@ public class EffectivelyTrivialPhiOptimization {
       // Insert materializing instruction.
       TypeElement phiType = phi.getType();
       TypeElement materializedValueType = phiType;
-      if (singleValue.isSingleFieldValue()) {
+      if (singleValue.isSingleBoxedPrimitive()) {
+        materializedValueType = singleValue.asSingleBoxedPrimitive().getBoxedPrimitiveType(appView);
+      } else if (singleValue.isSingleFieldValue()) {
         SingleFieldValue singleFieldValue = singleValue.asSingleFieldValue();
         materializedValueType = singleFieldValue.getField().getTypeElement(appView);
       } else if (phiType.isReferenceType() && singleValue.isNull()) {
@@ -102,12 +105,15 @@ public class EffectivelyTrivialPhiOptimization {
         assert phiType.isPrimitiveType() || phiType.isNullType() || phiType.isDefinitelyNotNull()
             : singleValue + ": " + phiType;
       }
-      Instruction materializingInstruction =
-          singleValue.createMaterializingInstruction(
-              appView, code, TypeAndLocalInfoSupplier.create(materializedValueType));
-      materializingInstruction.setPosition(code.getEntryPosition(), appView.options());
-      entryBlockIterator.add(materializingInstruction);
-      replacement = materializingInstruction.outValue();
+      Instruction[] materializingInstructions =
+          singleValue.createMaterializingInstructions(
+              appView,
+              code,
+              MaterializingInstructionsInfo.create(
+                  materializedValueType, null, code.getEntryPosition()));
+      entryBlockIterator.addAll(materializingInstructions);
+      Instruction replacement = ArrayUtils.last(materializingInstructions);
+      replacementValue = replacement.outValue();
 
       // Insert assume-not-null instruction.
       if (materializedValueType.isReferenceType()
@@ -117,13 +123,13 @@ public class EffectivelyTrivialPhiOptimization {
             Assume.create(
                 DynamicType.definitelyNotNull(),
                 code.createValue(phiType),
+                replacementValue,
                 replacement,
-                materializingInstruction,
                 appView,
                 code.context());
-        assume.setPosition(materializingInstruction.getPosition(), appView.options());
+        assume.setPosition(code.getEntryPosition(), appView.options());
         entryBlockIterator.add(assume);
-        replacement = assume.outValue();
+        replacementValue = assume.outValue();
       }
     }
 
@@ -137,7 +143,7 @@ public class EffectivelyTrivialPhiOptimization {
     // Replace all uses of the phis by the replacement. This is done after detaching the phis from
     // the graph to make sure that we don't add one of the phis as a user of the replacement value.
     for (Phi seenPhi : singleValueOrValue.getPhis()) {
-      seenPhi.replaceUsers(replacement, affectedValues);
+      seenPhi.replaceUsers(replacementValue, affectedValues);
     }
   }
 

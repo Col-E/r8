@@ -18,6 +18,7 @@ public class InvalidCode extends Code {
     return INSTANCE;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public static boolean isInvalidCode(Code code) {
     return code == INSTANCE;
   }

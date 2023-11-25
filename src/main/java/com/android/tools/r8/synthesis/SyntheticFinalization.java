@@ -123,11 +123,13 @@ public class SyntheticFinalization {
       return false;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     void move(DexType from, DexType to) {
       DexType old = typeMap.put(from, to);
       assert old == null || old == to;
     }
 
+    @SuppressWarnings("ReferenceEquality")
     void move(DexField from, DexField to) {
       DexField old = fieldMap.put(from, to);
       assert old == null || old == to;
@@ -145,6 +147,7 @@ public class SyntheticFinalization {
       methodMap.setRepresentative(method, representative);
     }
 
+    @SuppressWarnings("UnusedVariable")
     SyntheticFinalizationGraphLens build(AppView<?> appView) {
       if (typeMap.isEmpty() && fieldMap.isEmpty() && methodMap.isEmpty()) {
         return null;
@@ -153,13 +156,10 @@ public class SyntheticFinalization {
     }
   }
 
-  private final InternalOptions options;
   private final SyntheticItems synthetics;
   private final CommittedSyntheticsCollection committed;
 
-  SyntheticFinalization(
-      InternalOptions options, SyntheticItems synthetics, CommittedSyntheticsCollection committed) {
-    this.options = options;
+  SyntheticFinalization(SyntheticItems synthetics, CommittedSyntheticsCollection committed) {
     this.synthetics = synthetics;
     this.committed = committed;
   }
@@ -654,6 +654,7 @@ public class SyntheticFinalization {
     return equivalences;
   }
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   private <T extends SyntheticDefinition<?, T, ?>> int compareForFinalGroupSorting(
       EquivalenceGroup<T> a, EquivalenceGroup<T> b) {
     // Sort the equivalence groups based on the representative types. The representatives are
@@ -665,6 +666,7 @@ public class SyntheticFinalization {
         .compareTo(b.getRepresentative().getHolder().getType());
   }
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   private static <T extends SyntheticDefinition<?, T, ?>> List<EquivalenceGroup<T>> groupEquivalent(
       AppView<?> appView,
       List<T> potentialEquivalence,
@@ -803,6 +805,7 @@ public class SyntheticFinalization {
     return true;
   }
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   private DexType createExternalType(
       SyntheticKind kind,
       String externalSyntheticTypePrefix,
@@ -834,6 +837,7 @@ public class SyntheticFinalization {
     return externalType;
   }
 
+  @SuppressWarnings("MixedMutabilityReturnType")
   private static <T extends SyntheticDefinition<?, T, ?>>
       Collection<List<T>> computePotentialEquivalences(
           Map<DexType, T> definitions,

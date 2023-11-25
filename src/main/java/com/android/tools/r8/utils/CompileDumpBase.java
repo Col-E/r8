@@ -154,6 +154,7 @@ public class CompileDumpBase {
     return true;
   }
 
+  @SuppressWarnings({"CatchAndPrintStackTrace", "DefaultCharset"})
   // We cannot use StringResource since this class is added to the class path and has access only
   // to the public APIs.
   static String readAllBytesJava7(Path filePath) {

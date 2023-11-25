@@ -32,6 +32,7 @@ public class DexEncodedArray extends DexItem {
   }
 
   @Override
+  @SuppressWarnings("UnnecessaryParentheses")
   public boolean equals(Object o) {
     if (o == this) {
       return true;

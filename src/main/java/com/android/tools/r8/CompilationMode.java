@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
+
 /** Compilation mode. */
-@Keep
+@KeepForApi
 public enum CompilationMode {
   /** Preserves debugging information during compilation, eg, line-numbers and locals. */
   DEBUG,

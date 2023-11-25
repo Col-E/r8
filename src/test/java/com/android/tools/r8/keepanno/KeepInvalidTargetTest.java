@@ -80,6 +80,22 @@ public class KeepInvalidTargetTest extends TestBase {
   }
 
   @Test
+  public void testInvalidClassDeclWithBinding() {
+    assertThrowsWith(
+        () -> extractRuleForClass(BindingAndClassDeclarations.class),
+        allOf(containsString("class binding"), containsString("class patterns")));
+  }
+
+  static class BindingAndClassDeclarations {
+
+    // Both properties are using the "default" value of an empty string, but should still fail.
+    @UsesReflection({@KeepTarget(classFromBinding = "", className = "")})
+    public static void main(String[] args) {
+      System.out.println("Hello, world");
+    }
+  }
+
+  @Test
   public void testInvalidExtendsDecl() {
     assertThrowsWith(
         () -> extractRuleForClass(MultipleExtendsDeclarations.class),

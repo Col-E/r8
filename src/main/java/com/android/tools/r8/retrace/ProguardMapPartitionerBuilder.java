@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.Keep;
+import com.android.tools.r8.keepanno.annotations.KeepForApi;
 import java.util.function.Consumer;
 
-@Keep
+@KeepForApi
 public interface ProguardMapPartitionerBuilder<
     B extends ProguardMapPartitionerBuilder<B, P>, P extends ProguardMapPartitioner> {
 

@@ -183,6 +183,7 @@ public class GeneratedExtensionRegistryShrinker {
                 methodProcessor,
                 methodProcessingContext,
                 MethodConversionOptions.forLirPhase(appView)),
+        appView.options().getThreadingModule(),
         executorService);
     timing.end();
   }
@@ -253,6 +254,7 @@ public class GeneratedExtensionRegistryShrinker {
     return field != null && isDeadProtoExtensionField(field, fieldAccessInfoCollection, keepInfo);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isDeadProtoExtensionField(
       ProgramField field,
       FieldAccessInfoCollection<?> fieldAccessInfoCollection,

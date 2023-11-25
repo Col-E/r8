@@ -12,6 +12,7 @@ public class NoReturnTypeStrengtheningRule extends ProguardConfigurationRule {
 
   public static final String RULE_NAME = "noreturntypestrengthening";
 
+  @SuppressWarnings("NonCanonicalType")
   public static class Builder
       extends ProguardConfigurationRule.Builder<NoReturnTypeStrengtheningRule, Builder> {
 

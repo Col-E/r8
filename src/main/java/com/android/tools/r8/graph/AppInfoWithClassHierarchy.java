@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.TraversalContinuation.doBreak;
 import static com.android.tools.r8.utils.TraversalContinuation.doContinue;
 
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
-import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection.Builder;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
@@ -93,11 +92,6 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public final AppInfoWithClassHierarchy rebuildWithClassHierarchy(CommittedItems commit) {
     return new AppInfoWithClassHierarchy(
         commit, getClassToFeatureSplitMap(), getMainDexInfo(), getMissingClasses());
-  }
-
-  public void notifyHorizontalClassMergerFinished(
-      HorizontalClassMerger.Mode horizontalClassMergerMode) {
-    // Intentionally empty.
   }
 
   public void notifyMinifierFinished() {
@@ -270,6 +264,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         });
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isSubtype(DexType subtype, DexType supertype) {
     assert subtype != null;
     assert supertype != null;
@@ -278,6 +273,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return subtype == supertype || isStrictSubtypeOf(subtype, supertype);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isStrictSubtypeOf(DexType subtype, DexType supertype) {
     assert subtype != null;
     assert supertype != null;
@@ -313,6 +309,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         : isSubtypeOfClass(subclass, superclass);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isSubtypeOfClass(DexClass subclass, DexClass superclass) {
     assert subclass != null;
     assert superclass != null;
@@ -323,6 +320,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return subclass == superclass || isStrictSubtypeOfClass(subclass, superclass);
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isStrictSubtypeOfClass(DexClass subclass, DexClass superclass) {
     assert subclass != null;
     assert superclass != null;
@@ -372,6 +370,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   /** Collect all interfaces that this type directly or indirectly implements. */
+  @SuppressWarnings({"BadImport", "ReferenceEquality"})
   public InterfaceCollection implementedInterfaces(DexType type) {
     assert type.isClassType();
     DexClass clazz = definitionFor(type);
@@ -393,6 +392,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     }
     // First find all interface leafs from the class super-type chain.
     Set<DexType> seenAndKnown = Sets.newIdentityHashSet();
+    @SuppressWarnings("ReferenceEquality")
     Deque<Pair<DexClass, Boolean>> worklist = new ArrayDeque<>();
     {
       DexClass implementor = clazz;
@@ -476,6 +476,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return Collections.emptyList();
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private boolean isInterfaceInSuperTypes(
       DexProgramClass clazz, DexType ifaceToFind, WorkList<DexType> workList) {
     workList.addIfNotSeen(clazz.allImmediateSupertypes());
@@ -492,6 +493,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return false;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   private List<DexProgramClass> computeChainInClassHierarchy(
       DexProgramClass subClass, DexType superType) {
     assert isSubtype(subClass.type, superType);
@@ -619,14 +621,14 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @return The actual target for {@code method} or {@code null} if none found.
    */
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexEncodedMethod lookupStaticTarget(
+  public DexClassAndMethod lookupStaticTarget(
       DexMethod method,
       DexProgramClass context,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     return lookupStaticTarget(method, context, appView, appView.appInfo());
   }
 
-  public DexEncodedMethod lookupStaticTarget(
+  public DexClassAndMethod lookupStaticTarget(
       DexMethod method,
       DexProgramClass context,
       AppView<?> appView,
@@ -637,14 +639,14 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexEncodedMethod lookupStaticTarget(
+  public DexClassAndMethod lookupStaticTarget(
       DexMethod method,
       ProgramMethod context,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     return lookupStaticTarget(method, context.getHolder(), appView);
   }
 
-  public DexEncodedMethod lookupStaticTarget(
+  public DexClassAndMethod lookupStaticTarget(
       DexMethod method,
       ProgramMethod context,
       AppView<?> appView,
@@ -705,14 +707,14 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @return The actual target for {@code method} or {@code null} if none found.
    */
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexEncodedMethod lookupDirectTarget(
+  public DexClassAndMethod lookupDirectTarget(
       DexMethod method,
       DexProgramClass context,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     return lookupDirectTarget(method, context, appView, appView.appInfo());
   }
 
-  public DexEncodedMethod lookupDirectTarget(
+  public DexClassAndMethod lookupDirectTarget(
       DexMethod method,
       DexProgramClass context,
       AppView<?> appView,
@@ -723,14 +725,14 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexEncodedMethod lookupDirectTarget(
+  public DexClassAndMethod lookupDirectTarget(
       DexMethod method,
       ProgramMethod context,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     return lookupDirectTarget(method, context, appView, appView.appInfo());
   }
 
-  public DexEncodedMethod lookupDirectTarget(
+  public DexClassAndMethod lookupDirectTarget(
       DexMethod method,
       ProgramMethod context,
       AppView<?> appView,

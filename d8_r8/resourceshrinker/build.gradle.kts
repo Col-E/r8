@@ -16,6 +16,7 @@ java {
   }
   sourceCompatibility = JvmCompatibility.sourceCompatibility
   targetCompatibility = JvmCompatibility.targetCompatibility
+  withSourcesJar()
 }
 
 fun jarDependencies() : FileCollection {
@@ -29,24 +30,20 @@ fun jarDependencies() : FileCollection {
     })
 }
 
-val thirdPartyCompileDependenciesTask = ensureThirdPartyDependencies(
-  "compileDeps",
-  listOf(ThirdPartyDeps.r8))
-
 dependencies {
   compileOnly(Deps.asm)
   compileOnly(Deps.guava)
-  compileOnly(files(getRoot().resolve(ThirdPartyDeps.r8.path).resolve("r8lib_8.2.20-dev.jar")))
+  compileOnly(files(resolve(ThirdPartyDeps.r8, "r8lib_8.2.20-dev.jar")))
   implementation("com.android.tools.build:aapt2-proto:8.2.0-alpha10-10154469")
   implementation("com.google.protobuf:protobuf-java:3.19.3")
-  implementation("com.android.tools.layoutlib:layoutlib-api:31.2.0-alpha10")
-  implementation("com.android.tools:common:31.2.0-alpha10")
-  implementation("com.android.tools:sdk-common:31.2.0-alpha10")
+  implementation("com.android.tools.layoutlib:layoutlib-api:31.2.0-rc01")
+  implementation("com.android.tools:common:31.2.0-rc01")
+  implementation("com.android.tools:sdk-common:31.2.0-rc01")
 }
 
 tasks {
   withType<KotlinCompile> {
-    dependsOn(thirdPartyCompileDependenciesTask)
+    dependsOn(gradle.includedBuild("shared").task(":downloadDeps"))
     kotlinOptions {
       // We cannot use languageVersion.set(JavaLanguageVersion.of(8)) because gradle cannot figure
       // out that the jdk is 1_8 and will try to download it.
