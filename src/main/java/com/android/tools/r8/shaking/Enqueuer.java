@@ -95,7 +95,6 @@ import com.android.tools.r8.graph.analysis.EnqueuerInstanceOfAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerInvokeAnalysis;
 import com.android.tools.r8.graph.analysis.GetArrayOfMissingTypeVerifyErrorWorkaround;
 import com.android.tools.r8.graph.analysis.InvokeVirtualToInterfaceVerifyErrorWorkaround;
-import com.android.tools.r8.graph.analysis.ResourceAccessAnalysis;
 import com.android.tools.r8.ir.analysis.proto.ProtoEnqueuerUseRegistry;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoEnqueuerExtension;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -507,7 +506,6 @@ public class Enqueuer {
       }
       appView.withGeneratedMessageLiteBuilderShrinker(
           shrinker -> registerAnalysis(shrinker.createEnqueuerAnalysis()));
-      ResourceAccessAnalysis.register(appView, this);
     }
 
     targetedMethods = new LiveMethodsSet(graphReporter::registerMethod);

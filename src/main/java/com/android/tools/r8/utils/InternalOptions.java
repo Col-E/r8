@@ -61,7 +61,6 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.analysis.ResourceAccessAnalysis;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
@@ -202,7 +201,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public AndroidResourceConsumer androidResourceConsumer = null;
   public ResourceShrinkerConfiguration resourceShrinkerConfiguration =
       ResourceShrinkerConfiguration.DEFAULT_CONFIGURATION;
-  public ResourceAccessAnalysis resourceAccessAnalysis = null;
 
   public boolean checkIfCancelled() {
     if (cancelCompilationChecker == null) {
